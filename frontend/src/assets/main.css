@@ -1,0 +1,12 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: #f5f6f8;
+}
+
+.finmind-placeholder-card {
+  border: 1px dashed #c7cdd6;
+  background-color: #fbfbfc;
+}

@@ -1,0 +1,41 @@
+services:
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-finmind}
+      MARIADB_USER: ${MARIADB_USER:-finmind}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-finmind}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-finmind_root}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/${GHCR_OWNER:-welersonepora}/finmind-backend:${BACKEND_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      MARIADB_HOST: mariadb
+    expose:
+      - "${APP_PORT:-3000}"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER:-welersonepora}/finmind-frontend:${FRONTEND_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8083}:80"
+    depends_on:
+      - backend
+
+volumes:
+  mariadb_data:
