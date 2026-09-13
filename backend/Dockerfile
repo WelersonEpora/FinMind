@@ -7,6 +7,13 @@ RUN npm ci --omit=dev
 
 COPY --chown=node:node . .
 
+# Cria o diretório do volume de fotos (docker/compose.prod.yml,
+# photo_storage:/app/storage/photos) já com dono "node" ANTES do mount -
+# sem isso, o Docker cria o ponto de montagem como root na primeira vez
+# (o diretório não existe na imagem, é git-ignorado), e o processo
+# (USER node, não-root) não consegue escrever ali.
+RUN mkdir -p storage/photos && chown -R node:node storage
+
 # Identificação de versão (SHA curto + data do commit) - preenchido pelo CI
 # via --build-arg, exposto em GET /api/v1/status. "local" como default
 # cobre build manual/dev, onde ninguém passa o build-arg.
