@@ -20,4 +20,39 @@ async function updateOwnProfile(payload) {
   return data.user
 }
 
-export default { listUsers, createUser, updateUser, updateOwnProfile }
+function photoFormData(file) {
+  const formData = new FormData()
+  formData.append('photo', file)
+  return formData
+}
+
+async function uploadMyPhoto(file) {
+  const { data } = await http.post('/api/v1/users/me/photo', photoFormData(file))
+  return data.user
+}
+
+async function removeMyPhoto() {
+  const { data } = await http.delete('/api/v1/users/me/photo')
+  return data.user
+}
+
+async function uploadUserPhoto(id, file) {
+  const { data } = await http.post(`/api/v1/users/${id}/photo`, photoFormData(file))
+  return data.user
+}
+
+async function removeUserPhoto(id) {
+  const { data } = await http.delete(`/api/v1/users/${id}/photo`)
+  return data.user
+}
+
+export default {
+  listUsers,
+  createUser,
+  updateUser,
+  updateOwnProfile,
+  uploadMyPhoto,
+  removeMyPhoto,
+  uploadUserPhoto,
+  removeUserPhoto
+}

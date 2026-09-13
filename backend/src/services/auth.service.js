@@ -11,7 +11,8 @@ function toSafeUser(user) {
     email: user.email,
     name: user.name,
     role: user.role,
-    active: user.active
+    active: user.active,
+    hasPhoto: Boolean(user.photo_path)
   };
 }
 

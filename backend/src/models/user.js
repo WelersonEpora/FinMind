@@ -29,9 +29,6 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(120),
         allowNull: false
       },
-      // Papel gravado desde já, mas sem enforcement de autorização nesta
-      // fase - nenhuma rota checa `role` ainda (mesmo critério já adotado
-      // no Personal-Assistant, models/membro.js).
       role: {
         type: DataTypes.STRING(20),
         allowNull: false,
@@ -42,6 +39,12 @@ module.exports = (sequelize) => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true
+      },
+      // Nome do arquivo em storage/photos (ver shared/utils/photo-storage.js),
+      // não a imagem em si.
+      photo_path: {
+        type: DataTypes.STRING(255),
+        allowNull: true
       }
     },
     {

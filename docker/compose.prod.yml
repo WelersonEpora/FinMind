@@ -25,6 +25,8 @@ services:
       MARIADB_HOST: mariadb
     expose:
       - "${APP_PORT:-3000}"
+    volumes:
+      - photo_storage:/app/storage/photos
     depends_on:
       mariadb:
         condition: service_healthy
@@ -39,3 +41,4 @@ services:
 
 volumes:
   mariadb_data:
+  photo_storage:

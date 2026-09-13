@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth.js'
 import userService from '../../services/user.service.js'
-import { colorForId, initials } from '../../utils/avatar.js'
+import AppAvatar from '../AppAvatar.vue'
 
 defineProps({
   collapsed: { type: Boolean, default: false }
@@ -23,6 +23,8 @@ const profileModalOpen = ref(false)
 const profileForm = reactive({ name: '', password: '' })
 const profileError = ref('')
 const savingProfile = ref(false)
+const photoInput = ref(null)
+const uploadingPhoto = ref(false)
 
 function openProfileModal() {
   profileError.value = ''
@@ -49,6 +51,41 @@ async function onSaveProfile() {
     profileError.value = err.response?.data?.error?.message || 'Não foi possível salvar seu perfil.'
   } finally {
     savingProfile.value = false
+  }
+}
+
+function selectPhoto() {
+  photoInput.value?.click()
+}
+
+async function onPhotoSelected(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  uploadingPhoto.value = true
+  try {
+    const updated = await userService.uploadMyPhoto(file)
+    auth.updateUser({ hasPhoto: updated.hasPhoto })
+  } catch (_err) {
+    // Mensagem genérica é suficiente aqui - o motivo mais comum é formato
+    // ou tamanho de arquivo inválido, já coberto pelo texto abaixo.
+    profileError.value = 'Não foi possível enviar a foto (use JPEG, PNG ou WebP, até 5MB).'
+  } finally {
+    uploadingPhoto.value = false
+  }
+}
+
+async function removePhoto() {
+  uploadingPhoto.value = true
+  try {
+    const updated = await userService.removeMyPhoto()
+    auth.updateUser({ hasPhoto: updated.hasPhoto })
+  } catch (_err) {
+    // Idem - erro de rede/servidor, mensagem genérica basta.
+    profileError.value = 'Não foi possível remover a foto.'
+  } finally {
+    uploadingPhoto.value = false
   }
 }
 </script>
@@ -78,12 +115,7 @@ async function onSaveProfile() {
       title="Meu perfil"
       @click="openProfileModal"
     >
-      <span
-        class="finmind-avatar sz-sm"
-        :style="{ background: colorForId(auth.state.user?.id) }"
-      >
-        {{ initials(auth.state.user?.name) }}
-      </span>
+      <AppAvatar :user-id="auth.state.user?.id" :name="auth.state.user?.name" :has-photo="auth.state.user?.hasPhoto" size="sm" />
       <span class="navbar-text d-none d-sm-inline">{{ auth.state.user?.name }}</span>
     </button>
     <button class="btn btn-sm btn-outline-secondary" type="button" @click="onLogout">Sair</button>
@@ -100,9 +132,47 @@ async function onSaveProfile() {
             <form @submit.prevent="onSaveProfile">
               <div class="modal-body">
                 <div class="d-flex justify-content-center mb-3">
-                  <span class="finmind-avatar sz-lg" :style="{ background: colorForId(auth.state.user?.id) }">
-                    {{ initials(profileForm.name) }}
-                  </span>
+                  <div class="finmind-avatar-edit">
+                    <AppAvatar
+                      :user-id="auth.state.user?.id"
+                      :name="profileForm.name"
+                      :has-photo="auth.state.user?.hasPhoto"
+                      size="lg"
+                    />
+                    <button
+                      type="button"
+                      class="finmind-avatar-action finmind-avatar-action-add"
+                      title="Trocar foto"
+                      :disabled="uploadingPhoto"
+                      @click="selectPhoto"
+                    >
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 8a2 2 0 012-2h1l1-2h8l1 2h1a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" />
+                        <circle cx="12" cy="12.5" r="3.2" />
+                      </svg>
+                    </button>
+                    <button
+                      v-if="auth.state.user?.hasPhoto"
+                      type="button"
+                      class="finmind-avatar-action finmind-avatar-action-remove"
+                      title="Remover foto"
+                      :disabled="uploadingPhoto"
+                      @click="removePhoto"
+                    >
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0v12a1 1 0 001 1h6a1 1 0 001-1V7" />
+                      </svg>
+                    </button>
+                    <label for="profile-photo-input" class="visually-hidden">Foto de perfil</label>
+                    <input
+                      id="profile-photo-input"
+                      ref="photoInput"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      class="d-none"
+                      @change="onPhotoSelected"
+                    />
+                  </div>
                 </div>
 
                 <div class="mb-3">
@@ -200,5 +270,33 @@ async function onSaveProfile() {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.finmind-avatar-edit {
+  position: relative;
+}
+.finmind-avatar-action {
+  position: absolute;
+  bottom: -4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #dee2e6;
+  background: #fff;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.finmind-avatar-action:hover {
+  background: #f1f3f5;
+}
+.finmind-avatar-action-add {
+  right: -4px;
+}
+.finmind-avatar-action-remove {
+  left: -4px;
 }
 </style>

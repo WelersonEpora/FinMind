@@ -2,6 +2,7 @@
 
 const userRepository = require("../repositories/user.repository");
 const password = require("../shared/utils/password");
+const photoStorage = require("../shared/utils/photo-storage");
 const { toSafeUser } = require("./auth.service");
 const { User } = require("../models");
 const { ValidationError, ConflictError, NotFoundError } = require("../shared/errors");
@@ -160,4 +161,47 @@ async function updateOwnProfile(id, { name, password: plainPassword }, deps = {}
   return toSafeUser(await repo.findById(id));
 }
 
-module.exports = { listUsers, createUser, updateUser, updateOwnProfile };
+async function setPhoto(id, { buffer, mimeType }, deps = {}) {
+  const repo = deps.userRepository || userRepository;
+  const storage = deps.photoStorage || photoStorage;
+
+  const user = await repo.findById(id);
+  if (!user) {
+    throw new NotFoundError("Usuário não encontrado.");
+  }
+  if (!storage.isMimeSupported(mimeType)) {
+    throw new ValidationError("Formato de imagem não suportado - use JPEG, PNG ou WebP.");
+  }
+
+  const fileName = await storage.save({ key: `user-${id}`, buffer, mimeType });
+  await repo.update(user, { photo_path: fileName });
+  return toSafeUser(await repo.findById(id));
+}
+
+async function removePhoto(id, deps = {}) {
+  const repo = deps.userRepository || userRepository;
+  const storage = deps.photoStorage || photoStorage;
+
+  const user = await repo.findById(id);
+  if (!user) {
+    throw new NotFoundError("Usuário não encontrado.");
+  }
+  if (user.photo_path) {
+    await storage.remove(user.photo_path);
+    await repo.update(user, { photo_path: null });
+  }
+  return toSafeUser(await repo.findById(id));
+}
+
+async function getPhoto(id, deps = {}) {
+  const repo = deps.userRepository || userRepository;
+  const storage = deps.photoStorage || photoStorage;
+
+  const user = await repo.findById(id);
+  if (!user?.photo_path) {
+    throw new NotFoundError("Usuário não tem foto cadastrada.");
+  }
+  return storage.read(user.photo_path);
+}
+
+module.exports = { listUsers, createUser, updateUser, updateOwnProfile, setPhoto, removePhoto, getPhoto };

@@ -152,3 +152,59 @@ test("updateOwnProfile ignores role/active even if somehow present in the payloa
   assert.equal(user.role, "colaborador");
   assert.equal(user.active, true);
 });
+
+function makeFakePhotoStorage() {
+  const saved = [];
+  const removed = [];
+  return {
+    isMimeSupported: (mime) => ["image/jpeg", "image/png", "image/webp"].includes(mime),
+    save: async ({ key, mimeType }) => {
+      const fileName = `${key}.jpg`;
+      saved.push({ key, mimeType, fileName });
+      return fileName;
+    },
+    remove: async (fileName) => removed.push(fileName),
+    read: async (_fileName) => ({ buffer: Buffer.from("fake"), mimeType: "image/jpeg" }),
+    _saved: saved,
+    _removed: removed
+  };
+}
+
+test("setPhoto rejects an unsupported mime type", async () => {
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }) });
+  const storage = makeFakePhotoStorage();
+  await assert.rejects(() =>
+    userService.setPhoto("u1", { buffer: Buffer.from("x"), mimeType: "application/pdf" }, { userRepository: repo, photoStorage: storage })
+  );
+});
+
+test("setPhoto saves the file and stores its name on the user", async () => {
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }) });
+  const storage = makeFakePhotoStorage();
+
+  const user = await userService.setPhoto("u1", { buffer: Buffer.from("x"), mimeType: "image/jpeg" }, { userRepository: repo, photoStorage: storage });
+
+  assert.equal(user.hasPhoto, true);
+  assert.equal(storage._saved[0].key, "user-u1");
+});
+
+test("removePhoto deletes the file and clears photo_path", async () => {
+  const repo = makeUpdateRepo({
+    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true, photo_path: "user-u1.jpg" })
+  });
+  const storage = makeFakePhotoStorage();
+
+  const user = await userService.removePhoto("u1", { userRepository: repo, photoStorage: storage });
+
+  assert.equal(user.hasPhoto, false);
+  assert.deepEqual(storage._removed, ["user-u1.jpg"]);
+});
+
+test("removePhoto is a no-op when the user has no photo", async () => {
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }) });
+  const storage = makeFakePhotoStorage();
+
+  await userService.removePhoto("u1", { userRepository: repo, photoStorage: storage });
+
+  assert.deepEqual(storage._removed, []);
+});

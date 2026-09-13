@@ -20,6 +20,7 @@ body {
   color: #fff;
   font-weight: 700;
   flex: none;
+  object-fit: cover;
 }
 .finmind-avatar.sz-sm {
   width: 30px;

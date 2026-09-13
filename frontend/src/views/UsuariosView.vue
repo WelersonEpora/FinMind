@@ -2,7 +2,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import AppShell from '../components/layout/AppShell.vue'
 import userService from '../services/user.service.js'
-import { colorForId, initials } from '../utils/avatar.js'
+import AppAvatar from '../components/AppAvatar.vue'
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -13,6 +13,8 @@ const editingUser = ref(null)
 const form = reactive({ name: '', email: '', password: '', role: 'colaborador', active: true })
 const formError = ref('')
 const submitting = ref(false)
+const photoInput = ref(null)
+const uploadingPhoto = ref(false)
 
 async function loadUsers() {
   loading.value = true
@@ -69,6 +71,44 @@ async function onSubmit() {
   }
 }
 
+function selectPhoto() {
+  photoInput.value?.click()
+}
+
+async function onPhotoSelected(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file || !editingUser.value) return
+
+  uploadingPhoto.value = true
+  try {
+    const updated = await userService.uploadUserPhoto(editingUser.value.id, file)
+    editingUser.value = updated
+    await loadUsers()
+  } catch (_err) {
+    // Mensagem genérica - motivo mais comum é formato/tamanho inválido.
+    formError.value = 'Não foi possível enviar a foto (use JPEG, PNG ou WebP, até 5MB).'
+  } finally {
+    uploadingPhoto.value = false
+  }
+}
+
+async function removePhoto() {
+  if (!editingUser.value) return
+
+  uploadingPhoto.value = true
+  try {
+    const updated = await userService.removeUserPhoto(editingUser.value.id)
+    editingUser.value = updated
+    await loadUsers()
+  } catch (_err) {
+    // Erro de rede/servidor - mensagem genérica basta.
+    formError.value = 'Não foi possível remover a foto.'
+  } finally {
+    uploadingPhoto.value = false
+  }
+}
+
 onMounted(loadUsers)
 </script>
 
@@ -98,9 +138,7 @@ onMounted(loadUsers)
             <tr v-for="user in users" :key="user.id">
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  <span class="finmind-avatar sz-sm" :style="{ background: colorForId(user.id) }">
-                    {{ initials(user.name) }}
-                  </span>
+                  <AppAvatar :user-id="user.id" :name="user.name" :has-photo="user.hasPhoto" size="sm" />
                   {{ user.name }}
                 </div>
               </td>
@@ -139,13 +177,48 @@ onMounted(loadUsers)
             <form @submit.prevent="onSubmit">
               <div class="modal-body">
                 <div class="d-flex justify-content-center mb-3">
-                  <span
-                    class="finmind-avatar sz-lg"
-                    :style="{ background: colorForId(editingUser?.id) }"
-                  >
-                    {{ initials(form.name) }}
-                  </span>
+                  <div class="finmind-avatar-edit">
+                    <AppAvatar :user-id="editingUser?.id" :name="form.name" :has-photo="editingUser?.hasPhoto" size="lg" />
+                    <template v-if="editingUser">
+                      <button
+                        type="button"
+                        class="finmind-avatar-action finmind-avatar-action-add"
+                        title="Trocar foto"
+                        :disabled="uploadingPhoto"
+                        @click="selectPhoto"
+                      >
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M4 8a2 2 0 012-2h1l1-2h8l1 2h1a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" />
+                          <circle cx="12" cy="12.5" r="3.2" />
+                        </svg>
+                      </button>
+                      <button
+                        v-if="editingUser.hasPhoto"
+                        type="button"
+                        class="finmind-avatar-action finmind-avatar-action-remove"
+                        title="Remover foto"
+                        :disabled="uploadingPhoto"
+                        @click="removePhoto"
+                      >
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0v12a1 1 0 001 1h6a1 1 0 001-1V7" />
+                        </svg>
+                      </button>
+                      <label for="user-photo-input" class="visually-hidden">Foto do usuário</label>
+                      <input
+                        id="user-photo-input"
+                        ref="photoInput"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        class="d-none"
+                        @change="onPhotoSelected"
+                      />
+                    </template>
+                  </div>
                 </div>
+                <p v-if="!editingUser" class="text-muted small text-center mb-3">
+                  A foto pode ser adicionada depois de criar o usuário.
+                </p>
 
                 <div class="mb-3">
                   <label for="user-name" class="form-label">Nome</label>
@@ -213,5 +286,33 @@ onMounted(loadUsers)
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.finmind-avatar-edit {
+  position: relative;
+}
+.finmind-avatar-action {
+  position: absolute;
+  bottom: -4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #dee2e6;
+  background: #fff;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.finmind-avatar-action:hover {
+  background: #f1f3f5;
+}
+.finmind-avatar-action-add {
+  right: -4px;
+}
+.finmind-avatar-action-remove {
+  left: -4px;
 }
 </style>

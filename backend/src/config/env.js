@@ -35,5 +35,9 @@ module.exports = {
   // Cookie de sessão só é marcado Secure em produção (precisa de HTTPS) -
   // em dev local (http://localhost) o navegador descartaria um cookie
   // Secure e o login pareceria "quebrado" sem motivo aparente.
-  cookieSecure: (process.env.NODE_ENV || "development") === "production"
+  cookieSecure: (process.env.NODE_ENV || "development") === "production",
+  // Foto de avatar - disco local (volume Docker em produção, ver
+  // docker/compose.prod.yml), nunca servido como estático público - só
+  // lido atrás de autenticação (ver photo-storage.js).
+  photoStorageDir: process.env.PHOTO_STORAGE_DIR || "storage/photos"
 };

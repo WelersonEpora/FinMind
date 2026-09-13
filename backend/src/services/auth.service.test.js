@@ -35,7 +35,8 @@ test("login returns a token and the safe user on valid credentials", async () =>
     email: "admin@finmind.local",
     name: "Administrador",
     role: "owner",
-    active: true
+    active: true,
+    hasPhoto: false
   });
 });
 
