@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import ComoFuncionaView from '../views/ComoFuncionaView.vue'
 import ConfiguracaoView from '../views/ConfiguracaoView.vue'
 import UsuariosView from '../views/UsuariosView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
@@ -11,6 +12,7 @@ const router = createRouter({
   routes: [
     { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
     { path: '/', name: 'dashboard', component: DashboardView },
+    { path: '/como-funciona', name: 'como-funciona', component: ComoFuncionaView },
     { path: '/configuracao', name: 'configuracao', component: ConfiguracaoView },
     { path: '/usuarios', name: 'usuarios', component: UsuariosView, meta: { requiresOwner: true } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView, meta: { public: true } }

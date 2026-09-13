@@ -91,22 +91,25 @@ async function removePhoto() {
 </script>
 
 <template>
-  <header class="finmind-topbar navbar navbar-light bg-white border-bottom px-3">
+  <header class="finmind-topbar navbar navbar-dark bg-dark px-3">
     <button
       class="finmind-icon-btn"
       type="button"
       :aria-label="collapsed ? 'Expandir menu' : 'Recolher menu'"
       @click="emit('toggle-menu')"
     >
-      <span class="finmind-hamburger"><span></span><span></span><span></span></span>
+      <i class="bi bi-list"></i>
     </button>
 
     <div class="d-flex align-items-center gap-2 ms-2">
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
-        <rect x="1" y="1" width="22" height="22" rx="6" fill="#1B3A6B" />
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" class="flex-shrink-0">
+        <rect x="1" y="1" width="22" height="22" rx="6" fill="#2C4A75" />
         <path d="M6 15l4-4 3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
       </svg>
-      <span class="fw-bold">FinMind</span>
+      <div class="lh-sm">
+        <div class="fw-bold text-white finmind-brand-title">FinMind</div>
+        <div class="finmind-tagline text-uppercase">Inteligência para decisões reais</div>
+      </div>
     </div>
 
     <button
@@ -118,7 +121,7 @@ async function removePhoto() {
       <AppAvatar :user-id="auth.state.user?.id" :name="auth.state.user?.name" :has-photo="auth.state.user?.hasPhoto" size="sm" />
       <span class="navbar-text d-none d-sm-inline">{{ auth.state.user?.name }}</span>
     </button>
-    <button class="btn btn-sm btn-outline-secondary" type="button" @click="onLogout">Sair</button>
+    <button class="btn btn-sm btn-outline-light" type="button" @click="onLogout">Sair</button>
 
     <div v-if="profileModalOpen" class="finmind-modal-backdrop" @click.self="closeProfileModal">
       <div class="modal d-block" tabindex="-1" role="dialog">
@@ -146,10 +149,7 @@ async function removePhoto() {
                       :disabled="uploadingPhoto"
                       @click="selectPhoto"
                     >
-                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 8a2 2 0 012-2h1l1-2h8l1 2h1a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" />
-                        <circle cx="12" cy="12.5" r="3.2" />
-                      </svg>
+                      <i class="bi bi-camera"></i>
                     </button>
                     <button
                       v-if="auth.state.user?.hasPhoto"
@@ -159,9 +159,7 @@ async function removePhoto() {
                       :disabled="uploadingPhoto"
                       @click="removePhoto"
                     >
-                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-8 0v12a1 1 0 001 1h6a1 1 0 001-1V7" />
-                      </svg>
+                      <i class="bi bi-trash"></i>
                     </button>
                     <label for="profile-photo-input" class="visually-hidden">Foto de perfil</label>
                     <input
@@ -223,6 +221,7 @@ async function removePhoto() {
   position: sticky;
   top: 0;
   z-index: 1030;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .finmind-icon-btn {
@@ -234,32 +233,32 @@ async function removePhoto() {
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: #495057;
+  color: #e9ecef;
+  font-size: 1.3rem;
   cursor: pointer;
   flex-shrink: 0;
 }
 .finmind-icon-btn:hover {
-  background: #f1f3f5;
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.finmind-hamburger {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: 16px;
+.finmind-brand-title {
+  font-size: 1.15rem;
 }
-.finmind-hamburger span {
-  height: 2px;
-  background: currentColor;
-  border-radius: 1px;
+
+.finmind-tagline {
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+  color: #adb5bd;
 }
 
 .finmind-profile-btn {
   border: none;
   background: transparent;
+  color: #fff;
 }
 .finmind-profile-btn:hover {
-  background: #f1f3f5;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .finmind-modal-backdrop {
@@ -288,6 +287,7 @@ async function removePhoto() {
   align-items: center;
   justify-content: center;
   padding: 0;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .finmind-avatar-action:hover {

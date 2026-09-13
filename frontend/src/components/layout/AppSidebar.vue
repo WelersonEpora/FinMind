@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useAuthStore } from '../../stores/auth.js'
+import { version as appVersion } from '../../../package.json'
 
 defineProps({
   collapsed: { type: Boolean, default: false },
@@ -12,18 +13,15 @@ const emit = defineEmits(['navigate'])
 const auth = useAuthStore()
 
 const links = [
-  {
-    to: '/',
-    label: 'Dashboard',
-    icon: 'M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z'
-  }
+  { to: '/', label: 'Dashboard', icon: 'bi-grid-1x2-fill' },
+  { to: '/como-funciona', label: 'Como funciona', icon: 'bi-question-circle' }
 ]
 
 const futureLinks = [
-  { label: 'Ativos', icon: 'M4.5 6a1 1 0 100 2 1 1 0 000-2zM9 6h11M4.5 12a1 1 0 100 2 1 1 0 000-2zM9 12h11M4.5 18a1 1 0 100 2 1 1 0 000-2zM9 18h11' },
-  { label: 'Análises', icon: 'M5 19V13M12 19V8M19 19V4' },
-  { label: 'Sinais', icon: 'M6 10a6 6 0 0112 0c0 4 1.5 5.5 1.5 5.5h-15S6 14 6 10zM10 18.5a2 2 0 004 0' },
-  { label: 'Resultados', icon: 'M7 3h7l4 4v14a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1zM14 3v4h4' }
+  { label: 'Ativos', icon: 'bi-briefcase' },
+  { label: 'Análises', icon: 'bi-bar-chart-line' },
+  { label: 'Sinais', icon: 'bi-broadcast' },
+  { label: 'Resultados', icon: 'bi-file-earmark-text' }
 ]
 
 // Grupo "Sistema" - sempre por último no menu. Usuários só aparece pra
@@ -33,18 +31,10 @@ const systemLinks = computed(() => {
   const items = []
 
   if (auth.state.user?.role === 'owner') {
-    items.push({
-      to: '/usuarios',
-      label: 'Usuários',
-      icon: 'M9 11a3 3 0 100-6 3 3 0 000 6zM3 20c0-3 2.5-5 6-5s6 2 6 5M17 11a3 3 0 100-6M17.5 15c2 .3 3.5 1.8 3.5 5'
-    })
+    items.push({ to: '/usuarios', label: 'Usuários', icon: 'bi-people' })
   }
 
-  items.push({
-    to: '/configuracao',
-    label: 'Configuração',
-    icon: 'M4 6h16M4 6a2 2 0 104 0 2 2 0 00-4 0zm16 6H4m16 0a2 2 0 11-4 0 2 2 0 014 0zM4 18h16m-16 0a2 2 0 104 0 2 2 0 00-4 0z'
-  })
+  items.push({ to: '/configuracao', label: 'Configuração', icon: 'bi-sliders' })
 
   return items
 })
@@ -64,9 +54,7 @@ const systemLinks = computed(() => {
           :title="link.label"
           @click="emit('navigate')"
         >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
-            <path :d="link.icon" />
-          </svg>
+          <i class="bi flex-shrink-0 finmind-nav-icon" :class="link.icon"></i>
           <span class="finmind-nav-label">{{ link.label }}</span>
         </router-link>
       </li>
@@ -79,9 +67,7 @@ const systemLinks = computed(() => {
           class="nav-link text-secondary disabled d-flex align-items-center gap-2"
           :title="`${item.label} — aguardando definições do especialista`"
         >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
-            <path :d="item.icon" />
-          </svg>
+          <i class="bi flex-shrink-0 finmind-nav-icon" :class="item.icon"></i>
           <span class="finmind-nav-label">{{ item.label }}</span>
         </span>
       </li>
@@ -89,7 +75,7 @@ const systemLinks = computed(() => {
 
     <div class="mt-auto">
       <div class="finmind-group-label px-3 py-2 text-uppercase text-secondary small">Sistema</div>
-      <ul class="nav flex-column p-2">
+      <ul class="nav nav-pills flex-column p-2">
         <li v-for="link in systemLinks" :key="link.to" class="nav-item">
           <router-link
             :to="link.to"
@@ -98,13 +84,15 @@ const systemLinks = computed(() => {
             :title="link.label"
             @click="emit('navigate')"
           >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
-              <path :d="link.icon" />
-            </svg>
+            <i class="bi flex-shrink-0 finmind-nav-icon" :class="link.icon"></i>
             <span class="finmind-nav-label">{{ link.label }}</span>
           </router-link>
         </li>
       </ul>
+
+      <div class="finmind-sidebar-footer px-3 py-2 text-secondary small">
+        <span class="finmind-nav-label">FinMind v{{ appVersion }}</span>
+      </div>
     </div>
   </nav>
 </template>
@@ -115,11 +103,26 @@ const systemLinks = computed(() => {
   width: 240px;
   position: sticky;
   top: 64px;
-  align-self: start;
+  align-self: stretch;
+  min-height: calc(100vh - 64px);
   max-height: calc(100vh - 64px);
   overflow-y: auto;
   overflow-x: hidden;
   transition: width 0.18s ease;
+}
+
+.finmind-sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.finmind-nav-icon {
+  font-size: 1.1rem;
+  width: 18px;
+  text-align: center;
+}
+
+.finmind-sidebar .nav-pills .nav-link.active {
+  background-color: #2C4A75;
 }
 
 .finmind-sidebar-collapsed {
