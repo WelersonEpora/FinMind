@@ -33,11 +33,21 @@ async function fetchCurrentUser() {
   }
 }
 
+// Atualiza o usuário em memória depois de uma edição de perfil (ver
+// UsuariosView/AppTopbar) - evita precisar deslogar/logar de novo só pra
+// refletir o nome novo na topbar/sidebar.
+function updateUser(patch) {
+  if (state.user) {
+    Object.assign(state.user, patch)
+  }
+}
+
 export function useAuthStore() {
   return {
     state: readonly(state),
     login,
     logout,
-    fetchCurrentUser
+    fetchCurrentUser,
+    updateUser
   }
 }

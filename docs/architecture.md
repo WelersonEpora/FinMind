@@ -46,7 +46,7 @@ FinMind/
       ai/                     # contrato de provedor de IA (placeholder)
     database/
       migrations/             # fonte da verdade do schema
-      seeders/                # roles + usuário admin inicial
+      seeders/                # usuário admin inicial (papel owner)
   frontend/
     src/
       router/                  # rotas + guarda de autenticação

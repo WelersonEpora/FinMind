@@ -52,7 +52,7 @@ Sobe MariaDB (`localhost:${MARIADB_PORT}`) e phpMyAdmin
 cd backend
 npm install
 npm run db:migrate
-npm run db:seed      # cria os papéis (admin/viewer) e o usuário administrador inicial
+npm run db:seed      # cria o usuário administrador inicial (papel owner)
 npm run dev
 ```
 
@@ -108,7 +108,11 @@ primeiro deploy automático.
 - Autenticação (login/logout, sessão via cookie JWT httpOnly, rotas
   protegidas, rate limit no login, usuário administrador inicial
   configurável por variável de ambiente).
-- Papéis (admin/viewer) — sem gestão de permissões granular ainda.
+- Papéis (`owner`/`colaborador`, coluna simples em `user`) e gestão de
+  usuários (`/usuarios`, só para `owner`) — criar e listar usuários;
+  sem edição/desativação nem permissões granulares ainda. Sem
+  cadastro público: só um `owner` autenticado cria novos usuários, pela
+  tela ou por `backend/scripts/create-user.js`.
 - Dashboard inicial com cartões placeholder explícitos (nenhum dado de
   mercado fictício).
 - Tela de configuração/status dos módulos (`/configuracao`).
@@ -130,11 +134,6 @@ ordens. Nenhum desses itens foi decidido ou simulado nesta entrega.
 ## O que ainda depende de decisão operacional (não bloqueado pelo
 David)
 
-- Configurar os secrets do GitHub Actions no repositório FinMind
-  (`ORACLE_HOST`, `ORACLE_USER`, `ORACLE_SSH_KEY`, `GHCR_PAT`,
-  `GHCR_USERNAME`) e o bootstrap único de `/opt/apps/finmind/app` na
-  VM — ver `docs/architecture.md` § "Deploy". Sem isso, `deploy.yml`
-  builda e publica as imagens normalmente, mas o passo de SSH falha.
 - Gestão de permissões granular, se/quando surgir necessidade real além
-  de admin/viewer.
+  de owner/colaborador.
 - Refresh token / renovação de sessão, se o uso justificar.

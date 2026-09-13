@@ -3,6 +3,8 @@
 const { DataTypes } = require("sequelize");
 const { randomUUID } = require("node:crypto");
 
+const ROLES = ["owner", "colaborador"];
+
 module.exports = (sequelize) => {
   const User = sequelize.define(
     "User",
@@ -27,9 +29,14 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(120),
         allowNull: false
       },
-      role_id: {
-        type: DataTypes.UUID,
-        allowNull: false
+      // Papel gravado desde já, mas sem enforcement de autorização nesta
+      // fase - nenhuma rota checa `role` ainda (mesmo critério já adotado
+      // no Personal-Assistant, models/membro.js).
+      role: {
+        type: DataTypes.STRING(20),
+        allowNull: false,
+        defaultValue: "colaborador",
+        validate: { isIn: [ROLES] }
       },
       active: {
         type: DataTypes.BOOLEAN,
@@ -46,9 +53,7 @@ module.exports = (sequelize) => {
     }
   );
 
-  User.associate = (models) => {
-    User.belongsTo(models.Role, { foreignKey: "role_id", as: "role" });
-  };
+  User.ROLE = Object.fromEntries(ROLES.map((role) => [role.toUpperCase(), role]));
 
   return User;
 };

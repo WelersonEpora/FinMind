@@ -10,7 +10,8 @@ function toSafeUser(user) {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role.name
+    role: user.role,
+    active: user.active
   };
 }
 

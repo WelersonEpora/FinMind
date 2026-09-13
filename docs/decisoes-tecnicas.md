@@ -33,12 +33,18 @@ mesma convenção usada no AgroMind (Postgres), adaptada.
 
 ## Papéis e permissões
 
-Tabela `role` (seed: `admin`, `viewer`) + `user.role_id` (FK simples).
-Não existe tabela de permissões granulares nesta fase — não há
-funcionalidade real ainda que precise diferenciar permissões além de
-admin/viewer. Quando houver necessidade real, o caminho natural é uma
-tabela `permission` + tabela de junção `role_permission`, sem alterar o
-que já existe.
+Coluna `role` (string, `owner` / `colaborador`) direto em `user` — sem
+tabela `role` separada (a versão inicial tinha uma tabela + FK; trocada
+por essa coluna simples, ver migration
+`20260913100000-simplify-user-role-to-column.js`). Mesmo padrão já
+usado no Personal-Assistant (`models/membro.js`): papel gravado desde
+já, mas **sem enforcement de autorização nesta fase** — nenhuma rota
+checa `role` ainda (`require-role.js` existe como middleware genérico,
+pronto pra uso, mas não está aplicado em nenhuma rota hoje). Uma tabela
+com FK não paga o próprio custo enquanto não houver essa checagem.
+Quando houver necessidade real de permissões granulares, o caminho
+natural é uma tabela `permission` + junção `role_permission`, sem
+alterar o que já existe.
 
 ## Usuário administrador inicial
 

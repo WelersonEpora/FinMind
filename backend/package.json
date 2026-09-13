@@ -12,7 +12,8 @@
     "db:migrate": "sequelize-cli db:migrate --config sequelize.config.js",
     "db:migrate:undo": "sequelize-cli db:migrate:undo --config sequelize.config.js",
     "db:seed": "sequelize-cli db:seed:all --config sequelize.config.js",
-    "db:seed:undo": "sequelize-cli db:seed:undo:all --config sequelize.config.js"
+    "db:seed:undo": "sequelize-cli db:seed:undo:all --config sequelize.config.js",
+    "users:create": "node scripts/create-user.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

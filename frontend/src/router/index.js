@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth.js'
 import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import ConfiguracaoView from '../views/ConfiguracaoView.vue'
+import UsuariosView from '../views/UsuariosView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 
 const router = createRouter({
@@ -11,6 +12,7 @@ const router = createRouter({
     { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
     { path: '/', name: 'dashboard', component: DashboardView },
     { path: '/configuracao', name: 'configuracao', component: ConfiguracaoView },
+    { path: '/usuarios', name: 'usuarios', component: UsuariosView, meta: { requiresOwner: true } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView, meta: { public: true } }
   ],
   scrollBehavior() {
@@ -30,6 +32,10 @@ router.beforeEach(async (to) => {
   }
 
   if (to.name === 'login' && auth.state.user) {
+    return { name: 'dashboard' }
+  }
+
+  if (to.meta.requiresOwner && auth.state.user?.role !== 'owner') {
     return { name: 'dashboard' }
   }
 
