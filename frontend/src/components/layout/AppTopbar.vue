@@ -105,7 +105,7 @@ async function removePhoto() {
       <i class="bi bi-bar-chart-fill finmind-logo-badge flex-shrink-0"></i>
       <div class="lh-sm">
         <div class="fw-bold text-white finmind-brand-title">FinMind</div>
-        <div class="finmind-tagline text-uppercase">Inteligência para decisões reais</div>
+        <div class="finmind-tagline text-uppercase d-none d-sm-block">Inteligência para decisões reais</div>
       </div>
     </div>
 
@@ -115,10 +115,13 @@ async function removePhoto() {
       title="Meu perfil"
       @click="openProfileModal"
     >
-      <AppAvatar :user-id="auth.state.user?.id" :name="auth.state.user?.name" :has-photo="auth.state.user?.hasPhoto" size="sm" />
+      <AppAvatar :user-id="auth.state.user?.id" :name="auth.state.user?.name" :has-photo="auth.state.user?.hasPhoto" size="md" />
       <span class="navbar-text d-none d-sm-inline">{{ auth.state.user?.name }}</span>
     </button>
-    <button class="btn btn-sm btn-outline-light" type="button" @click="onLogout">Sair</button>
+    <button class="btn btn-sm btn-outline-light d-flex align-items-center gap-1" type="button" title="Sair" @click="onLogout">
+      <i class="bi bi-box-arrow-right finmind-logout-icon"></i>
+      <span class="d-none d-sm-inline">Sair</span>
+    </button>
 
     <div v-if="profileModalOpen" class="finmind-modal-backdrop" @click.self="closeProfileModal">
       <div class="modal d-block" tabindex="-1" role="dialog">
@@ -252,6 +255,10 @@ async function removePhoto() {
   font-size: 0.65rem;
   letter-spacing: 0.03em;
   color: #adb5bd;
+}
+
+.finmind-logout-icon {
+  font-size: 1.1rem;
 }
 
 .finmind-profile-btn {

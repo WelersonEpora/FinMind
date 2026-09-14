@@ -138,6 +138,11 @@ const systemLinks = computed(() => {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.finmind-group-label {
+  margin-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .finmind-nav-icon {
   font-size: 1.1rem;
   width: 18px;
