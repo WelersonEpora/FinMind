@@ -17,6 +17,13 @@ const links = [
   { to: '/como-funciona', label: 'Como funciona', icon: 'bi-question-circle' }
 ]
 
+// Grupo "Dados de Mercado" - mesmo agrupamento usado no AgroMind
+// (DashboardShell.vue).
+const dadosMercadoLinks = [
+  { to: '/dados-mercado/observaveis', label: 'Observáveis', icon: 'bi-database' },
+  { to: '/dados-mercado/execucoes', label: 'Execuções', icon: 'bi-arrow-repeat' }
+]
+
 const futureLinks = [
   { label: 'Ativos', icon: 'bi-briefcase' },
   { label: 'Análises', icon: 'bi-bar-chart-line' },
@@ -47,6 +54,22 @@ const systemLinks = computed(() => {
   >
     <ul class="nav nav-pills flex-column p-2 mt-2">
       <li v-for="link in links" :key="link.to" class="nav-item">
+        <router-link
+          :to="link.to"
+          class="nav-link text-white d-flex align-items-center gap-2"
+          active-class="active"
+          :title="link.label"
+          @click="emit('navigate')"
+        >
+          <i class="bi flex-shrink-0 finmind-nav-icon" :class="link.icon"></i>
+          <span class="finmind-nav-label">{{ link.label }}</span>
+        </router-link>
+      </li>
+    </ul>
+
+    <div class="finmind-group-label px-3 py-2 text-uppercase text-secondary small">Dados de Mercado</div>
+    <ul class="nav nav-pills flex-column p-2">
+      <li v-for="link in dadosMercadoLinks" :key="link.to" class="nav-item">
         <router-link
           :to="link.to"
           class="nav-link text-white d-flex align-items-center gap-2"

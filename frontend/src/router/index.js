@@ -5,6 +5,9 @@ import DashboardView from '../views/DashboardView.vue'
 import ComoFuncionaView from '../views/ComoFuncionaView.vue'
 import ConfiguracaoView from '../views/ConfiguracaoView.vue'
 import UsuariosView from '../views/UsuariosView.vue'
+import ObservaveisView from '../views/ObservaveisView.vue'
+import ObservavelDetalheView from '../views/ObservavelDetalheView.vue'
+import ExecucoesView from '../views/ExecucoesView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 
 const router = createRouter({
@@ -13,6 +16,13 @@ const router = createRouter({
     { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
     { path: '/', name: 'dashboard', component: DashboardView },
     { path: '/como-funciona', name: 'como-funciona', component: ComoFuncionaView },
+    { path: '/dados-mercado/observaveis', name: 'dados-mercado-observaveis', component: ObservaveisView },
+    {
+      path: '/dados-mercado/observaveis/:codigo',
+      name: 'dados-mercado-observavel-detalhe',
+      component: ObservavelDetalheView
+    },
+    { path: '/dados-mercado/execucoes', name: 'dados-mercado-execucoes', component: ExecucoesView },
     { path: '/configuracao', name: 'configuracao', component: ConfiguracaoView },
     { path: '/usuarios', name: 'usuarios', component: UsuariosView, meta: { requiresOwner: true } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView, meta: { public: true } }

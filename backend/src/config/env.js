@@ -39,5 +39,12 @@ module.exports = {
   // Foto de avatar - disco local (volume Docker em produção, ver
   // docker/compose.prod.yml), nunca servido como estático público - só
   // lido atrás de autenticação (ver photo-storage.js).
-  photoStorageDir: process.env.PHOTO_STORAGE_DIR || "storage/photos"
+  photoStorageDir: process.env.PHOTO_STORAGE_DIR || "storage/photos",
+  // Coleta de dados (collectors/) - opcionais, com default, nunca exigidos
+  // (a API do BCB SGS é pública, sem chave).
+  collectors: {
+    bcbSgsTimeoutMs: Number(process.env.BCB_SGS_TIMEOUT_MS || 15000),
+    retryTentativas: Number(process.env.COLLECTOR_RETRY_TENTATIVAS || 3),
+    retryDelayMs: Number(process.env.COLLECTOR_RETRY_DELAY_MS || 500)
+  }
 };

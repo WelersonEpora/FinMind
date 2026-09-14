@@ -2,8 +2,12 @@
 
 const dashboardService = require("../services/dashboard.service");
 
-function dashboard(_req, res) {
-  res.json(dashboardService.getDashboardCards());
+async function dashboard(_req, res, next) {
+  try {
+    return res.json(await dashboardService.getDashboardCards());
+  } catch (err) {
+    return next(err);
+  }
 }
 
 module.exports = { dashboard };

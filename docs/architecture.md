@@ -41,22 +41,31 @@ FinMind/
         middlewares/        # error-handler, require-auth, require-role, rate-limit...
         logger/              # pino
         utils/               # password (bcrypt), jwt, cookie de sessão
-      collectors/base/       # contrato de coletor (placeholder)
+      collectors/base/       # contrato de coletor + pipeline (runner/retry)
+      collectors/bcb/         # coletor real: cotação do dólar (SGS série 1)
       analytics-engine/      # contrato do motor de regras (placeholder)
       ai/                     # contrato de provedor de IA (placeholder)
     database/
       migrations/             # fonte da verdade do schema
       seeders/                # usuário admin inicial (papel owner)
+    scripts/
+      run-coleta.js            # coleta manual/cron externo (npm run collect)
+      backfill-dolar.js         # backfill de histórico (npm run backfill:dolar)
   frontend/
     src/
       router/                  # rotas + guarda de autenticação
       stores/auth.js            # estado de sessão (composable reativo, sem Pinia)
       services/                  # http (axios) + serviços por recurso
-      views/                      # Login, Dashboard, Configuração
+      views/                      # Login, Dashboard, Configuração, Observáveis,
+                                   # Observável (detalhe), Execuções
       components/layout/           # AppShell, Sidebar, Topbar (responsivo)
+      components/charts/            # EChartsBase + LineChart (vue-echarts)
+      theme/                         # preset PrimeVue (finmind-preset.js)
   docker/
     compose.dev.yml               # MariaDB + phpMyAdmin (backend roda local)
     compose.prod.yml              # MariaDB + backend + frontend (imagens GHCR)
+  docs/adr/
+    NNNN-titulo.md                 # decisões arquiteturais registradas (ADRs)
   .github/workflows/
     ci.yml                         # lint + test + build, toda branch/PR
     publish.yml                    # build + push das imagens no GHCR, push em main
@@ -78,14 +87,22 @@ Sessão via JWT num cookie `httpOnly`. `shared/middlewares/require-auth.js`
 valida o cookie e popula `req.user`; `require-role.js` restringe por
 papel. Detalhes e justificativa em `docs/decisoes-tecnicas.md`.
 
-## Módulos placeholder (coleta / motor analítico / IA)
+## Coleta de dados / motor analítico / IA
 
-Cada um vive isolado em seu próprio diretório com um arquivo de
-contrato (`*.interface.js`). Nenhum dos três tem lógica de domínio
-implementada — só a forma esperada de entrada/saída, para que o resto
-do sistema (ex.: `GET /api/v1/status`, dashboard) possa referenciá-los
-sem acoplar a uma implementação futura específica. Ver o `README.md`
-de cada diretório.
+Os três módulos vivem isolados em seus próprios diretórios, cada um com um
+arquivo de contrato (`*.interface.js`). O motor analítico e a IA continuam
+contratos vazios (`NotConfiguredError`), aguardando as definições do
+especialista David (ver `docs/pendente-especialista-david.md`).
+
+A coleta (`collectors/`) tem, desde a primeira integração real, um pipeline
+completo (`collectors/base/collector-runner.js` + `retry.js`): download com
+timeout+retry, parse, normalize (válido/inválido) e persist, registrando
+cada execução em `collection_execution`. O primeiro coletor concreto é
+`collectors/bcb/bcb-usd-brl.collector.js` (cotação do dólar via API SGS do
+Banco Central — ver `docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md` e
+`docs/adr/0002-arquitetura-coletores.md`). Novos coletores (além do dólar)
+continuam bloqueados por `docs/pendente-especialista-david.md`. Ver o
+`README.md` de cada diretório para detalhes.
 
 ## Deploy
 

@@ -6,11 +6,23 @@ placeholder "de exemplo" — os módulos correspondentes (`backend/src/
 collectors`, `backend/src/analytics-engine`, `backend/src/ai`) só têm
 contratos vazios até que estas definições existam.
 
+> **Exceção pontual (2026-09-14):** o usuário do projeto autorizou
+> explicitamente a primeira integração real de dados, restrita à cotação do
+> dólar (USD/BRL) via API SGS do Banco Central — ver
+> `docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md`. Isso resolve, só para este
+> caso específico, a parte de "ativos" e "mercados e fontes de dados" dos
+> itens 1 e 2 abaixo. Nenhum outro ativo, mercado ou fonte foi decidido —
+> os itens continuam pendentes do especialista David para qualquer coisa
+> além de USD/BRL.
+
 1. **Ativos** — quais ativos serão analisados (ações, moedas,
-   commodities, criptoativos, renda fixa...).
+   commodities, criptoativos, renda fixa...). *(USD/BRL resolvido como
+   exceção pontual, ver nota acima — demais ativos seguem pendentes.)*
 2. **Mercados e fontes de dados** — quais mercados (B3, NYSE, forex...)
    e quais fontes (APIs pagas/gratuitas, boletins, scraping) serão
-   usados.
+   usados. *(Câmbio USD/BRL via API SGS do Banco Central resolvido como
+   exceção pontual, ver nota acima — demais mercados/fontes seguem
+   pendentes.)*
 3. **Dados a coletar** — quais informações exatas por fonte (preço,
    volume, indicadores macro, notícias, dados fundamentalistas...).
 4. **Regras e cálculos** — o que o motor analítico deve executar:

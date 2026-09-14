@@ -37,3 +37,104 @@ body {
   height: 56px;
   font-size: 18px;
 }
+
+/* ---- Padrão "tabela-card" (portado do AgroMind, mesma convenção) -----
+   DataTable do PrimeVue com filtros incorporados como primeira linha,
+   moldura arredondada e paginação em 2 linhas. Uso:
+     <div class="tabela-card">
+       <div class="tabela-card__filtros"> ...inputs/selects... </div>
+       <DataTable class="tabela-paginada" paginator paginator-position="both" ...>
+         <template #paginatorstart><Button class="tabela-refresh-botao" .../></template>
+         <template #paginatorend><label class="tabela-linhas-por-pagina">...</label></template>
+       </DataTable>
+     </div>
+   Global (não scoped) de propósito - reutilizado em várias views. Usa
+   variáveis do tema PrimeVue Aura (--p-*), não algo específico do AgroMind. */
+
+.tabela-card {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tabela-card__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.85rem;
+  margin: 0;
+  padding: var(--p-datatable-header-cell-padding, 0.75rem 1rem);
+  background: var(--p-content-hover-background);
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.tabela-refresh-botao {
+  border: 1px solid var(--p-content-border-color) !important;
+  border-radius: 8px !important;
+  padding: 0.45rem 0.7rem !important;
+  background: var(--p-content-background) !important;
+  color: var(--p-text-color) !important;
+}
+.tabela-refresh-botao:hover {
+  background: var(--p-content-hover-background) !important;
+}
+
+.tabela-linhas-por-pagina {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+}
+.tabela-linhas-por-pagina select {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+  background: var(--p-content-background);
+  color: var(--p-text-color);
+  font-size: 0.78rem;
+}
+
+.tabela-paginada--linha-clicavel .p-datatable-tbody > tr {
+  cursor: pointer;
+}
+
+.tabela-paginada--linha-clicavel .p-datatable-tbody > tr > td:last-child {
+  position: relative;
+  padding-inline-end: 1.85rem;
+}
+.tabela-paginada--linha-clicavel .p-datatable-tbody > tr > td:last-child::after {
+  content: '\e901';
+  font-family: 'primeicons';
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+}
+
+.tabela-paginada .p-paginator-content {
+  row-gap: 0.15rem;
+}
+.tabela-paginada .p-datatable-paginator-bottom .p-paginator-current {
+  flex: 1 0 100%;
+  order: 10;
+  text-align: center;
+  font-size: 0.72rem;
+}
+.tabela-paginada .p-datatable-paginator-top .p-paginator-current {
+  flex: 1 0 100%;
+  order: -1;
+  text-align: center;
+  font-size: 0.72rem;
+}
+
+.tabela-paginada .p-datatable-paginator-top .p-paginator {
+  flex-wrap: nowrap;
+}
+
+.tabela-paginada .p-datatable-paginator-bottom .p-paginator-content-start,
+.tabela-paginada .p-datatable-paginator-bottom .p-paginator-content-end {
+  display: none;
+}

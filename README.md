@@ -16,7 +16,9 @@ coleta → análise → IA → resultado) e `docs/decisoes-tecnicas.md`
 
 ## Stack
 
-- **Frontend:** Vue 3, Vite, Bootstrap 5.
+- **Frontend:** Vue 3, Vite, Bootstrap 5 (shell/telas gerais), Apache
+  ECharts (gráficos), PrimeVue (tabelas de dados densas — ver
+  `docs/adr/0005-primevue-para-tabelas-de-dados.md`).
 - **Backend:** Node.js, Express, Sequelize.
 - **Banco de dados:** MariaDB.
 - **Infra:** Docker, Docker Compose, Nginx, GitHub Actions, GHCR.
@@ -71,6 +73,49 @@ npm run dev
 Acesse `http://localhost:5173`, faça login com o usuário administrador
 seedado.
 
+## Coleta de dados (cotação do dólar)
+
+Primeira integração real de dados: cotação do dólar (USD/BRL) via API SGS
+do Banco Central, série 1 (fechamento diário — ver
+`docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md`).
+
+```bash
+cd backend
+npm run collect      # roda todos os coletores registrados (hoje: só o dólar)
+```
+
+Pra preencher histórico retroativo de uma vez (ex.: banco recém-criado):
+
+```bash
+cd backend
+npm run backfill:dolar                    # últimos 60 dias (padrão)
+npm run backfill:dolar -- --dias=90
+npm run backfill:dolar -- --dataInicial=01/06/2026 --dataFinal=31/07/2026
+```
+
+Reaproveita o mesmo coletor/pipeline da coleta diária (mesmo log de
+execução em `collection_execution`) — só troca a chamada à API do BCB para
+buscar um intervalo de datas em vez dos últimos 10 pontos. Reexecutar não
+duplica nem sobrescreve dado já coletado com o mesmo valor (upsert por
+chave natural, ver `docs/adr/0003-persistencia-coletas.md`).
+
+Sem `node-cron`/fila no processo — em produção, um cron externo (fora deste
+repositório) chama esse mesmo comando periodicamente (ver
+`docs/adr/0004-agendamento-coleta.md`). Também é possível disparar uma
+coleta manual autenticado como `owner` via `POST /api/v1/coletas`, ou pela
+tela `/dados-mercado/execucoes` no frontend.
+
+Consultar os dados coletados:
+- `GET /api/v1/observaveis` — catálogo de observáveis (hoje só o dólar).
+- `GET /api/v1/observaveis/:codigo` — detalhe (cotação atual, cobertura,
+  última coleta).
+- `GET /api/v1/observaveis/:codigo/historico` — série histórica (filtros
+  `pagina`/`tamanhoPagina`/`ordenarPor`/`ordem`).
+- `GET /api/v1/coletas` — execuções de coleta (log de execução).
+- Frontend: menu "Dados de Mercado" → telas `/dados-mercado/observaveis`
+  (catálogo → detalhe com gráfico + tabela histórica) e `/dados-mercado/
+  execucoes`.
+
 ## Testes
 
 ```bash
@@ -113,15 +158,24 @@ primeiro deploy automático.
   sem edição/desativação nem permissões granulares ainda. Sem
   cadastro público: só um `owner` autenticado cria novos usuários, pela
   tela ou por `backend/scripts/create-user.js`.
-- Dashboard inicial com cartões placeholder explícitos (nenhum dado de
+- Primeira integração real de dados: cotação do dólar (USD/BRL) via API SGS
+  do Banco Central — coletor com timeout/retry/log de execução, histórico
+  armazenado em banco, endpoints (`/api/v1/observaveis*`, `/api/v1/coletas`)
+  e telas "Dados de Mercado" (`/dados-mercado/observaveis` — catálogo,
+  padrão de tabela do AgroMind via PrimeVue — e `/dados-mercado/execucoes`).
+  Ver `docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md` a
+  `docs/adr/0005-primevue-para-tabelas-de-dados.md`.
+- Dashboard inicial com o cartão de cotação do dólar já mostrando dado real;
+  os demais cartões seguem placeholders explícitos (nenhum outro dado de
   mercado fictício).
 - Tela de configuração/status dos módulos (`/configuracao`).
 - Banco de dados MariaDB com migrations e seeders.
-- Contratos vazios para coleta de dados, motor analítico e integração
-  com IA — prontos para receber implementação real.
+- Motor analítico e integração com IA seguem como contratos vazios,
+  prontos para receber implementação real quando o especialista de mercado
+  definir regras/critérios.
 - Docker Compose (dev e prod), Dockerfiles, Nginx.
 - CI (lint + testes + build) e publicação de imagens no GHCR.
-- Testes automatizados básicos (backend e frontend).
+- Testes automatizados (backend e frontend), incluindo o pipeline de coleta.
 
 ## O que depende do especialista de mercado (David)
 

@@ -5,6 +5,9 @@ const statusController = require("./controllers/status.controller");
 const requestLogger = require("./shared/middlewares/request-logger");
 const notFoundHandler = require("./shared/middlewares/not-found-handler");
 const errorHandler = require("./shared/middlewares/error-handler");
+const { bootstrapCollectors } = require("./collectors");
+
+bootstrapCollectors();
 
 const app = express();
 

@@ -7,6 +7,13 @@ const loading = ref(true)
 const errorMessage = ref('')
 const dashboard = ref(null)
 
+const formatadorValor = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const formatadorData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
+
+function formatarData(dataIso) {
+  return formatadorData.format(new Date(`${dataIso}T00:00:00Z`))
+}
+
 onMounted(async () => {
   try {
     dashboard.value = await dashboardService.getDashboard()
@@ -33,10 +40,14 @@ onMounted(async () => {
 
       <div class="row g-3">
         <div v-for="card in dashboard.cards" :key="card.id" class="col-12 col-sm-6 col-lg-3">
-          <div class="card h-100 finmind-placeholder-card">
+          <div class="card h-100" :class="{ 'finmind-placeholder-card': !card.ready }">
             <div class="card-body">
               <h2 class="h6 mb-2">{{ card.title }}</h2>
-              <p class="text-muted small mb-0">{{ card.placeholder }}</p>
+              <template v-if="card.ready">
+                <p class="h4 mb-1">R$ {{ formatadorValor.format(card.value) }}</p>
+                <p class="text-muted small mb-0">Referente a {{ formatarData(card.asOf) }}</p>
+              </template>
+              <p v-else class="text-muted small mb-0">{{ card.placeholder }}</p>
             </div>
           </div>
         </div>

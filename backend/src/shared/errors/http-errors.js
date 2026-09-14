@@ -44,6 +44,16 @@ class NotConfiguredError extends AppError {
   }
 }
 
+// Falha de comunicação com uma fonte de dados externa (rede, timeout, HTTP
+// 5xx/406, corpo de resposta em formato inesperado) - distinta de um dado
+// individual inválido dentro de um lote, que não aborta a coleta inteira
+// (ver collectors/base/collector-runner.js).
+class UpstreamServiceError extends AppError {
+  constructor(message = "Falha ao comunicar com um serviço externo.", details = null) {
+    super(message, 502, "UPSTREAM_ERROR", details);
+  }
+}
+
 module.exports = {
   NotFoundError,
   ValidationError,
@@ -51,5 +61,6 @@ module.exports = {
   UnauthorizedError,
   ForbiddenError,
   TooManyRequestsError,
-  NotConfiguredError
+  NotConfiguredError,
+  UpstreamServiceError
 };

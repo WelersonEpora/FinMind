@@ -11,10 +11,15 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@primevue/themes": "^4.5.4",
     "axios": "^1.18.1",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.13.1",
+    "echarts": "^6.1.0",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.5.5",
     "vue": "^3.5.39",
+    "vue-echarts": "^8.1.0",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
