@@ -140,83 +140,63 @@ onMounted(carregarTudo)
 
 <template>
   <AppShell>
-    <router-link :to="{ name: 'dados-mercado-observaveis' }" class="small text-decoration-none d-inline-block mb-2">
-      &larr; Voltar para Observáveis
-    </router-link>
+    <div class="observavel-detalhe">
+      <router-link :to="{ name: 'dados-mercado-observaveis' }" class="observavel-detalhe__voltar">
+        <i class="bi bi-arrow-left"></i> Voltar para Observáveis
+      </router-link>
 
-    <div v-if="loading" class="text-muted">Carregando...</div>
-    <div v-else-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+      <div v-if="loading" class="text-muted">Carregando...</div>
+      <div v-else-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
 
-    <template v-else-if="observavel">
-      <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">{{ observavel.nome }}</h1>
-        <StatusBadge :status="observavel.situacao" />
-      </div>
+      <template v-else-if="observavel">
+        <header class="observavel-detalhe__cabecalho">
+          <div>
+            <h1 class="observavel-detalhe__titulo">{{ observavel.nome }}</h1>
+            <p v-if="observavel.cotacaoAtual?.fonte" class="observavel-detalhe__subtitulo">{{ observavel.cotacaoAtual.fonte }}</p>
+          </div>
+          <StatusBadge :status="observavel.situacao" />
+        </header>
 
-      <div class="row g-2 mb-3">
-        <div class="col-6 col-md-4 col-lg-2">
-          <div class="card h-100">
-            <div class="card-body p-2">
-              <div class="text-muted small">Valor atual</div>
-              <div class="fw-semibold">
-                <template v-if="observavel.cotacaoAtual">{{ formatadorValor.format(observavel.cotacaoAtual.valor) }} {{ observavel.unidade }}</template>
-                <template v-else>-</template>
-              </div>
-            </div>
+        <div class="observavel-detalhe__destaques">
+          <div class="observavel-detalhe__destaque">
+            <span class="observavel-detalhe__destaque-rotulo">Valor atual</span>
+            <span class="observavel-detalhe__destaque-valor">
+              <template v-if="observavel.cotacaoAtual">{{ formatadorValor.format(observavel.cotacaoAtual.valor) }} {{ observavel.unidade }}</template>
+              <template v-else>-</template>
+            </span>
+          </div>
+          <div class="observavel-detalhe__destaque">
+            <span class="observavel-detalhe__destaque-rotulo">Última observação</span>
+            <span class="observavel-detalhe__destaque-valor">{{ formatarData(observavel.cotacaoAtual?.dataReferencia) }}</span>
+          </div>
+          <div class="observavel-detalhe__destaque">
+            <span class="observavel-detalhe__destaque-rotulo">Periodicidade</span>
+            <span class="observavel-detalhe__destaque-valor">{{ FREQUENCIA_LABEL[observavel.frequencia] || observavel.frequencia }}</span>
+          </div>
+          <div class="observavel-detalhe__destaque">
+            <span class="observavel-detalhe__destaque-rotulo">Cobertura</span>
+            <span class="observavel-detalhe__destaque-valor observavel-detalhe__destaque-valor--pequeno">
+              {{ formatarData(observavel.cobertura.primeiraData) }} — {{ formatarData(observavel.cobertura.ultimaData) }}
+            </span>
+          </div>
+          <div class="observavel-detalhe__destaque">
+            <span class="observavel-detalhe__destaque-rotulo">Observações</span>
+            <span class="observavel-detalhe__destaque-valor">{{ observavel.totalObservacoes.toLocaleString('pt-BR') }}</span>
+          </div>
+          <div class="observavel-detalhe__destaque">
+            <span class="observavel-detalhe__destaque-rotulo">Última coleta</span>
+            <span class="observavel-detalhe__destaque-valor observavel-detalhe__destaque-valor--pequeno">
+              <template v-if="observavel.ultimaColeta">
+                <StatusBadge :status="observavel.ultimaColeta.status" /> {{ formatarDataHora(observavel.ultimaColeta.finalizadoEm) }}
+              </template>
+              <template v-else>Nunca</template>
+            </span>
           </div>
         </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <div class="card h-100">
-            <div class="card-body p-2">
-              <div class="text-muted small">Última observação</div>
-              <div class="fw-semibold">{{ formatarData(observavel.cotacaoAtual?.dataReferencia) }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <div class="card h-100">
-            <div class="card-body p-2">
-              <div class="text-muted small">Periodicidade</div>
-              <div class="fw-semibold">{{ FREQUENCIA_LABEL[observavel.frequencia] || observavel.frequencia }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <div class="card h-100">
-            <div class="card-body p-2">
-              <div class="text-muted small">Cobertura</div>
-              <div class="fw-semibold small">{{ formatarData(observavel.cobertura.primeiraData) }} — {{ formatarData(observavel.cobertura.ultimaData) }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <div class="card h-100">
-            <div class="card-body p-2">
-              <div class="text-muted small">Observações</div>
-              <div class="fw-semibold">{{ observavel.totalObservacoes }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-          <div class="card h-100">
-            <div class="card-body p-2">
-              <div class="text-muted small">Última coleta</div>
-              <div class="fw-semibold small">
-                <template v-if="observavel.ultimaColeta">
-                  <StatusBadge :status="observavel.ultimaColeta.status" /><br />
-                  {{ formatarDataHora(observavel.ultimaColeta.finalizadoEm) }}
-                </template>
-                <template v-else>Nunca</template>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="card mb-3">
-        <div class="card-body">
-          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-            <h2 class="h6 mb-0">Histórico</h2>
+        <section class="observavel-detalhe__secao">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h2 class="observavel-detalhe__secao-titulo mb-0">Histórico</h2>
             <div class="btn-group btn-group-sm" role="group" aria-label="Período do gráfico">
               <button
                 v-for="opcao in OPCOES_PERIODO_GRAFICO"
@@ -234,53 +214,144 @@ onMounted(carregarTudo)
           <div v-if="carregandoGrafico" class="text-muted text-center py-4">Carregando gráfico...</div>
           <div v-else-if="!historicoGrafico.length" class="text-muted text-center py-4">Nenhum histórico disponível para o período selecionado.</div>
           <LineChart v-else :pontos="pontosGrafico" :unidade="observavel.unidade" />
-        </div>
-      </div>
+        </section>
 
-      <div class="tabela-card">
-        <DataTable
-          :value="historico"
-          lazy
-          :loading="carregandoHistorico"
-          paginator
-          paginator-position="both"
-          :always-show="false"
-          :rows="tamanhoPaginaHistorico"
-          :first="(paginaHistorico - 1) * tamanhoPaginaHistorico"
-          :total-records="totalHistorico"
-          paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
-          current-page-report-template="Página {currentPage} de {totalPages} ({totalRecords} no total)"
-          sort-mode="single"
-          :sort-field="sortFieldHistorico"
-          :sort-order="ordemPrimeVueHistorico"
-          class="tabela-paginada"
-          @page="onPageHistorico"
-          @sort="onSortHistorico"
-        >
-          <template #paginatorstart>
-            <Button class="tabela-refresh-botao" icon="pi pi-refresh" text :loading="carregandoHistorico" @click="carregarHistorico" />
-          </template>
-          <template #paginatorend>
-            <label class="tabela-linhas-por-pagina">
-              <span>Por página</span>
-              <select v-model.number="tamanhoPaginaHistorico">
-                <option v-for="opcao in OPCOES_LINHAS_POR_PAGINA" :key="opcao" :value="opcao">{{ opcao }}</option>
-              </select>
-            </label>
-          </template>
-          <template #empty>Nenhum registro encontrado.</template>
+        <section class="observavel-detalhe__secao">
+          <h2 class="observavel-detalhe__secao-titulo">Tabela histórica</h2>
+          <div class="tabela-card">
+            <DataTable
+              :value="historico"
+              lazy
+              :loading="carregandoHistorico"
+              paginator
+              paginator-position="both"
+              :always-show="false"
+              :rows="tamanhoPaginaHistorico"
+              :first="(paginaHistorico - 1) * tamanhoPaginaHistorico"
+              :total-records="totalHistorico"
+              paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+              current-page-report-template="Página {currentPage} de {totalPages} ({totalRecords} no total)"
+              sort-mode="single"
+              :sort-field="sortFieldHistorico"
+              :sort-order="ordemPrimeVueHistorico"
+              class="tabela-paginada"
+              @page="onPageHistorico"
+              @sort="onSortHistorico"
+            >
+              <template #paginatorstart>
+                <Button class="tabela-refresh-botao" icon="pi pi-refresh" text :loading="carregandoHistorico" @click="carregarHistorico" />
+              </template>
+              <template #paginatorend>
+                <label class="tabela-linhas-por-pagina">
+                  <span>Por página</span>
+                  <select v-model.number="tamanhoPaginaHistorico">
+                    <option v-for="opcao in OPCOES_LINHAS_POR_PAGINA" :key="opcao" :value="opcao">{{ opcao }}</option>
+                  </select>
+                </label>
+              </template>
+              <template #empty>Nenhum registro encontrado.</template>
 
-          <Column field="dataReferencia" header="Data de referência" sortable>
-            <template #body="{ data }">{{ formatarData(data.dataReferencia) }}</template>
-          </Column>
-          <Column field="valor" header="Valor" sortable>
-            <template #body="{ data }">{{ formatadorValor.format(data.valor) }} {{ data.unidade }}</template>
-          </Column>
-          <Column header="Coletado em">
-            <template #body="{ data }">{{ formatarDataHora(data.atualizadoEm) }}</template>
-          </Column>
-        </DataTable>
-      </div>
-    </template>
+              <Column field="dataReferencia" header="Data de referência" sortable>
+                <template #body="{ data }">{{ formatarData(data.dataReferencia) }}</template>
+              </Column>
+              <Column field="valor" header="Valor" sortable>
+                <template #body="{ data }">{{ formatadorValor.format(data.valor) }} {{ data.unidade }}</template>
+              </Column>
+              <Column header="Coletado em">
+                <template #body="{ data }">{{ formatarDataHora(data.atualizadoEm) }}</template>
+              </Column>
+            </DataTable>
+          </div>
+        </section>
+      </template>
+    </div>
   </AppShell>
 </template>
+
+<style scoped>
+.observavel-detalhe {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.observavel-detalhe__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--p-text-muted-color);
+  text-decoration: none;
+  margin-bottom: 1rem;
+}
+.observavel-detalhe__voltar:hover {
+  color: var(--p-primary-color);
+}
+
+.observavel-detalhe__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.observavel-detalhe__titulo {
+  margin: 0 0 0.25rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.observavel-detalhe__subtitulo {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--p-text-muted-color);
+}
+
+.observavel-detalhe__destaques {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.9rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 12px;
+  background: var(--p-content-background);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.75rem;
+}
+
+.observavel-detalhe__destaque {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.observavel-detalhe__destaque-rotulo {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--p-text-muted-color);
+}
+
+.observavel-detalhe__destaque-valor {
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.observavel-detalhe__destaque-valor--pequeno {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.observavel-detalhe__secao {
+  margin-bottom: 1.75rem;
+}
+
+.observavel-detalhe__secao-titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+}
+</style>
