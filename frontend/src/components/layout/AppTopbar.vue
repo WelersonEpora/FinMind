@@ -102,10 +102,7 @@ async function removePhoto() {
     </button>
 
     <div class="d-flex align-items-center gap-2 ms-2">
-      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" class="flex-shrink-0">
-        <rect x="1" y="1" width="22" height="22" rx="6" fill="#2C4A75" />
-        <path d="M6 15l4-4 3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-      </svg>
+      <i class="bi bi-bar-chart-fill finmind-logo-badge flex-shrink-0"></i>
       <div class="lh-sm">
         <div class="fw-bold text-white finmind-brand-title">FinMind</div>
         <div class="finmind-tagline text-uppercase">Inteligência para decisões reais</div>
@@ -240,6 +237,11 @@ async function removePhoto() {
 }
 .finmind-icon-btn:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.finmind-logo-badge {
+  font-size: 1.75rem;
+  color: #3B82F6;
 }
 
 .finmind-brand-title {
