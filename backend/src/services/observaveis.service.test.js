@@ -77,4 +77,6 @@ test("obterDetalheObservavel retorna cotação, cobertura e última coleta", asy
   assert.equal(observavel.cobertura.primeiraData, "2026-07-16");
   assert.equal(observavel.ultimaColeta.status, "success");
   assert.equal(observavel.situacao, "EM_DIA");
+  assert.ok(observavel.fonteDetalhe.descricao);
+  assert.ok(observavel.fonteDetalhe.urlOficial.startsWith("https://api.bcb.gov.br/"));
 });

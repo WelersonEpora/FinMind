@@ -142,7 +142,7 @@ onMounted(carregarTudo)
   <AppShell>
     <div class="observavel-detalhe">
       <router-link :to="{ name: 'dados-mercado-observaveis' }" class="observavel-detalhe__voltar">
-        <i class="bi bi-arrow-left"></i> Voltar para Observáveis
+        <i class="pi pi-arrow-left"></i> Voltar para Observáveis
       </router-link>
 
       <div v-if="loading" class="text-muted">Carregando...</div>
@@ -197,13 +197,13 @@ onMounted(carregarTudo)
         <section class="observavel-detalhe__secao">
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
             <h2 class="observavel-detalhe__secao-titulo mb-0">Histórico</h2>
-            <div class="btn-group btn-group-sm" role="group" aria-label="Período do gráfico">
+            <div class="periodo-seletor" role="group" aria-label="Período do gráfico">
               <button
                 v-for="opcao in OPCOES_PERIODO_GRAFICO"
                 :key="opcao.dias"
                 type="button"
-                class="btn"
-                :class="opcao.dias === periodoGrafico ? 'btn-primary' : 'btn-outline-secondary'"
+                class="periodo-seletor__opcao"
+                :class="{ 'periodo-seletor__opcao--ativa': opcao.dias === periodoGrafico }"
                 :disabled="carregandoGrafico"
                 @click="onPeriodoGraficoChange(opcao.dias)"
               >
@@ -214,6 +214,26 @@ onMounted(carregarTudo)
           <div v-if="carregandoGrafico" class="text-muted text-center py-4">Carregando gráfico...</div>
           <div v-else-if="!historicoGrafico.length" class="text-muted text-center py-4">Nenhum histórico disponível para o período selecionado.</div>
           <LineChart v-else :pontos="pontosGrafico" :unidade="observavel.unidade" />
+        </section>
+
+        <section v-if="observavel.fonteDetalhe" class="observavel-detalhe__secao">
+          <details class="observavel-detalhe__metodologia">
+            <summary>Fonte e metodologia</summary>
+            <p v-if="observavel.fonteDetalhe.descricao">{{ observavel.fonteDetalhe.descricao }}</p>
+            <p v-if="observavel.fonteDetalhe.metodologia" class="observavel-detalhe__metodologia-nota">
+              {{ observavel.fonteDetalhe.metodologia }}
+            </p>
+            <dl class="observavel-detalhe__metodologia-lista">
+              <template v-if="observavel.fonteDetalhe.formatoOrigem">
+                <dt>Formato de origem</dt>
+                <dd>{{ observavel.fonteDetalhe.formatoOrigem }}</dd>
+              </template>
+              <template v-if="observavel.fonteDetalhe.urlOficial">
+                <dt>URL oficial</dt>
+                <dd><a :href="observavel.fonteDetalhe.urlOficial" target="_blank" rel="noopener">{{ observavel.fonteDetalhe.urlOficial }}</a></dd>
+              </template>
+            </dl>
+          </details>
         </section>
 
         <section class="observavel-detalhe__secao">
@@ -271,7 +291,12 @@ onMounted(carregarTudo)
 <style scoped>
 .observavel-detalhe {
   max-width: 1440px;
-  margin: 0 auto;
+  /* .finmind-main (AppShell.vue) tem padding-top de 1.5rem, padrão pra
+     views sem link de "voltar" (ex.: título grande logo no topo). Aqui, com
+     o link de volta sendo o 1o elemento, esse mesmo respiro fica grande
+     demais - visualmente parecia sobrar uma linha em branco acima dele
+     (achado real, comparado à mesma tela do AgroMind). Só nesta view. */
+  margin: -0.75rem auto 0;
 }
 
 .observavel-detalhe__voltar {
@@ -353,5 +378,77 @@ onMounted(carregarTudo)
   font-size: 1rem;
   font-weight: 700;
   margin: 0 0 0.6rem;
+}
+
+.periodo-seletor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--p-content-hover-background, var(--p-content-background));
+  border: 1px solid var(--p-content-border-color);
+}
+
+.periodo-seletor__opcao {
+  border: none;
+  background: transparent;
+  color: var(--p-text-muted-color);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.periodo-seletor__opcao:hover:not(:disabled):not(.periodo-seletor__opcao--ativa) {
+  background: var(--p-content-background);
+  color: var(--p-text-color);
+}
+.periodo-seletor__opcao--ativa {
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color, #fff);
+}
+.periodo-seletor__opcao:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.observavel-detalhe__metodologia {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 12px;
+  background: var(--p-content-background);
+  padding: 0.85rem 1.1rem;
+  font-size: 0.85rem;
+}
+.observavel-detalhe__metodologia summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.observavel-detalhe__metodologia p {
+  color: var(--p-text-muted-color);
+  line-height: 1.5;
+}
+.observavel-detalhe__metodologia-nota {
+  font-size: 0.82rem;
+}
+
+.observavel-detalhe__metodologia-lista {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.75rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+}
+.observavel-detalhe__metodologia-lista dt {
+  color: var(--p-text-muted-color);
+  font-weight: 600;
+}
+.observavel-detalhe__metodologia-lista dd {
+  margin: 0;
+  word-break: break-all;
+}
+.observavel-detalhe__metodologia-lista a {
+  color: var(--p-primary-color);
 }
 </style>

@@ -16,7 +16,18 @@ const CATALOGO_OBSERVAVEIS = [
     nome: "Dólar (USD/BRL)",
     unidade: "R$/US$",
     fonteCollectorCode: "bcb-usd-brl-venda",
-    frequencia: "DIARIA"
+    frequencia: "DIARIA",
+    // Metodologia/proveniência real da fonte (não inventada) - ver decisão e
+    // confirmação por chamada real à API em
+    // docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md.
+    fonteDetalhe: {
+      descricao:
+        "Fechamento diário do câmbio livre (taxa PTAX de venda), calculada pelo Banco Central como média das taxas efetivas do mercado interbancário.",
+      metodologia:
+        "Não é uma cotação intradiária/tempo real - um novo dia útil só aparece na série depois do fechamento do câmbio, uma vez por dia.",
+      formatoOrigem: "JSON (API SGS do Banco Central)",
+      urlOficial: "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/10?formato=json"
+    }
   }
 ];
 
@@ -80,6 +91,7 @@ async function obterDetalheObservavel(codigo, deps = {}) {
       mensagem: cotacao ? null : mensagem,
       cobertura: { primeiraData: estatisticas.primeiraData, ultimaData: estatisticas.ultimaData },
       totalObservacoes: estatisticas.totalObservacoes,
+      fonteDetalhe: item.fonteDetalhe ?? null,
       ultimaColeta: ultimaExecucao
         ? {
             status: ultimaExecucao.status,

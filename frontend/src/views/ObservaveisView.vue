@@ -60,11 +60,18 @@ onMounted(carregar)
 
 <template>
   <AppShell>
-    <h1 class="h4 mb-3">Observáveis</h1>
+    <div class="observaveis">
+      <header class="observaveis__cabecalho">
+        <h1 class="observaveis__titulo"><i class="bi bi-database"></i> Observáveis</h1>
+        <p class="observaveis__subtitulo">
+          Todas as séries temporais que o FinMind conhece hoje — a janela para validar rapidamente qualquer dado do
+          sistema.
+        </p>
+      </header>
 
-    <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
+      <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
 
-    <div v-else class="tabela-card">
+      <div v-else class="tabela-card">
       <div class="tabela-card__filtros">
         <input v-model="busca" type="search" class="form-control form-control-sm" style="max-width: 260px" placeholder="Buscar por nome ou fonte..." />
       </div>
@@ -124,6 +131,35 @@ onMounted(carregar)
           <template #body="{ data }"><StatusBadge :status="data.situacao" /></template>
         </Column>
       </DataTable>
+      </div>
     </div>
   </AppShell>
 </template>
+
+<style scoped>
+.observaveis {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.observaveis__cabecalho {
+  margin-bottom: 1.5rem;
+}
+
+.observaveis__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+
+.observaveis__subtitulo {
+  margin: 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.9rem;
+  max-width: 60ch;
+}
+</style>

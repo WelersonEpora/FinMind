@@ -131,8 +131,12 @@ onMounted(carregar)
 
 <template>
   <AppShell>
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h1 class="h4 mb-0">Execuções</h1>
+    <div class="execucoes">
+    <header class="execucoes__cabecalho">
+      <div>
+        <h1 class="execucoes__titulo"><i class="bi bi-arrow-repeat"></i> Execuções</h1>
+        <p class="execucoes__subtitulo">Histórico bruto de todas as coletas — cada linha é uma execução real de um coletor.</p>
+      </div>
       <Button
         v-if="auth.state.user?.role === 'owner'"
         label="Executar coleta agora"
@@ -140,7 +144,7 @@ onMounted(carregar)
         :loading="executandoAgora"
         @click="executarAgora"
       />
-    </div>
+    </header>
 
     <div v-if="erroExecucaoManual" class="alert alert-danger py-2 small">{{ erroExecucaoManual }}</div>
     <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
@@ -249,5 +253,39 @@ onMounted(carregar)
         </template>
       </dl>
     </Dialog>
+    </div>
   </AppShell>
 </template>
+
+<style scoped>
+.execucoes {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.execucoes__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.execucoes__titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+
+.execucoes__subtitulo {
+  margin: 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.9rem;
+  max-width: 60ch;
+}
+</style>
