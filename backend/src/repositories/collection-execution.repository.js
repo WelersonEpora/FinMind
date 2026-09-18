@@ -41,9 +41,13 @@ async function listar({ coletor, status, dataInicio, dataFim, pagina, tamanhoPag
   return { registros: rows, total: count };
 }
 
+// Aceita um código ou uma lista de códigos - um observável que agrupa mais
+// de um coletor (ex.: SELIC = bcb-selic-meta + bcb-selic-realizada, ver
+// ADR 0006) mostra a execução mais recente entre todos eles.
 async function buscarUltimaPorColetor(collectorCode) {
+  const codigos = Array.isArray(collectorCode) ? collectorCode : [collectorCode];
   return CollectionExecution.findOne({
-    where: { collector_code: collectorCode },
+    where: { collector_code: { [Op.in]: codigos } },
     order: [["started_at", "DESC"]]
   });
 }

@@ -23,7 +23,7 @@ const registroFake = {
 
 test("obterCotacaoAtual retorna cotacao=null e mensagem quando não há dado coletado", async () => {
   const deps = { marketQuoteRepository: { buscarMaisRecente: async () => null } };
-  const resultado = await marketDataService.obterCotacaoAtual("USD_BRL", deps);
+  const resultado = await marketDataService.obterCotacaoAtual("USD_BRL", undefined, deps);
 
   assert.equal(resultado.cotacao, null);
   assert.match(resultado.mensagem, /Nenhuma cotação/);
@@ -31,7 +31,7 @@ test("obterCotacaoAtual retorna cotacao=null e mensagem quando não há dado col
 
 test("obterCotacaoAtual mapeia o registro mais recente, marcando periodicidade diária e não tempo real", async () => {
   const deps = { marketQuoteRepository: { buscarMaisRecente: async () => registroFake } };
-  const { cotacao } = await marketDataService.obterCotacaoAtual("USD_BRL", deps);
+  const { cotacao } = await marketDataService.obterCotacaoAtual("USD_BRL", undefined, deps);
 
   assert.equal(cotacao.valor, 5.0918);
   assert.equal(cotacao.dataReferencia, "2026-09-11");

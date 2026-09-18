@@ -15,7 +15,8 @@
     "db:seed:undo": "sequelize-cli db:seed:undo:all --config sequelize.config.js",
     "users:create": "node scripts/create-user.js",
     "collect": "node scripts/run-coleta.js",
-    "backfill:dolar": "node scripts/backfill-dolar.js"
+    "backfill:dolar": "node scripts/backfill-dolar.js",
+    "backfill:selic": "node scripts/backfill-selic.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

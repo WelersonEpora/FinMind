@@ -1,31 +1,71 @@
 // Constrói a option do Apache ECharts pro LineChart.vue - função pura, sem
 // Vue nem DOM (testável com node:test puro, mesmo padrão dos
-// services/*.test.js). Simplificado em relação ao AgroMind: uma série só,
-// eixo de tempo sempre (a fonte é uma série diária real, não safra), sem
-// dataZoom/toolbox/legenda.
+// services/*.test.js). Simplificado em relação ao AgroMind: eixo de tempo
+// sempre (a fonte é uma série diária real, não safra), sem dataZoom/
+// toolbox. Suporta 1+ séries via `pontos[].serie` (mesma unidade/eixo Y
+// pra todas - ver docs/adr/0006-fonte-taxa-selic-bcb-sgs.md sobre por que
+// só combinamos séries que já estão na mesma grandeza); legenda só aparece
+// quando há mais de uma série, pra não mudar o visual do caso simples
+// (1 série, ex.: USD_BRL).
 
-const FORMATADOR_EIXO_Y = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const FORMATADOR_TOOLTIP = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const FORMATADOR_EIXO_Y = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+const FORMATADOR_TOOLTIP = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 const FORMATADOR_DATA = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 
-const COR_LINHA = '#0d6efd'
+const CHAVE_SERIE_PADRAO = '__default__'
+const CORES_SERIE = ['#0d6efd', '#fd7e14']
 const COR_TEXTO_MUTED = '#6c757d'
 const COR_BORDA = '#dee2e6'
 
-export function construirOpcaoLineChart({ pontos, unidade }) {
-  const dados = pontos
-    .map((p) => [Date.parse(`${p.data}T00:00:00Z`), Number(p.valor)])
-    .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y))
-    .sort((a, b) => a[0] - b[0])
+function agruparPorSerie(pontos) {
+  const grupos = new Map()
 
-  return {
+  for (const p of pontos) {
+    const x = Date.parse(`${p.data}T00:00:00Z`)
+    const y = Number(p.valor)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+
+    const chave = p.serie ?? CHAVE_SERIE_PADRAO
+    if (!grupos.has(chave)) grupos.set(chave, [])
+    grupos.get(chave).push([x, y])
+  }
+
+  for (const dadosSerie of grupos.values()) dadosSerie.sort((a, b) => a[0] - b[0])
+  return grupos
+}
+
+export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) {
+  const grupos = agruparPorSerie(pontos)
+  const chaves = [...grupos.keys()]
+  const multiplasSeries = chaves.length > 1
+
+  const series = chaves.map((chave, indice) => {
+    const dados = grupos.get(chave)
+    const cor = CORES_SERIE[indice % CORES_SERIE.length]
+    return {
+      name: seriesLabels[chave] || chave,
+      type: 'line',
+      data: dados,
+      symbol: 'circle',
+      symbolSize: 5,
+      showSymbol: dados.length <= 90,
+      smooth: false,
+      lineStyle: { width: 2, color: cor },
+      itemStyle: { color: cor },
+      // Área preenchida some com 2+ séries - sobrepor duas áreas translúcidas
+      // fica visualmente confuso, sem ganho de leitura.
+      ...(multiplasSeries ? {} : { areaStyle: { color: cor, opacity: 0.06 } })
+    }
+  })
+
+  const option = {
     // Margens fixas em vez de `grid.containLabel` - no ECharts 6 essa opção
     // passou a depender de um subsistema novo (`grid.outerBounds`) que, com
     // o vue-echarts usado aqui, resultava no gráfico renderizando em branco
     // (grid/eixos desenhados, série sem nenhum pixel visível, mesmo com
     // dado válido - verificado via captura de pixels do canvas). Espaço à
     // esquerda calculado pra caber o rótulo do eixo Y (valores tipo "5,20").
-    grid: { left: 48, right: 16, top: 16, bottom: 32 },
+    grid: { left: 48, right: 16, top: multiplasSeries ? 36 : 16, bottom: 32 },
     xAxis: {
       type: 'time',
       axisLine: { lineStyle: { color: COR_BORDA } },
@@ -41,6 +81,11 @@ export function construirOpcaoLineChart({ pontos, unidade }) {
     yAxis: {
       type: 'value',
       scale: true,
+      // Respiro acima/abaixo do maior/menor valor da série - sem isso o
+      // ponto mais alto/baixo fica colado na borda do gráfico. Fallback
+      // pra série "achatada" (todos os pontos iguais, max === min).
+      min: ({ min, max }) => min - (max - min || 1) * 0.1,
+      max: ({ min, max }) => max + (max - min || 1) * 0.1,
       axisLine: { show: false },
       splitLine: { lineStyle: { color: COR_BORDA, type: 'dashed' } },
       axisLabel: { color: COR_TEXTO_MUTED, fontSize: 11, formatter: (valor) => FORMATADOR_EIXO_Y.format(valor) }
@@ -55,18 +100,12 @@ export function construirOpcaoLineChart({ pontos, unidade }) {
       valueFormatter: (valor) => `${FORMATADOR_TOOLTIP.format(valor)}${unidade ? ` ${unidade}` : ''}`,
       axisPointer: { type: 'line', lineStyle: { color: COR_TEXTO_MUTED, width: 1 } }
     },
-    series: [
-      {
-        type: 'line',
-        data: dados,
-        symbol: 'circle',
-        symbolSize: 5,
-        showSymbol: dados.length <= 90,
-        smooth: false,
-        lineStyle: { width: 2, color: COR_LINHA },
-        itemStyle: { color: COR_LINHA },
-        areaStyle: { color: COR_LINHA, opacity: 0.06 }
-      }
-    ]
+    series
   }
+
+  if (multiplasSeries) {
+    option.legend = { top: 0, right: 0, itemWidth: 14, itemHeight: 8, textStyle: { color: COR_TEXTO_MUTED, fontSize: 11 } }
+  }
+
+  return option
 }

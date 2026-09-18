@@ -28,6 +28,29 @@ const CATALOGO_OBSERVAVEIS = [
       formatoOrigem: "JSON (API SGS do Banco Central)",
       urlOficial: "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/10?formato=json"
     }
+  },
+  {
+    instrumentCode: "SELIC",
+    nome: "Taxa Selic (Meta e Realizada)",
+    unidade: "% a.a.",
+    // Instrumento agrupa 2 séries via `modality` (meta/realizada) - ver
+    // docs/adr/0006-fonte-taxa-selic-bcb-sgs.md. "Cotação atual" (card,
+    // dashboard) usa sempre a meta: é o número publicamente reconhecido
+    // como "a taxa Selic". Gráfico/tabela de histórico mostram as duas.
+    modalidadePrincipal: "meta",
+    fonteCollectorCode: ["bcb-selic-meta", "bcb-selic-realizada"],
+    frequencia: "DIARIA",
+    // Metodologia/proveniência real da fonte (não inventada) - ver decisão e
+    // confirmação por chamada real à API em
+    // docs/adr/0006-fonte-taxa-selic-bcb-sgs.md.
+    fonteDetalhe: {
+      descricao:
+        "Duas séries do Banco Central, na mesma unidade (% ao ano): a Meta Selic definida pelo Copom (série SGS 432) e a Selic realizada - taxa diária efetiva já composta e anualizada pelo próprio BCB (série SGS 1178).",
+      metodologia:
+        "A meta muda só nas reuniões do Copom (~8 por ano), repetindo o mesmo valor todo dia entre elas. A realizada é a taxa diária efetiva do mercado interbancário (série SGS 11) já acumulada no mês e anualizada pelo BCB - o FinMind não faz nenhum cálculo/composição própria sobre esse valor.",
+      formatoOrigem: "JSON (API SGS do Banco Central)",
+      urlOficial: "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/10?formato=json"
+    }
   }
 ];
 
@@ -50,7 +73,7 @@ function buscarNoCatalogo(codigo) {
 async function listarObservaveis(deps = {}) {
   const observaveis = await Promise.all(
     CATALOGO_OBSERVAVEIS.map(async (item) => {
-      const { cotacao } = await marketDataService.obterCotacaoAtual(item.instrumentCode, deps);
+      const { cotacao } = await marketDataService.obterCotacaoAtual(item.instrumentCode, item.modalidadePrincipal, deps);
       return {
         codigo: item.instrumentCode,
         nome: item.nome,
@@ -76,7 +99,7 @@ async function obterDetalheObservavel(codigo, deps = {}) {
   const repoQuote = deps.marketQuoteRepository || marketQuoteRepository;
   const repoExecucao = deps.collectionExecutionRepository || collectionExecutionRepository;
 
-  const { cotacao, mensagem } = await marketDataService.obterCotacaoAtual(item.instrumentCode, deps);
+  const { cotacao, mensagem } = await marketDataService.obterCotacaoAtual(item.instrumentCode, item.modalidadePrincipal, deps);
   const estatisticas = await repoQuote.buscarEstatisticas(item.instrumentCode);
   const ultimaExecucao = await repoExecucao.buscarUltimaPorColetor(item.fonteCollectorCode);
 

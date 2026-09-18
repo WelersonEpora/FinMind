@@ -73,15 +73,19 @@ npm run dev
 Acesse `http://localhost:5173`, faça login com o usuário administrador
 seedado.
 
-## Coleta de dados (cotação do dólar)
+## Coleta de dados (cotação do dólar, taxa Selic)
 
-Primeira integração real de dados: cotação do dólar (USD/BRL) via API SGS
-do Banco Central, série 1 (fechamento diário — ver
-`docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md`).
+Três coletores reais via API SGS do Banco Central: cotação do dólar
+(USD/BRL, série 1, fechamento diário — ver
+`docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md`) e a taxa Selic, em duas
+séries que compõem um único observável (`SELIC`) — a Meta definida pelo
+Copom (série 432) e a Selic realizada, já acumulada no mês e anualizada
+pelo próprio BCB (série 1178) — ver
+`docs/adr/0006-fonte-taxa-selic-bcb-sgs.md`.
 
 ```bash
 cd backend
-npm run collect      # roda todos os coletores registrados (hoje: só o dólar)
+npm run collect      # roda todos os coletores registrados (hoje: dólar e Selic meta/realizada)
 ```
 
 Pra preencher histórico retroativo de uma vez (ex.: banco recém-criado):
@@ -106,7 +110,7 @@ coleta manual autenticado como `owner` via `POST /api/v1/coletas`, ou pela
 tela `/dados-mercado/execucoes` no frontend.
 
 Consultar os dados coletados:
-- `GET /api/v1/observaveis` — catálogo de observáveis (hoje só o dólar).
+- `GET /api/v1/observaveis` — catálogo de observáveis (hoje: dólar e Selic).
 - `GET /api/v1/observaveis/:codigo` — detalhe (cotação atual, cobertura,
   última coleta).
 - `GET /api/v1/observaveis/:codigo/historico` — série histórica (filtros
@@ -158,13 +162,17 @@ primeiro deploy automático.
   sem edição/desativação nem permissões granulares ainda. Sem
   cadastro público: só um `owner` autenticado cria novos usuários, pela
   tela ou por `backend/scripts/create-user.js`.
-- Primeira integração real de dados: cotação do dólar (USD/BRL) via API SGS
-  do Banco Central — coletor com timeout/retry/log de execução, histórico
-  armazenado em banco, endpoints (`/api/v1/observaveis*`, `/api/v1/coletas`)
-  e telas "Dados de Mercado" (`/dados-mercado/observaveis` — catálogo,
-  padrão de tabela do AgroMind via PrimeVue — e `/dados-mercado/execucoes`).
-  Ver `docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md` a
-  `docs/adr/0005-primevue-para-tabelas-de-dados.md`.
+- Primeira integração real de dados: cotação do dólar (USD/BRL) e taxa
+  Selic (meta + realizada) via API SGS do Banco Central — coletores com
+  timeout/retry/log de execução, histórico armazenado em banco, endpoints
+  (`/api/v1/observaveis*`, `/api/v1/coletas`) e telas "Dados de Mercado"
+  (`/dados-mercado/observaveis` — catálogo, padrão de tabela do AgroMind via
+  PrimeVue — e `/dados-mercado/execucoes`). O detalhe da Selic mostra as
+  duas séries no mesmo gráfico/tabela (mesma unidade, % a.a. — nenhum
+  cálculo próprio do FinMind, ver ADR 0006). Ver
+  `docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md`,
+  `docs/adr/0005-primevue-para-tabelas-de-dados.md` e
+  `docs/adr/0006-fonte-taxa-selic-bcb-sgs.md`.
 - Dashboard inicial com o cartão de cotação do dólar já mostrando dado real;
   os demais cartões seguem placeholders explícitos (nenhum outro dado de
   mercado fictício).

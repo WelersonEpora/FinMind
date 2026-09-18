@@ -14,6 +14,10 @@ const route = useRoute()
 const OPCOES_LINHAS_POR_PAGINA = [20, 50, 100, 200]
 const CAMPO_PARA_ORDENACAO = { dataReferencia: 'referenceDate', valor: 'value' }
 const FREQUENCIA_LABEL = { DIARIA: 'Diária', SEMANAL: 'Semanal', MENSAL: 'Mensal' }
+// Rótulos de exibição pra `modalidade` - só aparece na UI (legenda do
+// gráfico, coluna da tabela) quando um observável tem mais de uma
+// modalidade coletada (ex.: SELIC = meta + realizada, ver ADR 0006).
+const MODALIDADE_LABEL = { venda: 'Venda', compra: 'Compra', meta: 'Meta (Copom)', realizada: 'Realizada' }
 
 // Tamanho máximo de página aceito pela API (ver TAMANHO_PAGINA_MAXIMO em
 // backend/src/services/market-data.service.js) - cobre folgadamente 1 ano
@@ -45,11 +49,11 @@ const sortFieldHistorico = computed(
   () => Object.keys(CAMPO_PARA_ORDENACAO).find((campo) => CAMPO_PARA_ORDENACAO[campo] === ordenarPorHistorico.value) || 'dataReferencia'
 )
 
-const periodoGrafico = ref(OPCOES_PERIODO_GRAFICO[1].dias)
+const periodoGrafico = ref(OPCOES_PERIODO_GRAFICO[0].dias)
 const historicoGrafico = ref([])
 const carregandoGrafico = ref(false)
 
-const formatadorValor = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const formatadorValor = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 const formatadorDataHora = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 const formatadorData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 
@@ -60,7 +64,10 @@ function formatarDataHora(valor) {
   return valor ? formatadorDataHora.format(new Date(valor)) : '-'
 }
 
-const pontosGrafico = computed(() => historicoGrafico.value.map((item) => ({ data: item.dataReferencia, valor: item.valor })))
+const pontosGrafico = computed(() =>
+  historicoGrafico.value.map((item) => ({ data: item.dataReferencia, valor: item.valor, serie: item.modalidade }))
+)
+const temMultiplasModalidades = computed(() => new Set(historico.value.map((item) => item.modalidade)).size > 1)
 
 function calcularDataInicio(diasAtras) {
   const hoje = new Date()
@@ -213,7 +220,7 @@ onMounted(carregarTudo)
           </div>
           <div v-if="carregandoGrafico" class="text-muted text-center py-4">Carregando gráfico...</div>
           <div v-else-if="!historicoGrafico.length" class="text-muted text-center py-4">Nenhum histórico disponível para o período selecionado.</div>
-          <LineChart v-else :pontos="pontosGrafico" :unidade="observavel.unidade" />
+          <LineChart v-else :pontos="pontosGrafico" :unidade="observavel.unidade" :series-labels="MODALIDADE_LABEL" />
         </section>
 
         <section v-if="observavel.fonteDetalhe" class="observavel-detalhe__secao">
@@ -276,6 +283,9 @@ onMounted(carregarTudo)
               </Column>
               <Column field="valor" header="Valor" sortable>
                 <template #body="{ data }">{{ formatadorValor.format(data.valor) }} {{ data.unidade }}</template>
+              </Column>
+              <Column v-if="temMultiplasModalidades" field="modalidade" header="Modalidade">
+                <template #body="{ data }">{{ MODALIDADE_LABEL[data.modalidade] || data.modalidade }}</template>
               </Column>
               <Column header="Coletado em">
                 <template #body="{ data }">{{ formatarDataHora(data.atualizadoEm) }}</template>

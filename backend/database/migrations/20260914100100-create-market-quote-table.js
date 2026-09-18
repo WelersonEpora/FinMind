@@ -19,8 +19,10 @@ module.exports = {
         type: Sequelize.STRING(30),
         allowNull: false
       },
-      // "venda" | "compra" - permite adicionar a série de compra (SGS 10813)
-      // no futuro sem alterar o esquema.
+      // "venda" | "compra" | "meta" | "realizada" - lista efetiva validada
+      // no model (marketQuote.js). Coluna genérica de propósito, pra
+      // comportar séries sem noção de compra/venda (ex.: Selic, ver ADR
+      // 0006) sem alterar o esquema.
       modality: {
         type: Sequelize.STRING(20),
         allowNull: false,

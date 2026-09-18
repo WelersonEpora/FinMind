@@ -8,7 +8,9 @@ const { validarOrdenacao } = require("../shared/utils/ordenacao");
 const CAMPOS_ORDENACAO_HISTORICO = ["referenceDate", "value"];
 
 const FONTES = {
-  BCB_SGS_1: "Banco Central do Brasil - SGS (série 1, câmbio livre venda)"
+  BCB_SGS_1: "Banco Central do Brasil - SGS (série 1, câmbio livre venda)",
+  BCB_SGS_432: "Banco Central do Brasil - SGS (série 432, meta Selic definida pelo Copom)",
+  BCB_SGS_1178: "Banco Central do Brasil - SGS (série 1178, Selic acumulada no mês anualizada)"
 };
 
 const REGEX_DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -40,9 +42,12 @@ function validarDataOpcional(valor, campo) {
   return valor;
 }
 
-async function obterCotacaoAtual(instrumentCode, deps = {}) {
+// `modality` é opcional - só necessário quando o instrumento agrupa mais de
+// uma série e é preciso escolher qual delas é "a cotação atual" (ex.: SELIC
+// mostra a meta, ver ADR 0006).
+async function obterCotacaoAtual(instrumentCode, modality, deps = {}) {
   const repo = deps.marketQuoteRepository || marketQuoteRepository;
-  const registro = await repo.buscarMaisRecente(instrumentCode);
+  const registro = await repo.buscarMaisRecente(instrumentCode, modality);
 
   if (!registro) {
     return { cotacao: null, mensagem: "Nenhuma cotação coletada ainda para este instrumento." };

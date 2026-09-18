@@ -32,7 +32,7 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   const { observaveis } = await observaveisService.listarObservaveis(deps);
 
-  assert.equal(observaveis.length, 1);
+  assert.equal(observaveis.length, 2);
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
   assert.equal(observaveis[0].valor, 5.1);

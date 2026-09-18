@@ -3,9 +3,15 @@
 const { Op, fn, col } = require("sequelize");
 const { MarketQuote } = require("../models");
 
-async function buscarMaisRecente(instrumentCode) {
+// `modality` é opcional - só necessário quando um instrumento agrupa mais
+// de uma série (ex.: SELIC = meta + realizada, ver ADR 0006) e é preciso
+// escolher qual delas representa "a cotação atual" (ex.: card/dashboard).
+async function buscarMaisRecente(instrumentCode, modality) {
+  const where = { instrument_code: instrumentCode };
+  if (modality) where.modality = modality;
+
   return MarketQuote.findOne({
-    where: { instrument_code: instrumentCode },
+    where,
     order: [["reference_date", "DESC"]]
   });
 }

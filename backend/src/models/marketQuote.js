@@ -3,7 +3,10 @@
 const { DataTypes } = require("sequelize");
 const { randomUUID } = require("node:crypto");
 
-const MODALITIES = ["venda", "compra"];
+// "venda"/"compra" (câmbio) e "meta"/"realizada" (Selic - meta definida
+// pelo Copom vs. taxa realizada/anualizada, sem sentido de compra/venda -
+// ver docs/adr/0006-fonte-taxa-selic-bcb-sgs.md).
+const MODALITIES = ["venda", "compra", "meta", "realizada"];
 
 module.exports = (sequelize) => {
   const MarketQuote = sequelize.define(
