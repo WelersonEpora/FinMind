@@ -118,7 +118,7 @@ async function removePhoto() {
       <AppAvatar :user-id="auth.state.user?.id" :name="auth.state.user?.name" :has-photo="auth.state.user?.hasPhoto" size="md" />
       <span class="navbar-text d-none d-sm-inline">{{ auth.state.user?.name }}</span>
     </button>
-    <button class="btn btn-sm btn-outline-light d-flex align-items-center gap-1" type="button" title="Sair" @click="onLogout">
+    <button class="btn btn-sm d-flex align-items-center gap-1 finmind-logout-btn" type="button" title="Sair" @click="onLogout">
       <i class="bi bi-box-arrow-right finmind-logout-icon"></i>
       <span class="d-none d-sm-inline">Sair</span>
     </button>
@@ -259,6 +259,24 @@ async function removePhoto() {
 
 .finmind-logout-icon {
   font-size: 1.1rem;
+}
+
+/* Sem o texto "Sair" ao lado (escondido em telas < 576px), o ícone
+   sozinho fica pequeno demais como alvo de toque - maior só aqui. */
+@media (max-width: 575.98px) {
+  .finmind-logout-icon {
+    font-size: 1.5rem;
+  }
+}
+
+.finmind-logout-btn {
+  border: none;
+  background: transparent;
+  color: #fff;
+}
+.finmind-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .finmind-profile-btn {
