@@ -96,3 +96,19 @@ test("obterHistorico repassa ordenarPor/ordem validados pro repository", async (
   assert.equal(chamadaCom.ordenarPor, "value");
   assert.equal(chamadaCom.ordem, "ASC");
 });
+
+test("obterHistorico repassa modality pro repository quando informado", async () => {
+  let chamadaCom;
+  const deps = {
+    marketQuoteRepository: {
+      buscarHistorico: async (args) => {
+        chamadaCom = args;
+        return { registros: [], total: 0 };
+      }
+    }
+  };
+
+  await marketDataService.obterHistorico("SELIC", { modality: "meta" }, deps);
+
+  assert.equal(chamadaCom.modality, "meta");
+});

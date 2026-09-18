@@ -18,8 +18,9 @@ async function buscarMaisRecente(instrumentCode, modality) {
 
 const COLUNAS_ORDENACAO = { referenceDate: "reference_date", value: "value" };
 
-async function buscarHistorico({ instrumentCode, dataInicio, dataFim, pagina, tamanhoPagina, ordenarPor, ordem }) {
+async function buscarHistorico({ instrumentCode, modality, dataInicio, dataFim, pagina, tamanhoPagina, ordenarPor, ordem }) {
   const where = { instrument_code: instrumentCode };
+  if (modality) where.modality = modality;
 
   if (dataInicio || dataFim) {
     where.reference_date = {};

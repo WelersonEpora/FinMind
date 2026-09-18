@@ -77,6 +77,7 @@ async function obterHistorico(instrumentCode, filtros, deps = {}) {
 
   const { registros, total } = await repo.buscarHistorico({
     instrumentCode,
+    modality: filtros.modality || undefined,
     dataInicio,
     dataFim,
     pagina,

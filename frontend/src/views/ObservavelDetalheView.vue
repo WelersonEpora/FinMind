@@ -43,6 +43,9 @@ const tamanhoPaginaHistorico = ref(OPCOES_LINHAS_POR_PAGINA[0])
 const ordenarPorHistorico = ref('referenceDate')
 const ordemHistorico = ref('DESC')
 const carregandoHistorico = ref(false)
+// null = "Ambas" (sem filtro) - só relevante quando o observável tem mais
+// de uma modalidade coletada (ex.: SELIC = meta + realizada, ADR 0006).
+const modalidadeFiltro = ref(null)
 
 const ordemPrimeVueHistorico = computed(() => (ordemHistorico.value === 'ASC' ? 1 : -1))
 const sortFieldHistorico = computed(
@@ -67,7 +70,11 @@ function formatarDataHora(valor) {
 const pontosGrafico = computed(() =>
   historicoGrafico.value.map((item) => ({ data: item.dataReferencia, valor: item.valor, serie: item.modalidade }))
 )
-const temMultiplasModalidades = computed(() => new Set(historico.value.map((item) => item.modalidade)).size > 1)
+// Derivado do gráfico (sempre carregado sem filtro) - não do `historico` da
+// tabela, que pode já estar filtrado por uma modalidade só.
+const modalidadesDisponiveis = computed(() => [...new Set(historicoGrafico.value.map((item) => item.modalidade))])
+const temMultiplasModalidades = computed(() => modalidadesDisponiveis.value.length > 1)
+const mostrarColunaModalidade = computed(() => temMultiplasModalidades.value && !modalidadeFiltro.value)
 
 function calcularDataInicio(diasAtras) {
   const hoje = new Date()
@@ -88,7 +95,8 @@ async function carregarHistorico() {
       pagina: paginaHistorico.value,
       tamanhoPagina: tamanhoPaginaHistorico.value,
       ordenarPor: ordenarPorHistorico.value,
-      ordem: ordemHistorico.value
+      ordem: ordemHistorico.value,
+      modality: modalidadeFiltro.value || undefined
     })
     historico.value = resultado.historico
     totalHistorico.value = resultado.paginacao.total
@@ -125,6 +133,11 @@ function onPageHistorico(evento) {
 function onSortHistorico(evento) {
   ordenarPorHistorico.value = CAMPO_PARA_ORDENACAO[evento.sortField] || 'referenceDate'
   ordemHistorico.value = evento.sortOrder === 1 ? 'ASC' : 'DESC'
+  paginaHistorico.value = 1
+  carregarHistorico()
+}
+
+function onModalidadeFiltroChange() {
   paginaHistorico.value = 1
   carregarHistorico()
 }
@@ -246,6 +259,17 @@ onMounted(carregarTudo)
         <section class="observavel-detalhe__secao">
           <h2 class="observavel-detalhe__secao-titulo">Tabela histórica</h2>
           <div class="tabela-card">
+            <div v-if="temMultiplasModalidades" class="tabela-card__filtros">
+              <div>
+                <label class="form-label small mb-1 d-block">Modalidade</label>
+                <select v-model="modalidadeFiltro" class="form-select form-select-sm" @change="onModalidadeFiltroChange">
+                  <option :value="null">Todas</option>
+                  <option v-for="modalidade in modalidadesDisponiveis" :key="modalidade" :value="modalidade">
+                    {{ MODALIDADE_LABEL[modalidade] || modalidade }}
+                  </option>
+                </select>
+              </div>
+            </div>
             <DataTable
               :value="historico"
               lazy
@@ -284,7 +308,7 @@ onMounted(carregarTudo)
               <Column field="valor" header="Valor" sortable>
                 <template #body="{ data }">{{ formatadorValor.format(data.valor) }} {{ data.unidade }}</template>
               </Column>
-              <Column v-if="temMultiplasModalidades" field="modalidade" header="Modalidade">
+              <Column v-if="mostrarColunaModalidade" field="modalidade" header="Modalidade">
                 <template #body="{ data }">{{ MODALIDADE_LABEL[data.modalidade] || data.modalidade }}</template>
               </Column>
               <Column header="Coletado em">
