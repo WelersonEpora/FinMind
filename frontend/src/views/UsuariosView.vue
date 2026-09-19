@@ -10,7 +10,7 @@ const users = ref([])
 
 const modalOpen = ref(false)
 const editingUser = ref(null)
-const form = reactive({ name: '', email: '', password: '', role: 'colaborador', active: true })
+const form = reactive({ name: '', email: '', password: '', role: 'user', active: true })
 const formError = ref('')
 const submitting = ref(false)
 const photoInput = ref(null)
@@ -29,13 +29,13 @@ async function loadUsers() {
 }
 
 function roleLabel(role) {
-  return { owner: 'Owner', colaborador: 'Colaborador' }[role] || role
+  return { admin: 'Administrador', user: 'Usuário' }[role] || role
 }
 
 function openNewUserModal() {
   editingUser.value = null
   formError.value = ''
-  Object.assign(form, { name: '', email: '', password: '', role: 'colaborador', active: true })
+  Object.assign(form, { name: '', email: '', password: '', role: 'user', active: true })
   modalOpen.value = true
 }
 
@@ -129,7 +129,7 @@ onMounted(loadUsers)
             <tr>
               <th>Nome</th>
               <th>E-mail</th>
-              <th>Papel</th>
+              <th>Papel na plataforma</th>
               <th>Status</th>
               <th class="text-end">Ações</th>
             </tr>
@@ -144,7 +144,7 @@ onMounted(loadUsers)
               </td>
               <td>{{ user.email }}</td>
               <td>
-                <span class="badge" :class="user.role === 'owner' ? 'text-bg-primary' : 'text-bg-secondary'">
+                <span class="badge" :class="user.role === 'admin' ? 'text-bg-primary' : 'text-bg-secondary'">
                   {{ roleLabel(user.role) }}
                 </span>
               </td>
@@ -248,10 +248,10 @@ onMounted(loadUsers)
                 </div>
 
                 <div class="mb-3">
-                  <label for="user-role" class="form-label">Papel</label>
+                  <label for="user-role" class="form-label">Papel na plataforma</label>
                   <select id="user-role" v-model="form.role" class="form-select">
-                    <option value="colaborador">Colaborador</option>
-                    <option value="owner">Owner</option>
+                    <option value="user">Usuário</option>
+                    <option value="admin">Administrador</option>
                   </select>
                 </div>
 

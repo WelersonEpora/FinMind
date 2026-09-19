@@ -103,7 +103,7 @@ ADR 0003).
 Roda todos os coletores registrados (hoje: só `bcb-usd-brl-venda`),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
-autenticado como `owner`, rate-limitado) ou pela tela `/dados-mercado/
+autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/
 execucoes`. Sem `node-cron`/fila no processo — produção depende de um cron
 externo (fora deste repositório) chamando esse mesmo comando (ver
 `docs/adr/0004-agendamento-coleta.md`).
@@ -159,14 +159,30 @@ Ver também `backend/src/collectors/base/README.md`.
   qualquer `*.service.js`/`*.service.test.js` existente como referência.
 - Granularidade temporal deve refletir a fonte real: uma fonte diária usa
   `DATEONLY`, nunca `DATETIME` com hora inventada (ver ADR 0003).
+- **Toda tabela nova tem um escopo: GLOBAL, PRIVADA (do espaço) ou USER** —
+  declare no cabeçalho da migration (`Escopo: ...`) e registre a tabela em
+  `docs/adr/0007-escopo-de-dados-global-espaco-usuario.md` (§3). Dado de
+  mercado é GLOBAL e nunca ganha `workspace_id`; dado patrimonial é
+  PRIVADA (`workspace_id`); preferência/perfil pessoal é USER. Na dúvida,
+  PRIVADA. Uma tabela nunca mistura escopos. Nunca autorize dado de um
+  espaço por `user.role` (papel de plataforma) — só por `workspace_member`.
+  Todo usuário tem um espaço pessoal (criado com o usuário, em transação,
+  via `user.repository.js::createWithPersonalWorkspace` — não crie `User`
+  por outro caminho).
 
 ## Convenções de API
 
 - Prefixo `/api/v1/...` (exceto `GET /health`, fora do prefixo de
   propósito). Um arquivo de rota por recurso, registrado em
   `backend/src/routes/index.js`.
-- `requireAuth` em toda rota autenticada; `requireRole("owner")` em rotas
-  restritas a `owner` (ex.: disparo manual de coleta).
+- `requireAuth` em toda rota autenticada (valida o JWT **e** carrega o
+  usuário no banco a cada request: desativado = 401 na hora, e
+  `req.user.role` vem do banco, nunca do token); `requireRole("admin")` em
+  rotas restritas a admin de plataforma (ex.: disparo manual de coleta);
+  `requireWorkspaceMember(...papéis)` em rotas de um espaço
+  (`/workspaces/:workspaceId/...`). Papel de plataforma (`user.role`:
+  `admin`/`user`) e papel no espaço (`workspace_member.role`:
+  `owner`/`editor`/`viewer`) são coisas diferentes — nunca misture.
 - Resposta de sucesso: objeto com chave nomeada pelo recurso (`{ cotacao }`,
   `{ historico, paginacao }`, `{ execucoes, paginacao }`) — nunca um
   envelope genérico `{ data }`.
@@ -204,11 +220,27 @@ Ver também `backend/src/collectors/base/README.md`.
   (client-side, dataset pequeno) e `ExecucoesView.vue` (lazy/server-side)
   como referência. Fora desse caso, UI continua sendo Bootstrap — ver ADR
   0005.
+- **Espaço ativo** (`stores/workspace.js`, carregado junto com a sessão em
+  `stores/auth.js`) é só contexto de interface — nunca vai no JWT. Rotas
+  privadas a um espaço vivem sob `/e/:workspaceId/...` e o guard do router
+  já valida o `:workspaceId` contra os espaços do usuário; páginas de
+  mercado (`/dados-mercado/...`) são globais e não levam espaço na URL. O
+  guard é UX, não segurança: o servidor deve checar o vínculo quando houver
+  dado privado (ADR 0007, §6). Na sidebar, o grupo **Espaço** lista o que
+  existe *dentro* do espaço ativo (hoje só "Visão geral", `/e/:workspaceId`;
+  Carteiras/Operações/Posições/Patrimônio são placeholders desabilitados) — o
+  **seletor de espaço** (`WorkspaceSwitcher.vue`) é o cabeçalho desse grupo e o
+  único lugar que mostra o nome do espaço; a topbar não tem seletor. Escolher um
+  espaço leva sempre à Visão geral dele, de qualquer página. Cuidado
+  em CSS scoped: use `:global(.a .b)` com o seletor INTEIRO dentro — com
+  `:global(.a) .b` o Vue descarta o `.b` e gera uma regra só com `.a`.
 - Novo item de menu: `components/layout/AppSidebar.vue`. Rota avulsa vai no
   array `links`; um grupo de rotas relacionadas (ex.: "Dados de Mercado")
   ganha seu próprio array + bloco `.finmind-group-label` no template, mesmo
-  padrão de "Módulos futuros"/"Sistema" já existentes. `futureLinks` é só
-  para módulos ainda não implementados (links desabilitados).
+  padrão de "Espaço"/"Sistema" já existentes. Não adicione links desabilitados
+  de módulos que ainda não existem (o menu só mostra o que funciona); a
+  exceção são os placeholders do grupo Espaço (`espacoFutureLinks`), que já
+  têm estrutura decidida (ADR 0007).
 
 ## CI/CD
 

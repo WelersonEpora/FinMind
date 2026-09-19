@@ -1,5 +1,6 @@
 import { reactive, readonly } from 'vue'
 import authService from '../services/auth.service.js'
+import { useWorkspaceStore } from './workspace.js'
 
 // Estado reativo simples, sem Pinia - a superfície de estado de
 // autenticação é pequena o bastante (usuário + flags) pra não justificar
@@ -13,6 +14,8 @@ const state = reactive({
 async function login(email, password) {
   state.user = await authService.login(email, password)
   state.checked = true
+  // Os espaços do usuário carregam junto com a sessão.
+  await useWorkspaceStore().load()
 }
 
 async function logout() {
@@ -20,14 +23,17 @@ async function logout() {
     await authService.logout()
   } finally {
     state.user = null
+    useWorkspaceStore().clear()
   }
 }
 
 async function fetchCurrentUser() {
   try {
     state.user = await authService.me()
+    await useWorkspaceStore().load()
   } catch (_err) {
     state.user = null
+    useWorkspaceStore().clear()
   } finally {
     state.checked = true
   }

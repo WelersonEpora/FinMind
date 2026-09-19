@@ -16,6 +16,6 @@ const limitarColetaManual = criarLimitadorDeRequisicoes({
 
 router.get("/coletas", requireAuth, coletasController.listar);
 router.get("/coletas/:id", requireAuth, coletasController.detalhar);
-router.post("/coletas", requireAuth, requireRole("owner"), limitarColetaManual, coletasController.executar);
+router.post("/coletas", requireAuth, requireRole("admin"), limitarColetaManual, coletasController.executar);
 
 module.exports = router;

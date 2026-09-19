@@ -3,7 +3,10 @@
 const { DataTypes } = require("sequelize");
 const { randomUUID } = require("node:crypto");
 
-const ROLES = ["owner", "colaborador"];
+// Papel de PLATAFORMA (não confundir com workspace_member.role, o papel
+// dentro de um Espaço - ver ADR 0007, §5): `admin` gerencia usuários e
+// dispara a coleta global; `user` é usuário comum.
+const ROLES = ["admin", "user"];
 
 module.exports = (sequelize) => {
   const User = sequelize.define(
@@ -32,7 +35,7 @@ module.exports = (sequelize) => {
       role: {
         type: DataTypes.STRING(20),
         allowNull: false,
-        defaultValue: "colaborador",
+        defaultValue: "user",
         validate: { isIn: [ROLES] }
       },
       active: {

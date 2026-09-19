@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useAuthStore } from '../../stores/auth.js'
+import { useWorkspaceStore } from '../../stores/workspace.js'
 import { version as appVersion } from '../../../package.json'
+import WorkspaceSwitcher from './WorkspaceSwitcher.vue'
 
 defineProps({
   collapsed: { type: Boolean, default: false },
@@ -11,6 +13,7 @@ defineProps({
 const emit = defineEmits(['navigate'])
 
 const auth = useAuthStore()
+const workspaces = useWorkspaceStore()
 
 const links = [
   { to: '/', label: 'Dashboard', icon: 'bi-grid-1x2-fill' },
@@ -24,20 +27,32 @@ const dadosMercadoLinks = [
   { to: '/dados-mercado/execucoes', label: 'Execuções', icon: 'bi-arrow-repeat' }
 ]
 
-const futureLinks = [
-  { label: 'Ativos', icon: 'bi-briefcase' },
-  { label: 'Análises', icon: 'bi-bar-chart-line' },
-  { label: 'Sinais', icon: 'bi-broadcast' },
-  { label: 'Resultados', icon: 'bi-file-earmark-text' }
+// Grupo "Espaço": o seletor do espaço ativo (único lugar que mostra o nome
+// do espaço) e, abaixo, o que existe DENTRO dele - trocar de espaço não muda a
+// estrutura do menu, só para onde "Visão geral" aponta. Sem espaço ativo
+// (falha ao carregar a lista) o grupo inteiro some. Só "Visão geral" existe;
+// os demais são entidades privadas ainda não implementadas (ver ADR 0007).
+const espacoLinks = computed(() => {
+  const active = workspaces.active.value
+  if (!active) return []
+
+  return [{ to: { name: 'espaco', params: { workspaceId: active.id } }, label: 'Visão geral', icon: 'bi-house-door' }]
+})
+
+const espacoFutureLinks = [
+  { label: 'Carteiras', icon: 'bi-wallet2' },
+  { label: 'Operações', icon: 'bi-arrow-left-right' },
+  { label: 'Posições', icon: 'bi-pie-chart' },
+  { label: 'Patrimônio', icon: 'bi-bank' }
 ]
 
 // Grupo "Sistema" - sempre por último no menu. Usuários só aparece pra
-// owner (só owner inclui/ajusta outros usuários - ver require-role na rota
-// backend); Configuração fica visível pra todo mundo.
+// admin de plataforma (só admin inclui/ajusta outros usuários - ver
+// require-role na rota backend); Configuração fica visível pra todo mundo.
 const systemLinks = computed(() => {
   const items = []
 
-  if (auth.state.user?.role === 'owner') {
+  if (auth.state.user?.role === 'admin') {
     items.push({ to: '/usuarios', label: 'Usuários', icon: 'bi-people' })
   }
 
@@ -67,6 +82,34 @@ const systemLinks = computed(() => {
       </li>
     </ul>
 
+    <template v-if="espacoLinks.length">
+      <!-- Sem rótulo de texto: o seletor já é o cabeçalho do grupo (mostra o
+           nome, o tipo e o papel do espaço) e um "ESPAÇO" acima de "Espaço
+           pessoal" só repetiria. Fica a linha divisória. -->
+      <div class="finmind-group-divider"></div>
+      <WorkspaceSwitcher @navigate="emit('navigate')" />
+      <ul class="nav nav-pills flex-column p-2 pt-1">
+        <li v-for="link in espacoLinks" :key="link.label" class="nav-item">
+          <router-link
+            :to="link.to"
+            class="nav-link text-white d-flex align-items-center gap-2"
+            active-class="active"
+            :title="link.label"
+            @click="emit('navigate')"
+          >
+            <i class="bi flex-shrink-0 finmind-nav-icon" :class="link.icon"></i>
+            <span class="finmind-nav-label">{{ link.label }}</span>
+          </router-link>
+        </li>
+        <li v-for="item in espacoFutureLinks" :key="item.label" class="nav-item">
+          <span class="nav-link text-secondary disabled d-flex align-items-center gap-2" :title="`${item.label} — em breve`">
+            <i class="bi flex-shrink-0 finmind-nav-icon" :class="item.icon"></i>
+            <span class="finmind-nav-label">{{ item.label }}</span>
+          </span>
+        </li>
+      </ul>
+    </template>
+
     <div class="finmind-group-label px-3 py-2 text-uppercase text-secondary small">Dados de Mercado</div>
     <ul class="nav nav-pills flex-column p-2">
       <li v-for="link in dadosMercadoLinks" :key="link.to" class="nav-item">
@@ -80,19 +123,6 @@ const systemLinks = computed(() => {
           <i class="bi flex-shrink-0 finmind-nav-icon" :class="link.icon"></i>
           <span class="finmind-nav-label">{{ link.label }}</span>
         </router-link>
-      </li>
-    </ul>
-
-    <div class="finmind-group-label px-3 py-2 text-uppercase text-secondary small">Módulos futuros</div>
-    <ul class="nav flex-column p-2">
-      <li v-for="item in futureLinks" :key="item.label" class="nav-item">
-        <span
-          class="nav-link text-secondary disabled d-flex align-items-center gap-2"
-          :title="`${item.label} — aguardando definições do especialista`"
-        >
-          <i class="bi flex-shrink-0 finmind-nav-icon" :class="item.icon"></i>
-          <span class="finmind-nav-label">{{ item.label }}</span>
-        </span>
       </li>
     </ul>
 
@@ -126,6 +156,10 @@ const systemLinks = computed(() => {
   width: 240px;
   position: sticky;
   top: 64px;
+  /* Acima do conteúdo posicionado do <main>: o dropdown do seletor de espaço
+     (fixo, maior que a sidebar recolhida) precisa aparecer por cima dele. Abaixo
+     da topbar (1030) e dos modais (1055). */
+  z-index: 1020;
   align-self: stretch;
   min-height: calc(100vh - 64px);
   max-height: calc(100vh - 64px);
@@ -143,6 +177,13 @@ const systemLinks = computed(() => {
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Mesma linha divisória do rótulo, para o grupo cujo cabeçalho é o seletor. */
+.finmind-group-divider {
+  margin-top: 0.5rem;
+  margin-bottom: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .finmind-nav-icon {
   font-size: 1.1rem;
   width: 18px;
@@ -157,7 +198,8 @@ const systemLinks = computed(() => {
   width: 72px;
 }
 .finmind-sidebar-collapsed .finmind-nav-label,
-.finmind-sidebar-collapsed .finmind-group-label {
+.finmind-sidebar-collapsed .finmind-group-label,
+.finmind-sidebar-collapsed .finmind-group-divider {
   display: none;
 }
 .finmind-sidebar-collapsed .nav-link {
@@ -191,7 +233,8 @@ const systemLinks = computed(() => {
     max-width: 300px;
   }
   .finmind-sidebar-collapsed .finmind-nav-label,
-  .finmind-sidebar-collapsed .finmind-group-label {
+  .finmind-sidebar-collapsed .finmind-group-label,
+  .finmind-sidebar-collapsed .finmind-group-divider {
     display: block;
   }
   .finmind-sidebar-collapsed .nav-link {

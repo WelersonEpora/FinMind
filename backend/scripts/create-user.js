@@ -1,16 +1,16 @@
 "use strict";
 
 // Cria um usuário real - não existe endpoint público de cadastro de
-// propósito (só um owner autenticado cria usuários pela tela /usuarios).
-// Este script cobre o bootstrap (primeiro owner) e qualquer provisionamento
+// propósito (só um admin autenticado cria usuários pela tela /usuarios).
+// Este script cobre o bootstrap (primeiro admin) e qualquer provisionamento
 // sem precisar da UI, reaproveitando a mesma lógica de user.service.js
 // (sem duplicar regra entre CLI e API).
 //
 // Uso:
-//   node scripts/create-user.js --name="Fulano" --email="fulano@exemplo.com" --password="..." [--role=owner|colaborador]
+//   node scripts/create-user.js --name="Fulano" --email="fulano@exemplo.com" --password="..." [--role=admin|user]
 //
 //   (em produção, dentro do container:
-//    docker compose exec backend node scripts/create-user.js --name=... --email=... --password=... --role=owner)
+//    docker compose exec backend node scripts/create-user.js --name=... --email=... --password=... --role=admin)
 
 const { sequelize } = require("../src/models");
 const userService = require("../src/services/user.service");
@@ -28,7 +28,7 @@ async function main() {
   const { name, email, password, role } = parseArgs();
 
   if (!name || !email || !password) {
-    console.error('Uso: node scripts/create-user.js --name="..." --email="..." --password="..." [--role=owner|colaborador]');
+    console.error('Uso: node scripts/create-user.js --name="..." --email="..." --password="..." [--role=admin|user]');
     process.exitCode = 1;
     return;
   }

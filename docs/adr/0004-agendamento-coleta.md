@@ -24,7 +24,7 @@ fora do backend principal).
   `docker compose exec backend npm run collect` (mesmo padrão do AgroMind,
   cujo cron de produção também não está versionado neste repositório).
 - Também existe disparo manual via `POST /api/v1/coletas` (autenticado,
-  só `owner`, rate-limitado) — para quem quiser rodar a coleta pela UI sem
+  só `admin` de plataforma, rate-limitado) — para quem quiser rodar a coleta pela UI sem
   esperar o próximo ciclo do cron.
 - Duplicidade de execução (o mesmo dia rodado mais de uma vez, seja pelo
   cron ou manualmente) é resolvida na camada de persistência: upsert por

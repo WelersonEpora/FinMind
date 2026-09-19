@@ -6,16 +6,19 @@ const { TooManyRequestsError } = require("../errors");
 // única sem réplicas/Redis (ver docs/decisoes-tecnicas.md - "sem padrão
 // arquitetural sem necessidade comprovada"). Usado hoje só no login, para
 // dificultar força bruta de senha.
-function criarLimitadorDeRequisicoes({ janelaMs, maxRequisicoes, mensagem }) {
-  const registros = new Map(); // chave (req.ip) -> { contagem, iniciaEm }
+// `chave` decide quem é contado - por padrão o IP; rotas autenticadas que
+// precisam de limite por usuário (ex.: adicionar membro, que não pode virar
+// um meio de testar e-mails em massa) passam `(req) => req.user.sub`.
+function criarLimitadorDeRequisicoes({ janelaMs, maxRequisicoes, mensagem, chave = (req) => req.ip }) {
+  const registros = new Map(); // chave (IP ou usuário) -> { contagem, iniciaEm }
 
   return function limitarRequisicoes(req, _res, next) {
-    const chave = req.ip;
+    const idDoChamador = chave(req);
     const agora = Date.now();
-    const registro = registros.get(chave);
+    const registro = registros.get(idDoChamador);
 
     if (!registro || agora - registro.iniciaEm >= janelaMs) {
-      registros.set(chave, { contagem: 1, iniciaEm: agora });
+      registros.set(idDoChamador, { contagem: 1, iniciaEm: agora });
       return next();
     }
 

@@ -17,7 +17,7 @@ const fakeUser = {
   name: "Administrador",
   password_hash: "hashed",
   active: true,
-  role: "owner"
+  role: "admin"
 };
 
 test("login returns a token and the safe user on valid credentials", async () => {
@@ -34,7 +34,7 @@ test("login returns a token and the safe user on valid credentials", async () =>
     id: "user-1",
     email: "admin@finmind.local",
     name: "Administrador",
-    role: "owner",
+    role: "admin",
     active: true,
     hasPhoto: false
   });

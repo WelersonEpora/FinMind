@@ -138,7 +138,7 @@ onMounted(carregar)
         <p class="execucoes__subtitulo">Histórico bruto de todas as coletas — cada linha é uma execução real de um coletor.</p>
       </div>
       <Button
-        v-if="auth.state.user?.role === 'owner'"
+        v-if="auth.state.user?.role === 'admin'"
         label="Executar coleta agora"
         icon="pi pi-play"
         :loading="executandoAgora"

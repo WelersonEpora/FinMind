@@ -33,7 +33,9 @@ async function login(email, plainPassword, deps = {}) {
   }
 
   const safeUser = toSafeUser(user);
-  const token = signer.sign({ sub: safeUser.id, role: safeUser.role });
+  // Só `sub`: o papel e o status vêm do banco a cada request (ver
+  // require-auth.js), nunca do token.
+  const token = signer.sign({ sub: safeUser.id });
 
   return { token, user: safeUser };
 }

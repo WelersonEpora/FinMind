@@ -54,7 +54,7 @@ Sobe MariaDB (`localhost:${MARIADB_PORT}`) e phpMyAdmin
 cd backend
 npm install
 npm run db:migrate
-npm run db:seed      # cria o usuário administrador inicial (papel owner)
+npm run db:seed      # cria o usuário administrador inicial (papel admin)
 npm run dev
 ```
 
@@ -106,7 +106,7 @@ chave natural, ver `docs/adr/0003-persistencia-coletas.md`).
 Sem `node-cron`/fila no processo — em produção, um cron externo (fora deste
 repositório) chama esse mesmo comando periodicamente (ver
 `docs/adr/0004-agendamento-coleta.md`). Também é possível disparar uma
-coleta manual autenticado como `owner` via `POST /api/v1/coletas`, ou pela
+coleta manual autenticado como `admin` via `POST /api/v1/coletas`, ou pela
 tela `/dados-mercado/execucoes` no frontend.
 
 Consultar os dados coletados:
@@ -157,11 +157,26 @@ primeiro deploy automático.
 - Autenticação (login/logout, sessão via cookie JWT httpOnly, rotas
   protegidas, rate limit no login, usuário administrador inicial
   configurável por variável de ambiente).
-- Papéis (`owner`/`colaborador`, coluna simples em `user`) e gestão de
-  usuários (`/usuarios`, só para `owner`) — criar e listar usuários;
-  sem edição/desativação nem permissões granulares ainda. Sem
-  cadastro público: só um `owner` autenticado cria novos usuários, pela
-  tela ou por `backend/scripts/create-user.js`.
+- Papéis de plataforma (`admin`/`user`, coluna simples em `user`) e gestão
+  de usuários (`/usuarios`, só para `admin`) — criar e listar usuários;
+  sem permissões granulares ainda. Sem cadastro público: só um `admin`
+  autenticado cria novos usuários, pela tela ou por
+  `backend/scripts/create-user.js`. Cada requisição revalida o usuário no
+  banco: desativar um usuário ou mudar seu papel vale na hora (o JWT só
+  identifica quem é). Não confundir com o papel dentro de um espaço
+  (`owner`/`editor`/`viewer`).
+- Fundação de "Espaços" (`workspace`/`workspace_member`, N:N com
+  `user`): todo usuário — existente ou novo — tem um espaço pessoal em que
+  é `owner`. Qualquer usuário pode criar espaços ("Criar espaço" no seletor de
+  espaço, no menu lateral) e o `owner` de um espaço compartilhado adiciona usuários já
+  existentes (botão "Incluir", em modal), como editor ou leitor, e pode remover
+  membros (lixeira na linha) ou excluir o espaço — nunca o pessoal, com
+  confirmação digitando o nome ("Visão geral" do espaço,
+  `/e/:workspaceId`, no grupo Espaço do menu lateral).
+  Ainda não há dado privado: isso prepara o isolamento dos futuros dados
+  patrimoniais (carteira etc.), enquanto o dado de mercado segue global. Sem
+  mudança de papel, transferência de propriedade nem convite por e-mail ainda. Ver
+  `docs/adr/0007-escopo-de-dados-global-espaco-usuario.md`.
 - Primeira integração real de dados: cotação do dólar (USD/BRL) e taxa
   Selic (meta + realizada) via API SGS do Banco Central — coletores com
   timeout/retry/log de execução, histórico armazenado em banco, endpoints
@@ -197,5 +212,5 @@ ordens. Nenhum desses itens foi decidido ou simulado nesta entrega.
 David)
 
 - Gestão de permissões granular, se/quando surgir necessidade real além
-  de owner/colaborador.
+  de admin/user.
 - Refresh token / renovação de sessão, se o uso justificar.

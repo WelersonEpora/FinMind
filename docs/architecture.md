@@ -47,7 +47,7 @@ FinMind/
       ai/                     # contrato de provedor de IA (placeholder)
     database/
       migrations/             # fonte da verdade do schema
-      seeders/                # usuário admin inicial (papel owner)
+      seeders/                # usuário admin inicial (papel admin)
     scripts/
       run-coleta.js            # coleta manual/cron externo (npm run collect)
       backfill-dolar.js         # backfill de histórico (npm run backfill:dolar)
@@ -84,8 +84,10 @@ controller formata resposta de erro manualmente.
 ## Autenticação
 
 Sessão via JWT num cookie `httpOnly`. `shared/middlewares/require-auth.js`
-valida o cookie e popula `req.user`; `require-role.js` restringe por
-papel. Detalhes e justificativa em `docs/decisoes-tecnicas.md`.
+valida o cookie, confere no banco que o usuário existe e está ativo e popula
+`req.user` (papel de plataforma vindo do banco); `require-role.js` restringe
+por esse papel; `require-workspace-member.js` restringe por vínculo/papel
+em um espaço. Detalhes e justificativa em `docs/decisoes-tecnicas.md`.
 
 ## Coleta de dados / motor analítico / IA
 

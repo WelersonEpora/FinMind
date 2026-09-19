@@ -33,18 +33,23 @@ mesma convenção usada no AgroMind (Postgres), adaptada.
 
 ## Papéis e permissões
 
-Coluna `role` (string, `owner` / `colaborador`) direto em `user` — sem
+Coluna `role` (string, `admin` / `user`; era `owner` / `colaborador` até a
+migration `20260919110000-rename-platform-roles.js`) direto em `user` — sem
 tabela `role` separada (a versão inicial tinha uma tabela + FK; trocada
 por essa coluna simples, ver migration
 `20260913100000-simplify-user-role-to-column.js`). Mesmo padrão já
-usado no Personal-Assistant (`models/membro.js`): papel gravado desde
-já, mas **sem enforcement de autorização nesta fase** — nenhuma rota
-checa `role` ainda (`require-role.js` existe como middleware genérico,
-pronto pra uso, mas não está aplicado em nenhuma rota hoje). Uma tabela
-com FK não paga o próprio custo enquanto não houver essa checagem.
-Quando houver necessidade real de permissões granulares, o caminho
-natural é uma tabela `permission` + junção `role_permission`, sem
-alterar o que já existe.
+usado no Personal-Assistant (`models/membro.js`). É o papel de
+**plataforma**: `require-role.js` já restringe a `admin` as rotas de
+usuários (`/users*`) e o disparo manual de coleta (`POST /coletas`); as
+demais rotas só exigem autenticação. O papel e o status `active` são lidos
+do **banco** a cada request (`require-auth.js`); o JWT carrega só `sub`.
+Não é papel dentro de um espaço
+(esse fica em `workspace_member.role` — ver
+`docs/adr/0007-escopo-de-dados-global-espaco-usuario.md`). Uma tabela
+com FK não paga o próprio custo enquanto não houver permissões
+granulares. Quando houver necessidade real delas, o caminho natural é
+uma tabela `permission` + junção `role_permission`, sem alterar o que já
+existe.
 
 ## Usuário administrador inicial
 

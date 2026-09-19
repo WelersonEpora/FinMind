@@ -23,18 +23,18 @@ async function assertEmailAvailable(repo, normalizedEmail, currentEmail) {
   }
 }
 
-// Nunca deixar o sistema sem nenhum owner ativo - mesma checagem do
-// Personal-Assistant (services/membro.service.js).
-async function assertKeepsAnActiveOwner(repo, user, updates) {
+// Nunca deixar a plataforma sem nenhum admin ativo (papel de plataforma -
+// nada a ver com o owner de um Espaço, ver ADR 0007, §5).
+async function assertKeepsAnActiveAdmin(repo, user, updates) {
   const roleFinal = updates.role ?? user.role;
   const activeFinal = updates.active ?? user.active;
-  const wasActiveOwner = user.role === User.ROLE.OWNER && user.active;
-  const staysActiveOwner = roleFinal === User.ROLE.OWNER && activeFinal;
+  const wasActiveAdmin = user.role === User.ROLE.ADMIN && user.active;
+  const staysActiveAdmin = roleFinal === User.ROLE.ADMIN && activeFinal;
 
-  if (wasActiveOwner && !staysActiveOwner) {
-    const otherActiveOwners = await repo.countActiveOwners(user.id);
-    if (otherActiveOwners === 0) {
-      throw new ValidationError("É preciso manter ao menos um owner ativo.");
+  if (wasActiveAdmin && !staysActiveAdmin) {
+    const otherActiveAdmins = await repo.countActiveAdmins(user.id);
+    if (otherActiveAdmins === 0) {
+      throw new ValidationError("É preciso manter ao menos um administrador ativo.");
     }
   }
 }
@@ -65,13 +65,13 @@ async function createUser({ name, email, password: plainPassword, role }, deps =
     throw new ValidationError('"password" precisa ter ao menos 8 caracteres.');
   }
 
-  const finalRole = role || User.ROLE.COLABORADOR;
+  const finalRole = role || User.ROLE.USER;
   assertValidRole(finalRole);
 
   const normalizedEmail = email.trim().toLowerCase();
   await assertEmailAvailable(repo, normalizedEmail, null);
 
-  const user = await repo.create({
+  const user = await repo.createWithPersonalWorkspace({
     name: name.trim(),
     email: normalizedEmail,
     password_hash: await pwd.hash(plainPassword),
@@ -101,7 +101,7 @@ function buildFieldUpdates({ name, email }) {
   return updates;
 }
 
-// Edição completa - só owner chama isto (ver require-role na rota): papel,
+// Edição completa - só admin chama isto (ver require-role na rota): papel,
 // status e dados de qualquer usuário.
 async function updateUser(id, { name, email, password: plainPassword, role, active }, deps = {}) {
   const repo = deps.userRepository || userRepository;
@@ -132,7 +132,7 @@ async function updateUser(id, { name, email, password: plainPassword, role, acti
     updates.password_hash = await pwd.hash(plainPassword);
   }
 
-  await assertKeepsAnActiveOwner(repo, user, updates);
+  await assertKeepsAnActiveAdmin(repo, user, updates);
 
   await repo.update(user, updates);
   return toSafeUser(await repo.findById(id));

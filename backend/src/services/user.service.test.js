@@ -15,7 +15,7 @@ function makeRepo({ existing = null } = {}) {
   const created = [];
   return {
     findByEmail: async () => existing,
-    create: async (data) => {
+    createWithPersonalWorkspace: async (data) => {
       const user = { id: "new-user", ...data };
       created.push(user);
       return user;
@@ -55,7 +55,7 @@ test("createUser rejects a duplicate e-mail", async () => {
   );
 });
 
-test("createUser defaults role to colaborador and hashes the password", async () => {
+test("createUser defaults role to user and hashes the password", async () => {
   const repo = makeRepo();
   const pwd = { hash: async (plain) => `hashed-${plain}` };
 
@@ -64,7 +64,7 @@ test("createUser defaults role to colaborador and hashes the password", async ()
     { userRepository: repo, password: pwd }
   );
 
-  assert.equal(user.role, "colaborador");
+  assert.equal(user.role, "user");
   assert.equal(user.email, "fulano@finmind.local");
   assert.equal(repo._created[0].password_hash, "hashed-12345678");
 });
@@ -78,52 +78,52 @@ function makeUserInstance(data) {
   return user;
 }
 
-function makeUpdateRepo({ user, otherActiveOwners = 1, emailTaken = false }) {
+function makeUpdateRepo({ user, otherActiveAdmins = 1, emailTaken = false }) {
   return {
     findById: async () => user,
     findByEmail: async () => (emailTaken ? { id: "someone-else" } : null),
     update: async (u, patch) => u.update(patch),
-    countActiveOwners: async () => otherActiveOwners
+    countActiveAdmins: async () => otherActiveAdmins
   };
 }
 
 test("updateUser rejects an empty name", async () => {
-  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }) });
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true }) });
   await assert.rejects(() => userService.updateUser("u1", { name: "   " }, { userRepository: repo }));
 });
 
 test("updateUser rejects an invalid role", async () => {
-  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }) });
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true }) });
   await assert.rejects(() => userService.updateUser("u1", { role: "gerente" }, { userRepository: repo }));
 });
 
 test("updateUser rejects an e-mail already used by someone else", async () => {
   const repo = makeUpdateRepo({
-    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }),
+    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true }),
     emailTaken: true
   });
   await assert.rejects(() => userService.updateUser("u1", { email: "outro@finmind.local" }, { userRepository: repo }));
 });
 
-test("updateUser rejects deactivating the last active owner", async () => {
+test("updateUser rejects deactivating the last active admin", async () => {
   const repo = makeUpdateRepo({
-    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }),
-    otherActiveOwners: 0
+    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true }),
+    otherActiveAdmins: 0
   });
   await assert.rejects(() => userService.updateUser("u1", { active: false }, { userRepository: repo }));
 });
 
-test("updateUser allows deactivating an owner when another active owner remains", async () => {
+test("updateUser allows deactivating an admin when another active admin remains", async () => {
   const repo = makeUpdateRepo({
-    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }),
-    otherActiveOwners: 1
+    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true }),
+    otherActiveAdmins: 1
   });
   const user = await userService.updateUser("u1", { active: false }, { userRepository: repo });
   assert.equal(user.active, false);
 });
 
 test("updateUser hashes the password only when one is provided", async () => {
-  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "colaborador", active: true }) });
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "user", active: true }) });
   const pwd = { hash: async (plain) => `hashed-${plain}` };
 
   const user = await userService.updateUser("u1", { password: "novaSenha123" }, { userRepository: repo, password: pwd });
@@ -132,7 +132,7 @@ test("updateUser hashes the password only when one is provided", async () => {
 });
 
 test("updateOwnProfile updates name and password", async () => {
-  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "colaborador", active: true }) });
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "user", active: true }) });
   const pwd = { hash: async (plain) => `hashed-${plain}` };
 
   const user = await userService.updateOwnProfile("u1", { name: "Novo Nome", password: "novaSenha123" }, { userRepository: repo, password: pwd });
@@ -141,15 +141,15 @@ test("updateOwnProfile updates name and password", async () => {
 });
 
 test("updateOwnProfile ignores role/active even if somehow present in the payload", async () => {
-  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "colaborador", active: true }) });
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "user", active: true }) });
 
   const user = await userService.updateOwnProfile(
     "u1",
-    { name: "Novo Nome", role: "owner", active: false },
+    { name: "Novo Nome", role: "admin", active: false },
     { userRepository: repo }
   );
 
-  assert.equal(user.role, "colaborador");
+  assert.equal(user.role, "user");
   assert.equal(user.active, true);
 });
 
@@ -171,7 +171,7 @@ function makeFakePhotoStorage() {
 }
 
 test("setPhoto rejects an unsupported mime type", async () => {
-  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }) });
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true }) });
   const storage = makeFakePhotoStorage();
   await assert.rejects(() =>
     userService.setPhoto("u1", { buffer: Buffer.from("x"), mimeType: "application/pdf" }, { userRepository: repo, photoStorage: storage })
@@ -179,7 +179,7 @@ test("setPhoto rejects an unsupported mime type", async () => {
 });
 
 test("setPhoto saves the file and stores its name on the user", async () => {
-  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }) });
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true }) });
   const storage = makeFakePhotoStorage();
 
   const user = await userService.setPhoto("u1", { buffer: Buffer.from("x"), mimeType: "image/jpeg" }, { userRepository: repo, photoStorage: storage });
@@ -190,7 +190,7 @@ test("setPhoto saves the file and stores its name on the user", async () => {
 
 test("removePhoto deletes the file and clears photo_path", async () => {
   const repo = makeUpdateRepo({
-    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true, photo_path: "user-u1.jpg" })
+    user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true, photo_path: "user-u1.jpg" })
   });
   const storage = makeFakePhotoStorage();
 
@@ -201,7 +201,7 @@ test("removePhoto deletes the file and clears photo_path", async () => {
 });
 
 test("removePhoto is a no-op when the user has no photo", async () => {
-  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "owner", active: true }) });
+  const repo = makeUpdateRepo({ user: makeUserInstance({ id: "u1", name: "A", email: "a@finmind.local", role: "admin", active: true }) });
   const storage = makeFakePhotoStorage();
 
   await userService.removePhoto("u1", { userRepository: repo, photoStorage: storage });
