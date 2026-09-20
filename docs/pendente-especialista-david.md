@@ -22,6 +22,18 @@ contratos vazios até que estas definições existam.
 > acima: resolve só este caso específico. Nenhum outro ativo, mercado ou
 > fonte além de USD/BRL e Selic foi decidido.
 
+> **Exceção pontual (2026-09-20):** o usuário do projeto autorizou
+> explicitamente a **aquisição de dados** de **ouro** e **milho** listados na
+> análise `docs/analise-critica-fel1-milho-ouro.md` (FRED, LBMA Gold PM,
+> CFTC COT, USDA Crop Progress; preço de ajuste do CCM na B3 investigado, ainda
+> não resolvido) e a criação da camada point-in-time — ver
+> `docs/adr/0008-camada-observation-point-in-time.md` e
+> `docs/adr/0009-fontes-ouro-milho-status.md`. Vale **só para coleta e
+> armazenamento**: nenhum sinal, limiar, indicador técnico ou regra de
+> compra/venda foi definido (o "juro real 10a" é a leitura direta do DFII10, um
+> dado publicado pelo FRED). Café, petróleo e qualquer outro ativo seguem
+> pendentes.
+
 1. **Ativos** — quais ativos serão analisados (ações, moedas,
    commodities, criptoativos, renda fixa...). *(USD/BRL e Selic resolvidos
    como exceção pontual, ver notas acima — demais ativos seguem

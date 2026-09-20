@@ -10,9 +10,9 @@ async function getObservavelDetalhe(codigo) {
   return data
 }
 
-async function getObservavelHistorico(codigo, { pagina, tamanhoPagina, ordenarPor, ordem, dataInicio, dataFim, modality } = {}) {
+async function getObservavelHistorico(codigo, { pagina, tamanhoPagina, ordenarPor, ordem, dataInicio, dataFim, modality, campo, vencimentos } = {}) {
   const { data } = await http.get(`/api/v1/observaveis/${codigo}/historico`, {
-    params: { pagina, tamanhoPagina, ordenarPor, ordem, dataInicio, dataFim, modality }
+    params: { pagina, tamanhoPagina, ordenarPor, ordem, dataInicio, dataFim, modality, campo, vencimentos }
   })
   return data
 }

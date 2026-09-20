@@ -92,4 +92,4 @@ async function obterHistorico(instrumentCode, filtros, deps = {}) {
   };
 }
 
-module.exports = { obterCotacaoAtual, obterHistorico };
+module.exports = { obterCotacaoAtual, obterHistorico, validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO };

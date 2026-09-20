@@ -7,6 +7,7 @@ import Button from 'primevue/button'
 import AppShell from '../components/layout/AppShell.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import observaveisService from '../services/observaveis.service.js'
+import { formatarValor } from '../utils/observaveis-format.js'
 
 const router = useRouter()
 
@@ -20,7 +21,6 @@ const busca = ref('')
 const tamanhoPagina = ref(OPCOES_LINHAS_POR_PAGINA[0])
 const primeiroRegistro = ref(0)
 
-const formatadorValor = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 const formatadorData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 
 function formatarData(dataIso) {
@@ -113,11 +113,11 @@ onMounted(carregar)
         </template>
         <template #empty>Nenhum observável encontrado.</template>
 
-        <Column field="nome" header="Nome" sortable />
-        <Column field="fonte" header="Fonte" sortable />
+        <Column field="nome" header="Nome" sortable body-class="observaveis__celula-compacta" />
+        <Column field="fonte" header="Fonte" sortable body-class="observaveis__celula-compacta" />
         <Column field="valor" header="Último valor" sortable>
           <template #body="{ data }">
-            <span v-if="data.valor != null">{{ formatadorValor.format(data.valor) }} {{ data.unidade }}</span>
+            <span v-if="data.valor != null">{{ formatarValor(data.valor, data.casasDecimais) }} {{ data.unidade }}</span>
             <span v-else class="text-muted">-</span>
           </template>
         </Column>
@@ -140,6 +140,12 @@ onMounted(carregar)
 .observaveis {
   max-width: 1440px;
   margin: 0 auto;
+}
+
+.observaveis :deep(.observaveis__celula-compacta) {
+  /* Nome e Fonte são textos longos: fonte menor evita quebrar em duas linhas. */
+  font-size: 0.78rem;
+  line-height: 1.25;
 }
 
 .observaveis__cabecalho {

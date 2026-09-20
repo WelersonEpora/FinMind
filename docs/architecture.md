@@ -42,7 +42,9 @@ FinMind/
         logger/              # pino
         utils/               # password (bcrypt), jwt, cookie de sessão
       collectors/base/       # contrato de coletor + pipeline (runner/retry)
-      collectors/bcb/         # coletor real: cotação do dólar (SGS série 1)
+      collectors/bcb/         # coletores reais: dólar e Selic (SGS) -> market_quote
+      collectors/fred|lbma|cftc|usda/  # ouro/milho -> observation (point-in-time, ADR 0008/0009)
+      factors/               # fatores derivados (funções determinísticas sobre asOf(); ADR 0008)
       analytics-engine/      # contrato do motor de regras (placeholder)
       ai/                     # contrato de provedor de IA (placeholder)
     database/

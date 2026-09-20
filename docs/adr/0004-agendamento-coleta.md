@@ -60,6 +60,18 @@ resolve bem (cron, systemd timer).
 - Documentado em `CLAUDE.md` como o cron de produção deveria ser configurado
   (fora deste repositório).
 
+## Atualização (2026-09-20) — primeiro agendamento real
+
+O ADR original não previa quem chama o cron. Como a B3 só mantém uma janela rolante de ~15 meses do CCM
+(ADR 0009), a coleta diária passou a ser necessária. Na máquina de desenvolvimento ela roda pelo **Agendador
+de Tarefas do Windows**: `backend/scripts/agendar-coleta-windows.ps1` cria a tarefa `FinMind-Coleta-Diaria`
+(22:00, `StartWhenAvailable`), que executa `node scripts/run-coleta.js` e acrescenta a saída em
+`backend/storage/logs/coleta.log`. `-Remover` desfaz. Continua valendo: **nenhum `node-cron` no backend**.
+Limites: só com a máquina ligada, o usuário logado e o MariaDB de dev no ar.
+
+Na VM de produção o equivalente é um cron do host, por exemplo (**exemplo, não testado**):
+`0 22 * * * cd /opt/apps/finmind/app && docker compose --project-directory . -f docker/compose.prod.yml exec -T backend npm run collect`
+
 ## Em aberto
 
 - Definição exata do cron de produção (frequência, horário) — decisão

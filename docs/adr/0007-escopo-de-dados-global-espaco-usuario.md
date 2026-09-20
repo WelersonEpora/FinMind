@@ -95,6 +95,7 @@ Regras adicionais, todas obrigatórias:
 | Tabela | Escopo | Observação |
 |---|---|---|
 | `market_quote` | GLOBAL | sem `workspace_id`, e nunca terá |
+| `observation` | GLOBAL | dado de mercado point-in-time, append-only (ADR 0008); sem `workspace_id`, e nunca terá |
 | `collection_execution` | GLOBAL | visibilidade hoje aberta a autenticados; restringir a admin de plataforma quando houver clientes externos |
 | `system_setting` | GLOBAL | configuração da plataforma |
 | `user` | USER (identidade) | identidade global, não vínculo com espaço |

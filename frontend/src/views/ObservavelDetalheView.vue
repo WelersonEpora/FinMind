@@ -8,6 +8,7 @@ import AppShell from '../components/layout/AppShell.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import LineChart from '../components/charts/LineChart.vue'
 import observaveisService from '../services/observaveis.service.js'
+import { descreverPublicacao, formatarValor } from '../utils/observaveis-format.js'
 
 const route = useRoute()
 
@@ -17,17 +18,37 @@ const FREQUENCIA_LABEL = { DIARIA: 'Diária', SEMANAL: 'Semanal', MENSAL: 'Mensa
 // Rótulos de exibição pra `modalidade` - só aparece na UI (legenda do
 // gráfico, coluna da tabela) quando um observável tem mais de uma
 // modalidade coletada (ex.: SELIC = meta + realizada, ver ADR 0006).
-const MODALIDADE_LABEL = { venda: 'Venda', compra: 'Compra', meta: 'Meta (Copom)', realizada: 'Realizada' }
+const MODALIDADE_LABEL = {
+  venda: 'Venda',
+  compra: 'Compra',
+  meta: 'Meta (Copom)',
+  realizada: 'Realizada',
+  // Observáveis point-in-time (ADR 0008/0009)
+  usd: 'US$/oz',
+  indice: 'Índice',
+  nominal: 'Nominal (DGS10)',
+  real: 'Real - TIPS (DFII10)',
+  breakeven: 'Inflação implícita (T10YIE)',
+  open_interest: 'Contratos em aberto',
+  mm_long: 'Fundos - comprados',
+  mm_short: 'Fundos - vendidos'
+}
 
 // Tamanho máximo de página aceito pela API (ver TAMANHO_PAGINA_MAXIMO em
 // backend/src/services/market-data.service.js) - cobre folgadamente 1 ano
 // de série diária num único request.
 const TAMANHO_PAGINA_MAXIMO_API = 366
+// Um card agrupa várias séries (ex.: Treasury = 3) e 5-10 anos de dado diário:
+// passa de 366 linhas com folga, então o gráfico busca TODAS as páginas do
+// período (com um teto, para nunca disparar centenas de requisições).
+const MAX_PAGINAS_GRAFICO = 30
 const OPCOES_PERIODO_GRAFICO = [
   { dias: 30, label: '30d' },
   { dias: 90, label: '90d' },
   { dias: 180, label: '180d' },
-  { dias: 365, label: '1 ano' }
+  { dias: 365, label: '1 ano' },
+  { dias: 1825, label: '5 anos' },
+  { dias: 3650, label: '10 anos' }
 ]
 
 const codigo = computed(() => route.params.codigo)
@@ -47,6 +68,13 @@ const carregandoHistorico = ref(false)
 // de uma modalidade coletada (ex.: SELIC = meta + realizada, ADR 0006).
 const modalidadeFiltro = ref(null)
 
+// Futuros com vários vencimentos (CCM): UM campo por vez (unidades diferentes) e
+// uma linha por vencimento - nunca uma série contínua. Por padrão só os
+// vencimentos que ainda negociam; os vencidos são opt-in.
+const campoSelecionado = ref(null)
+const vencimentosSelecionados = ref([])
+const mostrarVencidos = ref(false)
+
 const ordemPrimeVueHistorico = computed(() => (ordemHistorico.value === 'ASC' ? 1 : -1))
 const sortFieldHistorico = computed(
   () => Object.keys(CAMPO_PARA_ORDENACAO).find((campo) => CAMPO_PARA_ORDENACAO[campo] === ordenarPorHistorico.value) || 'dataReferencia'
@@ -56,7 +84,6 @@ const periodoGrafico = ref(OPCOES_PERIODO_GRAFICO[0].dias)
 const historicoGrafico = ref([])
 const carregandoGrafico = ref(false)
 
-const formatadorValor = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 const formatadorDataHora = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 const formatadorData = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 
@@ -74,7 +101,22 @@ const pontosGrafico = computed(() =>
 // tabela, que pode já estar filtrado por uma modalidade só.
 const modalidadesDisponiveis = computed(() => [...new Set(historicoGrafico.value.map((item) => item.modalidade))])
 const temMultiplasModalidades = computed(() => modalidadesDisponiveis.value.length > 1)
-const mostrarColunaModalidade = computed(() => temMultiplasModalidades.value && !modalidadeFiltro.value)
+const porVencimento = computed(() => Boolean(observavel.value?.vencimentos))
+const mostrarColunaModalidade = computed(() => porVencimento.value || (temMultiplasModalidades.value && !modalidadeFiltro.value))
+const campoAtual = computed(() => (porVencimento.value ? observavel.value.campos.find((c) => c.codigo === campoSelecionado.value) : null))
+const casasAtuais = computed(() => campoAtual.value?.casasDecimais ?? observavel.value?.casasDecimais)
+const unidadeAtual = computed(() => campoAtual.value?.unidade ?? observavel.value?.unidade)
+const vencimentosVisiveis = computed(() => (porVencimento.value ? observavel.value.vencimentos.filter((v) => mostrarVencidos.value || v.ativo) : []))
+const quantidadeVencidos = computed(() => (porVencimento.value ? observavel.value.vencimentos.filter((v) => !v.ativo).length : 0))
+const semVencimentoSelecionado = computed(() => porVencimento.value && vencimentosSelecionados.value.length === 0)
+// Legenda do gráfico e coluna da tabela: rótulo amigável do vencimento (ex.: "CCMX26 (nov/2026)").
+const rotulosSeries = computed(() => ({
+  ...MODALIDADE_LABEL,
+  ...Object.fromEntries((observavel.value?.vencimentos || []).map((v) => [v.ticker, v.rotulo]))
+}))
+// Só observáveis point-in-time (tabela observation) trazem quando o valor passou
+// a estar disponível - PTAX/Selic (market_quote) não têm essa informação.
+const mostrarColunaPublicacao = computed(() => historico.value.some((item) => item.publicadoEm))
 
 function calcularDataInicio(diasAtras) {
   const hoje = new Date()
@@ -86,12 +128,29 @@ function calcularDataInicio(diasAtras) {
 async function carregarObservavel() {
   const resultado = await observaveisService.getObservavelDetalhe(codigo.value)
   observavel.value = resultado.observavel
+  if (observavel.value.vencimentos) {
+    campoSelecionado.value = observavel.value.campoPrincipal
+    vencimentosSelecionados.value = observavel.value.vencimentos.filter((v) => v.ativo).map((v) => v.ticker)
+  }
+}
+
+// Sem vencimento marcado NÃO se pede nada (a API entenderia "sem filtro" e
+// devolveria os ativos): a tela avisa em vez de mostrar dado que ninguém escolheu.
+function parametrosDeSelecao() {
+  if (!porVencimento.value) return {}
+  return { campo: campoSelecionado.value, vencimentos: vencimentosSelecionados.value.join(',') }
 }
 
 async function carregarHistorico() {
   carregandoHistorico.value = true
   try {
+    if (semVencimentoSelecionado.value) {
+      historico.value = []
+      totalHistorico.value = 0
+      return
+    }
     const resultado = await observaveisService.getObservavelHistorico(codigo.value, {
+      ...parametrosDeSelecao(),
       pagina: paginaHistorico.value,
       tamanhoPagina: tamanhoPaginaHistorico.value,
       ordenarPor: ordenarPorHistorico.value,
@@ -108,16 +167,58 @@ async function carregarHistorico() {
 async function carregarGrafico() {
   carregandoGrafico.value = true
   try {
-    const resultado = await observaveisService.getObservavelHistorico(codigo.value, {
-      dataInicio: calcularDataInicio(periodoGrafico.value),
-      tamanhoPagina: TAMANHO_PAGINA_MAXIMO_API,
-      ordenarPor: 'referenceDate',
-      ordem: 'ASC'
-    })
-    historicoGrafico.value = resultado.historico
+    if (semVencimentoSelecionado.value) {
+      historicoGrafico.value = []
+      return
+    }
+    const dataInicio = calcularDataInicio(periodoGrafico.value)
+    const buscarPagina = (pagina) =>
+      observaveisService.getObservavelHistorico(codigo.value, {
+        ...parametrosDeSelecao(),
+        dataInicio,
+        pagina,
+        tamanhoPagina: TAMANHO_PAGINA_MAXIMO_API,
+        ordenarPor: 'referenceDate',
+        ordem: 'ASC'
+      })
+
+    const primeira = await buscarPagina(1)
+    const totalPaginas = Math.min(primeira.paginacao.totalPaginas, MAX_PAGINAS_GRAFICO)
+    const restantes = await Promise.all(Array.from({ length: Math.max(0, totalPaginas - 1) }, (_, i) => buscarPagina(i + 2)))
+    historicoGrafico.value = [primeira, ...restantes].flatMap((resultado) => resultado.historico)
   } finally {
     carregandoGrafico.value = false
   }
+}
+
+function recarregarSelecao() {
+  paginaHistorico.value = 1
+  return Promise.all([carregarHistorico(), carregarGrafico()])
+}
+
+function alternarVencimento(ticker) {
+  vencimentosSelecionados.value = vencimentosSelecionados.value.includes(ticker)
+    ? vencimentosSelecionados.value.filter((t) => t !== ticker)
+    : [...vencimentosSelecionados.value, ticker]
+  recarregarSelecao()
+}
+
+function onMostrarVencidosChange() {
+  if (!mostrarVencidos.value) {
+    const visiveis = new Set(vencimentosVisiveis.value.map((v) => v.ticker))
+    vencimentosSelecionados.value = vencimentosSelecionados.value.filter((t) => visiveis.has(t))
+  }
+  recarregarSelecao()
+}
+
+function selecionarTodosVisiveis() {
+  vencimentosSelecionados.value = vencimentosVisiveis.value.map((v) => v.ticker)
+  recarregarSelecao()
+}
+
+function limparVencimentos() {
+  vencimentosSelecionados.value = []
+  recarregarSelecao()
 }
 
 function onPeriodoGraficoChange(dias) {
@@ -179,9 +280,9 @@ onMounted(carregarTudo)
 
         <div class="observavel-detalhe__destaques">
           <div class="observavel-detalhe__destaque">
-            <span class="observavel-detalhe__destaque-rotulo">Valor atual</span>
+            <span class="observavel-detalhe__destaque-rotulo">Valor atual<template v-if="observavel.vencimentoPrincipal"> · {{ observavel.vencimentoPrincipal }}</template></span>
             <span class="observavel-detalhe__destaque-valor">
-              <template v-if="observavel.cotacaoAtual">{{ formatadorValor.format(observavel.cotacaoAtual.valor) }} {{ observavel.unidade }}</template>
+              <template v-if="observavel.cotacaoAtual">{{ formatarValor(observavel.cotacaoAtual.valor, observavel.casasDecimais) }} {{ observavel.unidade }}</template>
               <template v-else>-</template>
             </span>
           </div>
@@ -192,6 +293,12 @@ onMounted(carregarTudo)
           <div class="observavel-detalhe__destaque">
             <span class="observavel-detalhe__destaque-rotulo">Periodicidade</span>
             <span class="observavel-detalhe__destaque-valor">{{ FREQUENCIA_LABEL[observavel.frequencia] || observavel.frequencia }}</span>
+          </div>
+          <div v-if="observavel.publicacao" class="observavel-detalhe__destaque">
+            <span class="observavel-detalhe__destaque-rotulo">Data de publicação</span>
+            <span class="observavel-detalhe__destaque-valor observavel-detalhe__destaque-valor--pequeno">
+              {{ descreverPublicacao(observavel.publicacao) }}
+            </span>
           </div>
           <div class="observavel-detalhe__destaque">
             <span class="observavel-detalhe__destaque-rotulo">Cobertura</span>
@@ -231,9 +338,40 @@ onMounted(carregarTudo)
               </button>
             </div>
           </div>
+          <div v-if="porVencimento" class="observavel-detalhe__selecao">
+            <div>
+              <label class="form-label small mb-1 d-block">Campo</label>
+              <select v-model="campoSelecionado" class="form-select form-select-sm" @change="recarregarSelecao">
+                <option v-for="campo in observavel.campos" :key="campo.codigo" :value="campo.codigo">{{ campo.nome }} ({{ campo.unidade }})</option>
+              </select>
+            </div>
+            <div class="observavel-detalhe__selecao-vencimentos">
+              <span class="form-label small mb-1 d-block">Vencimentos</span>
+              <div class="observavel-detalhe__vencimentos">
+                <label
+                  v-for="vencimento in vencimentosVisiveis"
+                  :key="vencimento.ticker"
+                  class="observavel-detalhe__vencimento"
+                  :class="{ 'observavel-detalhe__vencimento--vencido': !vencimento.ativo }"
+                >
+                  <input type="checkbox" :checked="vencimentosSelecionados.includes(vencimento.ticker)" @change="alternarVencimento(vencimento.ticker)" />
+                  {{ vencimento.rotulo }}<span v-if="!vencimento.ativo" class="observavel-detalhe__estimada">vencido</span>
+                </label>
+              </div>
+              <div class="observavel-detalhe__selecao-acoes">
+                <label v-if="quantidadeVencidos" class="small">
+                  <input v-model="mostrarVencidos" type="checkbox" @change="onMostrarVencidosChange" /> Mostrar vencimentos já vencidos ({{ quantidadeVencidos }})
+                </label>
+                <button type="button" class="btn btn-link btn-sm p-0" @click="selecionarTodosVisiveis">Marcar todos</button>
+                <button type="button" class="btn btn-link btn-sm p-0" @click="limparVencimentos">Limpar</button>
+              </div>
+              <p class="observavel-detalhe__nota-publicacao mb-0">Cada linha é um vencimento; os vencimentos não são encadeados numa série contínua.</p>
+            </div>
+          </div>
           <div v-if="carregandoGrafico" class="text-muted text-center py-4">Carregando gráfico...</div>
+          <div v-else-if="semVencimentoSelecionado" class="text-muted text-center py-4">Selecione ao menos um vencimento.</div>
           <div v-else-if="!historicoGrafico.length" class="text-muted text-center py-4">Nenhum histórico disponível para o período selecionado.</div>
-          <LineChart v-else :pontos="pontosGrafico" :unidade="observavel.unidade" :series-labels="MODALIDADE_LABEL" />
+          <LineChart v-else :pontos="pontosGrafico" :unidade="unidadeAtual" :series-labels="rotulosSeries" />
         </section>
 
         <section v-if="observavel.fonteDetalhe" class="observavel-detalhe__secao">
@@ -259,7 +397,7 @@ onMounted(carregarTudo)
         <section class="observavel-detalhe__secao">
           <h2 class="observavel-detalhe__secao-titulo">Tabela histórica</h2>
           <div class="tabela-card">
-            <div v-if="temMultiplasModalidades" class="tabela-card__filtros">
+            <div v-if="temMultiplasModalidades && !porVencimento" class="tabela-card__filtros">
               <div>
                 <label class="form-label small mb-1 d-block">Modalidade</label>
                 <select v-model="modalidadeFiltro" class="form-select form-select-sm" @change="onModalidadeFiltroChange">
@@ -306,15 +444,25 @@ onMounted(carregarTudo)
                 <template #body="{ data }">{{ formatarData(data.dataReferencia) }}</template>
               </Column>
               <Column field="valor" header="Valor" sortable>
-                <template #body="{ data }">{{ formatadorValor.format(data.valor) }} {{ data.unidade }}</template>
+                <template #body="{ data }">{{ formatarValor(data.valor, casasAtuais) }} {{ data.unidade }}</template>
               </Column>
-              <Column v-if="mostrarColunaModalidade" field="modalidade" header="Modalidade">
-                <template #body="{ data }">{{ MODALIDADE_LABEL[data.modalidade] || data.modalidade }}</template>
+              <Column v-if="mostrarColunaModalidade" field="modalidade" :header="observavel.rotuloModalidade || 'Modalidade'">
+                <template #body="{ data }">{{ rotulosSeries[data.modalidade] || data.modalidade }}</template>
+              </Column>
+              <Column v-if="mostrarColunaPublicacao" header="Disponível desde">
+                <template #body="{ data }">
+                  {{ formatarDataHora(data.publicadoEm) }}
+                  <span v-if="data.publicadoEmEstimado" class="observavel-detalhe__estimada" title="Data estimada por regra documentada - a fonte não informa quando publicou">estimada</span>
+                </template>
               </Column>
               <Column header="Coletado em">
                 <template #body="{ data }">{{ formatarDataHora(data.atualizadoEm) }}</template>
               </Column>
             </DataTable>
+            <p v-if="mostrarColunaPublicacao" class="observavel-detalhe__nota-publicacao">
+              <strong>Disponível desde</strong> é quando o valor passou a estar publicamente disponível.
+              <em>estimada</em> = calculada por regra documentada (a fonte não informa) - usada nas análises point-in-time; ver ADR 0008.
+            </p>
           </div>
         </section>
       </template>
@@ -463,6 +611,60 @@ onMounted(carregarTudo)
   color: var(--p-text-muted-color);
   line-height: 1.5;
 }
+.observavel-detalhe__selecao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-bottom: 0.9rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 12px;
+  background: var(--p-content-background);
+}
+.observavel-detalhe__selecao-vencimentos {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.observavel-detalhe__vencimentos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+}
+.observavel-detalhe__vencimento {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.observavel-detalhe__vencimento--vencido {
+  color: var(--p-text-muted-color);
+}
+.observavel-detalhe__selecao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: center;
+  margin: 0.5rem 0 0.35rem;
+}
+
+.observavel-detalhe__estimada {
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--p-text-muted-color);
+  border: 1px solid var(--p-content-border-color);
+}
+
+.observavel-detalhe__nota-publicacao {
+  margin: 0.75rem 0.25rem 0.25rem;
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+}
+
 .observavel-detalhe__metodologia-nota {
   font-size: 0.82rem;
 }

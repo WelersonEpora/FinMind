@@ -45,6 +45,12 @@ module.exports = {
   collectors: {
     bcbSgsTimeoutMs: Number(process.env.BCB_SGS_TIMEOUT_MS || 15000),
     retryTentativas: Number(process.env.COLLECTOR_RETRY_TENTATIVAS || 3),
-    retryDelayMs: Number(process.env.COLLECTOR_RETRY_DELAY_MS || 500)
+    retryDelayMs: Number(process.env.COLLECTOR_RETRY_DELAY_MS || 500),
+    // Fontes da camada point-in-time (FRED, LBMA, CFTC, USDA): baixam o
+    // histórico inteiro de uma vez, então o timeout é maior que o do BCB.
+    sourceTimeoutMs: Number(process.env.COLLECTOR_SOURCE_TIMEOUT_MS || 60000),
+    // Chave gratuita do USDA NASS QuickStats (https://quickstats.nass.usda.gov/api).
+    // Sem ela o coletor do Crop Progress não é registrado.
+    nassApiKey: process.env.NASS_API_KEY || ""
   }
 };

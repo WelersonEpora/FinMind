@@ -1,6 +1,7 @@
 "use strict";
 
 const marketDataService = require("./market-data.service");
+const observationDataService = require("./observation-data.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
 const collectionExecutionRepository = require("../repositories/collection-execution.repository");
 const { NotFoundError } = require("../shared/errors");
@@ -51,7 +52,158 @@ const CATALOGO_OBSERVAVEIS = [
       formatoOrigem: "JSON (API SGS do Banco Central)",
       urlOficial: "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/10?formato=json"
     }
-  }
+  },
+
+  // --- Observáveis point-in-time (tabela `observation`, ADR 0008/0009) ---
+  // `origem: "observation"` faz o serviço ler de observation em vez de
+  // market_quote. Um card agrupa séries de MESMA unidade (a modalidade é a
+  // chave de cada série no gráfico). Mesma convenção da Selic.
+  {
+    instrumentCode: "OURO_LBMA",
+    origem: "observation",
+    nome: "Ouro - LBMA Gold Price PM",
+    unidade: "US$/oz",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "LBMA (ICE Benchmark Administration)",
+    fonteCollectorCode: "lbma-gold-pm-usd",
+    series: [{ modalidade: "usd", seriesCode: "LBMA.GOLD_PM.USD" }],
+    modalidadePrincipal: "usd",
+    fonteDetalhe: {
+      descricao: "Preço de referência do ouro fixado no leilão da tarde (PM) de Londres, em dólares por onça troy. Histórico desde 1968.",
+      metodologia:
+        "Um valor por dia útil, fixado às 15:00 de Londres. A fonte não informa quando publicou: a data de disponibilidade é ESTIMADA em 15:00 de Londres do próprio dia. Licença: o histórico tabulado oficial exige licença da IBA - uso atual restrito a pesquisa interna (ADR 0009).",
+      formatoOrigem: "JSON (feed público da LBMA)",
+      urlOficial: "https://prices.lbma.org.uk/json/gold_pm.json"
+    }
+  },
+  {
+    instrumentCode: "TREASURY_10A",
+    origem: "observation",
+    nome: "Treasury 10 anos (EUA)",
+    unidade: "% a.a.",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "FRED - Federal Reserve (H.15)",
+    fonteCollectorCode: ["fred-dgs10", "fred-dfii10", "fred-t10yie"],
+    series: [
+      { modalidade: "nominal", seriesCode: "FRED.DGS10" },
+      { modalidade: "real", seriesCode: "FRED.DFII10" },
+      { modalidade: "breakeven", seriesCode: "FRED.T10YIE" }
+    ],
+    // O "valor atual" do card é o juro real (DFII10): é o driver do ouro no relatório FEL 1.
+    modalidadePrincipal: "real",
+    fonteDetalhe: {
+      descricao:
+        "Três séries do FRED na mesma unidade: rendimento nominal (DGS10), rendimento real dos títulos indexados à inflação - TIPS (DFII10) e a inflação implícita (T10YIE = nominal - real, calculada pelo próprio FRED).",
+      metodologia:
+        "Um valor por dia útil. O CSV público do FRED não informa a data de publicação nem revisões: a disponibilidade é ESTIMADA em 1 dia útil após a data observada (não conhece feriados dos EUA). Nas 5.932 datas com as três séries, nominal - inflação implícita reproduz o juro real com diferença zero.",
+      formatoOrigem: "CSV (fredgraph.csv)",
+      urlOficial: "https://fred.stlouisfed.org/series/DFII10"
+    }
+  },
+  {
+    instrumentCode: "DOLAR_AMPLO_FED",
+    origem: "observation",
+    nome: "Índice amplo do dólar (Fed)",
+    unidade: "índice",
+    casasDecimais: 4,
+    frequencia: "DIARIA",
+    // Série diária, mas divulgada semanalmente (Fed H.10, segundas): a última
+    // observação pode ter até ~9 dias.
+    toleranciaDias: 10,
+    fonte: "FRED - Federal Reserve (H.10)",
+    fonteCollectorCode: "fred-dtwexbgs",
+    series: [{ modalidade: "indice", seriesCode: "FRED.DTWEXBGS" }],
+    modalidadePrincipal: "indice",
+    fonteDetalhe: {
+      descricao:
+        "Índice do dólar contra uma cesta ampla de moedas (DTWEXBGS). Não é o DXY (índice ICE, licenciado): é o substituto gratuito, com metodologia e composição diferentes.",
+      metodologia:
+        "Os valores são diários, mas o Fed os divulga em lote semanal (segundas-feiras). A disponibilidade é ESTIMADA como a segunda-feira seguinte à data observada.",
+      formatoOrigem: "CSV (fredgraph.csv)",
+      urlOficial: "https://fred.stlouisfed.org/series/DTWEXBGS"
+    }
+  },
+  ...["ouro", "milho"].map((ativo) => ({
+    instrumentCode: ativo === "ouro" ? "COT_OURO" : "COT_MILHO",
+    origem: "observation",
+    nome: `CFTC COT - ${ativo === "ouro" ? "Ouro (COMEX)" : "Milho (CBOT)"}`,
+    unidade: "contratos",
+    casasDecimais: 0,
+    frequencia: "SEMANAL",
+    toleranciaDias: 10,
+    fonte: "CFTC - Commitments of Traders",
+    fonteCollectorCode: ativo === "ouro" ? "cftc-cot-gold" : "cftc-cot-corn",
+    series: ["open_interest", "mm_long", "mm_short"].map((modalidade) => ({
+      modalidade,
+      seriesCode: `CFTC.${ativo === "ouro" ? "GOLD" : "CORN"}.${modalidade === "open_interest" ? "OPEN_INTEREST" : modalidade.toUpperCase()}`
+    })),
+    modalidadePrincipal: "open_interest",
+    fonteDetalhe: {
+      descricao:
+        "Posições em contratos futuros: contratos em aberto e posições compradas e vendidas dos fundos (managed money). A posição líquida não é gravada - é um fator, calculado a partir destas séries.",
+      metodologia:
+        "O dado é de terça-feira e normalmente sai na sexta, 15:30 ET, mas houve atrasos reais (o shutdown de 2025 atrasou semanas em até 50 dias). Desde ago/2022 a data de publicação é a REAL informada pela fonte; antes disso (carga em lote na fonte) é ESTIMADA em sexta 15:30 ET.",
+      formatoOrigem: "JSON (API Socrata da CFTC)",
+      urlOficial: "https://publicreporting.cftc.gov/resource/72hh-3qpy.json"
+    }
+  })),
+
+  // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
+  // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
+  // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por
+  // vencimento (nunca uma série contínua). `porVencimento` faz o serviço descobrir
+  // os vencimentos no banco; por padrão só os que ainda negociam.
+  ...[
+    {
+      instrumentCode: "CCM_PRECOS",
+      nome: "Milho B3 (CCM) — Preços",
+      unidade: "R$/saca",
+      campoPrincipal: "SETTLE",
+      campos: [
+        { codigo: "SETTLE", nome: "Preço de ajuste", unidade: "R$/saca", casasDecimais: 2 },
+        { codigo: "LAST", nome: "Último preço", unidade: "R$/saca", casasDecimais: 2 },
+        { codigo: "HIGH", nome: "Máxima do dia", unidade: "R$/saca", casasDecimais: 2 },
+        { codigo: "LOW", nome: "Mínima do dia", unidade: "R$/saca", casasDecimais: 2 },
+        { codigo: "AVG", nome: "Preço médio", unidade: "R$/saca", casasDecimais: 2 },
+        { codigo: "OSCN_PCT", nome: "Oscilação", unidade: "%", casasDecimais: 2 }
+      ],
+      descricao:
+        "Preços diários de cada vencimento do futuro de milho da B3 (CCM): preço de ajuste, último, máxima, mínima, médio e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua."
+    },
+    {
+      instrumentCode: "CCM_LIQUIDEZ",
+      nome: "Milho B3 (CCM) — Liquidez",
+      unidade: "contratos",
+      campoPrincipal: "CONTRACTS",
+      campos: [
+        { codigo: "CONTRACTS", nome: "Contratos negociados", unidade: "contratos", casasDecimais: 0 },
+        { codigo: "TRADES", nome: "Número de negócios", unidade: "negócios", casasDecimais: 0 },
+        { codigo: "VOLUME_BRL", nome: "Volume financeiro", unidade: "R$", casasDecimais: 0 }
+      ],
+      descricao:
+        "Liquidez diária de cada vencimento do futuro de milho da B3 (CCM): contratos negociados, número de negócios e volume financeiro. O relatório FEL 1 classifica a liquidez do CCM como modesta (§8.4, §13.3) - esta é a medida real."
+    }
+  ].map((cartao) => ({
+    ...cartao,
+    origem: "observation",
+    porVencimento: { prefixoSerie: "B3.CCM", campoReferencia: "SETTLE" },
+    casasDecimais: cartao.campos.find((c) => c.codigo === cartao.campoPrincipal).casasDecimais,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "B3 - Up2Data (negócios consolidados)",
+    fonteCollectorCode: "b3-ccm-futuro",
+    fonteDetalhe: {
+      descricao: cartao.descricao,
+      metodologia:
+        "Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). Histórico: o arquivo público da B3 cobre só cerca de 15 meses e o FinMind acumula daqui em diante.",
+      formatoOrigem: "CSV (TradeInformationConsolidatedFile, B3 Up2Data)",
+      urlOficial: "https://arquivos.b3.com.br/tabelas/TradeInformationConsolidatedFile"
+    }
+  }))
 ];
 
 // Heurística operacional simples (não é regra de negócio do especialista de
@@ -60,10 +212,23 @@ const CATALOGO_OBSERVAVEIS = [
 // de tolerância pra latência de publicação da fonte.
 const DIAS_TOLERANCIA_FRESCOR = 4;
 
-function calcularSituacao(dataReferencia) {
+// `toleranciaDias` por observável: séries semanais (COT) ou divulgadas em lote
+// semanal (índice do dólar) precisam de uma folga maior que a das diárias.
+function calcularSituacao(dataReferencia, toleranciaDias = DIAS_TOLERANCIA_FRESCOR) {
   if (!dataReferencia) return "SEM_COLETA";
   const diffDias = (Date.now() - new Date(`${dataReferencia}T00:00:00Z`).getTime()) / (1000 * 60 * 60 * 24);
-  return diffDias <= DIAS_TOLERANCIA_FRESCOR ? "EM_DIA" : "ATRASADA";
+  return diffDias <= toleranciaDias ? "EM_DIA" : "ATRASADA";
+}
+
+function ehObservation(item) {
+  return item.origem === "observation";
+}
+
+// Cotação atual pela origem certa (market_quote ou observation).
+function obterCotacaoAtualDoItem(item, deps) {
+  return ehObservation(item)
+    ? observationDataService.obterCotacaoAtual(item, deps)
+    : marketDataService.obterCotacaoAtual(item.instrumentCode, item.modalidadePrincipal, deps);
 }
 
 function buscarNoCatalogo(codigo) {
@@ -73,16 +238,20 @@ function buscarNoCatalogo(codigo) {
 async function listarObservaveis(deps = {}) {
   const observaveis = await Promise.all(
     CATALOGO_OBSERVAVEIS.map(async (item) => {
-      const { cotacao } = await marketDataService.obterCotacaoAtual(item.instrumentCode, item.modalidadePrincipal, deps);
+      const { cotacao, vencimentoPrincipal } = await obterCotacaoAtualDoItem(item, deps);
+      // Futuro por vencimento: o valor em destaque é o de UM vencimento - a lista
+      // diz qual (ex.: "R$/saca (CCMX26)") em vez de sugerir uma série contínua.
+      const unidade = cotacao?.unidade ?? item.unidade;
       return {
         codigo: item.instrumentCode,
         nome: item.nome,
-        fonte: cotacao?.fonte ?? null,
+        fonte: cotacao?.fonte ?? item.fonte ?? null,
         valor: cotacao?.valor ?? null,
-        unidade: cotacao?.unidade ?? item.unidade,
+        unidade: vencimentoPrincipal ? `${unidade} (${vencimentoPrincipal.ticker})` : unidade,
+        casasDecimais: item.casasDecimais ?? 4,
         dataReferencia: cotacao?.dataReferencia ?? null,
         frequencia: item.frequencia,
-        situacao: calcularSituacao(cotacao?.dataReferencia)
+        situacao: calcularSituacao(cotacao?.dataReferencia, item.toleranciaDias)
       };
     })
   );
@@ -96,11 +265,13 @@ async function obterDetalheObservavel(codigo, deps = {}) {
     throw new NotFoundError("Observável não encontrado.");
   }
 
-  const repoQuote = deps.marketQuoteRepository || marketQuoteRepository;
   const repoExecucao = deps.collectionExecutionRepository || collectionExecutionRepository;
 
-  const { cotacao, mensagem } = await marketDataService.obterCotacaoAtual(item.instrumentCode, item.modalidadePrincipal, deps);
-  const estatisticas = await repoQuote.buscarEstatisticas(item.instrumentCode);
+  const { cotacao, mensagem, vencimentoPrincipal } = await obterCotacaoAtualDoItem(item, deps);
+  const dimensoes = ehObservation(item) ? await observationDataService.obterDimensoes(item, deps) : null;
+  const estatisticas = ehObservation(item)
+    ? await observationDataService.obterEstatisticas(item, deps)
+    : await (deps.marketQuoteRepository || marketQuoteRepository).buscarEstatisticas(item.instrumentCode);
   const ultimaExecucao = await repoExecucao.buscarUltimaPorColetor(item.fonteCollectorCode);
 
   return {
@@ -108,12 +279,17 @@ async function obterDetalheObservavel(codigo, deps = {}) {
       codigo: item.instrumentCode,
       nome: item.nome,
       unidade: item.unidade,
+      casasDecimais: item.casasDecimais ?? 4,
       frequencia: item.frequencia,
-      situacao: calcularSituacao(cotacao?.dataReferencia),
+      situacao: calcularSituacao(cotacao?.dataReferencia, item.toleranciaDias),
       cotacaoAtual: cotacao,
       mensagem: cotacao ? null : mensagem,
       cobertura: { primeiraData: estatisticas.primeiraData, ultimaData: estatisticas.ultimaData },
       totalObservacoes: estatisticas.totalObservacoes,
+      // Só observáveis point-in-time: quanto das datas de publicação é estimado.
+      publicacao: estatisticas.publicacao ?? null,
+      // Só futuros por vencimento: seletores de campo e de vencimento da tela.
+      ...(dimensoes ? { ...dimensoes, vencimentoPrincipal: vencimentoPrincipal?.ticker ?? null } : {}),
       fonteDetalhe: item.fonteDetalhe ?? null,
       ultimaColeta: ultimaExecucao
         ? {
@@ -126,4 +302,14 @@ async function obterDetalheObservavel(codigo, deps = {}) {
   };
 }
 
-module.exports = { listarObservaveis, obterDetalheObservavel };
+// Histórico pela origem certa: `observation` (point-in-time) ou `market_quote`.
+// Código fora do catálogo segue o caminho antigo (devolve vazio), como antes.
+async function obterHistoricoObservavel(codigo, filtros, deps = {}) {
+  const item = buscarNoCatalogo(codigo);
+  if (item && ehObservation(item)) {
+    return observationDataService.obterHistorico(item, filtros, deps);
+  }
+  return marketDataService.obterHistorico(codigo, filtros, deps);
+}
+
+module.exports = { listarObservaveis, obterDetalheObservavel, obterHistoricoObservavel };

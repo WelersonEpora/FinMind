@@ -13,13 +13,22 @@ inválidos) e persist, registrando o resultado em `collection_execution`. Uma
 falha de comunicação com a fonte marca a execução inteira como `failed`; um
 item individual com dado inválido não aborta o restante do lote.
 
-Além do dólar via BCB, **nenhum outro ativo, mercado ou fonte está
-integrado**. O que falta para um próximo coletor depende inteiramente das
-definições do especialista David: quais ativos, quais mercados, quais fontes
+Além do BCB (dólar e Selic) e das fontes de ouro/milho da camada point-in-time
+(abaixo), **nenhum outro ativo, mercado ou fonte está integrado**. O que falta
+para um próximo coletor depende inteiramente das definições do especialista David: quais ativos, quais mercados, quais fontes
 de dados e quais informações coletar (ver
 `docs/pendente-especialista-david.md`). Não crie um coletor "de exemplo"
 com dados inventados - isso seria uma estratégia fictícia disfarçada de
 código de infraestrutura.
+
+## Coletores point-in-time (`observation`)
+
+Os coletores de `fred/`, `lbma/`, `cftc/` e `usda/` seguem o mesmo contrato, mas
+persistem em `observation` (append-only, com `published_at`) via
+`persist-observations.js` -> `point-in-time.service.js`, em vez de `market_quote`.
+Baixam a série inteira e só gravam o que é novo ou mudou de valor, então
+`npm run collect` (ou `npm run collect -- --coletor=fred`) serve de rotina diária
+e de backfill. Ver `docs/adr/0008-camada-observation-point-in-time.md`.
 
 ## Como adicionar um novo coletor
 

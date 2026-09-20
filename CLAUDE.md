@@ -100,7 +100,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: só `bcb-usd-brl-venda`),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/
@@ -170,6 +170,17 @@ Ver também `backend/src/collectors/base/README.md`.
   via `user.repository.js::createWithPersonalWorkspace` — não crie `User`
   por outro caminho).
 
+- **Dado que a fonte REVISA (ou de que se precisa saber "quando foi publicado")
+  vai em `observation`, não em `market_quote`** — camada point-in-time,
+  **append-only** (nunca UPDATE/DELETE; revisão = linha nova), lida por
+  `point-in-time.service.js::obterAsOf` (`published_at <= asOf`). Separa
+  `observed_at`/`published_at`/`collected_at`; `published_at` estimado por regra
+  fica marcado (`published_at_is_estimated`). Observável = série bruta coletada;
+  **fator** = função determinística e versionada em `backend/src/factors/`,
+  nunca gravada. Ver `docs/adr/0008-camada-observation-point-in-time.md`
+  (status de cada fonte: ADR 0009). Séries que não revisam (PTAX, Selic)
+  continuam em `market_quote`.
+
 ## Convenções de API
 
 - Prefixo `/api/v1/...` (exceto `GET /health`, fora do prefixo de
@@ -194,7 +205,8 @@ Ver também `backend/src/collectors/base/README.md`.
   sugerir que é um dado ao vivo.
 - Catálogo de observáveis (`GET /api/v1/observaveis`, `:codigo`,
   `:codigo/historico`) é uma lista estática no código
-  (`observaveis.service.js::CATALOGO_OBSERVAVEIS`), não uma tabela — ver
+  (`observaveis.service.js::CATALOGO_OBSERVAVEIS`; itens com `origem: "observation"`
+  leem da camada point-in-time, ADR 0008), não uma tabela — ver
   `docs/adr/0005-primevue-para-tabelas-de-dados.md` e
   `docs/decisoes-tecnicas.md`.
 
