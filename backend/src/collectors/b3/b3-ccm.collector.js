@@ -96,10 +96,17 @@ function extrairFuturosCcm(csv) {
     return { situacao: "erro", linhas: [], motivo: "Colunas do arquivo diferentes do esperado (layout mudou?)." };
   }
 
-  const futuros = linhas.slice(2).filter((linha) => {
-    const c = linha.split(";");
-    return c[3] === "AGRIBUSINESS" && decodificarFuturoCcm(c[1]) !== null;
-  });
+  const futuros = linhas
+    .slice(2)
+    .filter((linha) => {
+      const c = linha.split(";");
+      return c[3] === "AGRIBUSINESS" && decodificarFuturoCcm(c[1]) !== null;
+    })
+    // COPIA a linha. O split() do V8 devolve "sliced strings" que mantêm vivo o
+    // texto INTEIRO do arquivo (~7 MB) - guardar 7 linhas por pregão retinha
+    // ~7,8 MB por dia (~2,5 GB num backfill de 321 pregões) e derrubou uma VM de
+    // 1 GB. Com a cópia, só as poucas linhas do CCM ficam na memória.
+    .map((linha) => Buffer.from(linha, "latin1").toString("latin1"));
   return { situacao: "final", linhas: futuros };
 }
 
