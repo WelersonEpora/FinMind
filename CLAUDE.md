@@ -232,6 +232,15 @@ Ver também `backend/src/collectors/base/README.md`.
   por uma função `useXStore()` (ver `stores/auth.js`).
 - Um `service` por recurso em `frontend/src/services/`, funções `async`
   simples sobre `http.js` (axios com cookie de sessão).
+- **A tela de detalhe de um observável (`ObservavelDetalheView.vue`) é uma só para TODOS os cards: nunca
+  reimplemente nada por card.** Um card novo herda dela, sem código de tela: exportação da tabela em CSV (botão de
+  download ao lado do atualizar; série inteira, com os filtros da tabela, `GET /observaveis/:codigo/exportacao.csv`),
+  período do gráfico com a opção **Tudo**, período inicial por frequência em `utils/periodo-grafico.js` (série
+  `ANUAL` abre em **10 anos**, as demais em 30 dias), título do gráfico e da tabela com a métrica em uso e os seletores
+  de métrica (`campos`) e de item (`itens`) que vêm da API. Um card novo é só uma entrada no `CATALOGO_OBSERVAVEIS`, com
+  `frequencia` obrigatória e uma das quatro conhecidas (um teste barra outra); frequência nova precisa de uma linha em
+  `periodo-grafico.js`. O `index.html` sai com `Cache-Control: no-cache` (`frontend/nginx.conf`): depois de um deploy
+  não precisa de refresh forçado.
 - Gráficos: só `components/charts/` conhece `echarts`/`vue-echarts`
   (`EChartsBase.vue` genérico + `LineChart.vue` concreto); a lógica de
   montar a `option` do ECharts fica em `utils/echarts-option-builder.js`

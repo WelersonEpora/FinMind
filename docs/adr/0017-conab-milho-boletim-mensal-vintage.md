@@ -80,5 +80,11 @@ Conab (TXT) do ADR 0016. Nada além do milho é coletado.
 - **Não confirmados:** licença dos XLSX (a página de preços cita "sem derivações"; uso atual: interno), limite de
   uso do site (o backfill fez ~30 requisições com pausa de 1 s, sem problema) e quantos levantamentos antigos o índice
   manterá no futuro.
-- **Produção:** depois do deploy, rodar `npm run backfill:conab-milho` na VM **antes** da coleta diária gravar (a diária
-  recusa enquanto a fonte estiver vazia). Sem variável de ambiente nova; a dependência `xlsx` já existia (WASDE).
+- **Servidor:** o backfill **já foi executado no servidor** (2026-09-21, informado pelo usuário; o log mostra 15
+  levantamentos lidos, 1.227 criados, 2.209 revisões, 9.022 iguais e 0 falhas, em 88 s contra ~45 s no ambiente de
+  desenvolvimento). Ou seja, o site da Conab **é acessível a partir do servidor**. Um sucesso não prova estabilidade: o
+  AgroMind documenta que o site da Conab pode ficar instável e, por isso, o conector de conhecimento (texto do boletim)
+  de lá tem a Agência Gov como reserva; o coletor deste ADR não tem reserva (e não deve usar IA para o dado). A coleta
+  diária repete o download 3 vezes por dia (~1 MB), e uma falha aparece em `collection_execution` (tela
+  `/dados-mercado/execucoes`). Em qualquer banco novo, o backfill vem antes da coleta diária. Sem variável de ambiente
+  nova; a dependência `xlsx` já existia (WASDE).

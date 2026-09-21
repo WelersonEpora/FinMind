@@ -603,3 +603,17 @@ test("Conab: o escopo de cada card diz o que cobre (só milho; balanço só naci
   assert.match(balanco, /NACIONAL/);
   assert.match(balanco, /não há estoque nem consumo por UF/);
 });
+
+// --- padrão dos cards: a tela decide o período inicial do gráfico pela frequência (frontend/src/utils/periodo-grafico.js) ---
+
+test("todo card do catálogo tem uma frequência que a tela conhece (senão o período inicial do gráfico fica sem regra)", async () => {
+  const { observaveis } = await observaveisService.listarObservaveis({
+    marketQuoteRepository: { buscarMaisRecente: async () => null },
+    observationRepository: observationRepositoryVazio
+  });
+  const conhecidas = ["DIARIA", "SEMANAL", "MENSAL", "ANUAL"];
+
+  for (const observavel of observaveis) {
+    assert.ok(conhecidas.includes(observavel.frequencia), `${observavel.codigo}: frequência "${observavel.frequencia}" não é uma das conhecidas (${conhecidas.join(", ")})`);
+  }
+});

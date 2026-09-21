@@ -10,6 +10,7 @@ import LineChart from '../components/charts/LineChart.vue'
 import observaveisService from '../services/observaveis.service.js'
 import { descreverPublicacao, formatarValor } from '../utils/observaveis-format.js'
 import { baixarArquivo, nomeArquivoExportacao } from '../utils/baixar-arquivo.js'
+import { OPCOES_PERIODO_GRAFICO, periodoPadraoDias } from '../utils/periodo-grafico.js'
 
 const route = useRoute()
 
@@ -43,18 +44,6 @@ const TAMANHO_PAGINA_MAXIMO_API = 366
 // passa de 366 linhas com folga, então o gráfico busca TODAS as páginas do
 // período (com um teto, para nunca disparar centenas de requisições).
 const MAX_PAGINAS_GRAFICO = 30
-const OPCOES_PERIODO_GRAFICO = [
-  { dias: 30, label: '30d' },
-  { dias: 90, label: '90d' },
-  { dias: 180, label: '180d' },
-  { dias: 365, label: '1 ano' },
-  { dias: 1825, label: '5 anos' },
-  { dias: 3650, label: '10 anos' },
-  { dias: null, label: 'Tudo' }
-]
-const PERIODO_PADRAO_DIAS = OPCOES_PERIODO_GRAFICO[0].dias
-// Série anual (um ponto por safra): 30 dias não mostra nada - abre em 10 anos.
-const PERIODO_PADRAO_ANUAL_DIAS = 3650
 
 const codigo = computed(() => route.params.codigo)
 
@@ -88,7 +77,7 @@ const sortFieldHistorico = computed(
   () => Object.keys(CAMPO_PARA_ORDENACAO).find((campo) => CAMPO_PARA_ORDENACAO[campo] === ordenarPorHistorico.value) || 'dataReferencia'
 )
 
-const periodoGrafico = ref(PERIODO_PADRAO_DIAS)
+const periodoGrafico = ref(periodoPadraoDias())
 const historicoGrafico = ref([])
 const carregandoGrafico = ref(false)
 // O gráfico busca no máximo MAX_PAGINAS_GRAFICO páginas; se a seleção tem mais, avisa (a tabela e a exportação têm tudo).
@@ -142,7 +131,7 @@ async function carregarObservavel() {
   observavel.value = resultado.observavel
   if (observavel.value.campos) campoSelecionado.value = observavel.value.campoPrincipal
   if (observavel.value.itens) itensSelecionados.value = [...observavel.value.itensPadrao]
-  periodoGrafico.value = observavel.value.frequencia === 'ANUAL' ? PERIODO_PADRAO_ANUAL_DIAS : PERIODO_PADRAO_DIAS
+  periodoGrafico.value = periodoPadraoDias(observavel.value.frequencia)
 }
 
 // Sem item marcado NÃO se pede nada (a API entenderia "sem filtro" e devolveria o
