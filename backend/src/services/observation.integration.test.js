@@ -140,6 +140,30 @@ test("published_at estimado: modo padrão vê pela regra; modo estrito só depoi
   assert.equal((await em("2026-02-01T00:00:00Z", false))[0].publishedAtIsEstimated, true);
 });
 
+test("vintage real do FRED/ALFRED (DTWEXBGS): asOf diverge do valor atual - ADR 0011", opcoes, async () => {
+  const SERIE_ALFRED = "TESTE.PIT.DTWEXBGS_ALFRED";
+  // Dado real confirmado por chamada à API do FRED em 2026-09-21 (ver ADR
+  // 0011): observed_at 2023-01-03, publicado em 2023-01-09 como 122.1578,
+  // revisado em 2023-02-06 para 122.041 (estável até 2023-09-30, limite
+  // testado). Semeado num series_code isolado para não colidir com o que o
+  // coletor diário (CSV, published_at estimado) já grava em FRED.DTWEXBGS.
+  await registrar(
+    [{ series_code: SERIE_ALFRED, observed_at: "2023-01-03", value: 122.1578, unit: "INDEX", source_code: "FRED", published_at: D("2023-01-09T00:00:00Z"), published_at_is_estimated: false, published_at_basis: "alfred_vintage_date" }],
+    D("2023-01-09T12:00:00Z")
+  );
+  const revisao = await registrar(
+    [{ series_code: SERIE_ALFRED, observed_at: "2023-01-03", value: 122.041, unit: "INDEX", source_code: "FRED", published_at: D("2023-02-06T00:00:00Z"), published_at_is_estimated: false, published_at_basis: "alfred_vintage_date" }],
+    D("2023-02-06T12:00:00Z")
+  );
+  assert.equal(revisao.atualizados, 1);
+
+  const em = async (asOf) => (await service.obterAsOf({ seriesCodes: SERIE_ALFRED, asOf: D(asOf) }, { transaction }))[0];
+
+  assert.equal((await em("2023-01-08T00:00:00Z")), undefined, "antes da 1ª publicação real: nada era conhecido");
+  assert.equal((await em("2023-01-20T00:00:00Z")).value, 122.1578, "asOf antes da revisão real: valor original");
+  assert.equal((await em("2023-06-01T00:00:00Z")).value, 122.041, "asOf depois da revisão real: valor revisado, diferente do atual estimado por regra");
+});
+
 test("sem published_at: cai em collected_at, estimado, e não duplica ao recoletar", opcoes, async () => {
   const SERIE_C = "TESTE.PIT.SEMPUB";
   const dado = [{ series_code: SERIE_C, observed_at: "2026-07-01", value: 7, unit: "PCT", source_code: "TESTE" }];

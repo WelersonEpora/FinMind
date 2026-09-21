@@ -51,6 +51,9 @@ module.exports = {
     sourceTimeoutMs: Number(process.env.COLLECTOR_SOURCE_TIMEOUT_MS || 60000),
     // Chave gratuita do USDA NASS QuickStats (https://quickstats.nass.usda.gov/api).
     // Sem ela o coletor do Crop Progress não é registrado.
-    nassApiKey: process.env.NASS_API_KEY || ""
+    nassApiKey: process.env.NASS_API_KEY || "",
+    // Chave gratuita do FRED (https://fred.stlouisfed.org/docs/api/api_key.html).
+    // Só necessária para a API REST (vintages/ALFRED) - o coletor CSV atual não usa.
+    fredApiKey: process.env.FRED_API_KEY || ""
   }
 };

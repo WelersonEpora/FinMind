@@ -259,9 +259,10 @@ Ver também `backend/src/collectors/base/README.md`.
 `.github/workflows/ci.yml` roda lint + test (backend e frontend) + build
 (frontend) em toda branch/PR, sem depender de banco real.
 `.github/workflows/deploy.yml` builda/publica as imagens no GHCR e faz
-deploy via SSH na VM em push pra `main`. **Migrations não rodam
-automaticamente** — são aplicadas manualmente (`npm run db:migrate`) após
-o deploy, mesmo processo de sempre (ver `README.md`).
+deploy via SSH na VM em push pra `main`. **Migrations rodam
+automaticamente** como parte do deploy — `scripts/deploy.sh` (passo 4/6)
+executa `npm run db:migrate` dentro do container `backend` logo após subir
+os containers atualizados (seeders no passo 5/6).
 
 ## Status do projeto
 

@@ -34,7 +34,7 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js` (`DGS10 − T10YIE`), validado contra DFII10. Não exposto na tela |
 | Telas de dados | `/dados-mercado/observaveis` (11 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` (04:00, 06:00, 08:00, **não versionado**) — ADR 0004 |
-| CI/CD | Lint + testes + build em toda branch; deploy por push na `main`. Migrations rodam à mão |
+| CI/CD | Lint + testes + build em toda branch; deploy por push na `main`, que já roda as migrations automaticamente (`scripts/deploy.sh`, passo 4/6) |
 
 ### Dados coletados
 
@@ -43,7 +43,7 @@ Status de cada fonte, evidências e ressalvas: **ADR 0009**.
 | Fonte | Séries | Histórico | `published_at` | Status |
 |---|---|---|---|---|
 | BCB SGS | Dólar (PTAX venda), Selic meta e realizada | Longo | — (`market_quote`, não revisa) | ✅ ADRs 0001, 0006 |
-| FRED | DGS10, T10YIE, DFII10, DTWEXBGS | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | Estimado | ✅ Sem vintages (ver §3) |
+| FRED | DGS10, T10YIE, DFII10, DTWEXBGS | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | Estimado | ✅ Vintage real (ALFRED) provado via teste — ADR 0011 |
 | LBMA | Ouro PM (USD/oz) | Desde 1968 | Estimado | ✅ Licença de uso comercial não confirmada |
 | CFTC COT | Ouro e milho (open interest, MM long/short) | Desde 2006 | Real desde 2022-08; estimado antes | ✅ |
 | USDA NASS | Crop Progress do milho (12 séries) | Desde 2006 (padrão do coletor) | Estimado | ✅ Validado em 2026-09-20 (3.525 linhas) |
@@ -53,7 +53,7 @@ Status de cada fonte, evidências e ressalvas: **ADR 0009**.
 
 | # | Pendência | Observação |
 |---|---|---|
-| 1 | Backfill de **vintages via ALFRED** | É o que falta para provar com dado real que `asOf()` devolve um valor diferente do atual (critério de sucesso da análise crítica, §8) |
+| ~~1~~ | ~~Backfill de vintages via ALFRED~~ | **Feito (2026-09-21):** `DGS10`/`DFII10`/`T10YIE` não revisam de fato (confirmado por chamada real, 0 revisões em ~2.100 observações); `DTWEXBGS` revisa e foi usado pra provar `asOf()` com dado real num teste isolado — ver ADR 0011. Backfill de produção fica para quando uma série revisável de verdade entrar (ex.: CPI) |
 | 2 | **Profundidade do USDA** | Testar `NASS_ANO_INICIAL` menor; a API pode ter dado anterior a 2006 |
 | 3 | **Reconhecimento de fontes** (níveis 0–5, do AgroMind) | Formalizar uma linha por fonte antes de novo coletor |
 | 4 | **Licenças** de LBMA e FRED | Confirmar antes de exibir/redistribuir; hoje uso interno de pesquisa |
