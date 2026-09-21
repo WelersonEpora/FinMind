@@ -12,7 +12,7 @@ import { formatarValor } from '../utils/observaveis-format.js'
 const router = useRouter()
 
 const OPCOES_LINHAS_POR_PAGINA = [20, 50, 100]
-const FREQUENCIA_LABEL = { DIARIA: 'Diária', SEMANAL: 'Semanal', MENSAL: 'Mensal' }
+const FREQUENCIA_LABEL = { DIARIA: 'Diária', SEMANAL: 'Semanal', MENSAL: 'Mensal', ANUAL: 'Anual (por safra)' }
 
 const loading = ref(true)
 const errorMessage = ref('')

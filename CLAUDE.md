@@ -97,6 +97,8 @@ cd backend && npm run backfill:dolar -- --dataInicial=01/07/1994
 cd backend && npm run backfill:selic -- --dataInicial=01/07/1994
 # exportação de milho do Comex Stat, desde 2005 (~13 min: rate limit da fonte):
 cd backend && npm run backfill:comex-milho
+# balanço do milho do WASDE (USDA/ESMIS), edições de 2011 em diante (~190 downloads, ~5 min):
+cd backend && npm run backfill:wasde-milho
 ```
 
 A API do BCB rejeita (406) um pedido com mais de 10 anos: os scripts dividem o
@@ -106,7 +108,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM, Comex Stat (exportação de milho) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM, Comex Stat (exportação de milho), WASDE (balanço do milho) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/
@@ -278,7 +280,10 @@ os containers atualizados (seeders no passo 5/6).
 que falta e do que está bloqueado pelo David/Comitê — ponto de entrada para
 retomar o trabalho. A tela `/status-projeto` renderiza este arquivo como está
 (`status-projeto.service.js`; o `deploy.yml` o copia para a imagem do backend),
-então ele deve continuar sendo markdown simples (tabelas, listas, negrito).
+então ele deve continuar sendo markdown simples (tabelas, listas, negrito). A
+única exceção de HTML aceita pela tela é `<details>`/`<summary>` sem atributos
+(seção recolhível, ex.: "Entregas realizadas"); qualquer outra tag é mostrada
+como texto.
 **Ao fechar uma entrega, atualize-o no mesmo commit**
 (data de "Última atualização" incluída); ele só aponta para os ADRs/docs, nunca
 copia conteúdo deles. Quando o David responder uma das perguntas da §4,

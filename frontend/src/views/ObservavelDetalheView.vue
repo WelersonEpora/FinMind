@@ -14,7 +14,7 @@ const route = useRoute()
 
 const OPCOES_LINHAS_POR_PAGINA = [20, 50, 100, 200]
 const CAMPO_PARA_ORDENACAO = { dataReferencia: 'referenceDate', valor: 'value' }
-const FREQUENCIA_LABEL = { DIARIA: 'Diária', SEMANAL: 'Semanal', MENSAL: 'Mensal' }
+const FREQUENCIA_LABEL = { DIARIA: 'Diária', SEMANAL: 'Semanal', MENSAL: 'Mensal', ANUAL: 'Anual (por safra)' }
 // Rótulos de exibição pra `modalidade` - só aparece na UI (legenda do
 // gráfico, coluna da tabela) quando um observável tem mais de uma
 // modalidade coletada (ex.: SELIC = meta + realizada, ver ADR 0006).

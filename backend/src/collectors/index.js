@@ -16,6 +16,7 @@ const { criarColetorCot } = require("./cftc/cftc-cot.collector");
 const usdaCropProgressCollector = require("./usda/usda-crop-progress.collector");
 const b3CcmCollector = require("./b3/b3-ccm.collector");
 const comexMilhoExportacaoCollector = require("./comex/comex-milho-exportacao.collector");
+const wasdeMilhoCollector = require("./wasde/wasde-milho.collector");
 
 function bootstrapCollectors() {
   if (listCollectors().length === 0) {
@@ -33,6 +34,7 @@ function bootstrapCollectors() {
     registerCollector(criarColetorCot("corn"));
     registerCollector(b3CcmCollector);
     registerCollector(comexMilhoExportacaoCollector);
+    registerCollector(wasdeMilhoCollector);
 
     if (env.collectors.nassApiKey) {
       registerCollector(usdaCropProgressCollector);

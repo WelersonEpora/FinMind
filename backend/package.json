@@ -18,7 +18,8 @@
     "backfill:dolar": "node scripts/backfill-dolar.js",
     "backfill:selic": "node scripts/backfill-selic.js",
     "backfill:b3-ccm": "node scripts/backfill-b3-ccm.js",
-    "backfill:comex-milho": "node scripts/backfill-comex-milho.js"
+    "backfill:comex-milho": "node scripts/backfill-comex-milho.js",
+    "backfill:wasde-milho": "node scripts/backfill-wasde-milho.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -31,7 +32,8 @@
     "pino": "^9.5.0",
     "pino-http": "^10.3.0",
     "sequelize": "^6.37.7",
-    "sequelize-cli": "^6.6.3"
+    "sequelize-cli": "^6.6.3",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "eslint": "^9.15.0",

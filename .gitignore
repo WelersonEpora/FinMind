@@ -2,3 +2,6 @@
 node_modules/
 dist/
 *.log
+
+# Planilhas do WASDE baixadas à mão para reconhecimento (ADR 0015): o coletor baixa direto do ESMIS
+docs/Docs_Base/

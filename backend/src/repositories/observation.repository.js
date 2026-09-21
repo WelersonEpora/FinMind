@@ -79,6 +79,16 @@ async function buscarUltimasVersoes(seriesCode, { transaction } = {}) {
   return new Map(linhas.map((l) => [l.observed_at, l]));
 }
 
+// Instantes de publicação (published_at) já gravados para uma fonte: permite a um coletor de
+// fonte em EDIÇÕES (ex.: WASDE) saber quais edições já foram ingeridas, sem reler o histórico.
+async function listarInstantesDePublicacao(sourceCode, { transaction } = {}) {
+  const linhas = await sequelize.query(
+    "SELECT DISTINCT published_at FROM observation WHERE source_code = :sourceCode",
+    { replacements: { sourceCode }, type: QueryTypes.SELECT, transaction }
+  );
+  return linhas.map((l) => new Date(l.published_at));
+}
+
 // asOf: "o que se sabia em `asOf`?". Para cada (series_code, observed_at)
 // devolve a versão mais recente com published_at <= asOf.
 //
@@ -208,4 +218,4 @@ async function resumirSeries(seriesCodes, { transaction } = {}) {
   );
 }
 
-module.exports = { inserirVersoes, buscarUltimasVersoes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarVencimentos, resumirSeries };
+module.exports = { inserirVersoes, buscarUltimasVersoes, listarInstantesDePublicacao, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarVencimentos, resumirSeries };

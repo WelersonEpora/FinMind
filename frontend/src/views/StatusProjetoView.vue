@@ -83,6 +83,20 @@ onMounted(async () => {
   border-left: 4px solid #2c4a75;
   background: var(--bs-tertiary-bg, #f8f9fa);
 }
+/* Seções recolhíveis (<details>): fechadas por padrão, título clicável. */
+.finmind-markdown :deep(details) {
+  margin-bottom: 1rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.9rem;
+}
+.finmind-markdown :deep(summary) {
+  cursor: pointer;
+  font-weight: 600;
+}
+.finmind-markdown :deep(details[open] > summary) {
+  margin-bottom: 0.75rem;
+}
 .finmind-markdown :deep(code) {
   font-size: 0.85em;
 }

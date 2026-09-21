@@ -33,7 +33,7 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js` (`DGS10 − T10YIE`), validado contra DFII10. Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
-| Telas de dados | `/dados-mercado/observaveis` (13 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Telas de dados | `/dados-mercado/observaveis` (17 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` (04:00, 06:00, 08:00 **UTC**, **não versionado**), confirmado por SSH em 2026-09-21: dispara nos 3 horários e todos os coletores terminam em `success` — ADR 0004 |
 | CI/CD | Lint + testes + build em toda branch; deploy por push na `main`, que já roda as migrations automaticamente (`scripts/deploy.sh`, passo 4/6) |
 
@@ -49,7 +49,8 @@ Status de cada fonte, evidências e ressalvas: **ADR 0009**.
 | CFTC COT | Ouro e milho (open interest, MM long/short) | Desde 2006 | Real desde 2022-08; estimado antes | ✅ |
 | USDA NASS | Crop Progress do milho (12 séries) | Desde 1980 (piso real da API; cada série começa no seu ano) | Estimado (regra não validada p/ 1980–2005) | ✅ Validado em 2026-09-21 (6.758 linhas) |
 | B3 CCM | Futuros de milho, por vencimento | ~15 meses, janela rolante | Estimado | ✅ 10+ anos **não existem de graça** |
-| Comex Stat (MDIC) | Exportação de milho, mensal (volume em kg e valor FOB em US$) | **Desde 2005** (jan/2005 a ago/2026, 260 meses); antes disso o código NCM muda e não foi mapeado — pode ser estendido depois | Estimado (dia 15 do mês seguinte); revisões da fonte não confirmadas | ✅ Validado em 2026-09-21 no dev; **falta o backfill na produção** (§3) — ADR 0013 |
+| Comex Stat (MDIC) | Exportação de milho, mensal (volume em kg e valor FOB em US$) | **Desde 2005** (jan/2005 a ago/2026, 260 meses); antes disso o código NCM muda e não foi mapeado — pode ser estendido depois | Estimado (dia 15 do mês seguinte); revisões da fonte não confirmadas | ✅ Validado em 2026-09-21 em dev e produção (260 meses por série) — ADR 0013 |
+| USDA WASDE (ESMIS) | Balanço do milho por edição mensal: EUA (13 atributos) e ~20 regiões do mundo (7 atributos), 167 séries | **Desde 2011-01** (188 edições, XLS; antes só PDF/TXT) | **Real, com dia** (data do release); **vintage real**: 24.542 revisões guardadas | ✅ Validado em 2026-09-21 em **dev** (27.309 linhas; produção depois do deploy) — ADR 0015 |
 
 ### Como tratamos as fontes de dados
 
@@ -73,35 +74,20 @@ licença pendente. Por isso a coluna de ressalvas é a que importa na reunião:
 | CFTC COT | 5 | Data de publicação estimada antes de 2022-08 | — |
 | USDA Crop Progress | 5 | Data de publicação estimada, não validada p/ 1980–2005 | — |
 | B3 CCM | 5 (limitado) | **Só ~15 meses de histórico grátis** | David/Comitê (pergunta 3, orçamento) |
-| Comex Stat (MDIC) | 5 (dev) · 4 (produção) | **Histórico só a partir de 2005** (NCM anterior não mapeado); revisões não confirmadas; rate limit rígido (429) | Nós: backfill na VM |
-| CEPEA, Conab, IMEA, WASDE, NOAA, CPI, WGC | 0 | Candidatas, fora do escopo; CEPEA bloqueada para automação | David (pergunta 7) |
+| Comex Stat (MDIC) | 5 | **Histórico só a partir de 2005** (NCM anterior não mapeado); revisões não confirmadas; rate limit rígido (429) | — |
+| USDA FAS PSD (milho) | 1 | Reconhecida, **sem coletor**. Sem vintage histórico (API só dá a edição atual); licença e janela do rate limit não confirmadas | David (pergunta 5) |
+| USDA WASDE — arquivo ESMIS (milho) | 5 (dev) | **Só de 2011 em diante** (antes só PDF/TXT); só EUA e ~20 regiões; raspa o HTML da listagem (sem API confirmada); republicação do mesmo dia mantém a 1ª versão; licença e limite de uso não confirmados. Em produção falta o backfill | Deploy + backfill na VM |
+| CEPEA, Conab, IMEA, NOAA, CPI, WGC | 0 | Candidatas, fora do escopo; CEPEA bloqueada para automação | David (pergunta 7) |
 
 Processo: `docs/processo-reconhecimento-fontes.md`. Uma linha por fonte, com
 evidência: `docs/reconhecimento-fontes/README.md` (checklist completo de FRED e
 LBMA em arquivos próprios, por causa da licença).
 
-### Entregas de 2026-09-21
-
-Registro do que foi fechado na lista "Falta fazer" anterior (detalhe nos documentos apontados):
-
-| Entrega | Resultado | Onde |
-|---|---|---|
-| Vintage real (ALFRED) | `DGS10`/`DFII10`/`T10YIE` não revisam (0 revisões em ~2.100 observações); `DTWEXBGS` revisa e provou o `asOf()` com dado real num teste isolado. Backfill de produção só quando entrar uma série revisável | ADR 0011 |
-| Profundidade do USDA | O QuickStats começa em 1980 (o padrão do coletor era 2006); em produção o histórico entra na próxima coleta | ADR 0009 |
-| Reconhecimento de fontes (níveis 0–5) | Processo portado do AgroMind, índice com as 7 fontes implementadas e as candidatas em nível 0; regra em `CLAUDE.md` | `docs/processo-reconhecimento-fontes.md`, `docs/reconhecimento-fontes/` |
-| Licenças de LBMA e FRED | Termos lidos e registrados; **adiadas por decisão** (sem distribuição nem comercialização prevista, uso interno). Nota de licença nos cards | ADR 0009, `docs/reconhecimento-fontes/` |
-| FRED pela API | Coleta pela API REST quando há `FRED_API_KEY`, com o CSV como reserva; a chave já está no `.env` da VM (a confirmar depois do deploy) | ADR 0012 |
-| Cron de produção | Servidor em UTC (04/06/08 UTC = 01/03/05 em Brasília); as 3 execuções do dia terminaram com todos os coletores em `success` | ADR 0004 |
-| Permissões granulares e refresh token | Ficam como estão / descartados; a sessão passou de 8h para **12h** (JWT e cookie, uma constante) | `docs/decisoes-tecnicas.md` |
-| Carga histórica do BCB | Dólar (8.088 linhas), Selic realizada (8.086) e meta (10.073), desde 1994/1999, em dev e produção. Os scripts dividem o intervalo em janelas de 10 anos (limite da API do BCB) | ADR 0001 |
-| Tela "Status do projeto" | Renderiza este arquivo no app (menu Sistema) | `/status-projeto` |
-| Comex Stat — exportação de milho | Primeira fonte da lista do David que saiu do reconhecimento: coletor, backfill em blocos de 5 anos e 2 cards. **Cobertura a partir de 2005** (260 meses; a soma mensal bate com o total anual da API). Autorizado pelo usuário em 2026-09-21 | ADR 0013 |
-
 ## 3. Falta fazer
 
 Fontes de **milho** que o relatório do David lista (FEL 1, §6.5, §7 e o plano de
 integração da §9.2) e que ainda **não coletamos**. Já feitas: USDA NASS (Crop
-Progress), CFTC, B3 (CCM), Comex Stat, BCB SGS e FRED. Aqui se faz o **reconhecimento** de cada
+Progress), CFTC, B3 (CCM), Comex Stat, WASDE (balanço do milho), BCB SGS e FRED. Aqui se faz o **reconhecimento** de cada
 fonte (níveis 0→1, `docs/processo-reconhecimento-fontes.md`) e a **recomendação**,
 para decidir e levar à reunião com o David. **Reconhecer não é implementar:**
 nenhum coletor novo entra sem a decisão do David ou autorização explícita
@@ -111,16 +97,15 @@ armadilhas), não o código (outro banco, outra arquitetura).
 
 | # | Fonte (como o relatório a descreve) | Observação |
 |---|---|---|
-| 1 | **Comex Stat: backfill na produção** | Feito no dev. Falta rodar na VM depois do deploy: `npm run backfill:comex-milho` (~13 min, fora de 04:00/06:00/08:00 UTC; comando em `CLAUDE.md`). **Cobertura a partir de 2005**; estender para antes exige mapear o NCM do milho por período (ADR 0013) |
-| 2 | **USDA FAS — PSD Online / WASDE** — oferta e demanda global. Fase 1: PSD tem API, WASDE é PDF mensal | O NASS (Crop Progress) já está coletado; falta o balanço. AgroMind: nível 0, exige chave |
-| 3 | **Conab** — safras 1ª e 2ª, estoques, balanço. "Sem API pública oficial" (boletins PDF/XLSX, mensal) | AgroMind: balanço via XLSX em nível 5; preços (Portal de Informações) bloqueados por reCAPTCHA. O boletim revisa as estimativas (a medir) — ADR 0011 |
-| 4 | **IMEA (MT)** — oferta e demanda em MT, custos, intenção de plantio. Boletins mensais XLSX/PDF | AgroMind: nível 4, mas só devolve o valor mais recente (histórico não confirmado) |
-| 5 | **CEPEA/ESALQ** — indicador diário do preço do milho. O relatório diz "scraping viável; sem API oficial" | **Bloqueada:** Cloudflare e Termos de Uso (`docs/analise-critica-fel1-milho-ouro.md`). No AgroMind só entra por exportação manual. Depende do David: pergunta 7 |
-| 6 | **FAO/AMIS** — balanço global de grãos (FAOSTAT API). Fase 2 do plano | Nunca reconhecida, nem no AgroMind |
-| 7 | **BCB Focus** — expectativas de mercado. Fase 1 do plano (o SGS de dólar e Selic já está feito) | AgroMind: nível 3, só a Selic; API Olinda pública |
-| 8 | **Clima** (§6.5.1, acrescentada na revisão como obrigatória) — NOAA, INMET, NASA POWER, CPTEC/INPE, ECMWF/Copernicus ERA5 | NOAA, INMET e NASA POWER: API gratuita. ERA5: cadastro. Somar/Climatempo: comerciais, Fase 3. AgroMind: NOAA em nível 0 |
-| 9 | **Abimilho** e **CNA** — estatísticas e panorama do setor | Sem API (HTML/PDF), periódico. Menor prioridade |
-| 10 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3, 5 e 7 da §4 |
+| 1 | **USDA FAS — PSD Online** — oferta e demanda global (o WASDE, que é o balanço mensal dos EUA e principais países, **já está coletado**, ver §2 e ADR 0015). Fase 1: PSD tem API | **Reconhecida (nível 1, 2026-09-21), sem coletor** — ADR 0014. API JSON com chave própria `FAS_API_KEY` (a do NASS não serve); milho desde 1960, 125 países + mundo. Só devolve a edição mais recente (sem vintage): o vintage vem do WASDE. Faltaria só a **cobertura larga** (125 países, desde 1960). Recomendação: adotar como histórico largo; depende do David |
+| 2 | **Conab** — safras 1ª e 2ª, estoques, balanço. "Sem API pública oficial" (boletins PDF/XLSX, mensal) | AgroMind: balanço via XLSX em nível 5; preços (Portal de Informações) bloqueados por reCAPTCHA. O boletim revisa as estimativas (a medir) — ADR 0011 |
+| 3 | **IMEA (MT)** — oferta e demanda em MT, custos, intenção de plantio. Boletins mensais XLSX/PDF | AgroMind: nível 4, mas só devolve o valor mais recente (histórico não confirmado) |
+| 4 | **CEPEA/ESALQ** — indicador diário do preço do milho. O relatório diz "scraping viável; sem API oficial" | **Bloqueada:** Cloudflare e Termos de Uso (`docs/analise-critica-fel1-milho-ouro.md`). No AgroMind só entra por exportação manual. Depende do David: pergunta 7 |
+| 5 | **FAO/AMIS** — balanço global de grãos (FAOSTAT API). Fase 2 do plano | Nunca reconhecida, nem no AgroMind |
+| 6 | **BCB Focus** — expectativas de mercado. Fase 1 do plano (o SGS de dólar e Selic já está feito) | AgroMind: nível 3, só a Selic; API Olinda pública |
+| 7 | **Clima** (§6.5.1, acrescentada na revisão como obrigatória) — NOAA, INMET, NASA POWER, CPTEC/INPE, ECMWF/Copernicus ERA5 | NOAA, INMET e NASA POWER: API gratuita. ERA5: cadastro. Somar/Climatempo: comerciais, Fase 3. AgroMind: NOAA em nível 0 |
+| 8 | **Abimilho** e **CNA** — estatísticas e panorama do setor | Sem API (HTML/PDF), periódico. Menor prioridade |
+| 9 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3, 5 e 7 da §4 |
 
 Fora desta lista, por já estarem na §4: o **preço histórico dos futuros** (B3 com
 10+ anos e CME ZC, ambos pagos — pergunta 3) e as fontes de ouro que ele lista e
@@ -157,8 +142,33 @@ Preencher a resposta e a data quando o David responder.
 Não implementar sem autorização explícita registrada em ADR:
 
 - Café, petróleo e qualquer ativo além de USD/BRL, Selic, ouro e milho.
-- CEPEA (bloqueada por Cloudflare), Conab, IMEA, WGC, WASDE/PSD, clima, CPI.
+- CEPEA (bloqueada por Cloudflare), Conab, IMEA, WGC, PSD, clima, CPI.
 - Série contínua de futuros, rolagem e backtest.
 - Qualquer sinal, limiar, indicador técnico ou regra de compra/venda.
 - IA em qualquer ponto (o ADR 0010 é só proposta de desenho futuro).
 - Execução automática de ordens e corretora.
+
+## 6. Entregas realizadas
+
+Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-09-21</summary>
+
+Registro do que foi fechado na lista "Falta fazer" anterior (detalhe nos documentos apontados):
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Vintage real (ALFRED) | `DGS10`/`DFII10`/`T10YIE` não revisam (0 revisões em ~2.100 observações); `DTWEXBGS` revisa e provou o `asOf()` com dado real num teste isolado. Backfill de produção só quando entrar uma série revisável | ADR 0011 |
+| Profundidade do USDA | O QuickStats começa em 1980 (o padrão do coletor era 2006); em produção o histórico entra na próxima coleta | ADR 0009 |
+| Reconhecimento de fontes (níveis 0–5) | Processo portado do AgroMind, índice com as 7 fontes implementadas e as candidatas em nível 0; regra em `CLAUDE.md` | `docs/processo-reconhecimento-fontes.md`, `docs/reconhecimento-fontes/` |
+| Licenças de LBMA e FRED | Termos lidos e registrados; **adiadas por decisão** (sem distribuição nem comercialização prevista, uso interno). Nota de licença nos cards | ADR 0009, `docs/reconhecimento-fontes/` |
+| FRED pela API | Coleta pela API REST quando há `FRED_API_KEY`, com o CSV como reserva; a chave já está no `.env` da VM (a confirmar depois do deploy) | ADR 0012 |
+| Cron de produção | Servidor em UTC (04/06/08 UTC = 01/03/05 em Brasília); as 3 execuções do dia terminaram com todos os coletores em `success` | ADR 0004 |
+| Permissões granulares e refresh token | Ficam como estão / descartados; a sessão passou de 8h para **12h** (JWT e cookie, uma constante) | `docs/decisoes-tecnicas.md` |
+| Carga histórica do BCB | Dólar (8.088 linhas), Selic realizada (8.086) e meta (10.073), desde 1994/1999, em dev e produção. Os scripts dividem o intervalo em janelas de 10 anos (limite da API do BCB) | ADR 0001 |
+| Tela "Status do projeto" | Renderiza este arquivo no app (menu Sistema) | `/status-projeto` |
+| WASDE — balanço do milho (vintage real) | Coletor lê o XLS de cada edição mensal do ESMIS (2011 a 2026): 27.309 linhas em 167 séries, 24.542 revisões, `published_at` real; 4 cards nos Observáveis. Reingestão idempotente (coleta diária e backfill repetido: 0 falhas). **Autorizado pelo usuário em 2026-09-21**; só em dev, produção depois do deploy | ADR 0015 |
+| Comex Stat — exportação de milho | Primeira fonte da lista do David que saiu do reconhecimento: coletor, backfill em blocos de 5 anos e 2 cards. **Cobertura a partir de 2005** (260 meses; a soma mensal bate com o total anual da API), em dev e produção (conferido por consulta ao banco da VM: 260 linhas por série, 5 blocos em `success`). Autorizado pelo usuário em 2026-09-21 | ADR 0013 |
+
+</details>

@@ -246,6 +246,62 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
+  // --- USDA WASDE - balanço do milho, uma edição por mês desde 2011 (ADR 0015) ---
+  // A série é ANUAL (um ponto por safra, observed_at = 1º/set do ano de início) e cada edição do
+  // WASDE pode revisá-la: o histórico mostra a versão mais recente de cada safra, e o vintage (o
+  // que se sabia em cada edição) fica na camada point-in-time. `toleranciaDias` alto de propósito:
+  // o último ponto é a safra em projeção, com observed_at futuro ou de até ~1 ano atrás.
+  ...[
+    {
+      instrumentCode: "WASDE_MILHO_EUA_ESTOQUE_FINAL",
+      nome: "Milho EUA - Estoque final (WASDE)",
+      unidade: "milhões de bushels",
+      casasDecimais: 0,
+      seriesCode: "WASDE.MILHO.EUA.ENDING_STOCKS",
+      descricao: "Estoque final de milho dos Estados Unidos por safra (ano comercial set-ago), em milhões de bushels, conforme o WASDE do USDA."
+    },
+    {
+      instrumentCode: "WASDE_MILHO_EUA_PRODUCAO",
+      nome: "Milho EUA - Produção (WASDE)",
+      unidade: "milhões de bushels",
+      casasDecimais: 0,
+      seriesCode: "WASDE.MILHO.EUA.PRODUCTION",
+      descricao: "Produção de milho dos Estados Unidos por safra, em milhões de bushels, conforme o WASDE do USDA."
+    },
+    {
+      instrumentCode: "WASDE_MILHO_MUNDO_ESTOQUE_FINAL",
+      nome: "Milho mundo - Estoque final (WASDE)",
+      unidade: "milhões de t",
+      casasDecimais: 1,
+      seriesCode: "WASDE.MILHO.MUNDO.WORLD.ENDING_STOCKS",
+      descricao: "Estoque final mundial de milho por safra, em milhões de toneladas, conforme o WASDE do USDA (anos comerciais locais agregados)."
+    },
+    {
+      instrumentCode: "WASDE_MILHO_MUNDO_PRODUCAO",
+      nome: "Milho mundo - Produção (WASDE)",
+      unidade: "milhões de t",
+      casasDecimais: 1,
+      seriesCode: "WASDE.MILHO.MUNDO.WORLD.PRODUCTION",
+      descricao: "Produção mundial de milho por safra, em milhões de toneladas, conforme o WASDE do USDA."
+    }
+  ].map(({ seriesCode, descricao, ...cartao }) => ({
+    ...cartao,
+    origem: "observation",
+    frequencia: "ANUAL",
+    toleranciaDias: 400,
+    fonte: "USDA - WASDE",
+    fonteCollectorCode: "wasde-milho",
+    series: [{ modalidade: "valor", seriesCode }],
+    modalidadePrincipal: "valor",
+    fonteDetalhe: {
+      descricao,
+      metodologia:
+        "Um valor por safra (o dia da observação é 1º de setembro do ano de início; o WASDE agrega anos comerciais locais, então é uma convenção). Cada edição mensal do WASDE reestima a safra corrente e as anteriores: a data de publicação é a REAL do release (listagem do ESMIS), e cada revisão vira uma versão nova, o que preserva o que o mercado sabia em cada data. Edições de 2011 em diante (antes só há PDF/TXT). Valores como publicados, sem conversão de unidade.",
+      formatoOrigem: "XLS (planilha de cada edição no ESMIS)",
+      urlOficial: "https://esmis.nal.usda.gov/publication/world-agricultural-supply-and-demand-estimates"
+    }
+  })),
+
   // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
   // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por

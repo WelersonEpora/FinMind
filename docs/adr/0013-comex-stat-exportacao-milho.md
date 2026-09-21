@@ -63,8 +63,9 @@ Backfill de 2005 a 2026 em 5 blocos, ~13 min (a espera do 429 pesa): 260 meses �
 
 ## Consequências
 
-- **Produção:** o backfill ainda precisa ser rodado na VM depois do deploy (`npm run backfill:comex-milho`,
-  ~13 min, fora de 04:00/06:00/08:00 UTC). A coleta diária só cobre o ano corrente e o anterior.
+- **Produção:** backfill rodado na VM depois do deploy (`npm run backfill:comex-milho`, ~13 min) e conferido por
+  consulta ao banco: 260 linhas em cada série, de 2005-01-01 a 2026-08-01, 5 blocos em `success` (4 × 120 e 1 × 40
+  linhas criadas). A coleta diária só cobre o ano corrente e o anterior.
 - **Revisão não confirmada:** só a coleta repetida ao longo dos meses mostra se o MDIC revisa. Nesse caso
   passa a existir um caso real de vintage (ADR 0011), com `published_at` = `collected_at`.
 - **Fora de escopo aqui:** importação, outros NCMs (`10059090` é milho de semeadura, pequeno) e outros produtos.
