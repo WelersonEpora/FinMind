@@ -36,7 +36,7 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   const { observaveis } = await observaveisService.listarObservaveis(deps);
 
-  assert.equal(observaveis.length, 9, "USD_BRL e SELIC (market_quote) + 7 de observation (5 fixos + 2 cards do CCM)");
+  assert.equal(observaveis.length, 11, "USD_BRL e SELIC (market_quote) + 9 de observation (5 fixos + 2 do USDA + 2 cards do CCM)");
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
   assert.equal(observaveis[0].valor, 5.1);

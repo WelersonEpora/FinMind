@@ -14,12 +14,16 @@ coletores"). Modelo de dados: ADR 0008.
 | FRED (CSV público, sem chave) | `FRED.DGS10`, `FRED.T10YIE`, `FRED.DFII10`, `FRED.DTWEXBGS` | `fredgraph.csv?id=` | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | **estimado** (1 dia útil; DTWEXBGS = próxima segunda, divulgada semanalmente) | **Coletado e validado** |
 | LBMA Gold PM | `LBMA.GOLD_PM.USD` | feed JSON `prices.lbma.org.uk/json/gold_pm.json` | 1968-04-01 → hoje (14.686) | **estimado** (15:00 Londres) | **Coletado**; licença: ver ressalva |
 | CFTC COT (Disaggregated Futures Only) | `CFTC.GOLD.*` e `CFTC.CORN.*` × {`OPEN_INTEREST`,`MM_LONG`,`MM_SHORT`} | Socrata `publicreporting.cftc.gov/resource/72hh-3qpy` (sem chave) | 2006-06-13 → hoje (1.058 semanas/contrato) | **real** desde 2022-08 (`:updated_at`); **estimado** (sexta 15:30 ET) antes | **Coletado e validado** |
-| USDA NASS Crop Progress (milho) | `USDA.CORN.CONDITION.*`, `USDA.CORN.PROGRESS.*` | QuickStats API — **exige chave** | a confirmar | **estimado** (16:00 ET, 1º dia útil da semana, com feriados) | **Implementado, NÃO executado** — sem `NASS_API_KEY` |
+| USDA NASS Crop Progress (milho) | `USDA.CORN.CONDITION.*`, `USDA.CORN.PROGRESS.*` | QuickStats API — **exige chave** (gratuita) | 2006-04-09 → hoje (padrão do coletor, `NASS_ANO_INICIAL`; a API pode ter mais) | **estimado** (16:00 ET, 1º dia útil da semana, com feriados) | **Coletado e validado** (2026-09-20): 3.525 linhas, 12 séries, 0 falhas |
 | B3 — futuros CCM por vencimento | `B3.CCM.<TICKER>.<CAMPO>` | `TradeInformationConsolidatedFile` (Up2Data público, sem chave nem recaptcha) | **~15 meses e rolante** (verificado em 2026-09-20) | — | **Coletor implementado e coletado** (`b3-ccm-futuro`): 20.508 linhas, 321 pregões, 15 vencimentos. **10+ anos NÃO existem de graça** |
 
 Validação cruzada real: `DGS10 − T10YIE` reproduz `DFII10` em **5.932 de 5.932**
 pontos (diferença máxima 0) — o FRED define T10YIE dessa forma, o que confirma que os
 três coletores leem a mesma realidade.
+
+Crop Progress na tela Observáveis: dois cards, `USDA_MILHO_CONDICAO` (5 classes, destaque "boa") e
+`USDA_MILHO_PROGRESSO` (7 etapas, destaque "colheita"). O destaque é só a série exibida; nenhuma soma
+(ex.: boa+excelente) é calculada — seria um fator. Na condição, as 5 classes somam 100% em cada semana.
 
 ### Achados que corrigem o relatório FEL 1
 
@@ -130,8 +134,9 @@ Duas frentes, ambas rodando `run-coleta.js` (todos os coletores; ver ADR 0004):
 
 ## Pendências
 
-- `NASS_API_KEY` (gratuita) para executar e validar o Crop Progress; confirmar nomes de campo e a
-  profundidade histórica na primeira execução real.
+- Crop Progress: confirmar a profundidade histórica real do QuickStats (a coleta usa 2006 como
+  início padrão; testar `NASS_ANO_INICIAL` menor). Cada etapa de progresso só existe na sua janela
+  do ano, e de dez a mar não há dado novo (o card fica "atrasado" por sazonalidade).
 - Confirmar o fuso do servidor (horários do cron) e a primeira execução do cron com os coletores novos (`tail` do `coleta-diaria.log`).
 - Decidir a fonte dos 10+ anos (paga ou proxy CEPEA) — decisão de orçamento/escopo.
 - API do FRED com chave + ALFRED, quando entrar uma série revisável (ex.: CPI).

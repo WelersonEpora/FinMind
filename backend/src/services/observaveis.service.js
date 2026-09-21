@@ -152,6 +152,59 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
+  // --- USDA NASS Crop Progress do milho (EUA), semanal, abr-nov (ADR 0009) ---
+  // Dois cards, todas as séries em % e do mesmo coletor. Fora da temporada
+  // (dez-mar) a última observação passa da tolerância e o card aparece
+  // "atrasado" - é a sazonalidade da fonte, não falha de coleta.
+  ...[
+    {
+      instrumentCode: "USDA_MILHO_CONDICAO",
+      nome: "Milho EUA - Condição da lavoura (USDA)",
+      modalidadePrincipal: "good",
+      series: [
+        ["very_poor", "VERY_POOR"],
+        ["poor", "POOR"],
+        ["fair", "FAIR"],
+        ["good", "GOOD"],
+        ["excellent", "EXCELLENT"]
+      ].map(([modalidade, classe]) => ({ modalidade, seriesCode: `USDA.CORN.CONDITION.${classe}` })),
+      descricao:
+        "Porcentagem da lavoura de milho dos EUA em cada classe de condição (muito ruim, ruim, regular, boa, excelente), conforme o relatório semanal Crop Progress do USDA. As cinco classes somam 100%. O valor em destaque é só a classe \"boa\": nenhuma soma ou índice é calculado aqui."
+    },
+    {
+      instrumentCode: "USDA_MILHO_PROGRESSO",
+      nome: "Milho EUA - Progresso da safra (USDA)",
+      modalidadePrincipal: "harvested",
+      series: [
+        ["planted", "PLANTED"],
+        ["emerged", "EMERGED"],
+        ["silking", "SILKING"],
+        ["dough", "DOUGH"],
+        ["dented", "DENTED"],
+        ["mature", "MATURE"],
+        ["harvested", "HARVESTED"]
+      ].map(([modalidade, etapa]) => ({ modalidade, seriesCode: `USDA.CORN.PROGRESS.${etapa}` })),
+      descricao:
+        "Porcentagem acumulada da área de milho dos EUA que já atingiu cada etapa do ciclo (plantio, emergência, floração, grão leitoso, grão farináceo, maturação e colheita), conforme o Crop Progress do USDA. Cada etapa só é reportada dentro da sua janela do ano; o valor em destaque é a colheita."
+    }
+  ].map((cartao) => ({
+    ...cartao,
+    origem: "observation",
+    unidade: "%",
+    casasDecimais: 0,
+    frequencia: "SEMANAL",
+    toleranciaDias: 10,
+    fonte: "USDA NASS - Crop Progress",
+    fonteCollectorCode: "usda-nass-crop-progress-milho",
+    fonteDetalhe: {
+      descricao: cartao.descricao,
+      metodologia:
+        "Relatório semanal (semana terminada no domingo), publicado às 16:00 ET do primeiro dia útil da semana - feriado federal desloca para terça. A fonte não informa a hora da publicação: a data de disponibilidade é ESTIMADA por esse calendário. Só de abril a novembro; fora da temporada não há dado novo.",
+      formatoOrigem: "JSON (API QuickStats do USDA NASS)",
+      urlOficial: "https://quickstats.nass.usda.gov/api"
+    }
+  })),
+
   // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
   // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por
