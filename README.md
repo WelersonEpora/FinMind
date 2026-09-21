@@ -95,7 +95,12 @@ cd backend
 npm run backfill:dolar                    # últimos 60 dias (padrão)
 npm run backfill:dolar -- --dias=90
 npm run backfill:dolar -- --dataInicial=01/06/2026 --dataFinal=31/07/2026
+npm run backfill:dolar -- --dataInicial=01/07/1994   # histórico completo (Plano Real)
+npm run backfill:selic -- --dataInicial=01/07/1994   # idem, meta e realizada
 ```
+
+Intervalos maiores que 10 anos são divididos em janelas automaticamente (a API do
+BCB rejeita mais que isso num pedido só).
 
 Reaproveita o mesmo coletor/pipeline da coleta diária (mesmo log de
 execução em `collection_execution`) — só troca a chamada à API do BCB para
@@ -214,6 +219,5 @@ ordens. Nenhum desses itens foi decidido ou simulado nesta entrega.
 ## O que ainda depende de decisão operacional (não bloqueado pelo
 David)
 
-- Gestão de permissões granular, se/quando surgir necessidade real além
-  de admin/user.
-- Refresh token / renovação de sessão, se o uso justificar.
+- Nada pendente em autenticação: permissões granulares e refresh token foram
+  descartados em 2026-09-21 (a sessão dura 12h) — ver `docs/decisoes-tecnicas.md`.

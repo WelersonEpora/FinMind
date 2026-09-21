@@ -109,6 +109,6 @@ valores.
 
 ## Em aberto
 
-- Backfill histórico da Selic (equivalente a `scripts/backfill-dolar.js`)
-  não implementado nesta etapa — pode ser adicionado depois reaproveitando
-  o mesmo padrão (`downloadIntervalo`) para as duas séries.
+- ~~Backfill histórico da Selic~~ — implementado (`scripts/backfill-selic.js`); carga completa desde
+  01/07/1994 feita no banco de dev em 2026-09-21 (meta desde 05/03/1999, ~10 mil linhas; realizada
+  desde 04/07/1994, ~8 mil). Ver ADR 0001 (atualização de 2026-09-21) para o limite de 10 anos da API.

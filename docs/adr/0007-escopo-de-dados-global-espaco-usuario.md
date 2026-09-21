@@ -219,7 +219,7 @@ continua `role`, só os valores mudaram. Na interface: "Administrador"/"Usuário
 **Papel e status vêm do banco, não do token.** `require-auth.js` carrega o
 usuário a cada request e exige `active`; `req.user.role` é o valor do banco.
 O JWT carrega só `sub`. Consequências: desativar um usuário ou mudar seu papel
-vale no request seguinte (antes, até o token expirar em 8h); tokens emitidos
+vale no request seguinte (antes, até o token expirar; a sessão era de 8h e hoje é de 12h); tokens emitidos
 antes do rename (com `role: "owner"`) continuam válidos e o `role` que
 carregam é ignorado — não foi preciso invalidar sessões. Uma falha do banco
 nessa consulta responde 500, não 401 (não desloga por erro de infraestrutura).
@@ -237,7 +237,7 @@ Nada abaixo existe ainda — só passa a valer quando a primeira tabela PRIVADA
   gestão de membros — 404 para quem não é membro, 403 para papel
   insuficiente. As rotas de dado privado o reutilizarão.)
 - **Espaço ativo não vai no JWT** (evita token stale: papel/vínculo revogados
-  continuariam valendo até 8h). O espaço ativo, quando houver seletor no
+  continuariam valendo até o token expirar, 12h). O espaço ativo, quando houver seletor no
   frontend, é estado do cliente derivado da URL — e sempre revalidado no
   servidor. Não há seletor nem "espaço ativo" agora: nenhum consumidor real.
 - Repositories de dado privado só existem via factory que exige o

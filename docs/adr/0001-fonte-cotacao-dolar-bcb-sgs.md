@@ -64,6 +64,17 @@ confiável (ver levantamento no início desta conversa).
   demais itens de `docs/pendente-especialista-david.md` continuam
   pendentes do especialista David.
 
+## Atualização (2026-09-21) — carga histórica
+
+Verificado por chamada real: a API do BCB responde **406** a um pedido com intervalo maior que 10 anos
+(uma janela de exatamente 10 anos funciona), então `backfill-dolar.js`/`backfill-selic.js` dividem o
+intervalo em janelas de até 10 anos (uma execução em `collection_execution` por janela) e usam um timeout
+de 60 s por janela (o de 15 s da coleta diária estourou duas vezes numa lentidão passageira da API).
+**Início recomendado: 01/07/1994** (Plano Real): a série começa em 28/11/1984, mas antes do Real está em
+moedas antigas (a primeira linha vale 2828) e a unidade "BRL" só é verdadeira depois. Carga completa feita
+no banco de dev: 8.088 linhas do dólar (1994-07-01 → 2026-09-21), 4 janelas, 0 falhas. Mesma convenção do
+AgroMind (`docs/convencao-backfill.md`).
+
 ## Em aberto
 
 - Se/quando adicionar a série de compra (10813) ou outra fonte cambial.

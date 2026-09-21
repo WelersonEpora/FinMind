@@ -13,7 +13,7 @@ function cookieOptions() {
     httpOnly: true,
     secure: env.cookieSecure,
     sameSite: "lax",
-    maxAge: 8 * 60 * 60 * 1000
+    maxAge: env.sessionMaxAgeMs
   };
 }
 

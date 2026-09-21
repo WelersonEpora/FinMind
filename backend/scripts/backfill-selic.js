@@ -15,15 +15,18 @@
 //   node scripts/backfill-selic.js               (últimos 60 dias, padrão)
 //   node scripts/backfill-selic.js --dias=365
 //   node scripts/backfill-selic.js --dataInicial=01/01/2026 --dataFinal=31/12/2026
+//   node scripts/backfill-selic.js --dataInicial=01/07/1994    (histórico completo)
 //
-// A API do BCB rejeita (HTTP 406) intervalos maiores que ~10 anos - sem
-// necessidade real de dividir em blocos pra um backfill de poucos meses.
+// A API do BCB rejeita (HTTP 406) um pedido com mais de 10 anos: o intervalo é
+// dividido em janelas de até 10 anos (dividirEmJanelas, em backfill-dolar.js),
+// uma execução por série e por janela. A meta (432) só existe desde 05/03/1999;
+// a partir de 01/07/1994 a primeira janela já contém dado das duas séries.
 
 const { sequelize } = require("../src/models");
 const { executarColetor } = require("../src/collectors/base/collector-runner");
 const bcbSelicMetaCollector = require("../src/collectors/bcb/bcb-selic-meta.collector");
 const bcbSelicRealizadaCollector = require("../src/collectors/bcb/bcb-selic-realizada.collector");
-const { resolverIntervalo } = require("./backfill-dolar");
+const { resolverIntervalo, dividirEmJanelas, TIMEOUT_BACKFILL_MS } = require("./backfill-dolar");
 const logger = require("../src/shared/logger");
 
 function parseArgs() {
@@ -38,14 +41,16 @@ function parseArgs() {
 async function backfillColetor(collector, dataInicial, dataFinal) {
   const coletorBackfill = {
     ...collector,
+    timeoutMs: TIMEOUT_BACKFILL_MS,
     download: ({ signal }) => collector.downloadIntervalo({ dataInicial, dataFinal, signal })
   };
   return executarColetor(coletorBackfill, { triggerType: "script" });
 }
 
-function logResultado(execucao) {
+function logResultado(execucao, janela) {
   logger.info(
     {
+      ...janela,
       coletor: execucao.collector_code,
       status: execucao.status,
       registrosLidos: execucao.records_read,
@@ -61,16 +66,20 @@ function logResultado(execucao) {
 
 async function main() {
   const { dataInicial, dataFinal } = resolverIntervalo(parseArgs());
+  const janelas = dividirEmJanelas(dataInicial, dataFinal);
+  let sucesso = true;
 
-  logger.info({ dataInicial, dataFinal }, "Iniciando backfill da taxa Selic (meta e realizada)");
+  logger.info({ dataInicial, dataFinal, janelas: janelas.length }, "Iniciando backfill da taxa Selic (meta e realizada)");
 
-  const execucaoMeta = await backfillColetor(bcbSelicMetaCollector, dataInicial, dataFinal);
-  logResultado(execucaoMeta);
+  for (const janela of janelas) {
+    for (const collector of [bcbSelicMetaCollector, bcbSelicRealizadaCollector]) {
+      const execucao = await backfillColetor(collector, janela.dataInicial, janela.dataFinal);
+      logResultado(execucao, janela);
+      if (execucao.status === "failed") sucesso = false;
+    }
+  }
 
-  const execucaoRealizada = await backfillColetor(bcbSelicRealizadaCollector, dataInicial, dataFinal);
-  logResultado(execucaoRealizada);
-
-  return execucaoMeta.status !== "failed" && execucaoRealizada.status !== "failed";
+  return sucesso;
 }
 
 if (require.main === module) {

@@ -27,7 +27,7 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 
 | Item | Detalhe |
 |---|---|
-| Autenticação e papéis (`admin`/`user`) | Cookie JWT httpOnly, revalidação a cada request, gestão de usuários |
+| Autenticação e papéis (`admin`/`user`) | Cookie JWT httpOnly, sessão de 12h (sem refresh token), revalidação a cada request, gestão de usuários |
 | Espaços (`workspace`) | Espaço pessoal + compartilhados, seletor na sidebar. **Ainda sem dado privado** — ADR 0007 |
 | Pipeline de coleta | Download → parse → normalize → persist, retry, log em `collection_execution` — ADR 0002 |
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
@@ -43,7 +43,7 @@ Status de cada fonte, evidências e ressalvas: **ADR 0009**.
 
 | Fonte | Séries | Histórico | `published_at` | Status |
 |---|---|---|---|---|
-| BCB SGS | Dólar (PTAX venda), Selic meta e realizada | Longo na fonte; **carga atual ~60 dias** (backfill disponível, ver §3 item 7) | — (`market_quote`, não revisa) | ✅ ADRs 0001, 0006 |
+| BCB SGS | Dólar (PTAX venda), Selic meta e realizada | Dólar desde 01/07/1994, Selic realizada desde 04/07/1994, meta desde 05/03/1999 — **no dev**; em produção falta rodar o backfill (§3 item 7) | — (`market_quote`, não revisa) | ✅ ADRs 0001, 0006 |
 | FRED | DGS10, T10YIE, DFII10, DTWEXBGS | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | Estimado | ✅ Coleta pela API, CSV de reserva — ADR 0012. Vintage real (ALFRED) provado via teste — ADR 0011 |
 | LBMA | Ouro PM (USD/oz) | Desde 1968 | Estimado | ✅ Licença da IBA exigida p/ exibir/redistribuir — adiada (uso interno) |
 | CFTC COT | Ouro e milho (open interest, MM long/short) | Desde 2006 | Real desde 2022-08; estimado antes | ✅ |
@@ -66,7 +66,7 @@ licença pendente. Por isso a coluna de ressalvas é a que importa na reunião:
 
 | Fonte | Nível | Ressalva principal | Depende de |
 |---|---|---|---|
-| BCB dólar / Selic | 4 | Só ~60 dias carregados | Nós (item 7) |
+| BCB dólar / Selic | 5 (dev) · 4 (produção) | Histórico carregado no dev; falta rodar o backfill na VM | Nós (item 7) |
 | FRED | 5 | Licença lida: 3 de 4 séries domínio público c/ citação; `T10YIE` não confirmada. **Adiada** (uso interno) | Retomar antes de exibir a terceiros |
 | LBMA (ouro) | 5 | **Exige licença da IBA** p/ usar/redistribuir o histórico. **Adiada** (uso interno) | Retomar antes de exibir a terceiros |
 | CFTC COT | 5 | Data de publicação estimada antes de 2022-08 | — |
@@ -87,8 +87,8 @@ LBMA em arquivos próprios, por causa da licença).
 | ~~3~~ | ~~Reconhecimento de fontes (níveis 0–5)~~ | **Feito (2026-09-21):** processo portado do AgroMind + índice com as 7 fontes implementadas (registro retroativo) e as candidatas em nível 0; regra agora em `CLAUDE.md` — ver "Como tratamos as fontes" (§2) |
 | ~~4~~ | ~~Licenças de LBMA e FRED~~ | **Lido e registrado (2026-09-21); adiado por decisão:** sem distribuição nem comercialização prevista, uso interno. Nota de licença nos cards dos Observáveis; detalhe no ADR 0009 e em `docs/reconhecimento-fontes/`. Retomar **antes de exibir a terceiros** (FRED: citar a fonte e o aviso da API; LBMA: consultar a IBA ou trocar de fonte). A migração do FRED para a API foi feita (ADR 0012) |
 | ~~5~~ | ~~Cron de produção~~ | **Confirmado por SSH (2026-09-21):** servidor em **UTC** (04/06/08 UTC = 01/03/05 em Brasília); o cron disparou nos 3 horários e as 3 execuções do dia terminaram com todos os coletores em `success` — ADR 0004. A produção ainda roda o código anterior (USDA de 2006, FRED por CSV): muda no próximo deploy |
-| 6 | Permissões granulares e refresh token | Só se houver necessidade real |
-| 7 | **Carga histórica do BCB** (dólar e Selic) | Achado do item 3: o banco de dev tem só ~60 dias. `npm run backfill:dolar -- --dias=N` e `backfill:selic` já existem; falta rodar (e em produção) |
+| ~~6~~ | ~~Permissões granulares e refresh token~~ | **Decidido (2026-09-21):** permissões granulares ficam como estão (admin/user + owner/editor/viewer); refresh token não será feito — a sessão passou de 8h para **12h** (JWT e cookie, uma constante em `config/env.js`) — `docs/decisoes-tecnicas.md`. Sai da lista |
+| 7 | **Carga histórica do BCB** (dólar e Selic) na **produção** | **Dev feito (2026-09-21):** 8.088 linhas do dólar e ~8 mil/~10 mil da Selic. Os scripts agora dividem o intervalo em janelas de 10 anos (a API do BCB rejeita mais que isso) — ADR 0001. Falta rodar na VM depois do deploy: `npm run backfill:dolar -- --dataInicial=01/07/1994` e `backfill:selic` (comandos em `CLAUDE.md`) |
 | 8 | **`FRED_API_KEY` na VM de produção** | A coleta do FRED já usa a API quando há chave (ADR 0012); sem ela segue no CSV, sem erro. Falta incluir a chave no `.env` da VM e reiniciar o backend — ação manual, o deploy não faz |
 
 ## 4. Bloqueado — depende do David / Comitê

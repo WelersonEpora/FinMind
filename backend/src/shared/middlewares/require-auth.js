@@ -7,7 +7,7 @@ const userRepository = require("../../repositories/user.repository");
 
 // O token só prova QUEM é o usuário (`sub`); se ele ainda pode acessar e com
 // qual papel de plataforma vem SEMPRE do banco, a cada request. Assim,
-// desativar um usuário ou mudar o papel dele vale na hora (não em até 8h,
+// desativar um usuário ou mudar o papel dele vale na hora (não em até 12h,
 // quando o token expiraria) e o papel gravado em tokens antigos é ignorado.
 // Custo: uma consulta por chave primária por request - sem cache de
 // propósito, para não reintroduzir o atraso.

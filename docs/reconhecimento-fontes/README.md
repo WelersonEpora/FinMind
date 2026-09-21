@@ -10,8 +10,8 @@ vive nos ADRs — este índice só aponta.
 
 | Fonte | Nível | Incertezas em aberto | Evidência |
 |---|---|---|---|
-| BCB SGS — dólar (série 1) | 4 | Carga histórica não feita: o banco de dev tem ~60 dias (o backfill existe: `npm run backfill:dolar`). Rate limit não verificado | ADR 0001 |
-| BCB SGS — Selic (432 meta, 1178 realizada) | 4 | Idem: ~60 dias no dev (`npm run backfill:selic`). Rate limit não verificado | ADR 0006 |
+| BCB SGS — dólar (série 1) | 5 (dev) · 4 (produção) | Histórico desde 01/07/1994 carregado no dev; falta o backfill na VM. Limite da API: 10 anos por pedido (406 acima). Rate limit não verificado | ADR 0001 |
+| BCB SGS — Selic (432 meta, 1178 realizada) | 5 (dev) · 4 (produção) | Idem (meta desde 05/03/1999, realizada desde 04/07/1994) | ADR 0006 |
 | FRED — DGS10, T10YIE, DFII10, DTWEXBGS | 5 | Licença lida em 2026-09-21: 3 de 4 séries são domínio público com citação; `T10YIE` não confirmada; **adiada** (sem distribuição prevista). Coleta via API com chave, CSV de reserva; **falta `FRED_API_KEY` na VM**. `published_at` estimado; vintage real só provado por teste (ALFRED cobre só de ~2015–2018 em diante). Reserva CSV `fredgraph.csv` não é a API documentada | ADRs 0009, 0011, 0012 · [fred.md](fred.md) |
 | LBMA — ouro PM (USD/oz) | 5 | **Exige licença da IBA** para obter/usar/redistribuir o histórico; **adiada** (sem distribuição prevista, uso interno). Feed JSON não documentado. `published_at` estimado | ADR 0009 · [lbma.md](lbma.md) |
 | CFTC COT — ouro e milho | 5 | `published_at` real só desde 2022-08; antes, estimado pelo cronograma. Licença: governo dos EUA, não verificado juridicamente | ADR 0009 |

@@ -18,6 +18,12 @@ requiredKeys.forEach((key) => {
   }
 });
 
+// Duração da sessão (sem refresh token: ao expirar, o usuário entra de novo -
+// docs/decisoes-tecnicas.md). Uma constante só alimenta o JWT e o cookie, para
+// os dois nunca divergirem (antes o cookie tinha 8h fixas e ignorava
+// JWT_EXPIRES_IN). Não é configurável por variável de ambiente de propósito.
+const SESSION_HOURS = 12;
+
 module.exports = {
   nodeEnv: process.env.NODE_ENV || "development",
   appPort: Number(process.env.APP_PORT || 3000),
@@ -30,8 +36,9 @@ module.exports = {
   },
   jwt: {
     secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN || "8h"
+    expiresIn: `${SESSION_HOURS}h`
   },
+  sessionMaxAgeMs: SESSION_HOURS * 60 * 60 * 1000,
   // Cookie de sessão só é marcado Secure em produção (precisa de HTTPS) -
   // em dev local (http://localhost) o navegador descartaria um cookie
   // Secure e o login pareceria "quebrado" sem motivo aparente.

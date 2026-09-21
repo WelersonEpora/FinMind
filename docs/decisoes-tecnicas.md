@@ -7,8 +7,12 @@ extensível disponível, conforme combinado.
 ## Autenticação
 
 JWT (HS256) num cookie `httpOnly` + `Secure` (só em produção,
-`NODE_ENV=production`) + `SameSite=Lax`, expiração fixa de 8h, sem
-refresh token nesta fase (usuário faz login de novo ao expirar).
+`NODE_ENV=production`) + `SameSite=Lax`, expiração fixa de 12h (uma constante em `config/env.js` alimenta o JWT e o
+cookie; era 8h até 2026-09-21), sem refresh token (usuário faz login de novo
+ao expirar). Decisão de 2026-09-21: refresh token não será implementado —
+poucos usuários internos e a revogação já é imediata (o usuário é revalidado
+no banco a cada request); a solução para sessão curta demais é aumentar a
+duração, não renovar em silêncio.
 
 Sem CORS habilitado — a API só responde a requisições de mesma origem
 (proxy Nginx em produção, proxy do Vite em dev). Combinado com o fato de
@@ -21,8 +25,8 @@ Senhas com `bcryptjs` (implementação pura em JavaScript, sem
 compilação nativa — mais simples de buildar numa imagem Alpine que
 `bcrypt`), 12 rounds de salt.
 
-**Extensão futura natural:** refresh token / renovação silenciosa de
-sessão, se o tempo de uso justificar.
+**Refresh token:** descartado em 2026-09-21 (ver acima). Se um dia o sistema
+for exposto a muito mais usuários, reavaliar.
 
 ## Identificadores (UUID)
 
@@ -47,9 +51,11 @@ Não é papel dentro de um espaço
 (esse fica em `workspace_member.role` — ver
 `docs/adr/0007-escopo-de-dados-global-espaco-usuario.md`). Uma tabela
 com FK não paga o próprio custo enquanto não houver permissões
-granulares. Quando houver necessidade real delas, o caminho natural é
-uma tabela `permission` + junção `role_permission`, sem alterar o que já
-existe.
+granulares. **Decisão de 2026-09-21:** permissões granulares ficam como
+estão (dois papéis fixos, `admin`/`user`, e `owner`/`editor`/`viewer` no
+espaço) — não há caso de uso que eles não cubram. Se um dia houver, o
+caminho natural é uma tabela `permission` + junção `role_permission`, sem
+alterar o que já existe.
 
 ## Usuário administrador inicial
 

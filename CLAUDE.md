@@ -92,9 +92,13 @@ Pra preencher histórico retroativo (ex.: banco recém-criado):
 ```bash
 cd backend && npm run backfill:dolar                 # últimos 60 dias (padrão)
 cd backend && npm run backfill:dolar -- --dias=90
+# histórico completo (dólar e Selic; ~2 min cada) - início do Plano Real:
+cd backend && npm run backfill:dolar -- --dataInicial=01/07/1994
+cd backend && npm run backfill:selic -- --dataInicial=01/07/1994
 ```
 
-`scripts/backfill-dolar.js` reaproveita o mesmo coletor/pipeline/log de
+A API do BCB rejeita (406) um pedido com mais de 10 anos: os scripts dividem o
+intervalo em janelas de até 10 anos (uma execução por janela). `scripts/backfill-dolar.js` reaproveita o mesmo coletor/pipeline/log de
 execução da coleta diária — só troca a fase de download pra pedir um
 intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
