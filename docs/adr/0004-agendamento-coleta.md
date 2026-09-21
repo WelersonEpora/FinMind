@@ -69,8 +69,14 @@ de Tarefas do Windows**: `backend/scripts/agendar-coleta-windows.ps1` cria a tar
 `backend/storage/logs/coleta.log`. `-Remover` desfaz. Continua valendo: **nenhum `node-cron` no backend**.
 Limites: só com a máquina ligada, o usuário logado e o MariaDB de dev no ar.
 
-Na VM de produção o equivalente é um cron do host, por exemplo (**exemplo, não testado**):
-`0 22 * * * cd /opt/apps/finmind/app && docker compose --project-directory . -f docker/compose.prod.yml exec -T backend npm run collect`
+**Produção (VM):** já existe cron, no crontab do usuário `deploy` (**não versionado neste repositório**;
+confirmado em 2026-09-20 com `sudo crontab -l -u deploy`). Três execuções por dia, às **04:00, 06:00 e 08:00**
+(fuso do servidor **não verificado**), no formato
+`cd /opt/apps/finmind/app && docker-compose -p finmind --project-directory . -f docker/compose.prod.yml exec -T backend npm run collect >> /opt/apps/finmind/logs/coleta-diaria.log 2>&1`.
+Como chama `npm run collect`, cobre **todos** os coletores registrados - inclusive os que entraram depois
+(FRED, LBMA, CFTC, B3/CCM) - sem mudança. O cron do AgroMind na mesma VM dispara nos mesmos minutos
+(04:00/06:00/08:00), o que faz dois processos Node começarem juntos numa máquina de 1 GB; considerar
+deslocar o FinMind (ex.: `15 4,6,8 * * *`).
 
 ## Em aberto
 

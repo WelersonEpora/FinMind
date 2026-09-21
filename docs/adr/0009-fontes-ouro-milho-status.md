@@ -110,9 +110,12 @@ descobertos no banco (`repository.listarVencimentos`), sem catálogo fixo.
 
 ### Agendamento
 
-Tarefa `FinMind-Coleta-Diaria` no Agendador do Windows desta máquina (22:00, todos os dias; ver ADR 0004 e
-`backend/scripts/agendar-coleta-windows.ps1`). Roda `run-coleta.js` (todos os coletores). **Só na máquina de
-desenvolvimento**: a produção (VM) continua sem agendamento versionado.
+Duas frentes, ambas rodando `run-coleta.js` (todos os coletores; ver ADR 0004):
+
+- **Desenvolvimento:** tarefa `FinMind-Coleta-Diaria` no Agendador do Windows (22:00), criada por
+  `backend/scripts/agendar-coleta-windows.ps1`.
+- **Produção (VM):** cron do usuário `deploy` (04:00, 06:00 e 08:00; **não versionado**) chamando
+  `npm run collect` no container do backend. Cobre a B3 automaticamente desde o deploy que incluiu o coletor.
 
 ## Ressalvas de licença (não bloqueiam o MVP)
 
@@ -129,6 +132,6 @@ desenvolvimento**: a produção (VM) continua sem agendamento versionado.
 
 - `NASS_API_KEY` (gratuita) para executar e validar o Crop Progress; confirmar nomes de campo e a
   profundidade histórica na primeira execução real.
-- Agendar a coleta também na VM de produção (hoje só a máquina de desenvolvimento tem tarefa agendada).
+- Confirmar o fuso do servidor (horários do cron) e a primeira execução do cron com os coletores novos (`tail` do `coleta-diaria.log`).
 - Decidir a fonte dos 10+ anos (paga ou proxy CEPEA) — decisão de orçamento/escopo.
 - API do FRED com chave + ALFRED, quando entrar uma série revisável (ex.: CPI).
