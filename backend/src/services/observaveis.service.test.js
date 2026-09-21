@@ -19,7 +19,7 @@ function isoHaDias(dias) {
 
 // Os observáveis de `observation` também passam pela listagem: um fake que
 // nunca abre o banco (nenhum teste daqui conecta).
-const observationRepositoryVazio = { buscarMaisRecente: async () => null, resumirSeries: async () => [], listarVencimentos: async () => [] };
+const observationRepositoryVazio = { buscarMaisRecente: async () => null, resumirSeries: async () => [], listarItens: async () => [] };
 
 const registroFake = (dataReferencia) => ({
   instrument_code: "USD_BRL",
@@ -36,7 +36,7 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   const { observaveis } = await observaveisService.listarObservaveis(deps);
 
-  assert.equal(observaveis.length, 17, "USD_BRL e SELIC (market_quote) + 15 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 4 do WASDE + 2 cards do CCM)");
+  assert.equal(observaveis.length, 17, "USD_BRL e SELIC (market_quote) + 15 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 2 cards do CCM)");
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
   assert.equal(observaveis[0].valor, 5.1);
@@ -103,7 +103,7 @@ test("a listagem mostra os observáveis de observation, com casas decimais próp
   const deps = {
     marketQuoteRepository: { buscarMaisRecente: async () => null },
     observationRepository: {
-      listarVencimentos: async () => [],
+      listarItens: async () => [],
       buscarMaisRecente: async (seriesCode) => {
         consultadas.push(seriesCode);
         return linhaObservation(seriesCode, isoHaDias(1), 2.61);
@@ -127,7 +127,7 @@ test("a listagem mostra os observáveis de observation, com casas decimais próp
 test("série semanal/divulgada em lote tolera mais dias que a diária antes de ficar ATRASADA", async () => {
   const deps = {
     marketQuoteRepository: { buscarMaisRecente: async () => null },
-    observationRepository: { listarVencimentos: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(8), 1) }
+    observationRepository: { listarItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(8), 1) }
   };
 
   const { observaveis } = await observaveisService.listarObservaveis(deps);
@@ -142,7 +142,7 @@ test("FRED tolera o atraso de fim de semana: Treasury até 5 dias, índice do d�
   const situacaoCom = async (dias) => {
     const deps = {
       marketQuoteRepository: { buscarMaisRecente: async () => null },
-      observationRepository: { listarVencimentos: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(dias), 1) }
+      observationRepository: { listarItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(dias), 1) }
     };
     const { observaveis } = await observaveisService.listarObservaveis(deps);
     return (codigo) => observaveis.find((o) => o.codigo === codigo).situacao;
@@ -232,15 +232,15 @@ test("obterHistoricoObservavel sem filtro de modalidade consulta todas as série
 // Entrada fora de ordem, de propósito. CCMU26 já venceu (último pregão em 09-15);
 // os outros ainda negociaram no último pregão (09-18).
 const vencimentosDoBanco = [
-  { ticker: "CCMF27", primeira_data: "2025-07-17", ultima_data: "2026-09-18", pregoes: "295" },
-  { ticker: "CCMU26", primeira_data: "2025-06-10", ultima_data: "2026-09-15", pregoes: "318" },
-  { ticker: "CCMX26", primeira_data: "2025-07-17", ultima_data: "2026-09-18", pregoes: "295" },
-  { ticker: "OUTRO1", primeira_data: "2025-07-17", ultima_data: "2026-09-18", pregoes: "1" }
+  { codigo: "CCMF27", primeira_data: "2025-07-17", ultima_data: "2026-09-18", pregoes: "295" },
+  { codigo: "CCMU26", primeira_data: "2025-06-10", ultima_data: "2026-09-15", pregoes: "318" },
+  { codigo: "CCMX26", primeira_data: "2025-07-17", ultima_data: "2026-09-18", pregoes: "295" },
+  { codigo: "OUTRO1", primeira_data: "2025-07-17", ultima_data: "2026-09-18", pregoes: "1" }
 ];
 
 function repoCcm(extra = {}) {
   return {
-    listarVencimentos: async () => vencimentosDoBanco,
+    listarItens: async () => vencimentosDoBanco,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(1), 76.36),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
@@ -254,9 +254,9 @@ test("CCM: vencimentos ordenados do mais próximo ao mais distante; só ativo qu
     collectionExecutionRepository: { buscarUltimaPorColetor: async () => null }
   });
 
-  assert.deepEqual(observavel.vencimentos.map((v) => [v.ticker, v.ativo]), [["CCMU26", false], ["CCMX26", true], ["CCMF27", true]], "ticker que não é um futuro CCM é ignorado");
-  assert.equal(observavel.vencimentos[1].rotulo, "CCMX26 (nov/2026)");
-  assert.equal(observavel.vencimentoPrincipal, "CCMX26", "o destaque é o vencimento ativo mais próximo, e vem identificado");
+  assert.deepEqual(observavel.itens.map((v) => [v.codigo, v.ativo]), [["CCMU26", false], ["CCMX26", true], ["CCMF27", true]], "ticker que não é um futuro CCM é ignorado");
+  assert.equal(observavel.itens[1].rotulo, "CCMX26 (nov/2026)");
+  assert.equal(observavel.itemPrincipal, "CCMX26", "o destaque é o vencimento ativo mais próximo, e vem identificado");
   assert.deepEqual(observavel.campos.map((c) => c.codigo), ["SETTLE", "LAST", "HIGH", "LOW", "AVG", "OSCN_PCT"]);
   assert.equal(observavel.campoPrincipal, "SETTLE");
   assert.equal(observavel.rotuloModalidade, "Vencimento");
@@ -290,7 +290,7 @@ test("CCM: vencimentos vencidos e outro campo continuam disponíveis para seleç
   let pedido = null;
   const deps = { observationRepository: repoCcm({ buscarHistoricoAtual: async (p) => { pedido = p; return { registros: [], total: 0 }; } }) };
 
-  await observaveisService.obterHistoricoObservavel("CCM_PRECOS", { vencimentos: "CCMU26,CCMX26", campo: "HIGH" }, deps);
+  await observaveisService.obterHistoricoObservavel("CCM_PRECOS", { itens: "CCMU26,CCMX26", campo: "HIGH" }, deps);
 
   assert.deepEqual(pedido.seriesCodes, ["B3.CCM.CCMU26.HIGH", "B3.CCM.CCMX26.HIGH"]);
 });
@@ -299,8 +299,8 @@ test("CCM: o card de liquidez usa contratos por padrão e cada campo tem a sua u
   const chamadas = [];
   const deps = { observationRepository: repoCcm({ buscarHistoricoAtual: async (p) => { chamadas.push(p.seriesCodes[0]); return { registros: [linhaObservation(p.seriesCodes[0], "2026-09-18", 185731785)], total: 1 }; } }) };
 
-  const padrao = await observaveisService.obterHistoricoObservavel("CCM_LIQUIDEZ", { vencimentos: "CCMX26" }, deps);
-  const volume = await observaveisService.obterHistoricoObservavel("CCM_LIQUIDEZ", { vencimentos: "CCMX26", campo: "VOLUME_BRL" }, deps);
+  const padrao = await observaveisService.obterHistoricoObservavel("CCM_LIQUIDEZ", { itens: "CCMX26" }, deps);
+  const volume = await observaveisService.obterHistoricoObservavel("CCM_LIQUIDEZ", { itens: "CCMX26", campo: "VOLUME_BRL" }, deps);
 
   assert.deepEqual(chamadas, ["B3.CCM.CCMX26.CONTRACTS", "B3.CCM.CCMX26.VOLUME_BRL"]);
   assert.equal(padrao.historico[0].unidade, "contratos");
@@ -312,14 +312,294 @@ test("CCM: campo de outro card, campo inexistente ou vencimento desconhecido sã
 
   await assert.rejects(() => observaveisService.obterHistoricoObservavel("CCM_PRECOS", { campo: "TRADES" }, deps), /campo/);
   await assert.rejects(() => observaveisService.obterHistoricoObservavel("CCM_LIQUIDEZ", { campo: "SETTLE" }, deps), /campo/);
-  await assert.rejects(() => observaveisService.obterHistoricoObservavel("CCM_PRECOS", { vencimentos: "CCMZ99" }, deps), /desconhecido/);
+  await assert.rejects(() => observaveisService.obterHistoricoObservavel("CCM_PRECOS", { itens: "CCMZ99" }, deps), /desconhecido/);
 });
 
 test("CCM: sem nenhum vencimento ativo o histórico vem vazio (não quebra)", async () => {
-  const deps = { observationRepository: repoCcm({ listarVencimentos: async () => [] }) };
+  const deps = { observationRepository: repoCcm({ listarItens: async () => [] }) };
 
   const r = await observaveisService.obterHistoricoObservavel("CCM_PRECOS", {}, deps);
 
   assert.deepEqual(r.historico, []);
   assert.equal(r.paginacao.total, 0);
+});
+
+test("cada card do WASDE tem o seu escopo: o dos EUA cobre só os EUA, o por país lista a seleção do WASDE", async () => {
+  const { observaveis } = await observaveisService.listarObservaveis({
+    marketQuoteRepository: { buscarMaisRecente: async () => null },
+    observationRepository: observationRepositoryVazio
+  });
+  const wasde = observaveis.filter((o) => o.codigo.startsWith("WASDE_MILHO_"));
+
+  assert.equal(wasde.length, 2, "um card dos EUA (bushels, seletor de métrica) + o card por país (toneladas)");
+
+  const escopoDe = async (codigo) =>
+    (
+      await observaveisService.obterDetalheObservavel(codigo, {
+        observationRepository: observationRepositoryVazio,
+        collectionExecutionRepository: { buscarUltimaPorColetor: async () => null }
+      })
+    ).observavel.fonteDetalhe.escopo;
+
+  const eua = await escopoDe("WASDE_MILHO_EUA");
+  assert.match(eua, /só os Estados Unidos/);
+  assert.match(eua, /Milho por país/, "aponta onde estão os demais países");
+  assert.doesNotMatch(eua, /seleção de países/, "o aviso de seleção de países não se aplica ao card dos EUA");
+
+  const paises = await escopoDe("WASDE_MILHO_PAISES");
+  assert.match(paises, /seleção de países/);
+  for (const pais of ["Argentina", "Brasil", "China", "Estados Unidos", "Rússia", "União Europeia"]) assert.match(paises, new RegExp(pais), `lista ${pais}`);
+  assert.match(paises, /Índia/, "cita países que NÃO são cobertos");
+
+  for (const escopo of [eua, paises]) assert.match(escopo, /PSD.*não foi implementada/);
+});
+
+// --- WASDE por país: mesmo modelo do CCM, com a região no lugar do vencimento ---
+
+// Entrada fora de ordem, de propósito. EU_27 e FSU_12 pararam de ser publicadas;
+// as demais têm a safra mais recente (2026).
+const regioesDoBanco = [
+  { codigo: "WORLD", primeira_data: "2008-09-01", ultima_data: "2026-09-01", pregoes: "19" },
+  { codigo: "UNITED_STATES", primeira_data: "2008-09-01", ultima_data: "2026-09-01", pregoes: "19" },
+  { codigo: "FSU_12", primeira_data: "2008-09-01", ultima_data: "2018-09-01", pregoes: "11" },
+  { codigo: "BRAZIL", primeira_data: "2008-09-01", ultima_data: "2026-09-01", pregoes: "19" },
+  { codigo: "EU_27", primeira_data: "2008-09-01", ultima_data: "2013-09-01", pregoes: "6" },
+  { codigo: "CHINA", primeira_data: "2008-09-01", ultima_data: "2026-09-01", pregoes: "19" },
+  { codigo: "NOVA_REGIAO", primeira_data: "2026-09-01", ultima_data: "2026-09-01", pregoes: "1" }
+];
+
+function repoWasdePaises(extra = {}) {
+  return {
+    listarItens: async () => regioesDoBanco,
+    buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-01", 300),
+    buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
+    resumirSeries: async () => [],
+    ...extra
+  };
+}
+
+test("WASDE por país: países antes de agregados, cada grupo em ordem alfabética; região fora do mapa aparece com o código", async () => {
+  const { observavel } = await observaveisService.obterDetalheObservavel("WASDE_MILHO_PAISES", {
+    observationRepository: repoWasdePaises(),
+    collectionExecutionRepository: { buscarUltimaPorColetor: async () => null }
+  });
+
+  assert.deepEqual(
+    observavel.itens.map((i) => i.codigo),
+    ["BRAZIL", "CHINA", "UNITED_STATES", "NOVA_REGIAO", "EU_27", "FSU_12", "WORLD"],
+    "países por rótulo (Brasil, China, Estados Unidos, código sem rótulo, União Europeia) e depois os agregados (ex-URSS, mundo)"
+  );
+  const porCodigo = Object.fromEntries(observavel.itens.map((i) => [i.codigo, i]));
+  assert.equal(porCodigo.BRAZIL.rotulo, "Brasil");
+  assert.equal(porCodigo.NOVA_REGIAO.rotulo, "NOVA_REGIAO");
+  assert.equal(porCodigo.WORLD.agregado, true);
+  assert.equal(porCodigo.BRAZIL.agregado, false);
+  assert.equal(porCodigo.EU_27.ativo, false, "série que parou de ser publicada fica como descontinuada");
+  assert.equal(porCodigo.FSU_12.ativo, false);
+  assert.equal(porCodigo.CHINA.ativo, true);
+  assert.equal(observavel.rotuloModalidade, "Região");
+  assert.equal(observavel.selecao.inativo, "descontinuada");
+  assert.deepEqual(observavel.itensPadrao, ["BRAZIL", "UNITED_STATES", "CHINA"], "padrão do catálogo (Argentina não está neste banco de teste): só o que existe");
+  assert.equal(observavel.itemPrincipal, "Mundo", "o destaque do card é a região configurada, identificada");
+  assert.deepEqual(observavel.campos.map((c) => c.codigo), ["ENDING_STOCKS", "PRODUCTION", "BEGINNING_STOCKS", "IMPORTS", "EXPORTS", "DOMESTIC_TOTAL", "DOMESTIC_FEED"]);
+});
+
+test("WASDE por país: a lista mostra o valor de UMA região, dizendo qual", async () => {
+  const { observaveis } = await observaveisService.listarObservaveis({
+    marketQuoteRepository: { buscarMaisRecente: async () => null },
+    observationRepository: repoWasdePaises()
+  });
+
+  assert.equal(observaveis.find((o) => o.codigo === "WASDE_MILHO_PAISES").unidade, "milhões de t (Mundo)");
+});
+
+test("WASDE por país: sem escolha, o histórico traz as regiões padrão; com escolha, as regiões e a métrica pedidas", async () => {
+  const pedidos = [];
+  const deps = { observationRepository: repoWasdePaises({ buscarHistoricoAtual: async (p) => { pedidos.push(p.seriesCodes); return { registros: [], total: 0 }; } }) };
+
+  await observaveisService.obterHistoricoObservavel("WASDE_MILHO_PAISES", {}, deps);
+  await observaveisService.obterHistoricoObservavel("WASDE_MILHO_PAISES", { itens: "WORLD,FSU_12", campo: "PRODUCTION" }, deps);
+
+  assert.deepEqual(pedidos[0], ["WASDE.MILHO.MUNDO.BRAZIL.ENDING_STOCKS", "WASDE.MILHO.MUNDO.UNITED_STATES.ENDING_STOCKS", "WASDE.MILHO.MUNDO.CHINA.ENDING_STOCKS"]);
+  assert.deepEqual(pedidos[1], ["WASDE.MILHO.MUNDO.WORLD.PRODUCTION", "WASDE.MILHO.MUNDO.FSU_12.PRODUCTION"], "séries descontinuadas continuam disponíveis para seleção");
+});
+
+test("WASDE por país: cada linha traz a região como modalidade e a unidade da métrica; região desconhecida é rejeitada", async () => {
+  const deps = { observationRepository: repoWasdePaises({ buscarHistoricoAtual: async (p) => ({ registros: [linhaObservation(p.seriesCodes[0], "2025-09-01", 62.5)], total: 1 }) }) };
+
+  const r = await observaveisService.obterHistoricoObservavel("WASDE_MILHO_PAISES", { itens: "BRAZIL" }, deps);
+  assert.equal(r.historico[0].modalidade, "BRAZIL");
+  assert.equal(r.historico[0].unidade, "milhões de t");
+
+  await assert.rejects(() => observaveisService.obterHistoricoObservavel("WASDE_MILHO_PAISES", { itens: "ATLANTIDA" }, deps), /Região\(s\) desconhecido/);
+});
+
+// --- WASDE EUA: uma série por métrica, só com o seletor de métrica (sem itens) ---
+
+function repoWasdeEua(extra = {}) {
+  return {
+    buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-01", 1567),
+    buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
+    resumirSeries: async () => [],
+    listarItens: async () => [],
+    ...extra
+  };
+}
+
+test("WASDE EUA: o detalhe oferece as 13 métricas (estoque final por padrão) e nenhum seletor de item", async () => {
+  const { observavel } = await observaveisService.obterDetalheObservavel("WASDE_MILHO_EUA", {
+    observationRepository: repoWasdeEua(),
+    collectionExecutionRepository: { buscarUltimaPorColetor: async () => null }
+  });
+
+  assert.equal(observavel.campos.length, 13);
+  assert.equal(observavel.campoPrincipal, "ENDING_STOCKS");
+  assert.equal(observavel.itens, undefined, "sem itens: só o seletor de métrica");
+  assert.equal(observavel.cotacaoAtual.valor, 1567);
+  assert.equal(observavel.cotacaoAtual.unidade, "milhões de bushels");
+  assert.equal(observavel.unidade, "milhões de bushels");
+});
+
+test("WASDE EUA: cada métrica consulta a sua série e tem a sua unidade", async () => {
+  const pedidos = [];
+  const deps = { observationRepository: repoWasdeEua({ buscarHistoricoAtual: async (p) => { pedidos.push(p.seriesCodes); return { registros: [linhaObservation(p.seriesCodes[0], "2026-09-01", 183.1)], total: 1 }; } }) };
+
+  const padrao = await observaveisService.obterHistoricoObservavel("WASDE_MILHO_EUA", {}, deps);
+  const produtividade = await observaveisService.obterHistoricoObservavel("WASDE_MILHO_EUA", { campo: "YIELD" }, deps);
+
+  assert.deepEqual(pedidos, [["WASDE.MILHO.EUA.ENDING_STOCKS"], ["WASDE.MILHO.EUA.YIELD"]]);
+  assert.equal(padrao.historico[0].unidade, "milhões de bushels");
+  assert.equal(produtividade.historico[0].unidade, "bushels/acre");
+  assert.equal(produtividade.historico[0].modalidade, "valor");
+  await assert.rejects(() => observaveisService.obterHistoricoObservavel("WASDE_MILHO_EUA", { campo: "INEXISTENTE" }, deps), /campo/);
+});
+
+test("WASDE EUA: a cobertura soma as séries de todas as métricas", async () => {
+  let consultadas = null;
+  const deps = {
+    observationRepository: repoWasdeEua({ resumirSeries: async (codigos) => { consultadas = codigos; return []; } }),
+    collectionExecutionRepository: { buscarUltimaPorColetor: async () => null }
+  };
+
+  await observaveisService.obterDetalheObservavel("WASDE_MILHO_EUA", deps);
+
+  assert.equal(consultadas.length, 13);
+  assert.ok(consultadas.every((c) => c.startsWith("WASDE.MILHO.EUA.")));
+});
+
+// --- Conab: milho por safra e UF (seletor de região) e balanço nacional (seletor de métrica) ---
+
+// Entrada fora de ordem, de propósito.
+const regioesConab = [
+  { codigo: "BRASIL", primeira_data: "2023-09-01", ultima_data: "2025-09-01", pregoes: "3" },
+  { codigo: "MT", primeira_data: "2023-09-01", ultima_data: "2025-09-01", pregoes: "3" },
+  { codigo: "NORTE", primeira_data: "2023-09-01", ultima_data: "2025-09-01", pregoes: "3" },
+  { codigo: "PR", primeira_data: "2023-09-01", ultima_data: "2025-09-01", pregoes: "3" },
+  { codigo: "CENTRO_OESTE", primeira_data: "2023-09-01", ultima_data: "2025-09-01", pregoes: "3" },
+  { codigo: "AC", primeira_data: "2023-09-01", ultima_data: "2025-09-01", pregoes: "3" }
+];
+
+function repoConab(extra = {}) {
+  return {
+    listarItens: async () => regioesConab,
+    buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2025-09-01", 144009.6),
+    buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
+    resumirSeries: async () => [],
+    ...extra
+  };
+}
+
+const semExecucao = { buscarUltimaPorColetor: async () => null };
+
+test("Conab por UF: UFs por nome antes dos agregados; rótulos por extenso; destaque é o Brasil", async () => {
+  const { observavel } = await observaveisService.obterDetalheObservavel("CONAB_MILHO_SAFRA", {
+    observationRepository: repoConab(),
+    collectionExecutionRepository: semExecucao
+  });
+
+  assert.deepEqual(
+    observavel.itens.map((i) => i.codigo),
+    ["AC", "MT", "PR", "BRASIL", "CENTRO_OESTE", "NORTE"],
+    "UFs em ordem alfabética do nome (Acre, Mato Grosso, Paraná) e depois os agregados (Brasil, Região Centro-Oeste, Região Norte)"
+  );
+  const porCodigo = Object.fromEntries(observavel.itens.map((i) => [i.codigo, i]));
+  assert.equal(porCodigo.MT.rotulo, "Mato Grosso (MT)");
+  assert.equal(porCodigo.CENTRO_OESTE.rotulo, "Região Centro-Oeste");
+  assert.equal(porCodigo.BRASIL.agregado, true);
+  assert.equal(porCodigo.MT.agregado, false);
+  assert.equal(observavel.rotuloModalidade, "Região/UF");
+  assert.equal(observavel.itemPrincipal, "Brasil");
+  assert.deepEqual(observavel.itensPadrao, ["BRASIL", "MT", "PR"], "padrão do catálogo, só com o que existe no banco (GO e MS não estão neste teste)");
+  assert.equal(observavel.campoPrincipal, "PRODUCAO_TOTAL");
+  assert.equal(observavel.campos.length, 12);
+  assert.match(observavel.selecao.nota, /Conab/);
+  assert.equal(observavel.cotacaoAtual.valor, 144009.6);
+});
+
+test("Conab por UF: a lista mostra o valor do Brasil, dizendo qual", async () => {
+  const { observaveis } = await observaveisService.listarObservaveis({
+    marketQuoteRepository: { buscarMaisRecente: async () => null },
+    observationRepository: repoConab()
+  });
+
+  assert.equal(observaveis.find((o) => o.codigo === "CONAB_MILHO_SAFRA").unidade, "mil t (Brasil)");
+});
+
+test("Conab por UF: métrica e tipo de safra viram a série; cada métrica tem a sua unidade", async () => {
+  const pedidos = [];
+  const deps = {
+    observationRepository: repoConab({
+      buscarHistoricoAtual: async (p) => {
+        pedidos.push(p.seriesCodes);
+        return { registros: [linhaObservation(p.seriesCodes[0], "2025-09-01", 7681)], total: 1 };
+      }
+    })
+  };
+
+  await observaveisService.obterHistoricoObservavel("CONAB_MILHO_SAFRA", { campo: "PRODUCAO_2A", itens: "BRASIL,MT" }, deps);
+  const produtividade = await observaveisService.obterHistoricoObservavel("CONAB_MILHO_SAFRA", { campo: "PRODUTIVIDADE_2A", itens: "MT" }, deps);
+
+  assert.deepEqual(pedidos[0], ["CONAB.MILHO.BRASIL.PRODUCAO_2A", "CONAB.MILHO.MT.PRODUCAO_2A"]);
+  assert.deepEqual(pedidos[1], ["CONAB.MILHO.MT.PRODUTIVIDADE_2A"]);
+  assert.equal(produtividade.historico[0].unidade, "kg/ha");
+  assert.equal(produtividade.historico[0].modalidade, "MT");
+  await assert.rejects(() => observaveisService.obterHistoricoObservavel("CONAB_MILHO_SAFRA", { itens: "ATLANTIDA" }, deps), /Região\/UF\(s\) desconhecido/);
+  await assert.rejects(() => observaveisService.obterHistoricoObservavel("CONAB_MILHO_SAFRA", { campo: "ESTOQUE_FINAL" }, deps), /campo/, "o estoque é do card de balanço");
+});
+
+test("Conab balanço: 8 métricas (estoque final por padrão), série nacional única e nenhum seletor de item", async () => {
+  const pedidos = [];
+  const deps = {
+    observationRepository: repoConab({
+      buscarHistoricoAtual: async (p) => {
+        pedidos.push(p.seriesCodes);
+        return { registros: [linhaObservation(p.seriesCodes[0], "2025-09-01", 15654.04)], total: 1 };
+      }
+    }),
+    collectionExecutionRepository: semExecucao
+  };
+
+  const { observavel } = await observaveisService.obterDetalheObservavel("CONAB_MILHO_BALANCO", deps);
+  assert.deepEqual(observavel.campos.map((c) => c.codigo), ["ESTOQUE_FINAL", "ESTOQUE_INICIAL", "PRODUCAO", "IMPORTACAO", "SUPRIMENTO", "CONSUMO", "EXPORTACAO", "DEMANDA_TOTAL"]);
+  assert.equal(observavel.campoPrincipal, "ESTOQUE_FINAL");
+  assert.equal(observavel.itens, undefined);
+  assert.equal(observavel.unidade, "mil t");
+
+  const consumo = await observaveisService.obterHistoricoObservavel("CONAB_MILHO_BALANCO", { campo: "CONSUMO" }, deps);
+  assert.deepEqual(pedidos.at(-1), ["CONAB.MILHO.BALANCO.CONSUMO"]);
+  assert.equal(consumo.historico[0].unidade, "mil t");
+});
+
+test("Conab: o escopo de cada card diz o que cobre (só milho; balanço só nacional) e o que não foi carregado", async () => {
+  const escopoDe = async (codigo) =>
+    (await observaveisService.obterDetalheObservavel(codigo, { observationRepository: repoConab(), collectionExecutionRepository: semExecucao })).observavel.fonteDetalhe.escopo;
+
+  const porUf = await escopoDe("CONAB_MILHO_SAFRA");
+  assert.match(porUf, /só milho/);
+  assert.match(porUf, /27 UFs/);
+  assert.match(porUf, /1976\/77.*não foram carregados/, "o histórico longo e os preços seguem de fora");
+
+  const balanco = await escopoDe("CONAB_MILHO_BALANCO");
+  assert.match(balanco, /NACIONAL/);
+  assert.match(balanco, /não há estoque nem consumo por UF/);
 });

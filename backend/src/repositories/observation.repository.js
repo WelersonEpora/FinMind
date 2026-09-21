@@ -79,14 +79,14 @@ async function buscarUltimasVersoes(seriesCode, { transaction } = {}) {
   return new Map(linhas.map((l) => [l.observed_at, l]));
 }
 
-// Instantes de publicação (published_at) já gravados para uma fonte: permite a um coletor de
-// fonte em EDIÇÕES (ex.: WASDE) saber quais edições já foram ingeridas, sem reler o histórico.
-async function listarInstantesDePublicacao(sourceCode, { transaction } = {}) {
-  const linhas = await sequelize.query(
-    "SELECT DISTINCT published_at FROM observation WHERE source_code = :sourceCode",
+// Pares (série, instante de publicação) já gravados para uma fonte: permite a um coletor de fonte em
+// EDIÇÕES (ex.: WASDE) saber quais séries já têm carga e quais edições já foram ingeridas, sem reler o
+// histórico. Só leitura.
+async function listarSeriesEInstantes(sourceCode, { transaction } = {}) {
+  return sequelize.query(
+    "SELECT DISTINCT series_code, published_at FROM observation WHERE source_code = :sourceCode",
     { replacements: { sourceCode }, type: QueryTypes.SELECT, transaction }
   );
-  return linhas.map((l) => new Date(l.published_at));
 }
 
 // asOf: "o que se sabia em `asOf`?". Para cada (series_code, observed_at)
@@ -181,21 +181,21 @@ async function buscarHistoricoAtual({ seriesCodes, dataInicio, dataFim, ordenarP
   return { registros, total: Number(total) };
 }
 
-// Tickers distintos de um grupo de séries `<prefixo>.<TICKER>.<CAMPO>` (ex.:
-// vencimentos do CCM), com a cobertura de cada um, medida numa série de
-// referência que existe em todo pregão (ex.: SETTLE).
-async function listarVencimentos({ prefixoSerie, campoReferencia }, { transaction } = {}) {
-  // posição do ticker no código (contada a partir de um prefixo constante do catálogo)
+// Itens distintos de um grupo de séries `<prefixo>.<ITEM>.<CAMPO>` (ex.:
+// vencimentos do CCM, regiões do WASDE), com a cobertura de cada um, medida
+// numa série de referência que existe em todo período (ex.: SETTLE).
+async function listarItens({ prefixoSerie, campoReferencia }, { transaction } = {}) {
+  // posição do item no código (contada a partir de um prefixo constante do catálogo)
   const posicao = prefixoSerie.split(".").length + 1;
   return sequelize.query(
-    `SELECT SUBSTRING_INDEX(SUBSTRING_INDEX(series_code, '.', ${posicao}), '.', -1) AS ticker,
+    `SELECT SUBSTRING_INDEX(SUBSTRING_INDEX(series_code, '.', ${posicao}), '.', -1) AS codigo,
             MIN(observed_at) AS primeira_data,
             MAX(observed_at) AS ultima_data,
             COUNT(DISTINCT observed_at) AS pregoes
        FROM observation
       WHERE series_code LIKE :padrao
-      GROUP BY ticker
-      ORDER BY ticker`,
+      GROUP BY codigo
+      ORDER BY codigo`,
     { replacements: { padrao: `${prefixoSerie}.%.${campoReferencia}` }, type: QueryTypes.SELECT, transaction }
   );
 }
@@ -218,4 +218,4 @@ async function resumirSeries(seriesCodes, { transaction } = {}) {
   );
 }
 
-module.exports = { inserirVersoes, buscarUltimasVersoes, listarInstantesDePublicacao, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarVencimentos, resumirSeries };
+module.exports = { inserirVersoes, buscarUltimasVersoes, listarSeriesEInstantes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, resumirSeries };

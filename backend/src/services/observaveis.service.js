@@ -6,6 +6,42 @@ const marketQuoteRepository = require("../repositories/market-quote.repository")
 const collectionExecutionRepository = require("../repositories/collection-execution.repository");
 const { NotFoundError } = require("../shared/errors");
 
+// Partes comuns dos cards do WASDE (milho): série anual, uma edição mensal, valores como publicados.
+const BASE_WASDE_MILHO = {
+  origem: "observation",
+  frequencia: "ANUAL",
+  toleranciaDias: 400,
+  fonte: "USDA - WASDE",
+  fonteCollectorCode: "wasde-milho"
+};
+
+// Partes comuns dos cards da Conab (milho): série por safra, revista a cada levantamento mensal.
+// `toleranciaDias` cobre o intervalo até o 1º levantamento da safra seguinte (mid-out).
+const BASE_CONAB_MILHO = {
+  origem: "observation",
+  frequencia: "ANUAL",
+  toleranciaDias: 430,
+  fonte: "Conab - Boletim da Safra de Grãos",
+  fonteCollectorCode: "conab-milho"
+};
+
+const FONTE_DETALHE_CONAB_MILHO = {
+  metodologia:
+    "Um valor por safra (o dia da observação é 1º de setembro do ano de início; convenção, como no WASDE). Cada levantamento mensal da Conab reestima a safra corrente e a anterior: a data de publicação é a REAL, tirada da página do levantamento, e cada revisão vira uma versão nova, o que preserva o que o mercado sabia em cada data. Valores como publicados, sem conversão de unidade (mil t, mil ha, kg/ha). A planilha baixada é a versão atual de cada levantamento: se a Conab a corrigiu depois de publicar (a página informa \"Atualizado em\"), a correção pode já estar nos valores.",
+  formatoOrigem: "XLSX (planilha de cada levantamento mensal do Boletim da Safra de Grãos)",
+  urlOficial: "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/safras/safra-de-graos/boletim-da-safra-de-graos"
+};
+
+// O escopo (o que o card cobre e o que não cobre) é de cada card: o dos EUA cobre só os EUA, o por país cobre a seleção do WASDE.
+const FIM_ESCOPO_WASDE_MILHO = "A PSD do USDA, com 125 países e dados desde 1960, não foi implementada. Histórico do WASDE: de 2011 em diante.";
+
+const FONTE_DETALHE_WASDE_MILHO = {
+  metodologia:
+    "Um valor por safra (o dia da observação é 1º de setembro do ano de início; o WASDE agrega anos comerciais locais, então é uma convenção). Cada edição mensal do WASDE reestima a safra corrente e as anteriores: a data de publicação é a REAL do release (listagem do ESMIS), e cada revisão vira uma versão nova, o que preserva o que o mercado sabia em cada data. Edições de 2011 em diante (antes só há PDF/TXT). Valores como publicados, sem conversão de unidade: os EUA em bushels (card \"Milho EUA\"), os países em toneladas (card \"Milho por país\").",
+  formatoOrigem: "XLS (planilha de cada edição no ESMIS)",
+  urlOficial: "https://esmis.nal.usda.gov/publication/world-agricultural-supply-and-demand-estimates"
+};
+
 // Catálogo estático dos observáveis conhecidos pelo FinMind - sem tabela
 // própria de propósito (ver docs/decisoes-tecnicas.md, "não criar tabela
 // sem necessidade real"). Um novo ativo = uma entrada nova aqui + um novo
@@ -246,61 +282,145 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
-  // --- USDA WASDE - balanço do milho, uma edição por mês desde 2011 (ADR 0015) ---
+  // --- USDA WASDE - balanço do milho, uma edição por mês desde 2011 (ADR 0015). Todas as linhas do WASDE são coletadas ---
   // A série é ANUAL (um ponto por safra, observed_at = 1º/set do ano de início) e cada edição do
   // WASDE pode revisá-la: o histórico mostra a versão mais recente de cada safra, e o vintage (o
   // que se sabia em cada edição) fica na camada point-in-time. `toleranciaDias` alto de propósito:
   // o último ponto é a safra em projeção, com observed_at futuro ou de até ~1 ano atrás.
-  ...[
-    {
-      instrumentCode: "WASDE_MILHO_EUA_ESTOQUE_FINAL",
-      nome: "Milho EUA - Estoque final (WASDE)",
-      unidade: "milhões de bushels",
-      casasDecimais: 0,
-      seriesCode: "WASDE.MILHO.EUA.ENDING_STOCKS",
-      descricao: "Estoque final de milho dos Estados Unidos por safra (ano comercial set-ago), em milhões de bushels, conforme o WASDE do USDA."
-    },
-    {
-      instrumentCode: "WASDE_MILHO_EUA_PRODUCAO",
-      nome: "Milho EUA - Produção (WASDE)",
-      unidade: "milhões de bushels",
-      casasDecimais: 0,
-      seriesCode: "WASDE.MILHO.EUA.PRODUCTION",
-      descricao: "Produção de milho dos Estados Unidos por safra, em milhões de bushels, conforme o WASDE do USDA."
-    },
-    {
-      instrumentCode: "WASDE_MILHO_MUNDO_ESTOQUE_FINAL",
-      nome: "Milho mundo - Estoque final (WASDE)",
-      unidade: "milhões de t",
-      casasDecimais: 1,
-      seriesCode: "WASDE.MILHO.MUNDO.WORLD.ENDING_STOCKS",
-      descricao: "Estoque final mundial de milho por safra, em milhões de toneladas, conforme o WASDE do USDA (anos comerciais locais agregados)."
-    },
-    {
-      instrumentCode: "WASDE_MILHO_MUNDO_PRODUCAO",
-      nome: "Milho mundo - Produção (WASDE)",
-      unidade: "milhões de t",
-      casasDecimais: 1,
-      seriesCode: "WASDE.MILHO.MUNDO.WORLD.PRODUCTION",
-      descricao: "Produção mundial de milho por safra, em milhões de toneladas, conforme o WASDE do USDA."
-    }
-  ].map(({ seriesCode, descricao, ...cartao }) => ({
-    ...cartao,
-    origem: "observation",
-    frequencia: "ANUAL",
-    toleranciaDias: 400,
-    fonte: "USDA - WASDE",
-    fonteCollectorCode: "wasde-milho",
-    series: [{ modalidade: "valor", seriesCode }],
-    modalidadePrincipal: "valor",
+  // Dois cards: os EUA (série própria, uma métrica por vez, cada uma na unidade do USDA) e um
+  // card por país (em milhões de toneladas, com seletor de região e de métrica, como o CCM
+  // tem de vencimento).
+  {
+    instrumentCode: "WASDE_MILHO_EUA",
+    nome: "Milho EUA (WASDE)",
+    unidade: "milhões de bushels",
+    casasDecimais: 0,
+    ...BASE_WASDE_MILHO,
+    // Séries `WASDE.MILHO.EUA.<CAMPO>`: UMA série por métrica, sem itens - a tela só oferece o seletor de métrica.
+    porCampo: { prefixoSerie: "WASDE.MILHO.EUA" },
+    campoPrincipal: "ENDING_STOCKS",
+    campos: [
+      { codigo: "ENDING_STOCKS", nome: "Estoque final", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "PRODUCTION", nome: "Produção", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "AREA_PLANTED", nome: "Área plantada", unidade: "milhões de acres", casasDecimais: 1 },
+      { codigo: "AREA_HARVESTED", nome: "Área colhida", unidade: "milhões de acres", casasDecimais: 1 },
+      { codigo: "YIELD", nome: "Produtividade", unidade: "bushels/acre", casasDecimais: 1 },
+      { codigo: "BEGINNING_STOCKS", nome: "Estoque inicial", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "IMPORTS", nome: "Importações", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "SUPPLY_TOTAL", nome: "Oferta total", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "FEED_RESIDUAL", nome: "Ração e resíduo", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "FSI", nome: "Alimentos, sementes e uso industrial", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "DOMESTIC_TOTAL", nome: "Consumo interno total", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "EXPORTS", nome: "Exportações", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "USE_TOTAL", nome: "Uso total", unidade: "milhões de bushels", casasDecimais: 0 }
+    ],
     fonteDetalhe: {
-      descricao,
-      metodologia:
-        "Um valor por safra (o dia da observação é 1º de setembro do ano de início; o WASDE agrega anos comerciais locais, então é uma convenção). Cada edição mensal do WASDE reestima a safra corrente e as anteriores: a data de publicação é a REAL do release (listagem do ESMIS), e cada revisão vira uma versão nova, o que preserva o que o mercado sabia em cada data. Edições de 2011 em diante (antes só há PDF/TXT). Valores como publicados, sem conversão de unidade.",
-      formatoOrigem: "XLS (planilha de cada edição no ESMIS)",
-      urlOficial: "https://esmis.nal.usda.gov/publication/world-agricultural-supply-and-demand-estimates"
+      ...FONTE_DETALHE_WASDE_MILHO,
+      escopo: `só os Estados Unidos, com as 13 métricas que o WASDE traz para o país. Os demais países estão no card "Milho por país", em toneladas. ${FIM_ESCOPO_WASDE_MILHO}`,
+      descricao:
+        "Balanço de milho dos Estados Unidos por safra (ano comercial set-ago), conforme o WASDE do USDA: estoques, produção, área, produtividade, oferta e uso. Cada métrica na unidade do USDA (bushels, acres, bushels/acre), sem conversão."
     }
-  })),
+  },
+  {
+    instrumentCode: "WASDE_MILHO_PAISES",
+    nome: "Milho por país (WASDE)",
+    unidade: "milhões de t",
+    casasDecimais: 1,
+    ...BASE_WASDE_MILHO,
+    // Séries `WASDE.MILHO.MUNDO.<REGIAO>.<CAMPO>`: os itens (regiões) são descobertos no banco;
+    // vêm marcadas as `itensPadrao` (o resto é opt-in) e o destaque do card é `itemPrincipal`.
+    porRegiao: {
+      prefixoSerie: "WASDE.MILHO.MUNDO",
+      campoReferencia: "ENDING_STOCKS",
+      itemPrincipal: "WORLD",
+      itensPadrao: ["BRAZIL", "UNITED_STATES", "ARGENTINA", "CHINA"]
+    },
+    campoPrincipal: "ENDING_STOCKS",
+    campos: [
+      { codigo: "ENDING_STOCKS", nome: "Estoque final", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "PRODUCTION", nome: "Produção", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "BEGINNING_STOCKS", nome: "Estoque inicial", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "IMPORTS", nome: "Importações", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "EXPORTS", nome: "Exportações", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "DOMESTIC_TOTAL", nome: "Consumo interno total", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "DOMESTIC_FEED", nome: "Consumo para ração", unidade: "milhões de t", casasDecimais: 1 }
+    ],
+    fonteDetalhe: {
+      ...FONTE_DETALHE_WASDE_MILHO,
+      escopo: `a seleção de países que o WASDE publica: Argentina, Brasil, Canadá, China, Egito, Estados Unidos, Japão, México, Rússia, África do Sul, Coreia do Sul, Ucrânia, União Europeia e Sudeste Asiático, mais os agregados Mundo, Mundo sem China, Total estrangeiro e Grandes exportadores/importadores. Todas essas linhas são coletadas; escolha as que quer ver. A Rússia só aparece a partir de 2017 (antes o WASDE agregava a ex-URSS) e a União Europeia tem séries por período. Países fora dessa seleção (Índia, Indonésia, Vietnã e outros) não são cobertos. ${FIM_ESCOPO_WASDE_MILHO}`,
+      descricao:
+        "Balanço de milho por país e por métrica (estoque final e inicial, produção, importações, exportações, consumo), por safra, em milhões de toneladas, conforme a tabela mundial do WASDE do USDA (estimativa do USDA, não da Conab). Uma linha por região; os agregados (mundo, mundo sem China etc.) ficam desmarcados por padrão por terem escala muito maior."
+    }
+  },
+
+  // --- Conab - Boletim da Safra de Grãos, milho (ADR 0017): um levantamento por mês, desde fev/2025 ---
+  // Dois cards: o milho por safra (1ª, 2ª, 3ª e total) por Região/UF, com seletor de região e de métrica (como o
+  // card por país do WASDE), e o balanço nacional de oferta e demanda (uma série por métrica, como o card dos EUA).
+  {
+    instrumentCode: "CONAB_MILHO_SAFRA",
+    nome: "Milho por safra e UF (Conab)",
+    unidade: "mil t",
+    casasDecimais: 1,
+    ...BASE_CONAB_MILHO,
+    // Séries `CONAB.MILHO.<REGIAO>.<METRICA>_<TIPO>`: as regiões são descobertas no banco; vêm marcados o Brasil e as
+    // maiores UFs produtoras (`itensPadrao`, só exibição) e o destaque do card é o Brasil.
+    porRegiao: {
+      prefixoSerie: "CONAB.MILHO",
+      campoReferencia: "PRODUCAO_TOTAL",
+      itemPrincipal: "BRASIL",
+      itensPadrao: ["BRASIL", "MT", "PR", "GO", "MS"],
+      descritor: "conab"
+    },
+    campoPrincipal: "PRODUCAO_TOTAL",
+    campos: [
+      { codigo: "PRODUCAO_TOTAL", nome: "Produção - total (1ª, 2ª e 3ª safra)", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "PRODUCAO_1A", nome: "Produção - 1ª safra", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "PRODUCAO_2A", nome: "Produção - 2ª safra", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "PRODUCAO_3A", nome: "Produção - 3ª safra", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "AREA_TOTAL", nome: "Área - total", unidade: "mil ha", casasDecimais: 1 },
+      { codigo: "AREA_1A", nome: "Área - 1ª safra", unidade: "mil ha", casasDecimais: 1 },
+      { codigo: "AREA_2A", nome: "Área - 2ª safra", unidade: "mil ha", casasDecimais: 1 },
+      { codigo: "AREA_3A", nome: "Área - 3ª safra", unidade: "mil ha", casasDecimais: 1 },
+      { codigo: "PRODUTIVIDADE_TOTAL", nome: "Produtividade - total", unidade: "kg/ha", casasDecimais: 0 },
+      { codigo: "PRODUTIVIDADE_1A", nome: "Produtividade - 1ª safra", unidade: "kg/ha", casasDecimais: 0 },
+      { codigo: "PRODUTIVIDADE_2A", nome: "Produtividade - 2ª safra", unidade: "kg/ha", casasDecimais: 0 },
+      { codigo: "PRODUTIVIDADE_3A", nome: "Produtividade - 3ª safra", unidade: "kg/ha", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      ...FONTE_DETALHE_CONAB_MILHO,
+      escopo:
+        "só milho em grão (1ª, 2ª e 3ª safra e o total), com área, produtividade e produção de todas as regiões e das 27 UFs; os demais produtos da planilha (soja, trigo, algodão etc.) não são coletados. A 3ª safra só existe em poucas UFs (o resto vem zerado ou em branco). O vintage começa em fev/2025 (o que o índice da Conab ainda mantém); as séries históricas desde 1976/77 e os preços da Conab não foram carregados.",
+      descricao:
+        "Milho por safra (1ª, 2ª, 3ª e total) e por região ou UF, conforme o Boletim da Safra de Grãos da Conab (estimativa da Conab, não do USDA): área, produtividade e produção. Cada levantamento mensal revisa a estimativa da safra; uma linha por região ou UF."
+    }
+  },
+  {
+    instrumentCode: "CONAB_MILHO_BALANCO",
+    nome: "Milho - balanço nacional (Conab)",
+    unidade: "mil t",
+    casasDecimais: 1,
+    ...BASE_CONAB_MILHO,
+    // Séries `CONAB.MILHO.BALANCO.<CAMPO>`: UMA série por métrica, só do Brasil - a tela oferece o seletor de métrica.
+    porCampo: { prefixoSerie: "CONAB.MILHO.BALANCO" },
+    campoPrincipal: "ESTOQUE_FINAL",
+    campos: [
+      { codigo: "ESTOQUE_FINAL", nome: "Estoque final", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "ESTOQUE_INICIAL", nome: "Estoque inicial", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "PRODUCAO", nome: "Produção", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "IMPORTACAO", nome: "Importação", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "SUPRIMENTO", nome: "Suprimento (oferta total)", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "CONSUMO", nome: "Consumo", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "EXPORTACAO", nome: "Exportação", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "DEMANDA_TOTAL", nome: "Demanda total", unidade: "mil t", casasDecimais: 1 }
+    ],
+    fonteDetalhe: {
+      ...FONTE_DETALHE_CONAB_MILHO,
+      escopo:
+        "só o balanço NACIONAL do milho (não há estoque nem consumo por UF na fonte), por safra, a partir de 2019/20 (a planilha traz as safras mais recentes; os levantamentos anteriores a fev/2025 não estão no índice da Conab). Só milho: os demais produtos da aba Suprimento não são coletados.",
+      descricao:
+        "Balanço de oferta e demanda do milho no Brasil por safra, conforme o Boletim da Safra de Grãos da Conab: estoque inicial e final, produção, importação, suprimento, consumo, exportação e demanda total, em mil toneladas. Na safra em projeção vale o mês do levantamento."
+    }
+  },
 
   // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
   // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
@@ -388,16 +508,16 @@ function buscarNoCatalogo(codigo) {
 async function listarObservaveis(deps = {}) {
   const observaveis = await Promise.all(
     CATALOGO_OBSERVAVEIS.map(async (item) => {
-      const { cotacao, vencimentoPrincipal } = await obterCotacaoAtualDoItem(item, deps);
-      // Futuro por vencimento: o valor em destaque é o de UM vencimento - a lista
-      // diz qual (ex.: "R$/saca (CCMX26)") em vez de sugerir uma série contínua.
+      const { cotacao, destaque } = await obterCotacaoAtualDoItem(item, deps);
+      // Futuro por vencimento / WASDE por região: o valor em destaque é o de UM item - a lista
+      // diz qual (ex.: "R$/saca (CCMX26)", "milhões de t (Mundo)") em vez de sugerir uma série contínua.
       const unidade = cotacao?.unidade ?? item.unidade;
       return {
         codigo: item.instrumentCode,
         nome: item.nome,
         fonte: cotacao?.fonte ?? item.fonte ?? null,
         valor: cotacao?.valor ?? null,
-        unidade: vencimentoPrincipal ? `${unidade} (${vencimentoPrincipal.ticker})` : unidade,
+        unidade: destaque ? `${unidade} (${destaque})` : unidade,
         casasDecimais: item.casasDecimais ?? 4,
         dataReferencia: cotacao?.dataReferencia ?? null,
         frequencia: item.frequencia,
@@ -417,7 +537,7 @@ async function obterDetalheObservavel(codigo, deps = {}) {
 
   const repoExecucao = deps.collectionExecutionRepository || collectionExecutionRepository;
 
-  const { cotacao, mensagem, vencimentoPrincipal } = await obterCotacaoAtualDoItem(item, deps);
+  const { cotacao, mensagem, destaque } = await obterCotacaoAtualDoItem(item, deps);
   const dimensoes = ehObservation(item) ? await observationDataService.obterDimensoes(item, deps) : null;
   const estatisticas = ehObservation(item)
     ? await observationDataService.obterEstatisticas(item, deps)
@@ -438,8 +558,8 @@ async function obterDetalheObservavel(codigo, deps = {}) {
       totalObservacoes: estatisticas.totalObservacoes,
       // Só observáveis point-in-time: quanto das datas de publicação é estimado.
       publicacao: estatisticas.publicacao ?? null,
-      // Só futuros por vencimento: seletores de campo e de vencimento da tela.
-      ...(dimensoes ? { ...dimensoes, vencimentoPrincipal: vencimentoPrincipal?.ticker ?? null } : {}),
+      // Só cards por vencimento/região: seletores de campo e de item da tela.
+      ...(dimensoes ? { ...dimensoes, itemPrincipal: destaque ?? null } : {}),
       fonteDetalhe: item.fonteDetalhe ?? null,
       ultimaColeta: ultimaExecucao
         ? {
@@ -462,4 +582,4 @@ async function obterHistoricoObservavel(codigo, filtros, deps = {}) {
   return marketDataService.obterHistorico(codigo, filtros, deps);
 }
 
-module.exports = { listarObservaveis, obterDetalheObservavel, obterHistoricoObservavel };
+module.exports = { listarObservaveis, obterDetalheObservavel, obterHistoricoObservavel, buscarNoCatalogo };

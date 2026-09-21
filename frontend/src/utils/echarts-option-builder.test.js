@@ -61,3 +61,25 @@ test('construirOpcaoLineChart agrupa pontos por `serie` em séries separadas, co
   assert.equal(realizada.data.length, 1)
   assert.notEqual(meta.lineStyle.color, realizada.lineStyle.color)
 })
+
+const pontosDeNSeries = (n) => Array.from({ length: n }, (_, i) => ({ data: '2026-09-01', valor: i + 1, serie: `s${i}` }))
+
+test('construirOpcaoLineChart dá uma cor diferente a cada série enquanto a paleta permite', () => {
+  const option = construirOpcaoLineChart({ pontos: pontosDeNSeries(6), unidade: 'Mt' })
+  const cores = option.series.map((s) => s.lineStyle.color)
+
+  assert.equal(new Set(cores).size, 6, 'nenhuma cor repetida')
+  assert.ok(option.series.every((s) => s.lineStyle.type === 'solid'))
+  assert.equal(option.legend.type, undefined, 'até 8 séries a legenda cabe numa linha')
+})
+
+test('construirOpcaoLineChart repete cores só depois de esgotar a paleta e tracejando, com legenda rolável', () => {
+  const option = construirOpcaoLineChart({ pontos: pontosDeNSeries(14), unidade: 'Mt' })
+  const solidas = option.series.filter((s) => s.lineStyle.type === 'solid')
+  const tracejadas = option.series.filter((s) => s.lineStyle.type === 'dashed')
+
+  assert.equal(new Set(solidas.map((s) => s.lineStyle.color)).size, solidas.length, 'as sólidas têm cores todas distintas')
+  assert.equal(tracejadas.length, 14 - solidas.length)
+  assert.ok(tracejadas.length > 0)
+  assert.equal(option.legend.type, 'scroll')
+})

@@ -165,28 +165,44 @@ async function downloadIntervalo({ dataInicial = DATA_INICIAL, dataFinal, signal
 // release). Uma edição realmente nova, ou uma lacuna que ficou para trás, segue para o serviço:
 // a nova entra normalmente; uma lacuna com valor diferente do atual é reportada como falha (o
 // modelo append-only não insere versão no meio da sequência).
-// ORDEM DE CARGA: a coleta diária lê só as 3 últimas edições. Se ela rodar ANTES do backfill, grava
-// versões recentes e o backfill depois não consegue inserir as edições antigas das mesmas safras
-// (o modelo append-only não insere versão no meio da sequência): o vintage dessas safras ficaria
-// truncado. Por isso a coleta diária SE RECUSA a gravar enquanto a fonte estiver vazia e manda rodar o
+// ORDEM DE CARGA: a coleta diária lê só as 3 últimas edições. Se ela gravasse uma série ANTES do backfill,
+// o backfill depois não conseguiria inserir as edições antigas dessa série (o modelo append-only não insere
+// versão no meio da sequência) e o vintage ficaria truncado. Por isso a coleta diária SE RECUSA a gravar
+// séries que ainda não têm carga histórica (fonte vazia ou região recém-incluída no escopo) e manda rodar o
 // backfill (`persistirBackfill`, usado pelo script, não tem essa trava).
+//
+// REINGESTÃO: o serviço só compara cada valor com a ÚLTIMA versão gravada; reler uma edição antiga seria
+// lido como "conflito" (380 falhas na 1ª coleta diária real, 2026-09-21). Por isso, para séries JÁ
+// carregadas, as edições já ingeridas (mesmo instante de publicação já presente na fonte) são descartadas.
+// Uma série NOVA recebe todas as edições, em ordem. Uma lacuna que ficou para trás numa série já carregada
+// segue para o serviço e, se o valor difere do atual, é reportada como falha.
 async function persistirEdicoes(validos, contexto, deps, { exigirCargaInicial }) {
   const repo = deps.observationRepository || observationRepository;
-  const instantes = await repo.listarInstantesDePublicacao(SOURCE_CODE, { transaction: deps.transaction });
+  const publicacoes = await repo.listarSeriesEInstantes(SOURCE_CODE, { transaction: deps.transaction });
+  const seriesCarregadas = new Set(publicacoes.map((p) => p.series_code));
+  const jaIngeridos = new Set(publicacoes.map((p) => new Date(p.published_at).getTime()));
 
-  if (exigirCargaInicial && instantes.length === 0) {
-    return {
-      criados: 0,
-      atualizados: 0,
-      ignorados: validos.length,
-      falhas: [{ item: null, motivo: "Carga histórica do WASDE ainda não feita: rode `npm run backfill:wasde-milho` antes da coleta diária." }]
-    };
+  const falhas = [];
+  let candidatos = validos;
+  if (exigirCargaInicial) {
+    const semCarga = validos.filter((v) => !seriesCarregadas.has(v.series_code));
+    if (semCarga.length > 0) {
+      const series = new Set(semCarga.map((v) => v.series_code)).size;
+      falhas.push({
+        item: null,
+        motivo: `Carga histórica do WASDE ainda não feita para ${series} série(s) (${semCarga.length} valores não gravados): rode "npm run backfill:wasde-milho" antes da coleta diária.`
+      });
+      candidatos = validos.filter((v) => seriesCarregadas.has(v.series_code));
+    }
   }
 
-  const jaIngeridos = new Set(instantes.map((d) => new Date(d).getTime()));
-  const novos = validos.filter((v) => !jaIngeridos.has(v.published_at.getTime()));
+  const novos = candidatos.filter((v) => !(seriesCarregadas.has(v.series_code) && jaIngeridos.has(v.published_at.getTime())));
   const resultado = await persistirObservacoes(novos, contexto, deps);
-  return { ...resultado, ignorados: resultado.ignorados + (validos.length - novos.length) };
+  return {
+    ...resultado,
+    ignorados: resultado.ignorados + (candidatos.length - novos.length),
+    falhas: [...falhas, ...resultado.falhas]
+  };
 }
 
 const persist = (validos, contexto, deps = {}) => persistirEdicoes(validos, contexto, deps, { exigirCargaInicial: true });

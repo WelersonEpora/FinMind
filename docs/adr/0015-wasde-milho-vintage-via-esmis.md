@@ -90,7 +90,31 @@ ADR não a desbloqueia. Nenhuma regra, limiar ou sinal é derivado do dado; só 
 - **Git:** as planilhas **não** são versionadas (`docs/Docs_Base/` no `.gitignore`). O servidor **não precisa delas**:
   o coletor baixa direto do ESMIS, e os testes usam fixtures em código; os 2 testes contra planilhas reais só
   rodam se a pasta local existir.
-- **Tela:** 4 cards nos Observáveis (estoque final e produção, EUA e mundo), frequência **Anual (por safra)**.
+- **Escopo (decisão do usuário, 2026-09-21): TODAS as linhas que o WASDE oferece**, sem filtro por região. O WASDE
+  não traz todos os países: são ~12 países (EUA, Brasil, Argentina, Rússia, África do Sul, Ucrânia, Egito, Japão,
+  México, Coreia do Sul, Canadá, China), a União Europeia, o Sudeste Asiático e agregados (mundo, mundo sem China,
+  total estrangeiro, grandes exportadores e importadores). Índia, Indonésia, Vietnã etc. não aparecem; cobri-los
+  exigiria a PSD (ADR 0014), que **não** será implementada agora. Chegou-se a um filtro só EUA/Brasil/Mundo e ele foi
+  descartado: nenhuma informação já disponível no WASDE é removida.
+- **Tela (atualizada em 2026-09-21):** 2 cards nos Observáveis, frequência **Anual (por safra)**. **"Milho EUA"** tem
+  as 13 métricas dos EUA num só card, com seletor de **métrica** (estoque final, produção, área plantada e colhida,
+  produtividade, estoque inicial, importações, oferta total, ração e resíduo, alimentos/sementes/uso industrial,
+  consumo interno, exportações e uso total), cada uma na unidade do USDA (milhões de bushels, milhões de acres,
+  bushels/acre): é o formato `porCampo` do catálogo, uma série por métrica e sem itens. **"Milho por país"** cobre as **22 regiões** da tabela mundial (em milhões de toneladas, como publicado) e tem o mesmo
+  desenho do CCM por vencimento (ADR 0009): seletor de **métrica** (estoque final e inicial, produção, importações,
+  exportações, consumo interno total e para ração) e **checkboxes de região**, com uma linha por região no gráfico e na
+  tabela. As regiões são descobertas no banco (`observation.repository.listarItens`), sem lista fixa. Vêm marcadas Brasil,
+  Estados Unidos, Argentina e China (`itensPadrao` do catálogo); os **agregados** (mundo, mundo sem China, total
+  estrangeiro, grandes exportadores/importadores, ex-URSS) têm escala muito maior e ficam desmarcados, com a etiqueta
+  "agregado". As séries que **pararam de ser publicadas** (`EU_27`, `EU_27_UK`, `FSU_12`) ficam atrás de "Mostrar séries
+  descontinuadas": são séries distintas, não emendadas com `EUROPEAN_UNION`. Os cards antigos (estoque final e produção
+  de EUA, Brasil e mundo, um por série) foram **substituídos** por estes dois; as séries gravadas não mudaram. Os EUA seguem em bushels
+  no card próprio (sem conversão de unidade); a linha `UNITED_STATES` da tabela mundial (em Mt) permite compará-los aos demais países.
+  O valor em destaque do card é o do **Mundo**, identificado ao lado. Cada card traz, fora do bloco recolhido, o aviso
+  "Escopo da coleta" **próprio** (o dos EUA diz que cobre só os EUA; o por país lista a seleção do WASDE e o que não cobre) e a coluna Fonte diz "USDA - WASDE".
+- **Carga por série:** o filtro de reingestão e a trava da coleta diária funcionam por SÉRIE (`listarSeriesEInstantes`):
+  uma série já carregada descarta as edições já ingeridas; uma série NOVA (região que passe a existir no WASDE)
+  recebe todas as edições no backfill, e a coleta diária recusa gravá-la antes disso.
 
 ## Resultado (banco de dev, 2026-09-21)
 
@@ -105,7 +129,7 @@ antes (mesmas 27.309 linhas).
 O vintage aparece de ponta a ponta. Estoque final dos EUA, safra 2024/25 (milhões de bushels), por edição: 2.102
 (mai/2024, 1ª projeção) → 2.057 (set/2024) → 1.738 (dez/2024) → 1.465 (abr/2025) → 1.415 (mai/2025) → 1.305
 (ago/2025) → 1.532 (nov/2025) → **1.551** (jan/2026, final, igual à PSD). Safra 2010/11: 745 (jan/2011) → 675 → 730
-→ 880 → 940 → 920 → **1.128** (out/2011). Os 4 cards dos Observáveis mostram 19 safras (2008 a 2026) e 256 versões.
+→ 880 → 940 → 920 → **1.128** (out/2011). Os cards dos Observáveis mostram 19 safras (2008 a 2026) e 256 versões.
 
 **Achado depois do 1º backfill (corrigido):** a primeira coleta diária real deu 380 falhas. O serviço point-in-time só
 compara cada valor com a **última** versão gravada; reler as edições de jul e ago (a coleta diária relê as 3 últimas)
@@ -134,5 +158,6 @@ bloco 2026 do backfill repetido também (3.942 ignoradas, 0 criadas, 0 falhas), 
   o backfill não conseguiria inserir as edições antigas das mesmas safras (append-only não insere no meio da
   sequência) e o vintage delas ficaria truncado. Por isso a coleta diária **se recusa a gravar enquanto a fonte
   estiver vazia**: registra uma falha com a instrução "rode `npm run backfill:wasde-milho`" e não grava nada. O
-  script de backfill usa `persistirBackfill`, sem essa trava. Depois do deploy: rodar o backfill na VM (~5 min) e
-  conferir por consulta ao banco. Nenhuma variável de ambiente nova.
+  script de backfill usa `persistirBackfill`, sem essa trava. **Em produção o backfill já foi executado (informado pelo
+  usuário); em qualquer banco novo, rode-o (~5 min) antes da coleta diária e confira por consulta ao banco.** Nenhuma
+  variável de ambiente nova.

@@ -113,7 +113,7 @@ encadeados. Por padrão entram só os vencimentos **ativos** (os que tiveram pre
 vencidos ficam disponíveis por "Mostrar vencimentos já vencidos". O valor em destaque é o do vencimento ativo
 **mais próximo**, sempre identificado (ex.: `76,36 R$/saca (CCMX26)`) — é só o destaque, não uma série.
 Contratos, negócios e volume só existem nos dias com negócio (sem zeros inventados). Os vencimentos são
-descobertos no banco (`repository.listarVencimentos`), sem catálogo fixo.
+descobertos no banco (`repository.listarItens`, o mesmo mecanismo que lista as regiões do WASDE, ADR 0015), sem catálogo fixo.
 
 ### Agendamento
 

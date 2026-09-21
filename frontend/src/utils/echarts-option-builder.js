@@ -13,7 +13,13 @@ const FORMATADOR_TOOLTIP = new Intl.NumberFormat('pt-BR', { minimumFractionDigit
 const FORMATADOR_DATA = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 
 const CHAVE_SERIE_PADRAO = '__default__'
-const CORES_SERIE = ['#0d6efd', '#fd7e14']
+// Paleta com cores bem distintas entre si (as duas primeiras são as de sempre, então os
+// gráficos de 1-2 séries não mudam). Passando do fim da paleta - ex.: WASDE com todas as
+// regiões marcadas - as cores se repetem, e a repetição sai TRACEJADA para não confundir
+// duas linhas da mesma cor.
+const CORES_SERIE = ['#0d6efd', '#fd7e14', '#198754', '#dc3545', '#6f42c1', '#0aa2c0', '#d63384', '#795548', '#b8860b', '#6c757d', '#20c997', '#212529']
+// Acima disso a legenda não cabe numa linha: vira uma legenda rolável (o clique para ocultar/mostrar continua).
+const MAX_SERIES_LEGENDA_FIXA = 8
 const COR_TEXTO_MUTED = '#6c757d'
 const COR_BORDA = '#dee2e6'
 
@@ -42,6 +48,7 @@ export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) 
   const series = chaves.map((chave, indice) => {
     const dados = grupos.get(chave)
     const cor = CORES_SERIE[indice % CORES_SERIE.length]
+    const repetida = indice >= CORES_SERIE.length
     return {
       name: seriesLabels[chave] || chave,
       type: 'line',
@@ -50,7 +57,7 @@ export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) 
       symbolSize: 5,
       showSymbol: dados.length <= 90,
       smooth: false,
-      lineStyle: { width: 2, color: cor },
+      lineStyle: { width: 2, color: cor, type: repetida ? 'dashed' : 'solid' },
       itemStyle: { color: cor },
       // Área preenchida some com 2+ séries - sobrepor duas áreas translúcidas
       // fica visualmente confuso, sem ganho de leitura.
@@ -104,7 +111,14 @@ export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) 
   }
 
   if (multiplasSeries) {
-    option.legend = { top: 0, right: 0, itemWidth: 14, itemHeight: 8, textStyle: { color: COR_TEXTO_MUTED, fontSize: 11 } }
+    option.legend = {
+      top: 0,
+      right: 0,
+      itemWidth: 14,
+      itemHeight: 8,
+      textStyle: { color: COR_TEXTO_MUTED, fontSize: 11 },
+      ...(chaves.length > MAX_SERIES_LEGENDA_FIXA ? { type: 'scroll', left: 48 } : {})
+    }
   }
 
   return option

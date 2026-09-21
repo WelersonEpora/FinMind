@@ -35,6 +35,13 @@ test("GET /api/v1/observaveis/USD_BRL sem sessão retorna 401", async () => {
   });
 });
 
+test("GET /api/v1/observaveis/USD_BRL/exportacao.csv sem sessão retorna 401", async () => {
+  await comServidor(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/v1/observaveis/USD_BRL/exportacao.csv`);
+    assert.equal(response.status, 401);
+  });
+});
+
 test("GET /api/v1/observaveis/USD_BRL/historico sem sessão retorna 401", async () => {
   await comServidor(async (baseUrl) => {
     const response = await fetch(`${baseUrl}/api/v1/observaveis/USD_BRL/historico`);

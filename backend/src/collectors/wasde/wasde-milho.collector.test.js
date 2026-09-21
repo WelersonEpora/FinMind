@@ -190,8 +190,10 @@ function repositorioEmMemoria() {
       linhas.push(...novas);
       return novas.length;
     },
-    async listarInstantesDePublicacao(sourceCode) {
-      return [...new Set(linhas.filter((l) => l.source_code === sourceCode).map((l) => l.published_at.getTime()))].map((t) => new Date(t));
+    async listarSeriesEInstantes(sourceCode) {
+      const vistos = new Map();
+      for (const l of linhas.filter((x) => x.source_code === sourceCode)) vistos.set(`${l.series_code}|${l.published_at.getTime()}`, { series_code: l.series_code, published_at: l.published_at });
+      return [...vistos.values()];
     }
   };
 }
@@ -261,7 +263,7 @@ test("persist (coleta diária) se recusa a gravar com a fonte vazia; o backfill 
   assert.equal(recusada.criados, 0);
   assert.equal(repo.linhas.length, 0, "nada gravado: gravar só a edição recente truncaria o vintage das safras");
   assert.equal(recusada.falhas.length, 1);
-  assert.match(recusada.falhas[0].motivo, /backfill:wasde-milho/);
+  assert.match(recusada.falhas[0].motivo, /1 série.*backfill:wasde-milho/);
 
   await coletor.persistirBackfill(validos, { execucaoId: "y" }, { observationRepository: repo });
   assert.equal(repo.linhas.length, 1);
@@ -269,4 +271,63 @@ test("persist (coleta diária) se recusa a gravar com a fonte vazia; o backfill 
   const nova = coletor.normalize([edicaoParseada("2026-09-15", { nome: "September", ano: 2026 }, 1600)]).validos;
   const diaria = await coletor.persist(nova, { execucaoId: "z" }, { observationRepository: repo });
   assert.deepEqual([diaria.criados, diaria.atualizados, diaria.falhas.length], [0, 1, 0]);
+});
+
+const obsRegiao = (regiao, valor = 1) => ({
+  seriesCode: `WASDE.MILHO.MUNDO.${regiao}.PRODUCTION`, observedAt: "2010-09-01", safra: "2010/11", situacao: "proj",
+  escopo: "MUNDO", regiao, atributo: "PRODUCTION", unidade: "Mt", valor
+});
+
+test("normalize: guarda TODAS as linhas que o WASDE oferece (EUA, mundo, países, blocos e agregados), sem filtrar região", () => {
+  const regioes = ["WORLD", "BRAZIL", "UNITED_STATES", "ARGENTINA", "CHINA", "WORLD_LESS_CHINA", "EUROPEAN_UNION", "MAJOR_EXPORTERS"];
+  const edicao = {
+    ...edicaoParseada("2011-01-12", { nome: "January", ano: 2011 }, 745),
+    observacoes: [obs("WASDE.MILHO.EUA.ENDING_STOCKS", "2010/11", 745), ...regioes.map((r) => obsRegiao(r))]
+  };
+
+  const { validos } = coletor.normalize([edicao]);
+
+  assert.equal(validos.length, 1 + regioes.length);
+  assert.deepEqual(
+    validos.map((v) => v.metadata.regiao).sort(),
+    ["ARGENTINA", "BRAZIL", "CHINA", "EUROPEAN_UNION", "MAJOR_EXPORTERS", "UNITED_STATES", "WORLD", "WORLD_LESS_CHINA", "UNITED_STATES"].sort()
+  );
+});
+
+// ---- carga por série (a coleta diária não grava série sem carga histórica)
+test("persist (diária): uma SÉRIE nova (região incluída depois no escopo) não é gravada até o backfill; as já carregadas seguem", async () => {
+  const repo = repositorioEmMemoria();
+  const carga = coletor.normalize([edicaoParseada("2011-01-12", { nome: "January", ano: 2011 }, 745)]).validos;
+  await coletor.persistirBackfill(carga, { execucaoId: "x" }, { observationRepository: repo });
+
+  const nova = {
+    ...edicaoParseada("2011-02-09", { nome: "February", ano: 2011 }, 675),
+    observacoes: [obs("WASDE.MILHO.EUA.ENDING_STOCKS", "2010/11", 675), obsRegiao("BRAZIL", 51)]
+  };
+  const diaria = await coletor.persist(coletor.normalize([nova]).validos, { execucaoId: "y" }, { observationRepository: repo });
+
+  assert.deepEqual([diaria.criados, diaria.atualizados], [0, 1], "a série já carregada recebeu a edição nova");
+  assert.equal(diaria.falhas.length, 1);
+  assert.match(diaria.falhas[0].motivo, /1 série.*backfill:wasde-milho/);
+  assert.equal(repo.linhas.some((l) => l.series_code.includes("BRAZIL")), false, "a região nova ficou de fora");
+});
+
+test("persistirBackfill: uma série NOVA recebe TODAS as edições, mesmo as que já constam para as outras séries", async () => {
+  const repo = repositorioEmMemoria();
+  const edicoes = (comBrasil) => [
+    ["2011-01-12", "January", 745, 50],
+    ["2011-02-09", "February", 675, 51],
+    ["2011-03-10", "March", 730, 52]
+  ].map(([data, mes, eua, br]) => ({
+    ...edicaoParseada(data, { nome: mes, ano: 2011 }, eua),
+    observacoes: [obs("WASDE.MILHO.EUA.ENDING_STOCKS", "2010/11", eua), ...(comBrasil ? [obsRegiao("BRAZIL", br)] : [])]
+  }));
+
+  await coletor.persistirBackfill(coletor.normalize(edicoes(false)).validos, { execucaoId: "x" }, { observationRepository: repo });
+  const r = await coletor.persistirBackfill(coletor.normalize(edicoes(true)).validos, { execucaoId: "y" }, { observationRepository: repo });
+
+  // EUA: as 3 edições já constam e são descartadas; Brasil: série nova, entra inteira (1 criada + 2 revisões).
+  assert.deepEqual([r.criados, r.atualizados, r.falhas.length], [1, 2, 0]);
+  const brasil = repo.linhas.filter((l) => l.series_code.includes("BRAZIL")).map((l) => l.value);
+  assert.deepEqual(brasil, [50, 51, 52]);
 });

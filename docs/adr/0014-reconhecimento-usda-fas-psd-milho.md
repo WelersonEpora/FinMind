@@ -23,7 +23,7 @@ Base: `https://api.fas.usda.gov/api/psd`, header `X-Api-Key`. Cerca de 25 requis
 | 5. Documentação | Portal `apps.fas.usda.gov/opendatawebV2` (não consegui ler o conteúdo, só um aviso de manutenção). Sem `swagger.json` acessível nos caminhos testados. **A semântica de `calendarYear`/`month` não está documentada** (ver 8) | 404 nos caminhos testados |
 | 6. Histórico | Safras **1960 a 2026**. Milho = commodity `0440000` (a única "Corn" das 63). 125 países na safra 2024 + agregado mundial (`/world/year/{ano}`, país `00`). 15 atributos no milho | `dataReleaseDates`, `BR` 1960/1980/2005/2026 |
 | 7. Revisa? | **Sim, mas a API só expõe a edição mais recente.** Cada par país × safra tem 1 linha de release; na safra 2024 os marcadores vão de 2025-04 a 2026-09 (o dado foi revisado ao longo de 14 meses). Os parâmetros `releaseYear`/`releaseMonth`/`month`/`calendarYear` são **ignorados** (mesma resposta) e o caminho `/release/{ano}/{mês}` dá 404. **Não há vintage histórico recuperável** | sondagem de parâmetros |
-| 8. `published_at` | Só **mês** (`calendarYear` + `month`), sem dia, sem fuso, e **é a data da última revisão do par país × safra**, não da primeira publicação. Interpretação **inferida** (a fonte não a documenta). Nenhuma linha é anterior a 2006-07 (todo o histórico antigo aparece "revisado" em 2006-07 ou depois) | `dataReleaseDates`: 7.586 linhas = 7.586 pares únicos, 188 meses distintos, 2006-07 a 2026-09 |
+| 8. `published_at` | Só **mês** (`calendarYear` + `month`), sem dia, sem fuso, e **é a data da última revisão do par país × safra**, não da primeira publicação. Interpretação **testada contra o vintage do WASDE** (ver Riscos: 3 de 4 exatos), mas não documentada pela fonte. Nenhuma linha é anterior a 2006-07 (todo o histórico antigo aparece "revisado" em 2006-07 ou depois) | `dataReleaseDates`: 7.586 linhas = 7.586 pares únicos, 188 meses distintos, 2006-07 a 2026-09 |
 | 9. Limite | Header `x-ratelimit-limit: 1000`; `remaining` desceu 998 → 983 em ~17 chamadas. **Janela não confirmada** (o padrão do api.data.gov costuma ser por hora, não verificado) | headers |
 | 10. Licença | **Não verificada.** Dado do governo dos EUA; os termos do api.data.gov e do FAS não foram lidos. Uso atual: interno | — |
 | 11. Riscos | Ver "Riscos" abaixo | — |
@@ -32,6 +32,9 @@ Atributos do milho (`attributeId`, unidade): Area Harvested (4, 1000 ha), Beginn
 Imports (57), TY Imports (81), TY Imp. from U.S. (84), Total Supply (86), Exports (88), TY Exports (113),
 Domestic Consumption (125), Feed Dom. Consumption (130), FSI Consumption (192), Ending Stocks (176),
 Total Distribution (178) — todos em 1000 MT — e Yield (184, MT/ha).
+
+**Conferência de sanidade (Brasil incluído):** Brasil 2024/25 — PSD: produção 136.000, estoque final 10.604 e
+exportação 42.011 mil t; WASDE set/2026: 136,0, 10,6 e 42,01 Mt (iguais).
 
 **Conferência de sanidade:** EUA safra 2024 → produção 378.268 mil t (14,89 bilhões de bushels) e estoque final
 39.404 mil t; mundo 2024 → produção 1.235.033 mil t, estoque final 295.701 mil t. Os números são compatíveis com
@@ -58,6 +61,10 @@ TXT jan/2010, XLS jan/2011, jan/2012, jan/2015, mai/2025 (`wasde0525v2`) e set/2
 | Milho **dos EUA em milhões de bushels** (`Page 12`); **mundo em milhões de t** (`Page 22`); PSD em mil t | unidades diferentes: exige conversão declarada |
 | **Menos países que a PSD:** ~14 países/grupos (Argentina, Brasil, Rússia, África do Sul, Ucrânia, Egito, UE, Japão, México, Sudeste Asiático, Coreia do Sul, Canadá, China + agregados), contra 125 | `Page 22` |
 | O **TXT de 2010 tem layout diferente** ("Ending stocks, total", números com vírgula de milhar): outro parser | `wasde-01-12-2010.txt` |
+
+**ATUALIZAÇÃO (ADR 0015):** as perguntas abaixo foram respondidas depois. A listagem do ESMIS traz a **data exata do
+release** (com dia), as 190 edições de 2011 em diante foram lidas sem erro e o coletor foi implementado. O texto
+abaixo é o registro do que se sabia na hora do reconhecimento.
 
 **Datas de release:** dentro do XLS só há o **mês** ("January 2011") e o número da edição ("WASDE - 490"); não há
 dia. Nos arquivos de 2010–2015 baixados o nome carrega `MM-DD-YYYY` (`01-12-2011` = 12/jan/2011), nos recentes só
@@ -95,9 +102,14 @@ mudança de valor vira uma linha nova** (append-only). Consequências que precis
 
 ## Riscos e incertezas declaradas
 
-- Semântica de `month`/`calendarYear` inferida, não documentada; sem dia de publicação.
-- Vintage histórico inexistente na API (só edição atual); o antigo `apps.fas.usda.gov/OpenData/api/psd` **não foi
-  testado com chave válida** (só com a chave errada, "Bad API Key"), então não sei se ele expõe algo a mais.
+- Semântica de `month`/`calendarYear` **testada contra o vintage do WASDE (2026-09-21), não documentada pela fonte**: o
+  marcador coincide com a data da última revisão do par país × safra em 3 de 4 casos (EUA 2024/25 = 2026-07, EUA
+  2023/24 = 2026-01, Brasil 2024/25 = 2026-09). No quarto (Brasil 2023/24) o marcador da PSD é MAIS NOVO (2026-05 contra
+  2025-09 no WASDE), provavelmente por atributos que o WASDE não traz (a PSD tem 15 no milho, o WASDE-mundo 7): não
+  verificado. Sem dia de publicação.
+- Vintage histórico inexistente na API (só edição atual); o antigo `apps.fas.usda.gov/OpenData/api/psd` foi testado com a chave
+  FAS e o resultado é **inconclusivo**: com o header `API_KEY` deu HTTP 500 ("An error has occurred"), e com
+  `X-Api-Key` ou `?api_key=` deu 403 "Bad API Key". Não sei se ele expõe algo a mais que a API nova.
 - Janela do rate limit e licença não confirmadas.
 - O portal avisou de manutenção programada do FAS: pode haver indisponibilidade; a coleta precisa tolerar isso
   (o pipeline já trata falha de fonte como execução `failed`, ADR 0002).

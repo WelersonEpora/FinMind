@@ -5,6 +5,8 @@ const { ValidationError } = require("../shared/errors");
 const { validarPaginacao } = require("../shared/utils/pagination");
 const { validarOrdenacao } = require("../shared/utils/ordenacao");
 const { decodificarFuturoCcm } = require("../shared/utils/b3-contrato");
+const { descreverRegiaoWasde } = require("../shared/utils/wasde-regiao");
+const { descreverRegiaoConab } = require("../shared/utils/conab-regiao");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
 // Leitura, para a tela de Observáveis, dos observáveis que vivem em
@@ -14,50 +16,150 @@ const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = re
 // pelo futuro experimento - não por esta tela.
 //
 // `item` é uma entrada do CATALOGO_OBSERVAVEIS com `origem: "observation"`.
-// Há dois formatos:
+// Há três formatos:
 //   - `series: [{ modalidade, seriesCode }]` - conjunto fixo de séries (a
 //     modalidade é a série no gráfico);
-//   - `porVencimento` + `campos` - futuros com VÁRIOS vencimentos, séries
-//     `<prefixoSerie>.<TICKER>.<CAMPO>`. Aqui a modalidade é o vencimento, o
-//     campo escolhido é UM por vez (unidades diferentes) e cada vencimento é
-//     uma linha própria - nunca uma série contínua.
+//   - `porCampo` + `campos` - UMA série por métrica (`<prefixoSerie>.<CAMPO>`), sem
+//     itens: a tela oferece só o seletor de métrica (unidades diferentes, uma por vez);
+//   - `porVencimento` (futuros com VÁRIOS vencimentos) ou `porRegiao` (uma
+//     série por região do WASDE ou da Conab) + `campos` - séries `<prefixoSerie>.<ITEM>.<CAMPO>`.
+//     Aqui a modalidade é o ITEM (vencimento ou região), o campo escolhido é UM
+//     por vez (unidades diferentes) e cada item é uma linha própria - nunca uma
+//     série contínua.
 
 const CAMPOS_ORDENACAO_HISTORICO = ["referenceDate", "value"];
 
-function ehPorVencimento(item) {
-  return Boolean(item.porVencimento);
+// O que muda entre um tipo de item e outro: como descobrir/rotular/ordenar os
+// itens que existem no banco, qual deles é o "ativo" e os textos da tela.
+// `descrever(codigo)` devolve null para um código que não pertence ao tipo (é
+// ignorado); `ordem` é uma chave de texto (ordenada em pt-BR, depois pelo código).
+const DIMENSAO_VENCIMENTO = {
+  rotuloModalidade: "Vencimento",
+  textos: {
+    titulo: "Vencimentos",
+    inativo: "vencido",
+    mostrarInativos: "Mostrar vencimentos já vencidos",
+    semSelecao: "Selecione ao menos um vencimento.",
+    nota: "Cada linha é um vencimento; os vencimentos não são encadeados numa série contínua."
+  },
+  descrever(codigo) {
+    const contrato = decodificarFuturoCcm(codigo);
+    return contrato && { rotulo: contrato.rotulo, ordem: contrato.vencimento, extras: { vencimento: contrato.vencimento } };
+  },
+  // ativo = teve pregão no ÚLTIMO pregão coletado (todo vencimento listado aparece todo
+  // dia, mesmo sem negócio, pelo preço de ajuste) - ou seja, ainda não venceu.
+  ativo: (ultimaDataDoItem, ultimaDataGeral) => ultimaDataDoItem === ultimaDataGeral,
+  // Destaque do card: o vencimento ativo mais próximo, identificado pelo ticker.
+  escolherPrincipal: (itens) => itens.find((i) => i.ativo),
+  destaque: (principal) => principal.codigo,
+  padrao: (itens) => itens.filter((i) => i.ativo).map((i) => i.codigo)
+};
+
+// Dimensão "região" (WASDE por país, Conab por UF): o que muda é o mapa de rótulos, o texto do rótulo da
+// coluna e as notas da tela; as regras (ativo, destaque, padrão) são as mesmas.
+function criarDimensaoRegiao({ rotuloModalidade, textos, descreverRegiao }) {
+  return {
+    rotuloModalidade,
+    textos,
+    descrever(codigo) {
+      const { rotulo, agregado } = descreverRegiao(codigo);
+      // regiões antes de agregados, cada grupo em ordem alfabética
+      return { rotulo, ordem: `${agregado ? "1" : "0"}${rotulo}`, extras: { agregado } };
+    },
+    // ativo = ainda publicada nos últimos 2 anos de dado (UE-27, ex-URSS e UE+Reino Unido pararam).
+    ativo: (ultimaDataDoItem, ultimaDataGeral) => Number(String(ultimaDataDoItem).slice(0, 4)) >= Number(String(ultimaDataGeral).slice(0, 4)) - 1,
+    // Destaque do card: a região configurada (ex.: mundo, Brasil), identificada pelo rótulo.
+    escolherPrincipal: (itens, config) => itens.find((i) => i.codigo === config.itemPrincipal) ?? itens.find((i) => i.ativo),
+    destaque: (principal) => principal.rotulo,
+    padrao: (itens, config) => {
+      const existentes = new Set(itens.map((i) => i.codigo));
+      const escolhidos = (config.itensPadrao || []).filter((c) => existentes.has(c));
+      return escolhidos.length ? escolhidos : itens.filter((i) => i.ativo).map((i) => i.codigo);
+    }
+  };
+}
+
+const DIMENSOES_REGIAO = {
+  wasde: criarDimensaoRegiao({
+    rotuloModalidade: "Região",
+    descreverRegiao: descreverRegiaoWasde,
+    textos: {
+      titulo: "Regiões",
+      inativo: "descontinuada",
+      mostrarInativos: "Mostrar séries descontinuadas",
+      semSelecao: "Selecione ao menos uma região.",
+      nota:
+        "Cada linha é uma região do WASDE, em milhões de toneladas, como publicado. Rótulos que mudaram ao longo dos anos (União Europeia, ex-URSS) são séries distintas, não emendadas. Agregados (mundo, mundo sem China etc.) têm escala muito maior que um país."
+    }
+  }),
+  conab: criarDimensaoRegiao({
+    rotuloModalidade: "Região/UF",
+    descreverRegiao: descreverRegiaoConab,
+    textos: {
+      titulo: "Regiões e UFs",
+      inativo: "descontinuada",
+      mostrarInativos: "Mostrar séries descontinuadas",
+      semSelecao: "Selecione ao menos uma região ou UF.",
+      nota:
+        "Cada linha é uma UF, uma macrorregião ou o Brasil, com a estimativa mais recente de cada levantamento mensal da Conab, como publicado (mil t, mil ha e kg/ha). O Brasil e as macrorregiões somam UFs e têm escala maior."
+    }
+  })
+};
+
+// { config, ...dimensão } do item, ou null quando o item é de formato fixo. `porRegiao.descritor` escolhe o
+// mapa de rótulos ("wasde" por padrão).
+function dimensaoDe(item) {
+  if (item.porVencimento) return { ...DIMENSAO_VENCIMENTO, config: item.porVencimento };
+  if (item.porRegiao) return { ...DIMENSOES_REGIAO[item.porRegiao.descritor || "wasde"], config: item.porRegiao };
+  return null;
+}
+
+function ehPorSelecao(item) {
+  return Boolean(dimensaoDe(item));
 }
 
 function campoDe(item, codigo) {
   return item.campos.find((c) => c.codigo === codigo);
 }
 
-// Vencimentos presentes no banco, do mais próximo ao mais distante. `ativo` =
-// teve pregão no ÚLTIMO pregão coletado (todo vencimento listado aparece todo
-// dia, mesmo sem negócio, pelo preço de ajuste) - ou seja, ainda não venceu.
-async function listarVencimentos(item, deps = {}) {
-  const repo = deps.observationRepository || observationRepository;
-  const linhas = (await repo.listarVencimentos(item.porVencimento)).filter((l) => decodificarFuturoCcm(l.ticker));
-  const ultimoPregao = linhas.map((l) => l.ultima_data).sort().pop() ?? null;
-
-  return linhas
-    .map((l) => {
-      const contrato = decodificarFuturoCcm(l.ticker);
-      return {
-        ticker: l.ticker,
-        vencimento: contrato.vencimento,
-        rotulo: contrato.rotulo,
-        ativo: l.ultima_data === ultimoPregao,
-        primeiraData: l.primeira_data,
-        ultimaData: l.ultima_data,
-        pregoes: Number(l.pregoes)
-      };
-    })
-    .sort((a, b) => (a.vencimento === b.vencimento ? a.ticker.localeCompare(b.ticker) : a.vencimento.localeCompare(b.vencimento)));
+// O campo pedido (ou o principal); campo que não é do card é rejeitado.
+function resolverCampo(item, filtros) {
+  const campo = campoDe(item, filtros.campo || item.campoPrincipal);
+  if (!campo) throw new ValidationError(`"campo" deve ser um entre: ${item.campos.map((c) => c.codigo).join(", ")}.`);
+  return campo;
 }
 
-function seriesDoVencimento(item, ticker, campo) {
-  return `${item.porVencimento.prefixoSerie}.${ticker}.${campo}`;
+function seriesDoCampo(item, codigoCampo) {
+  return `${item.porCampo.prefixoSerie}.${codigoCampo}`;
+}
+
+// Itens presentes no banco, na ordem da dimensão. `ativo` é decidido pela dimensão
+// (vencimento que ainda negocia; região ainda publicada).
+async function listarItens(item, deps = {}) {
+  const repo = deps.observationRepository || observationRepository;
+  const dimensao = dimensaoDe(item);
+  const descritos = (await repo.listarItens(dimensao.config))
+    .map((linha) => ({ linha, descricao: dimensao.descrever(linha.codigo) }))
+    .filter(({ descricao }) => descricao);
+  const ultimaData = descritos.map(({ linha }) => linha.ultima_data).sort().pop() ?? null;
+
+  return descritos
+    .map(({ linha, descricao }) => ({
+      codigo: linha.codigo,
+      rotulo: descricao.rotulo,
+      ...descricao.extras,
+      ativo: dimensao.ativo(linha.ultima_data, ultimaData),
+      primeiraData: linha.primeira_data,
+      ultimaData: linha.ultima_data,
+      pregoes: Number(linha.pregoes),
+      ordem: descricao.ordem
+    }))
+    .sort((a, b) => a.ordem.localeCompare(b.ordem, "pt-BR") || a.codigo.localeCompare(b.codigo))
+    .map(({ ordem: _ordem, ...resto }) => resto);
+}
+
+function seriesDoItem(item, codigoItem, campo) {
+  return `${dimensaoDe(item).config.prefixoSerie}.${codigoItem}.${campo}`;
 }
 
 // Séries de um item de formato fixo.
@@ -87,23 +189,32 @@ function paraRegistroResposta(item, linha, { series, unidade }) {
   };
 }
 
-// "Valor atual" do card. Para futuros: o campo principal do vencimento MAIS
-// PRÓXIMO ainda em negociação, sempre identificado (`modalidade` = ticker) -
-// é só o destaque do card, não uma série contínua.
+// "Valor atual" do card. Para itens por vencimento/região: o campo principal do
+// item em destaque (vencimento mais próximo ainda ativo; região configurada), sempre
+// identificado em `destaque` - é só o destaque do card, não uma série contínua.
 async function obterCotacaoAtual(item, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
+  const dimensao = dimensaoDe(item);
 
-  if (ehPorVencimento(item)) {
-    const principal = (await listarVencimentos(item, deps)).find((v) => v.ativo);
+  if (item.porCampo) {
+    const campo = campoDe(item, item.campoPrincipal);
+    const seriesCode = seriesDoCampo(item, campo.codigo);
+    const linha = await repo.buscarMaisRecente(seriesCode);
+    if (!linha) return { cotacao: null, mensagem: "Nenhuma observação coletada ainda para este observável." };
+    return { cotacao: paraRegistroResposta(item, linha, { series: [{ seriesCode, modalidade: "valor" }], unidade: campo.unidade }) };
+  }
+
+  if (dimensao) {
+    const principal = dimensao.escolherPrincipal(await listarItens(item, deps), dimensao.config);
     if (!principal) return { cotacao: null, mensagem: "Nenhuma observação coletada ainda para este observável." };
 
     const campo = campoDe(item, item.campoPrincipal);
-    const linha = await repo.buscarMaisRecente(seriesDoVencimento(item, principal.ticker, campo.codigo));
+    const linha = await repo.buscarMaisRecente(seriesDoItem(item, principal.codigo, campo.codigo));
     if (!linha) return { cotacao: null, mensagem: "Nenhuma observação coletada ainda para este observável." };
 
     return {
-      cotacao: paraRegistroResposta(item, linha, { series: [{ seriesCode: linha.series_code, modalidade: principal.ticker }], unidade: campo.unidade }),
-      vencimentoPrincipal: principal
+      cotacao: paraRegistroResposta(item, linha, { series: [{ seriesCode: linha.series_code, modalidade: principal.codigo }], unidade: campo.unidade }),
+      destaque: dimensao.destaque(principal)
     };
   }
 
@@ -118,9 +229,14 @@ async function obterCotacaoAtual(item, deps = {}) {
 async function obterEstatisticas(item, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
 
-  const seriesCodes = ehPorVencimento(item)
-    ? (await listarVencimentos(item, deps)).flatMap((v) => item.campos.map((c) => seriesDoVencimento(item, v.ticker, c.codigo)))
-    : seriesFixasDoItem(item);
+  let seriesCodes;
+  if (ehPorSelecao(item)) {
+    seriesCodes = (await listarItens(item, deps)).flatMap((i) => item.campos.map((c) => seriesDoItem(item, i.codigo, c.codigo)));
+  } else if (item.porCampo) {
+    seriesCodes = item.campos.map((c) => seriesDoCampo(item, c.codigo));
+  } else {
+    seriesCodes = seriesFixasDoItem(item);
+  }
   const resumos = seriesCodes.length ? await repo.resumirSeries(seriesCodes) : [];
 
   const datas = (campo) => resumos.map((r) => r[campo]).filter(Boolean).sort();
@@ -139,21 +255,39 @@ async function obterEstatisticas(item, deps = {}) {
   };
 }
 
-// O que a tela precisa para montar os seletores de um card por vencimento:
-// campos (com unidade), campo padrão e a lista de vencimentos (ativos e vencidos).
+// O que a tela precisa para montar os seletores de um card por vencimento/região:
+// campos (com unidade), campo padrão, os itens (ativos e inativos), quais vêm
+// marcados e os textos da dimensão.
 async function obterDimensoes(item, deps = {}) {
-  if (!ehPorVencimento(item)) return null;
+  if (item.porCampo) return { campos: item.campos, campoPrincipal: item.campoPrincipal };
+  const dimensao = dimensaoDe(item);
+  if (!dimensao) return null;
+  const itens = await listarItens(item, deps);
   return {
     campos: item.campos,
     campoPrincipal: item.campoPrincipal,
-    rotuloModalidade: "Vencimento",
-    vencimentos: await listarVencimentos(item, deps)
+    rotuloModalidade: dimensao.rotuloModalidade,
+    selecao: dimensao.textos,
+    itens,
+    itensPadrao: dimensao.padrao(itens, dimensao.config)
   };
+}
+
+// Descrição da dimensão de itens (ou null): usada pela exportação para rotular a coluna.
+function descreverDimensao(item) {
+  const dimensao = dimensaoDe(item);
+  return dimensao ? { rotuloModalidade: dimensao.rotuloModalidade } : null;
 }
 
 // Resolve QUAIS séries consultar e a unidade delas, a partir dos filtros.
 async function resolverSeries(item, filtros, deps) {
-  if (!ehPorVencimento(item)) {
+  if (item.porCampo) {
+    const campo = resolverCampo(item, filtros);
+    return { series: [{ modalidade: "valor", seriesCode: seriesDoCampo(item, campo.codigo) }], unidade: campo.unidade };
+  }
+
+  const dimensao = dimensaoDe(item);
+  if (!dimensao) {
     let series = item.series;
     if (filtros.modality) {
       const serie = item.series.find((s) => s.modalidade === filtros.modality);
@@ -163,20 +297,18 @@ async function resolverSeries(item, filtros, deps) {
     return { series, unidade: item.unidade };
   }
 
-  const codigoCampo = filtros.campo || item.campoPrincipal;
-  const campo = campoDe(item, codigoCampo);
-  if (!campo) throw new ValidationError(`"campo" deve ser um entre: ${item.campos.map((c) => c.codigo).join(", ")}.`);
+  const campo = resolverCampo(item, filtros);
 
-  const existentes = await listarVencimentos(item, deps);
-  const pedidos = filtros.vencimentos ? String(filtros.vencimentos).split(",").map((v) => v.trim()).filter(Boolean) : null;
-  // Sem escolha: os vencimentos ainda em negociação (os vencidos são opt-in).
-  const escolhidos = pedidos ?? existentes.filter((v) => v.ativo).map((v) => v.ticker);
+  const existentes = await listarItens(item, deps);
+  const pedidos = filtros.itens ? String(filtros.itens).split(",").map((v) => v.trim()).filter(Boolean) : null;
+  // Sem escolha: o padrão da dimensão (os itens ativos, ou os configurados no catálogo).
+  const escolhidos = pedidos ?? dimensao.padrao(existentes, dimensao.config);
 
-  const desconhecidos = escolhidos.filter((t) => !existentes.some((v) => v.ticker === t));
-  if (desconhecidos.length) throw new ValidationError(`Vencimento(s) desconhecido(s): ${desconhecidos.join(", ")}.`);
+  const desconhecidos = escolhidos.filter((codigo) => !existentes.some((i) => i.codigo === codigo));
+  if (desconhecidos.length) throw new ValidationError(`${dimensao.rotuloModalidade}(s) desconhecido(s): ${desconhecidos.join(", ")}.`);
 
   return {
-    series: escolhidos.map((ticker) => ({ modalidade: ticker, seriesCode: seriesDoVencimento(item, ticker, campo.codigo) })),
+    series: escolhidos.map((codigo) => ({ modalidade: codigo, seriesCode: seriesDoItem(item, codigo, campo.codigo) })),
     unidade: campo.unidade
   };
 }
@@ -214,4 +346,4 @@ async function obterHistorico(item, filtros, deps = {}) {
   };
 }
 
-module.exports = { obterCotacaoAtual, obterEstatisticas, obterDimensoes, obterHistorico, listarVencimentos };
+module.exports = { obterCotacaoAtual, obterEstatisticas, obterDimensoes, obterHistorico, listarItens, descreverDimensao };
