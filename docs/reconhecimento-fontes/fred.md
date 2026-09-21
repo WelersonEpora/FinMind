@@ -16,12 +16,12 @@ Séries: `DGS10`, `T10YIE`, `DFII10`, `DTWEXBGS`. Coletor: `collectors/fred/fred
 | 8 | Fuso / `published_at` | Datas de observação em dia (calendário EUA). Publicação **estimada**: 1 dia útil depois (H.15); `DTWEXBGS` na segunda seguinte (divulgação semanal). Não considera feriados dos EUA | ADR 0009 |
 | 9 | Limite de requisições | **Não verificado** | — |
 | 10 | Licença | Lida em 2026-09-21 (páginas oficiais; resumo automático, não parecer jurídico). `DGS10`, `DFII10`, `DTWEXBGS`: "Public Domain: Citation Requested" (Board of Governors) — uso comercial interno permitido com citação. `T10YIE`: status **não confirmado**. Termos da API: sem sugerir endosso do Fed; aviso de "não endossado" ao exibir a terceiros. Uso atual: pesquisa interna | ADR 0009 |
-| 11 | Riscos técnicos | Reserva CSV não documentada (pode mudar); produção precisa de `FRED_API_KEY` no `.env` da VM (senão segue no CSV); `published_at` estimado; `DTWEXBGS` **não é o DXY** (índice ICE, licenciado); publicação semanal | ADR 0009 |
+| 11 | Riscos técnicos | Reserva CSV não documentada (pode mudar); a produção só usa a API se `FRED_API_KEY` estiver no `.env` da VM (já está; senão segue no CSV); `published_at` estimado; `DTWEXBGS` **não é o DXY** (índice ICE, licenciado); publicação semanal | ADR 0009 |
 
 **Validação cruzada real:** `DGS10 − T10YIE` reproduz `DFII10` em 5.932 de 5.932
 pontos (diferença máxima 0).
 
-**Licença (item 4 de `STATUS_DO_PROJETO.md`) — adiada por decisão de 2026-09-21:** não há
+**Licença (ver "Entregas de 2026-09-21" em `STATUS_DO_PROJETO.md`) — adiada por decisão de 2026-09-21:** não há
 distribuição nem comercialização prevista. Antes de exibir a terceiros: citar "Board of
 Governors of the Federal Reserve System (US), retrieved from FRED, Federal Reserve Bank of St.
 Louis", confirmar o status da `T10YIE`, incluir o aviso da API. A coleta já usa a API (ADR 0012).

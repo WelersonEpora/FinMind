@@ -95,6 +95,8 @@ cd backend && npm run backfill:dolar -- --dias=90
 # histórico completo (dólar e Selic; ~2 min cada) - início do Plano Real:
 cd backend && npm run backfill:dolar -- --dataInicial=01/07/1994
 cd backend && npm run backfill:selic -- --dataInicial=01/07/1994
+# exportação de milho do Comex Stat, desde 2005 (~13 min: rate limit da fonte):
+cd backend && npm run backfill:comex-milho
 ```
 
 A API do BCB rejeita (406) um pedido com mais de 10 anos: os scripts dividem o
@@ -104,7 +106,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM, Comex Stat (exportação de milho) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

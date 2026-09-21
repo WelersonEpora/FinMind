@@ -208,6 +208,44 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
+  // --- Exportação brasileira de milho, mensal (Comex Stat / MDIC, ADR 0013) ---
+  // Dois cards, um por unidade (kg e US$ não dividem o mesmo eixo). Dado desde
+  // 2005: antes disso o código NCM muda e não foi mapeado. Mensal com divulgação
+  // ~1 mês depois: a última observação pode ter ~70 dias antes de "atrasar".
+  ...[
+    {
+      instrumentCode: "COMEX_MILHO_VOLUME",
+      nome: "Milho - Exportação (volume)",
+      unidade: "kg",
+      seriesCode: "COMEX.MILHO.EXPORT.KG",
+      descricao: "Volume mensal de milho em grão exportado pelo Brasil (NCM 10059010), em quilogramas, conforme o Comex Stat do MDIC."
+    },
+    {
+      instrumentCode: "COMEX_MILHO_VALOR",
+      nome: "Milho - Exportação (valor FOB)",
+      unidade: "US$",
+      seriesCode: "COMEX.MILHO.EXPORT.FOB_USD",
+      descricao: "Valor mensal FOB do milho em grão exportado pelo Brasil (NCM 10059010), em dólares, conforme o Comex Stat do MDIC."
+    }
+  ].map(({ seriesCode, descricao, ...cartao }) => ({
+    ...cartao,
+    origem: "observation",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    toleranciaDias: 75,
+    fonte: "Comex Stat (MDIC)",
+    fonteCollectorCode: "comex-milho-exportacao",
+    series: [{ modalidade: "export", seriesCode }],
+    modalidadePrincipal: "export",
+    fonteDetalhe: {
+      descricao,
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês). A fonte não informa quando publicou nem se revisa meses já divulgados: a data de disponibilidade é ESTIMADA em 15 do mês seguinte, e a coleta diária relê o ano corrente e o anterior. Cobertura a partir de 2005: antes disso o código NCM muda e o mapeamento não foi feito. Só exportação.",
+      formatoOrigem: "JSON (API de dados do Comex Stat, sem chave)",
+      urlOficial: "https://comexstat.mdic.gov.br"
+    }
+  })),
+
   // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
   // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por

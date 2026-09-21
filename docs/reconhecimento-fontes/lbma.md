@@ -18,7 +18,7 @@ Nível **5** (coletado, histórico completo), **com ressalva de licença**. Linh
 | 10 | Licença | Lida em 2026-09-21 (LBMA e IBA; resumo automático, não parecer jurídico). A IBA exige licença "to obtain, use or redistribute real-time or historical benchmark data": tipos de uso, redistribuição e acesso a histórico, com tabela de taxas (PDF **não lido**, valores desconhecidos). O feed é público mas isso não é licença; as FAQs não dizem se uso interno precisa de uma. Uso atual: pesquisa interna | ADR 0009 |
 | 11 | Riscos técnicos | Feed sem contrato de estabilidade; risco jurídico de exibir/redistribuir; `published_at` estimado | ADR 0009 |
 
-**Licença (item 4 de `STATUS_DO_PROJETO.md`) — adiada por decisão de 2026-09-21:** não há
+**Licença (ver "Entregas de 2026-09-21" em `STATUS_DO_PROJETO.md`) — adiada por decisão de 2026-09-21:** não há
 distribuição nem comercialização prevista. Antes de exibir a terceiros, usar em avaliação ou
 basear sinal: consultar a IBA (tipo de licença e custo) ou trocar de fonte. Risco hoje: baixo
 (pesquisa interna).

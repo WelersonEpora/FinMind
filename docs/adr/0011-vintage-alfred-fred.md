@@ -2,7 +2,7 @@
 
 ## Contexto
 
-Item 1 de `STATUS_DO_PROJETO.md` §3 ("Falta fazer — não depende do David"):
+Item 1 da lista "Falta fazer" de `STATUS_DO_PROJETO.md` (já fechado; ver "Entregas de 2026-09-21"):
 provar com dado real que `obterAsOf()` (`point-in-time.service.js`) devolve
 um valor diferente do atual quando a fonte revisou um período — o critério de
 sucesso do "Núcleo de Observáveis com Vintage" (`docs/analise-critica-fel1-

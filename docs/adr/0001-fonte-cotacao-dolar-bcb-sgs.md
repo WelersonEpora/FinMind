@@ -72,8 +72,12 @@ intervalo em janelas de até 10 anos (uma execução em `collection_execution` p
 de 60 s por janela (o de 15 s da coleta diária estourou duas vezes numa lentidão passageira da API).
 **Início recomendado: 01/07/1994** (Plano Real): a série começa em 28/11/1984, mas antes do Real está em
 moedas antigas (a primeira linha vale 2828) e a unidade "BRL" só é verdadeira depois. Carga completa feita
-no banco de dev: 8.088 linhas do dólar (1994-07-01 → 2026-09-21), 4 janelas, 0 falhas. Mesma convenção do
-AgroMind (`docs/convencao-backfill.md`).
+no banco de dev e, depois do deploy, na produção (conferido por consulta ao banco da VM): dólar 8.088 linhas
+(1994-07-01 → 2026-09-21), Selic realizada 8.086 (desde 1994-07-04), Selic meta 10.073 (desde 1999-03-05).
+Em produção uma janela da meta (2014–2024) falhou uma vez porque o BCB devolveu HTML em vez de JSON
+(`Unexpected token '<'`); a repetição passou. A meta (SGS 432) traz **datas futuras** (até 04/11/2026, dia da
+próxima reunião do Copom): é o alvo vigente publicado, e a tela "cotação atual" pega a linha mais recente.
+Mesma convenção do AgroMind (`docs/convencao-backfill.md`).
 
 ## Em aberto
 

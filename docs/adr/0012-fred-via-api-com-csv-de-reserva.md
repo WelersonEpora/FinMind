@@ -5,8 +5,9 @@
 O coletor do FRED usava o CSV público do gráfico (`fredgraph.csv`): um endpoint do site, sem
 documentação nem contrato de estabilidade. Ao ler os termos (ADR 0009, "Ressalvas de licença"), a
 parte que o FRED formaliza é a **API** (`api.stlouisfed.org`); o CSV não é a interface documentada.
-A chave gratuita (`FRED_API_KEY`) já existe desde o ADR 0011 (ALFRED). Item 4 de
-`STATUS_DO_PROJETO.md` §3.
+A chave gratuita (`FRED_API_KEY`) já existe desde o ADR 0011 (ALFRED). Tratado como
+parte do item de licenças da lista "Falta fazer" de `STATUS_DO_PROJETO.md` (já fechado; ver "Entregas de
+2026-09-21").
 
 ## Evidência (chamada real, 2026-09-21)
 
@@ -46,9 +47,11 @@ são equivalentes para o `observation`.
 
 ## Consequências
 
-- **Produção precisa da chave:** o backend lê `.env` da VM (`env_file` em `docker/compose.prod.yml`). Enquanto
-  `FRED_API_KEY` não estiver lá, a produção continua no CSV, sem erro. Depois de incluí-la, reiniciar o
-  backend. **Não é feito pelo deploy** — ação manual na VM.
+- **Produção precisa da chave:** o backend lê `.env` da VM (`env_file` em `docker/compose.prod.yml`). Sem
+  `FRED_API_KEY` lá, a produção segue no CSV, sem erro. **A chave já está no `.env` da VM** (informado em
+  2026-09-21; não conferido por este repositório): o deploy recria o container e ele passa a usar a API. Para
+  confirmar, rodar no container `sh -c '[ -n "$(printenv FRED_API_KEY)" ] && echo definida || echo VAZIA'` (não
+  imprime o valor).
 - Termos da API a respeitar se um dia houver exibição a terceiros: não sugerir endosso do Fed e mostrar
   "This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St.
   Louis". Uso atual: pesquisa interna (ADR 0009).

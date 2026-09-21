@@ -33,8 +33,8 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js` (`DGS10 − T10YIE`), validado contra DFII10. Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
-| Telas de dados | `/dados-mercado/observaveis` (11 cards) e `/dados-mercado/execucoes` — ADR 0005 |
-| Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` (04:00, 06:00, 08:00 **UTC**, **não versionado**) — ADR 0004 |
+| Telas de dados | `/dados-mercado/observaveis` (13 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` (04:00, 06:00, 08:00 **UTC**, **não versionado**), confirmado por SSH em 2026-09-21: dispara nos 3 horários e todos os coletores terminam em `success` — ADR 0004 |
 | CI/CD | Lint + testes + build em toda branch; deploy por push na `main`, que já roda as migrations automaticamente (`scripts/deploy.sh`, passo 4/6) |
 
 ### Dados coletados
@@ -43,12 +43,13 @@ Status de cada fonte, evidências e ressalvas: **ADR 0009**.
 
 | Fonte | Séries | Histórico | `published_at` | Status |
 |---|---|---|---|---|
-| BCB SGS | Dólar (PTAX venda), Selic meta e realizada | Dólar desde 01/07/1994, Selic realizada desde 04/07/1994, meta desde 05/03/1999 — **no dev**; em produção falta rodar o backfill (§3 item 7) | — (`market_quote`, não revisa) | ✅ ADRs 0001, 0006 |
+| BCB SGS | Dólar (PTAX venda), Selic meta e realizada | Dólar desde 01/07/1994, Selic realizada desde 04/07/1994, meta desde 05/03/1999 — dev e produção (backfill feito em 2026-09-21) | — (`market_quote`, não revisa) | ✅ ADRs 0001, 0006 |
 | FRED | DGS10, T10YIE, DFII10, DTWEXBGS | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | Estimado | ✅ Coleta pela API, CSV de reserva — ADR 0012. Vintage real (ALFRED) provado via teste — ADR 0011 |
 | LBMA | Ouro PM (USD/oz) | Desde 1968 | Estimado | ✅ Licença da IBA exigida p/ exibir/redistribuir — adiada (uso interno) |
 | CFTC COT | Ouro e milho (open interest, MM long/short) | Desde 2006 | Real desde 2022-08; estimado antes | ✅ |
 | USDA NASS | Crop Progress do milho (12 séries) | Desde 1980 (piso real da API; cada série começa no seu ano) | Estimado (regra não validada p/ 1980–2005) | ✅ Validado em 2026-09-21 (6.758 linhas) |
 | B3 CCM | Futuros de milho, por vencimento | ~15 meses, janela rolante | Estimado | ✅ 10+ anos **não existem de graça** |
+| Comex Stat (MDIC) | Exportação de milho, mensal (volume em kg e valor FOB em US$) | **Desde 2005** (jan/2005 a ago/2026, 260 meses); antes disso o código NCM muda e não foi mapeado — pode ser estendido depois | Estimado (dia 15 do mês seguinte); revisões da fonte não confirmadas | ✅ Validado em 2026-09-21 no dev; **falta o backfill na produção** (§3) — ADR 0013 |
 
 ### Como tratamos as fontes de dados
 
@@ -66,30 +67,64 @@ licença pendente. Por isso a coluna de ressalvas é a que importa na reunião:
 
 | Fonte | Nível | Ressalva principal | Depende de |
 |---|---|---|---|
-| BCB dólar / Selic | 5 (dev) · 4 (produção) | Histórico carregado no dev; falta rodar o backfill na VM | Nós (item 7) |
+| BCB dólar / Selic | 5 | Meta traz datas futuras (até a próxima reunião do Copom) — é o alvo vigente, não uma previsão | — |
 | FRED | 5 | Licença lida: 3 de 4 séries domínio público c/ citação; `T10YIE` não confirmada. **Adiada** (uso interno) | Retomar antes de exibir a terceiros |
 | LBMA (ouro) | 5 | **Exige licença da IBA** p/ usar/redistribuir o histórico. **Adiada** (uso interno) | Retomar antes de exibir a terceiros |
 | CFTC COT | 5 | Data de publicação estimada antes de 2022-08 | — |
 | USDA Crop Progress | 5 | Data de publicação estimada, não validada p/ 1980–2005 | — |
 | B3 CCM | 5 (limitado) | **Só ~15 meses de histórico grátis** | David/Comitê (pergunta 3, orçamento) |
+| Comex Stat (MDIC) | 5 (dev) · 4 (produção) | **Histórico só a partir de 2005** (NCM anterior não mapeado); revisões não confirmadas; rate limit rígido (429) | Nós: backfill na VM |
 | CEPEA, Conab, IMEA, WASDE, NOAA, CPI, WGC | 0 | Candidatas, fora do escopo; CEPEA bloqueada para automação | David (pergunta 7) |
 
 Processo: `docs/processo-reconhecimento-fontes.md`. Uma linha por fonte, com
 evidência: `docs/reconhecimento-fontes/README.md` (checklist completo de FRED e
 LBMA em arquivos próprios, por causa da licença).
 
-## 3. Falta fazer (não depende do David)
+### Entregas de 2026-09-21
 
-| # | Pendência | Observação |
+Registro do que foi fechado na lista "Falta fazer" anterior (detalhe nos documentos apontados):
+
+| Entrega | Resultado | Onde |
 |---|---|---|
-| ~~1~~ | ~~Backfill de vintages via ALFRED~~ | **Feito (2026-09-21):** `DGS10`/`DFII10`/`T10YIE` não revisam de fato (confirmado por chamada real, 0 revisões em ~2.100 observações); `DTWEXBGS` revisa e foi usado pra provar `asOf()` com dado real num teste isolado — ver ADR 0011. Backfill de produção fica para quando uma série revisável de verdade entrar (ex.: CPI) |
-| ~~2~~ | ~~Profundidade do USDA~~ | **Feito (2026-09-21):** o QuickStats começa em 1980 (pedir desde 1900 devolve as mesmas linhas); padrão do coletor passou de 2006 para 1980 — ADR 0009. Em produção o histórico entra na próxima coleta |
-| ~~3~~ | ~~Reconhecimento de fontes (níveis 0–5)~~ | **Feito (2026-09-21):** processo portado do AgroMind + índice com as 7 fontes implementadas (registro retroativo) e as candidatas em nível 0; regra agora em `CLAUDE.md` — ver "Como tratamos as fontes" (§2) |
-| ~~4~~ | ~~Licenças de LBMA e FRED~~ | **Lido e registrado (2026-09-21); adiado por decisão:** sem distribuição nem comercialização prevista, uso interno. Nota de licença nos cards dos Observáveis; detalhe no ADR 0009 e em `docs/reconhecimento-fontes/`. Retomar **antes de exibir a terceiros** (FRED: citar a fonte e o aviso da API; LBMA: consultar a IBA ou trocar de fonte). A migração do FRED para a API foi feita (ADR 0012) |
-| ~~5~~ | ~~Cron de produção~~ | **Confirmado por SSH (2026-09-21):** servidor em **UTC** (04/06/08 UTC = 01/03/05 em Brasília); o cron disparou nos 3 horários e as 3 execuções do dia terminaram com todos os coletores em `success` — ADR 0004. A produção ainda roda o código anterior (USDA de 2006, FRED por CSV): muda no próximo deploy |
-| ~~6~~ | ~~Permissões granulares e refresh token~~ | **Decidido (2026-09-21):** permissões granulares ficam como estão (admin/user + owner/editor/viewer); refresh token não será feito — a sessão passou de 8h para **12h** (JWT e cookie, uma constante em `config/env.js`) — `docs/decisoes-tecnicas.md`. Sai da lista |
-| 7 | **Carga histórica do BCB** (dólar e Selic) na **produção** | **Dev feito (2026-09-21):** 8.088 linhas do dólar e ~8 mil/~10 mil da Selic. Os scripts agora dividem o intervalo em janelas de 10 anos (a API do BCB rejeita mais que isso) — ADR 0001. Falta rodar na VM depois do deploy: `npm run backfill:dolar -- --dataInicial=01/07/1994` e `backfill:selic` (comandos em `CLAUDE.md`) |
-| 8 | **`FRED_API_KEY` na VM de produção** | A coleta do FRED já usa a API quando há chave (ADR 0012); sem ela segue no CSV, sem erro. Falta incluir a chave no `.env` da VM e reiniciar o backend — ação manual, o deploy não faz |
+| Vintage real (ALFRED) | `DGS10`/`DFII10`/`T10YIE` não revisam (0 revisões em ~2.100 observações); `DTWEXBGS` revisa e provou o `asOf()` com dado real num teste isolado. Backfill de produção só quando entrar uma série revisável | ADR 0011 |
+| Profundidade do USDA | O QuickStats começa em 1980 (o padrão do coletor era 2006); em produção o histórico entra na próxima coleta | ADR 0009 |
+| Reconhecimento de fontes (níveis 0–5) | Processo portado do AgroMind, índice com as 7 fontes implementadas e as candidatas em nível 0; regra em `CLAUDE.md` | `docs/processo-reconhecimento-fontes.md`, `docs/reconhecimento-fontes/` |
+| Licenças de LBMA e FRED | Termos lidos e registrados; **adiadas por decisão** (sem distribuição nem comercialização prevista, uso interno). Nota de licença nos cards | ADR 0009, `docs/reconhecimento-fontes/` |
+| FRED pela API | Coleta pela API REST quando há `FRED_API_KEY`, com o CSV como reserva; a chave já está no `.env` da VM (a confirmar depois do deploy) | ADR 0012 |
+| Cron de produção | Servidor em UTC (04/06/08 UTC = 01/03/05 em Brasília); as 3 execuções do dia terminaram com todos os coletores em `success` | ADR 0004 |
+| Permissões granulares e refresh token | Ficam como estão / descartados; a sessão passou de 8h para **12h** (JWT e cookie, uma constante) | `docs/decisoes-tecnicas.md` |
+| Carga histórica do BCB | Dólar (8.088 linhas), Selic realizada (8.086) e meta (10.073), desde 1994/1999, em dev e produção. Os scripts dividem o intervalo em janelas de 10 anos (limite da API do BCB) | ADR 0001 |
+| Tela "Status do projeto" | Renderiza este arquivo no app (menu Sistema) | `/status-projeto` |
+| Comex Stat — exportação de milho | Primeira fonte da lista do David que saiu do reconhecimento: coletor, backfill em blocos de 5 anos e 2 cards. **Cobertura a partir de 2005** (260 meses; a soma mensal bate com o total anual da API). Autorizado pelo usuário em 2026-09-21 | ADR 0013 |
+
+## 3. Falta fazer
+
+Fontes de **milho** que o relatório do David lista (FEL 1, §6.5, §7 e o plano de
+integração da §9.2) e que ainda **não coletamos**. Já feitas: USDA NASS (Crop
+Progress), CFTC, B3 (CCM), Comex Stat, BCB SGS e FRED. Aqui se faz o **reconhecimento** de cada
+fonte (níveis 0→1, `docs/processo-reconhecimento-fontes.md`) e a **recomendação**,
+para decidir e levar à reunião com o David. **Reconhecer não é implementar:**
+nenhum coletor novo entra sem a decisão do David ou autorização explícita
+registrada em ADR (§5). Só entram fontes que ele mencionou; o AgroMind já
+reconheceu várias delas, e reaproveita-se o conhecimento (endpoints, layout,
+armadilhas), não o código (outro banco, outra arquitetura).
+
+| # | Fonte (como o relatório a descreve) | Observação |
+|---|---|---|
+| 1 | **Comex Stat: backfill na produção** | Feito no dev. Falta rodar na VM depois do deploy: `npm run backfill:comex-milho` (~13 min, fora de 04:00/06:00/08:00 UTC; comando em `CLAUDE.md`). **Cobertura a partir de 2005**; estender para antes exige mapear o NCM do milho por período (ADR 0013) |
+| 2 | **USDA FAS — PSD Online / WASDE** — oferta e demanda global. Fase 1: PSD tem API, WASDE é PDF mensal | O NASS (Crop Progress) já está coletado; falta o balanço. AgroMind: nível 0, exige chave |
+| 3 | **Conab** — safras 1ª e 2ª, estoques, balanço. "Sem API pública oficial" (boletins PDF/XLSX, mensal) | AgroMind: balanço via XLSX em nível 5; preços (Portal de Informações) bloqueados por reCAPTCHA. O boletim revisa as estimativas (a medir) — ADR 0011 |
+| 4 | **IMEA (MT)** — oferta e demanda em MT, custos, intenção de plantio. Boletins mensais XLSX/PDF | AgroMind: nível 4, mas só devolve o valor mais recente (histórico não confirmado) |
+| 5 | **CEPEA/ESALQ** — indicador diário do preço do milho. O relatório diz "scraping viável; sem API oficial" | **Bloqueada:** Cloudflare e Termos de Uso (`docs/analise-critica-fel1-milho-ouro.md`). No AgroMind só entra por exportação manual. Depende do David: pergunta 7 |
+| 6 | **FAO/AMIS** — balanço global de grãos (FAOSTAT API). Fase 2 do plano | Nunca reconhecida, nem no AgroMind |
+| 7 | **BCB Focus** — expectativas de mercado. Fase 1 do plano (o SGS de dólar e Selic já está feito) | AgroMind: nível 3, só a Selic; API Olinda pública |
+| 8 | **Clima** (§6.5.1, acrescentada na revisão como obrigatória) — NOAA, INMET, NASA POWER, CPTEC/INPE, ECMWF/Copernicus ERA5 | NOAA, INMET e NASA POWER: API gratuita. ERA5: cadastro. Somar/Climatempo: comerciais, Fase 3. AgroMind: NOAA em nível 0 |
+| 9 | **Abimilho** e **CNA** — estatísticas e panorama do setor | Sem API (HTML/PDF), periódico. Menor prioridade |
+| 10 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3, 5 e 7 da §4 |
+
+Fora desta lista, por já estarem na §4: o **preço histórico dos futuros** (B3 com
+10+ anos e CME ZC, ambos pagos — pergunta 3) e as fontes de ouro que ele lista e
+não coletamos (WGC, CME/COMEX, FMI, US Treasury, USGS, Banco Mundial).
 
 ## 4. Bloqueado — depende do David / Comitê
 

@@ -17,6 +17,9 @@ coletores"). Modelo de dados: ADR 0008.
 | USDA NASS Crop Progress (milho) | `USDA.CORN.CONDITION.*`, `USDA.CORN.PROGRESS.*` | QuickStats API — **exige chave** (gratuita) | 1980-04-13 → hoje (piso real da API, confirmado em 2026-09-21; padrão do coletor, `NASS_ANO_INICIAL`). Cada série começa no seu ano: `PLANTED` 1980, `DOUGH`/`SILKING`/`DENTED`/`MATURE`/`HARVESTED` 1981, `CONDITION.*` 1986, `EMERGED` 1999 | **estimado** (16:00 ET, 1º dia útil da semana, com feriados). Regra não validada para 1980–2005 | **Coletado e validado** (2026-09-20/21): 6.758 linhas, 12 séries, 0 falhas |
 | B3 — futuros CCM por vencimento | `B3.CCM.<TICKER>.<CAMPO>` | `TradeInformationConsolidatedFile` (Up2Data público, sem chave nem recaptcha) | **~15 meses e rolante** (verificado em 2026-09-20) | — | **Coletor implementado e coletado** (`b3-ccm-futuro`): 20.508 linhas, 321 pregões, 15 vencimentos. **10+ anos NÃO existem de graça** |
 
+**Comex Stat (exportação de milho, mensal, desde 2005):** fonte autorizada depois deste ADR, registrada no
+**ADR 0013**.
+
 Validação cruzada real: `DGS10 − T10YIE` reproduz `DFII10` em **5.932 de 5.932**
 pontos (diferença máxima 0) — o FRED define T10YIE dessa forma, o que confirma que os
 três coletores leem a mesma realidade.
@@ -159,4 +162,4 @@ Duas frentes, ambas rodando `run-coleta.js` (todos os coletores; ver ADR 0004):
   execuções de 21/09 com todos os coletores em `success` (ADR 0004).
 - Decidir a fonte dos 10+ anos (paga ou proxy CEPEA) — decisão de orçamento/escopo.
 - ALFRED (vintages reais), quando entrar uma série revisável (ex.: CPI). A coleta diária já usa a API
-  do FRED (ADR 0012); falta só a chave `FRED_API_KEY` no `.env` da VM de produção.
+  do FRED (ADR 0012); a chave `FRED_API_KEY` já está no `.env` da VM de produção.
