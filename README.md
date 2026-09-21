@@ -154,6 +154,9 @@ primeiro deploy automático.
 
 ## O que está pronto
 
+> Visão de uma página do que está pronto, do que falta e do que está
+> bloqueado: [`STATUS_DO_PROJETO.md`](STATUS_DO_PROJETO.md).
+
 - Autenticação (login/logout, sessão via cookie JWT httpOnly, rotas
   protegidas, rate limit no login, usuário administrador inicial
   configurável por variável de ambiente).

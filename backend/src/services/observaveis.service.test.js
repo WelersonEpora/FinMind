@@ -138,6 +138,23 @@ test("série semanal/divulgada em lote tolera mais dias que a diária antes de f
   assert.equal(situacao("DOLAR_AMPLO_FED"), "EM_DIA", "divulgada em lote semanal");
 });
 
+test("FRED tolera o atraso de fim de semana: Treasury até 5 dias, índice do dólar até 12", async () => {
+  const situacaoCom = async (dias) => {
+    const deps = {
+      marketQuoteRepository: { buscarMaisRecente: async () => null },
+      observationRepository: { listarVencimentos: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(dias), 1) }
+    };
+    const { observaveis } = await observaveisService.listarObservaveis(deps);
+    return (codigo) => observaveis.find((o) => o.codigo === codigo).situacao;
+  };
+
+  // Segunda de manhã: Treasury com última data na quinta (~4,5 dias), dólar na sexta anterior (~10,5).
+  assert.equal((await situacaoCom(4))("TREASURY_10A"), "EM_DIA");
+  assert.equal((await situacaoCom(11))("DOLAR_AMPLO_FED"), "EM_DIA");
+  assert.equal((await situacaoCom(6))("TREASURY_10A"), "ATRASADA");
+  assert.equal((await situacaoCom(13))("DOLAR_AMPLO_FED"), "ATRASADA");
+});
+
 test("obterDetalheObservavel de um observável point-in-time agrega cobertura e informa quanto da publicação é estimada", async () => {
   const deps = {
     observationRepository: {

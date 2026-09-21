@@ -85,7 +85,9 @@ const CATALOGO_OBSERVAVEIS = [
     unidade: "% a.a.",
     casasDecimais: 2,
     frequencia: "DIARIA",
-    toleranciaDias: 4,
+    // O FRED publica o valor de sexta só na segunda: 5 dias evita "atrasada"
+    // toda segunda de manhã (e após feriado dos EUA).
+    toleranciaDias: 5,
     fonte: "FRED - Federal Reserve (H.15)",
     fonteCollectorCode: ["fred-dgs10", "fred-dfii10", "fred-t10yie"],
     series: [
@@ -112,8 +114,9 @@ const CATALOGO_OBSERVAVEIS = [
     casasDecimais: 4,
     frequencia: "DIARIA",
     // Série diária, mas divulgada semanalmente (Fed H.10, segundas): a última
-    // observação pode ter até ~9 dias.
-    toleranciaDias: 10,
+    // observação pode ter até ~9 dias, e na segunda de manhã (antes do lote da
+    // semana) chega a ~10,5.
+    toleranciaDias: 12,
     fonte: "FRED - Federal Reserve (H.10)",
     fonteCollectorCode: "fred-dtwexbgs",
     series: [{ modalidade: "indice", seriesCode: "FRED.DTWEXBGS" }],
