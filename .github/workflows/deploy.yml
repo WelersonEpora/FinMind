@@ -27,6 +27,12 @@ jobs:
           echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           echo "commit_date=$(git show -s --format=%cI HEAD)" >> "$GITHUB_OUTPUT"
 
+      # O contexto de build do backend é ./backend, que não enxerga a raiz do
+      # repositório; a tela "Status do projeto" lê este arquivo (ver
+      # backend/src/services/status-projeto.service.js).
+      - name: Include STATUS_DO_PROJETO.md in the backend image
+        run: cp STATUS_DO_PROJETO.md backend/STATUS_DO_PROJETO.md
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

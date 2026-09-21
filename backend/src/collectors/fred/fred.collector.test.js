@@ -77,3 +77,81 @@ test("normalize separa data/valor inválidos sem abortar o resto", () => {
 test("série FRED desconhecida falha cedo", () => {
   assert.throws(() => criarColetorFred("XYZ"), /desconhecida/);
 });
+
+// Fixture real (api.stlouisfed.org/fred/series/observations, 2026-09-21), reduzida.
+const API_DFII10 = {
+  realtime_start: "2026-09-21",
+  realtime_end: "2026-09-21",
+  count: 5,
+  observations: [
+    { realtime_start: "2026-09-21", realtime_end: "2026-09-21", date: "2026-09-10", value: "2.55" },
+    { realtime_start: "2026-09-21", realtime_end: "2026-09-21", date: "2026-09-11", value: "2.60" },
+    { realtime_start: "2026-09-21", realtime_end: "2026-09-21", date: "2026-09-07", value: "." },
+    { realtime_start: "2026-09-21", realtime_end: "2026-09-21", date: "2026-09-17", value: "2.61" }
+  ]
+};
+
+test("parse da API devolve os mesmos pares que o CSV e descarta '.' (ausência)", () => {
+  assert.deepEqual(parse(API_DFII10), [
+    ["2026-09-10", "2.55"],
+    ["2026-09-11", "2.60"],
+    ["2026-09-17", "2.61"]
+  ]);
+});
+
+test("parse da API rejeita resposta sem observations", () => {
+  assert.throws(() => parse({ error_code: 400, error_message: "Bad Request" }), /formato inesperado/);
+  assert.throws(() => parse(null), /formato inesperado/);
+});
+
+test("via API e via CSV geram observações idênticas depois do normalize", () => {
+  const coletor = criarColetorFred("DFII10");
+  const csv = `observation_date,DFII10\n2026-09-10,2.55\n2026-09-11,2.60\n2026-09-17,2.61\n`;
+
+  assert.deepEqual(coletor.normalize(parse(API_DFII10)), coletor.normalize(parse(csv)));
+});
+
+async function comFetchFalso(chave, respostas, corpo) {
+  const env = require("../../config/env");
+  const chaveAntes = env.collectors.fredApiKey;
+  const fetchAntes = global.fetch;
+  env.collectors.fredApiKey = chave;
+  global.fetch = async (url) => {
+    respostas.push(String(url));
+    return corpo;
+  };
+  try {
+    return await criarColetorFred("DFII10").download({ signal: undefined });
+  } finally {
+    env.collectors.fredApiKey = chaveAntes;
+    global.fetch = fetchAntes;
+  }
+}
+
+test("download com FRED_API_KEY usa a API REST (JSON) e manda a chave na URL", async () => {
+  const urls = [];
+  const bruto = await comFetchFalso("CHAVE_TESTE", urls, { ok: true, status: 200, json: async () => API_DFII10 });
+
+  assert.equal(urls.length, 1);
+  assert.match(urls[0], /^https:\/\/api\.stlouisfed\.org\/fred\/series\/observations\?/);
+  assert.match(urls[0], /series_id=DFII10/);
+  assert.match(urls[0], /api_key=CHAVE_TESTE/);
+  assert.match(urls[0], /file_type=json/);
+  assert.equal(parse(bruto).length, 3);
+});
+
+test("download sem FRED_API_KEY cai para o CSV público (reserva)", async () => {
+  const urls = [];
+  const bruto = await comFetchFalso("", urls, { ok: true, status: 200, text: async () => CSV_DFII10 });
+
+  assert.equal(urls.length, 1);
+  assert.match(urls[0], /^https:\/\/fred\.stlouisfed\.org\/graph\/fredgraph\.csv\?id=DFII10$/);
+  assert.equal(parse(bruto).length, 4);
+});
+
+test("erro HTTP da API não vaza a chave na mensagem", async () => {
+  await assert.rejects(
+    () => comFetchFalso("CHAVE_SECRETA", [], { ok: false, status: 429 }),
+    (err) => /429/.test(err.message) && !err.message.includes("CHAVE_SECRETA")
+  );
+});

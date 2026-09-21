@@ -11,11 +11,9 @@ const { persistirObservacoes } = require("../base/persist-observations");
 // QuickStats. EXIGE chave gratuita (NASS_API_KEY) - sem ela o coletor não é
 // registrado (ver collectors/index.js).
 //
-// STATUS DE VALIDAÇÃO: implementado a partir da documentação da API e testado
-// com fixture; NÃO foi executado contra a API real (não havia chave no
-// ambiente em 2026-09-20 - a API responde 401 sem ela). Os nomes de campo
-// (week_ending, Value, unit_desc, statisticcat_desc, load_time) são os da
-// documentação do QuickStats; a primeira execução real deve confirmá-los.
+// STATUS DE VALIDAÇÃO: validado contra a API real em 2026-09-20/21 (ADR 0009):
+// 6.758 linhas, 12 séries, 0 falhas. Os nomes de campo (week_ending, Value,
+// unit_desc, statisticcat_desc, load_time) são os da documentação do QuickStats.
 //
 // Observáveis: CONDITION (% da lavoura por classe: VERY POOR..EXCELLENT) e
 // PROGRESS (% plantado/emergido/...). Código: USDA.CORN.<CATEGORIA>.<CLASSE>.
@@ -29,7 +27,9 @@ const { persistirObservacoes } = require("../base/persist-observations");
 
 const URL_BASE = "https://quickstats.nass.usda.gov/api/api_GET/";
 const SOURCE_CODE = "USDA_NASS";
-const ANO_INICIAL_PADRAO = 2006;
+// 1980 é o piso real do QuickStats para o milho (confirmado em 2026-09-21: pedir
+// desde 1900 devolve as mesmas linhas que desde 1980). Cada série começa no seu ano.
+const ANO_INICIAL_PADRAO = 1980;
 const CATEGORIAS = ["CONDITION", "PROGRESS"];
 
 // n-ésima segunda-feira de um mês (n=1..5) ou a última (n=-1).

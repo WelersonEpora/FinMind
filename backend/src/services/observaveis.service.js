@@ -73,7 +73,7 @@ const CATALOGO_OBSERVAVEIS = [
     fonteDetalhe: {
       descricao: "Preço de referência do ouro fixado no leilão da tarde (PM) de Londres, em dólares por onça troy. Histórico desde 1968.",
       metodologia:
-        "Um valor por dia útil, fixado às 15:00 de Londres. A fonte não informa quando publicou: a data de disponibilidade é ESTIMADA em 15:00 de Londres do próprio dia. Licença: o histórico tabulado oficial exige licença da IBA - uso atual restrito a pesquisa interna (ADR 0009).",
+        "Um valor por dia útil, fixado às 15:00 de Londres. A fonte não informa quando publicou: a data de disponibilidade é ESTIMADA em 15:00 de Londres do próprio dia. Licença: a IBA exige licença para obter, usar ou redistribuir o histórico do preço - uso atual restrito a pesquisa interna, sem exibir a terceiros (ADR 0009).",
       formatoOrigem: "JSON (feed público da LBMA)",
       urlOficial: "https://prices.lbma.org.uk/json/gold_pm.json"
     }
@@ -101,8 +101,8 @@ const CATALOGO_OBSERVAVEIS = [
       descricao:
         "Três séries do FRED na mesma unidade: rendimento nominal (DGS10), rendimento real dos títulos indexados à inflação - TIPS (DFII10) e a inflação implícita (T10YIE = nominal - real, calculada pelo próprio FRED).",
       metodologia:
-        "Um valor por dia útil. O CSV público do FRED não informa a data de publicação nem revisões: a disponibilidade é ESTIMADA em 1 dia útil após a data observada (não conhece feriados dos EUA). Nas 5.932 datas com as três séries, nominal - inflação implícita reproduz o juro real com diferença zero.",
-      formatoOrigem: "CSV (fredgraph.csv)",
+        "Um valor por dia útil. A coleta diária do FRED (API ou CSV) não informa a data de publicação nem revisões: a disponibilidade é ESTIMADA em 1 dia útil após a data observada (não conhece feriados dos EUA). Nas 5.932 datas com as três séries, nominal - inflação implícita reproduz o juro real com diferença zero. Licença: DGS10 e DFII10 são do Board of Governors do Fed (domínio público, citação pedida); o status da T10YIE, calculada pelo FRED, não foi confirmado. Uso atual: pesquisa interna, sem exibir a terceiros (ADR 0009).",
+      formatoOrigem: "API REST do FRED (reserva: CSV público)",
       urlOficial: "https://fred.stlouisfed.org/series/DFII10"
     }
   },
@@ -125,8 +125,8 @@ const CATALOGO_OBSERVAVEIS = [
       descricao:
         "Índice do dólar contra uma cesta ampla de moedas (DTWEXBGS). Não é o DXY (índice ICE, licenciado): é o substituto gratuito, com metodologia e composição diferentes.",
       metodologia:
-        "Os valores são diários, mas o Fed os divulga em lote semanal (segundas-feiras). A disponibilidade é ESTIMADA como a segunda-feira seguinte à data observada.",
-      formatoOrigem: "CSV (fredgraph.csv)",
+        "Os valores são diários, mas o Fed os divulga em lote semanal (segundas-feiras). A disponibilidade é ESTIMADA como a segunda-feira seguinte à data observada. Licença: série do Board of Governors do Fed (domínio público, citação pedida). Uso atual: pesquisa interna, sem exibir a terceiros (ADR 0009).",
+      formatoOrigem: "API REST do FRED (reserva: CSV público)",
       urlOficial: "https://fred.stlouisfed.org/series/DTWEXBGS"
     }
   },

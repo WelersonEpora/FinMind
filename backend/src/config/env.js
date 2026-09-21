@@ -53,7 +53,8 @@ module.exports = {
     // Sem ela o coletor do Crop Progress não é registrado.
     nassApiKey: process.env.NASS_API_KEY || "",
     // Chave gratuita do FRED (https://fred.stlouisfed.org/docs/api/api_key.html).
-    // Só necessária para a API REST (vintages/ALFRED) - o coletor CSV atual não usa.
+    // Com ela o coletor do FRED usa a API REST; sem ela cai no CSV público (ADR 0012).
+    // Também serve às vintages (ALFRED, ADR 0011).
     fredApiKey: process.env.FRED_API_KEY || ""
   }
 };

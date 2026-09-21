@@ -11,10 +11,10 @@ coletores"). Modelo de dados: ADR 0008.
 
 | Fonte | Série(s) `observation` | Acesso | Histórico | `published_at` | Status |
 |---|---|---|---|---|---|
-| FRED (CSV público, sem chave) | `FRED.DGS10`, `FRED.T10YIE`, `FRED.DFII10`, `FRED.DTWEXBGS` | `fredgraph.csv?id=` | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | **estimado** (1 dia útil; DTWEXBGS = próxima segunda, divulgada semanalmente) | **Coletado e validado** |
+| FRED (API REST com chave; CSV público como reserva — ADR 0012) | `FRED.DGS10`, `FRED.T10YIE`, `FRED.DFII10`, `FRED.DTWEXBGS` | `api.stlouisfed.org/fred/series/observations` (reserva: `fredgraph.csv?id=`) | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | **estimado** (1 dia útil; DTWEXBGS = próxima segunda, divulgada semanalmente) | **Coletado e validado** |
 | LBMA Gold PM | `LBMA.GOLD_PM.USD` | feed JSON `prices.lbma.org.uk/json/gold_pm.json` | 1968-04-01 → hoje (14.686) | **estimado** (15:00 Londres) | **Coletado**; licença: ver ressalva |
 | CFTC COT (Disaggregated Futures Only) | `CFTC.GOLD.*` e `CFTC.CORN.*` × {`OPEN_INTEREST`,`MM_LONG`,`MM_SHORT`} | Socrata `publicreporting.cftc.gov/resource/72hh-3qpy` (sem chave) | 2006-06-13 → hoje (1.058 semanas/contrato) | **real** desde 2022-08 (`:updated_at`); **estimado** (sexta 15:30 ET) antes | **Coletado e validado** |
-| USDA NASS Crop Progress (milho) | `USDA.CORN.CONDITION.*`, `USDA.CORN.PROGRESS.*` | QuickStats API — **exige chave** (gratuita) | 2006-04-09 → hoje (padrão do coletor, `NASS_ANO_INICIAL`; a API pode ter mais) | **estimado** (16:00 ET, 1º dia útil da semana, com feriados) | **Coletado e validado** (2026-09-20): 3.525 linhas, 12 séries, 0 falhas |
+| USDA NASS Crop Progress (milho) | `USDA.CORN.CONDITION.*`, `USDA.CORN.PROGRESS.*` | QuickStats API — **exige chave** (gratuita) | 1980-04-13 → hoje (piso real da API, confirmado em 2026-09-21; padrão do coletor, `NASS_ANO_INICIAL`). Cada série começa no seu ano: `PLANTED` 1980, `DOUGH`/`SILKING`/`DENTED`/`MATURE`/`HARVESTED` 1981, `CONDITION.*` 1986, `EMERGED` 1999 | **estimado** (16:00 ET, 1º dia útil da semana, com feriados). Regra não validada para 1980–2005 | **Coletado e validado** (2026-09-20/21): 6.758 linhas, 12 séries, 0 falhas |
 | B3 — futuros CCM por vencimento | `B3.CCM.<TICKER>.<CAMPO>` | `TradeInformationConsolidatedFile` (Up2Data público, sem chave nem recaptcha) | **~15 meses e rolante** (verificado em 2026-09-20) | — | **Coletor implementado e coletado** (`b3-ccm-futuro`): 20.508 linhas, 321 pregões, 15 vencimentos. **10+ anos NÃO existem de graça** |
 
 Validação cruzada real: `DGS10 − T10YIE` reproduz `DFII10` em **5.932 de 5.932**
@@ -123,20 +123,40 @@ Duas frentes, ambas rodando `run-coleta.js` (todos os coletores; ver ADR 0004):
 
 ## Ressalvas de licença (não bloqueiam o MVP)
 
-- **LBMA:** o preço é administrado pela ICE Benchmark Administration; o histórico tabulado
-  "oficial" exige licença IBA. O feed JSON usado é público, mas o termo de uso comercial **não foi
-  confirmado**. Uso atual: pesquisa/experimento interno; decidir antes de exibir/redistribuir.
-- **FRED:** o FRED agrega dados de terceiros e algumas séries têm restrições de redistribuição.
-  **Não verificado por série** — confirmar os termos do FRED (e da fonte original de cada série)
-  antes de exibir/redistribuir.
+- **Decisão (2026-09-21):** não há distribuição nem comercialização do sistema ou dos dados num
+  horizonte previsível; a licença **não é ação agora**. Fica registrada aqui, nos cards dos
+  Observáveis e em `docs/reconhecimento-fontes/` para ser retomada **antes de exibir a terceiros,
+  redistribuir ou comercializar**. A leitura dos termos abaixo foi feita em 2026-09-21 a partir
+  das páginas oficiais, por resumo automático (não é o texto integral nem parecer jurídico).
+- **LBMA:** o preço é administrado pela ICE Benchmark Administration (IBA). O site da LBMA diz
+  que "a licence from IBA is required in order to obtain, use or redistribute real-time or
+  historical benchmark data"; há licenças de uso, de redistribuição e de acesso a histórico, com
+  tabela de taxas da IBA (PDF **não lido**, valores desconhecidos). O histórico tabulado foi movido
+  para o portal MyLBMA. O feed JSON usado é público, mas isso não é licença, e as FAQs não dizem
+  se pesquisa interna exige uma. Risco: baixo em uso interno; alto ao exibir, usar em avaliação
+  ou basear sinal. Alternativas se um dia for necessário: licenciar com a IBA, manter só interno
+  ou trocar de fonte.
+- **FRED:** por série, na página do FRED: `DGS10` e `DFII10` (Board of Governors, H.15) e
+  `DTWEXBGS` (Board of Governors, H.10) são "Public Domain: Citation Requested"; `T10YIE`
+  (calculada pelo FRED) **não teve o status confirmado**. A página legal permite uso comercial
+  interno de séries "Citation Requested" com citação ao FRED e à fonte original, e proíbe replicar
+  o site, raspar a base inteira ou vendê-la como produto. As páginas também trazem o aviso
+  padrão "data in this graph are copyrighted" — ler a nota de cada série antes de compartilhar.
+  Termos da API (usada só para o ALFRED): o FRED pode ajustar limites; não sugerir endosso do
+  Fed; produto para terceiros exibe "This product uses the FRED® API but is not endorsed or
+  certified by the Federal Reserve Bank of St. Louis". A coleta diária **passou a usar a API**
+  quando há chave, com o CSV do site como reserva (ADR 0012, 2026-09-21).
 - **CFTC, USDA:** dados de órgãos do governo dos EUA; nenhuma restrição conhecida (não verificado
   juridicamente).
 
 ## Pendências
 
-- Crop Progress: confirmar a profundidade histórica real do QuickStats (a coleta usa 2006 como
-  início padrão; testar `NASS_ANO_INICIAL` menor). Cada etapa de progresso só existe na sua janela
+- Crop Progress: profundidade **resolvida em 2026-09-21** — o QuickStats começa em 1980 (pedir desde
+  1900 devolve as mesmas 6.758 linhas) e o padrão do coletor passou a 1980. Segue em aberto validar a
+  regra de `published_at` estimada para 1980–2005. Cada etapa de progresso só existe na sua janela
   do ano, e de dez a mar não há dado novo (o card fica "atrasado" por sazonalidade).
-- Confirmar o fuso do servidor (horários do cron) e a primeira execução do cron com os coletores novos (`tail` do `coleta-diaria.log`).
+- ~~Confirmar o fuso do servidor e a execução do cron com os coletores novos~~ — feito em 2026-09-21: UTC; três
+  execuções de 21/09 com todos os coletores em `success` (ADR 0004).
 - Decidir a fonte dos 10+ anos (paga ou proxy CEPEA) — decisão de orçamento/escopo.
-- API do FRED com chave + ALFRED, quando entrar uma série revisável (ex.: CPI).
+- ALFRED (vintages reais), quando entrar uma série revisável (ex.: CPI). A coleta diária já usa a API
+  do FRED (ADR 0012); falta só a chave `FRED_API_KEY` no `.env` da VM de produção.

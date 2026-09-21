@@ -1,3 +1,6 @@
 node_modules
 .env
 storage/
+
+# Cópia feita pelo deploy.yml (a fonte é a raiz do repositório)
+STATUS_DO_PROJETO.md

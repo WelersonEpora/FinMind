@@ -136,7 +136,9 @@ Detalhe completo e alternativas consideradas:
    natural única para dedup/upsert (ver ADR 0003).
 4. **Antes de codificar:** confirme a fonte/série de verdade (não assuma —
    ver como a série do dólar foi confirmada por chamada real à API antes de
-   implementar, ADR 0001) e documente a decisão num ADR novo.
+   implementar, ADR 0001), faça o **reconhecimento da fonte** (checklist de 11
+   perguntas + nível 0–5, `docs/processo-reconhecimento-fontes.md`; uma linha
+   em `docs/reconhecimento-fontes/README.md`) e documente a decisão num ADR novo.
 5. Novo ativo/fonte só depois de resolvido em
    `docs/pendente-especialista-david.md` (ou autorização pontual explícita
    do usuário, registrada em ADR, como aconteceu com o dólar).
@@ -268,7 +270,10 @@ os containers atualizados (seeders no passo 5/6).
 
 `STATUS_DO_PROJETO.md` (raiz) é o painel de uma página do que está pronto, do
 que falta e do que está bloqueado pelo David/Comitê — ponto de entrada para
-retomar o trabalho. **Ao fechar uma entrega, atualize-o no mesmo commit**
+retomar o trabalho. A tela `/status-projeto` renderiza este arquivo como está
+(`status-projeto.service.js`; o `deploy.yml` o copia para a imagem do backend),
+então ele deve continuar sendo markdown simples (tabelas, listas, negrito).
+**Ao fechar uma entrega, atualize-o no mesmo commit**
 (data de "Última atualização" incluída); ele só aponta para os ADRs/docs, nunca
 copia conteúdo deles. Quando o David responder uma das perguntas da §4,
 registre a resposta e a data ali e reflita em `docs/pendente-especialista-david.md`.

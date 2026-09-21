@@ -26,6 +26,18 @@ test("GET /health responds 200 without requiring authentication", async () => {
   }
 });
 
+test("GET /api/v1/status-projeto without a session returns 401", async () => {
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/api/v1/status-projeto`);
+    assert.equal(response.status, 401);
+  } finally {
+    server.close();
+  }
+});
+
 test("GET /api/v1/status without a session returns 401", async () => {
   const server = app.listen(0);
   const { port } = server.address();

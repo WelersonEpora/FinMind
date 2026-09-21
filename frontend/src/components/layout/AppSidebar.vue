@@ -56,6 +56,7 @@ const systemLinks = computed(() => {
     items.push({ to: '/usuarios', label: 'Usuários', icon: 'bi-people' })
   }
 
+  items.push({ to: '/status-projeto', label: 'Status do projeto', icon: 'bi-clipboard-data' })
   items.push({ to: '/configuracao', label: 'Configuração', icon: 'bi-sliders' })
 
   return items

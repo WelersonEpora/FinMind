@@ -10,6 +10,7 @@ import ObservaveisView from '../views/ObservaveisView.vue'
 import ObservavelDetalheView from '../views/ObservavelDetalheView.vue'
 import ExecucoesView from '../views/ExecucoesView.vue'
 import EspacoView from '../views/EspacoView.vue'
+import StatusProjetoView from '../views/StatusProjetoView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 
 const router = createRouter({
@@ -31,6 +32,7 @@ const router = createRouter({
     // (/dados-mercado/...) são globais e não levam espaço na URL.
     { path: '/e/:workspaceId', name: 'espaco', component: EspacoView },
     { path: '/configuracao', name: 'configuracao', component: ConfiguracaoView },
+    { path: '/status-projeto', name: 'status-projeto', component: StatusProjetoView },
     { path: '/usuarios', name: 'usuarios', component: UsuariosView, meta: { requiresAdmin: true } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView, meta: { public: true } }
   ],
