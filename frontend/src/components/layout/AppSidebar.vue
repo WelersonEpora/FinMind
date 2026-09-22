@@ -68,7 +68,7 @@ const systemLinks = computed(() => {
     class="finmind-sidebar bg-dark text-white d-flex flex-column"
     :class="{ 'finmind-sidebar-collapsed': collapsed, 'finmind-sidebar-open': mobileOpen }"
   >
-    <ul class="nav nav-pills flex-column p-2 mt-2">
+    <ul class="nav nav-pills flex-column py-1 px-2 mt-2">
       <li v-for="link in links" :key="link.to" class="nav-item">
         <router-link
           :to="link.to"
@@ -89,7 +89,7 @@ const systemLinks = computed(() => {
            pessoal" só repetiria. Fica a linha divisória. -->
       <div class="finmind-group-divider"></div>
       <WorkspaceSwitcher @navigate="emit('navigate')" />
-      <ul class="nav nav-pills flex-column p-2 pt-1">
+      <ul class="nav nav-pills flex-column py-1 px-2">
         <li v-for="link in espacoLinks" :key="link.label" class="nav-item">
           <router-link
             :to="link.to"
@@ -103,7 +103,10 @@ const systemLinks = computed(() => {
           </router-link>
         </li>
         <li v-for="item in espacoFutureLinks" :key="item.label" class="nav-item">
-          <span class="nav-link text-secondary disabled d-flex align-items-center gap-2" :title="`${item.label} — em breve`">
+          <span
+            class="nav-link text-secondary disabled d-flex align-items-center gap-2 finmind-future-link"
+            :title="`${item.label} — em breve`"
+          >
             <i class="bi flex-shrink-0 finmind-nav-icon" :class="item.icon"></i>
             <span class="finmind-nav-label">{{ item.label }}</span>
           </span>
@@ -112,7 +115,7 @@ const systemLinks = computed(() => {
     </template>
 
     <div class="finmind-group-label px-3 py-2 text-uppercase text-secondary small">Dados de Mercado</div>
-    <ul class="nav nav-pills flex-column p-2">
+    <ul class="nav nav-pills flex-column py-1 px-2">
       <li v-for="link in dadosMercadoLinks" :key="link.to" class="nav-item">
         <router-link
           :to="link.to"
@@ -129,7 +132,7 @@ const systemLinks = computed(() => {
 
     <div class="mt-auto">
       <div class="finmind-group-label px-3 py-2 text-uppercase text-secondary small">Sistema</div>
-      <ul class="nav nav-pills flex-column p-2">
+      <ul class="nav nav-pills flex-column py-1 px-2">
         <li v-for="link in systemLinks" :key="link.to" class="nav-item">
           <router-link
             :to="link.to"
@@ -173,15 +176,24 @@ const systemLinks = computed(() => {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Densidade compacta: telas baixas (notebook sem monitor externo) não sobram
+   folga pra padding largo em cada item - reduzido do padrão do Bootstrap
+   (0.5rem 1rem) sem tirar espaço de toque confortável. */
+.finmind-sidebar .nav-link {
+  padding: 0.38rem 0.75rem;
+}
+
 .finmind-group-label {
-  margin-top: 0.5rem;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Mesma linha divisória do rótulo, para o grupo cujo cabeçalho é o seletor. */
 .finmind-group-divider {
-  margin-top: 0.5rem;
-  margin-bottom: 0.6rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0.4rem;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -189,6 +201,19 @@ const systemLinks = computed(() => {
   font-size: 1.1rem;
   width: 18px;
   text-align: center;
+}
+
+/* Placeholders do grupo Espaço (Carteiras/Operações/Posições/Patrimônio):
+   continuam 4 itens separados (ADR 0007), só mais discretos e baixos, já que
+   ainda não fazem nada. */
+.finmind-future-link {
+  padding-top: 0.18rem !important;
+  padding-bottom: 0.18rem !important;
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+.finmind-future-link .finmind-nav-icon {
+  font-size: 0.95rem;
 }
 
 .finmind-sidebar .nav-pills .nav-link.active {
