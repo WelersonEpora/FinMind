@@ -36,10 +36,12 @@ const FONTE_DETALHE_CONAB_MILHO = {
 // Fonte do card de safra do IMEA (milho de Mato Grosso, ADR 0018).
 const FONTE_IMEA = "IMEA - Instituto Mato-Grossense de Economia Agropecuária";
 
-// Partes comuns dos 3 cards de custo de produção do milho (planilhas XLSX do IMEA, uma linha por item, em R$/ha).
-// Séries `IMEA.CUSTO.MILHO.<TIPO>.<PERIODO>.<TECNOLOGIA>_<LOCAL>.<ITEM>`: a "região" é `<TECNOLOGIA>_<LOCAL>` (alta e
-// média tecnologia comparáveis no mesmo gráfico) e o campo é o item de custo. Um card por (tipo, período), porque o
-// período muda a frequência da série (mês x safra consolidada) e a fonte não define "Mensal" x "Ponderado".
+// Partes comuns dos 2 cards de custo de produção do milho (planilhas XLSX do IMEA, uma linha por item, em R$/ha).
+// Séries `IMEA.CUSTO.MILHO.<PERIODO>.<ITEM_REGIAO>.<ITEM>` (ver o parser). Um card por período (mês x safra
+// consolidada), porque as duas frequências não cabem no mesmo seletor/gráfico. Dentro do card mensal, o Mensal e o
+// Ponderado da fonte (que trazem o MESMO mês com valores diferentes, sem explicação) convivem como itens distintos
+// do mesmo seletor - não são cards separados: aplicado o mesmo critério do WASDE (só separar em cards por
+// incompatibilidade real - lá, unidade; aqui, frequência -, nunca por "vieram de arquivos diferentes").
 const CAMPOS_CUSTO_IMEA = ITENS_CUSTO.map(({ codigo, nome, unidade }) => ({ codigo, nome, unidade, casasDecimais: unidade === "R$/US$" ? 4 : 2 }));
 
 const BASE_CUSTO_IMEA = {
@@ -52,15 +54,23 @@ const BASE_CUSTO_IMEA = {
   campos: CAMPOS_CUSTO_IMEA
 };
 
-function porRegiaoCustoImea(tipo, periodo) {
-  return {
-    prefixoSerie: `IMEA.CUSTO.MILHO.${tipo}.${periodo}`,
-    campoReferencia: "CT",
-    itemPrincipal: "ALTA_MATO_GROSSO",
-    itensPadrao: ["ALTA_MATO_GROSSO", "MEDIA_MATO_GROSSO"],
-    descritor: "imea-custo"
-  };
-}
+// Item `<TIPO>_<TECNOLOGIA>_<LOCAL>` (Mensal e Ponderado lado a lado no mesmo seletor).
+const PORREGIAO_CUSTO_MES = {
+  prefixoSerie: "IMEA.CUSTO.MILHO.MES",
+  campoReferencia: "CT",
+  itemPrincipal: "PONDERADO_ALTA_MATO_GROSSO",
+  itensPadrao: ["PONDERADO_ALTA_MATO_GROSSO", "MENSAL_ALTA_MATO_GROSSO", "PONDERADO_MEDIA_MATO_GROSSO", "MENSAL_MEDIA_MATO_GROSSO"],
+  descritor: "imea-custo"
+};
+
+// Item `<TECNOLOGIA>_<LOCAL>` (só existe no Ponderado; sem ambiguidade de tipo, sem precisar dele no item).
+const PORREGIAO_CUSTO_SAFRA = {
+  prefixoSerie: "IMEA.CUSTO.MILHO.SAFRA",
+  campoReferencia: "CT",
+  itemPrincipal: "ALTA_MATO_GROSSO",
+  itensPadrao: ["ALTA_MATO_GROSSO", "MEDIA_MATO_GROSSO"],
+  descritor: "imea-custo"
+};
 
 const FONTE_DETALHE_CUSTO_IMEA = {
   formatoOrigem: "XLSX (4 planilhas do catálogo de arquivos do site do IMEA: Mensal e Ponderado, em alta e média tecnologia)",
@@ -68,7 +78,7 @@ const FONTE_DETALHE_CUSTO_IMEA = {
 };
 
 const ESCOPO_CUSTO_IMEA =
-  "só o milho de Mato Grosso, com todas as linhas de custo de cada planilha (R$/ha), a produtividade modal (sc/ha) e o dólar que o IMEA usou, para Mato Grosso e para os municípios que têm aba (o Índice de algumas planilhas lista abas que não existem: Nova Mutum no Mensal de alta tecnologia, Querência e Paranatinga no Mensal de média). O IMEA não explica, no arquivo, a diferença entre \"Mensal\" e \"Ponderado\" (o valor do mesmo mês difere): são séries separadas, como a fonte as chama. O catálogo do IMEA só guarda a versão atual de cada planilha, então o vintage começa em 15/09/2026, e o valor de um mês anterior dentro do arquivo entra com a data de publicação do arquivo. Na aba de Tangará da Serra do Ponderado de média tecnologia, duas colunas estão rotuladas \"2025/26\" (uma deveria ser 2024/25): as duas ficam de fora, por não haver como saber qual é qual. Custo de outras culturas e o preço do milho do IMEA não fazem parte deste card.";
+  "só o milho de Mato Grosso, com todas as linhas de custo de cada planilha (R$/ha), a produtividade modal (sc/ha) e o dólar que o IMEA usou, para Mato Grosso e para os municípios que têm aba (o Índice de algumas planilhas lista abas que não existem: Nova Mutum no Mensal de alta tecnologia, Querência e Paranatinga no Mensal de média). O IMEA não explica, no arquivo, a diferença entre \"Mensal\" e \"Ponderado\" (o valor do mesmo mês difere): os dois convivem como itens distintos do mesmo seletor, sem tentar reconciliar. O catálogo do IMEA só guarda a versão atual de cada planilha, então o vintage começa em 15/09/2026, e o valor de um mês anterior dentro do arquivo entra com a data de publicação do arquivo. Na aba de Tangará da Serra do Ponderado de média tecnologia, duas colunas estão rotuladas \"2025/26\" (uma deveria ser 2024/25): as duas ficam de fora, por não haver como saber qual é qual. Custo de outras culturas e o preço do milho do IMEA não fazem parte deste card.";
 
 // O escopo (o que o card cobre e o que não cobre) é de cada card: o dos EUA cobre só os EUA, o por país cobre a seleção do WASDE.
 const FIM_ESCOPO_WASDE_MILHO = "A PSD do USDA, com 125 países e dados desde 1960, não foi implementada. Histórico do WASDE: de 2011 em diante.";
@@ -498,44 +508,28 @@ const CATALOGO_OBSERVAVEIS = [
   },
   {
     ...BASE_CUSTO_IMEA,
-    instrumentCode: "IMEA_CUSTO_MILHO_MENSAL",
-    nome: "Custo do milho - mensal (IMEA)",
+    instrumentCode: "IMEA_CUSTO_MILHO_MES",
+    nome: "Custo do milho - por mês (IMEA)",
     frequencia: "MENSAL",
     // Publicado ~1 vez por mês (15/09/2026); o último ponto é o mês da estimativa (ago/2026, publicado em set).
     toleranciaDias: 75,
-    porRegiao: porRegiaoCustoImea("MENSAL", "MES"),
+    porRegiao: PORREGIAO_CUSTO_MES,
     fonteDetalhe: {
       ...FONTE_DETALHE_CUSTO_IMEA,
       metodologia:
-        "Uma coluna por mês da safra corrente (jun a ago/2026 na planilha de 15/09/2026; o mês com asterisco é estimativa e vira o metadado `estimativa`). O dia da observação é o 1º do mês. A data de publicação é a do arquivo no catálogo (só a data; vale o fim do dia). Valores como publicados, sem conversão. A coluna de variação mensal, derivada, não é coletada.",
+        "Uma coluna por mês da safra corrente, das planilhas \"Mensal\" e \"Ponderado\" (jun/jul/ago-2026 na de 15/09/2026; o mês com asterisco é estimativa e vira o metadado `estimativa`). O dia da observação é o 1º do mês. Os dois arquivos trazem o MESMO mês com valores diferentes (o IMEA não explica a diferença): cada um vira um item do seletor (\"Mato Grosso - alta tecnologia (mensal)\" vs \"(ponderado)\"), sem tentar reconciliar. A data de publicação é a do arquivo no catálogo (só a data; vale o fim do dia). Valores como publicados, sem conversão. A coluna de variação mensal, derivada, não é coletada.",
       escopo: ESCOPO_CUSTO_IMEA,
       descricao:
-        "Custo de produção do milho em Mato Grosso, por item de custo (R$/ha), mês a mês, na planilha \"Mensal\" do IMEA, em alta e média tecnologia. O custo total (CT) é o item em destaque."
+        "Custo de produção do milho em Mato Grosso, por item de custo (R$/ha), mês a mês, nas planilhas \"Mensal\" e \"Ponderado\" do IMEA, em alta e média tecnologia. O custo total (CT) é o item em destaque."
     }
   },
   {
     ...BASE_CUSTO_IMEA,
-    instrumentCode: "IMEA_CUSTO_MILHO_PONDERADO_MES",
-    nome: "Custo do milho - ponderado, por mês (IMEA)",
-    frequencia: "MENSAL",
-    toleranciaDias: 75,
-    porRegiao: porRegiaoCustoImea("PONDERADO", "MES"),
-    fonteDetalhe: {
-      ...FONTE_DETALHE_CUSTO_IMEA,
-      metodologia:
-        "As colunas mensais da planilha \"Ponderado\" (jul e ago/2026 na de 15/09/2026; o mês com asterisco é estimativa). O dia da observação é o 1º do mês. Os valores diferem dos da planilha \"Mensal\" no mesmo mês; o IMEA não explica a diferença no arquivo, então este card não a interpreta. A data de publicação é a do arquivo no catálogo (só a data; vale o fim do dia). Valores como publicados, sem conversão.",
-      escopo: ESCOPO_CUSTO_IMEA,
-      descricao:
-        "Custo de produção do milho em Mato Grosso, por item de custo (R$/ha), nas colunas mensais da planilha \"Ponderado\" do IMEA, em alta e média tecnologia. O custo total (CT) é o item em destaque."
-    }
-  },
-  {
-    ...BASE_CUSTO_IMEA,
-    instrumentCode: "IMEA_CUSTO_MILHO_PONDERADO_SAFRA",
-    nome: "Custo do milho - ponderado, por safra (IMEA)",
+    instrumentCode: "IMEA_CUSTO_MILHO_SAFRA",
+    nome: "Custo do milho - por safra (IMEA)",
     frequencia: "ANUAL",
     toleranciaDias: 430,
-    porRegiao: porRegiaoCustoImea("PONDERADO", "SAFRA"),
+    porRegiao: PORREGIAO_CUSTO_SAFRA,
     fonteDetalhe: {
       ...FONTE_DETALHE_CUSTO_IMEA,
       metodologia:

@@ -18,6 +18,13 @@ const { codigoDoItem, unidadeDoItem, UNIDADE_PADRAO, UNIDADE_POR_ITEM } = requir
 //
 // Nenhum cálculo, conversão nem interpretação: só os valores publicados. A célula com "-" ou em branco é AUSÊNCIA
 // (não vira zero); o zero publicado (número 0) é mantido.
+//
+// `series_code`: `IMEA.CUSTO.MILHO.<PERIODO>.<ITEM_REGIAO>.<ITEM>`. Nas colunas mensais (`PERIODO=MES`), o
+// `ITEM_REGIAO` é `<TIPO>_<TECNOLOGIA>_<LOCAL>` - o TIPO (Mensal/Ponderado) entra no item porque os dois arquivos
+// trazem o MESMO mês com valores diferentes (a fonte não explica a diferença): não dá pra ter uma só série por
+// mês/local/tecnologia, então os dois tipos convivem como itens distintos do MESMO card (seletor de região/tela).
+// Na coluna "Consolidado" (`PERIODO=SAFRA`, só existe no Ponderado), `ITEM_REGIAO` é só `<TECNOLOGIA>_<LOCAL>` -
+// sem ambiguidade de tipo, sem precisar dele no item.
 
 const LIMITE_COLUNAS = 40;
 const RE_SAFRA = /^(\d{4})\/(\d{2})$/;
@@ -199,8 +206,13 @@ function extrairAba(linhas, { tipo, tecnologia, local }) {
         invalidos.push({ item: { ...ident, periodo: col.observedAt }, motivo: `valor inválido: ${celula}.` });
         continue;
       }
+      // O item (a "região" do card) leva o TIPO (Mensal/Ponderado) só quando o período é MES: os dois arquivos
+      // trazem colunas mensais para o mesmo mês, com valores diferentes e sem explicação da fonte, então precisam
+      // conviver como itens distintos no MESMO card. Já a coluna "Consolidado" (SAFRA) só existe no Ponderado - sem
+      // ambiguidade, sem precisar do tipo no item (rótulo mais limpo). Ver `descreverLocalCustoImea`.
+      const regiaoItem = col.periodo === "SAFRA" ? `${tecnologia}_${codigoLocal}` : `${tipo}_${tecnologia}_${codigoLocal}`;
       observacoes.push({
-        seriesCode: `IMEA.CUSTO.MILHO.${tipo}.${col.periodo}.${tecnologia}_${codigoLocal}.${item}`,
+        seriesCode: `IMEA.CUSTO.MILHO.${col.periodo}.${regiaoItem}.${item}`,
         observedAt: col.observedAt,
         // Arredondado a 6 casas (mesma precisão do DECIMAL(18,6) e do mesmoValor() do point-in-time.service.js).
         // O IMEA calcula esses valores (custo ponderado por área etc.) e a planilha guarda o float bruto com mais

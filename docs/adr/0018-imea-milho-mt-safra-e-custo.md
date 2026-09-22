@@ -96,14 +96,18 @@ reconhecimento do AgroMind não tinha investigado.
   resposta, a coleta falha (a API trocou os IDs) em vez de "ter sucesso" vazia.
 - **`imea-custo-milho`**: um `source_code` por arquivo (`IMEA_CUSTO_MILHO_<MENSAL|PONDERADO>_<ALTA|MEDIA>`), porque
   a reingestão descarta por fonte as edições já lidas e duas planilhas do mesmo dia não podem se descartar uma à
-  outra. Séries `IMEA.CUSTO.MILHO.<TIPO>.<PERIODO>.<TECNOLOGIA>_<LOCAL>.<ITEM>` (`PERIODO` = `MES` ou `SAFRA`).
-  `observed_at` = 1º do mês (colunas mensais) ou 1º de setembro do ano de início da safra (colunas
-  "Consolidado", mesma convenção). **`published_at` REAL, só a data** (a do arquivo no catálogo — o catálogo só
-  guarda a versão **atual** de cada planilha: o valor de um mês anterior dentro do arquivo entra com a data de
-  publicação do arquivo, não com a data em que o mercado o soube; limite superior conservador, como na Conab). Sem
-  histórico de edições anteriores no catálogo: **sem backfill possível**, mesmo limite do coletor de safra.
-  `escolherArquivos` pega, de cada (tipo, tecnologia), o arquivo mais **novo** (por `Data`, depois por `Id`, para o
-  caso raro de dois arquivos na mesma data).
+  outra. Séries `IMEA.CUSTO.MILHO.<PERIODO>.<ITEM_REGIAO>.<ITEM>` (`PERIODO` = `MES` ou `SAFRA`). Nas colunas
+  mensais, `ITEM_REGIAO` é `<TIPO>_<TECNOLOGIA>_<LOCAL>` — o TIPO (Mensal/Ponderado) entra no item porque os dois
+  arquivos trazem o MESMO mês com valores diferentes, sem explicação da fonte: viram itens distintos do MESMO
+  seletor (revisto depois da revisão de desenho abaixo), não séries que se sobrescrevem nem cards separados. Na
+  coluna "Consolidado" (`PERIODO=SAFRA`, só existe no Ponderado), `ITEM_REGIAO` é só `<TECNOLOGIA>_<LOCAL>` — sem
+  ambiguidade de tipo. `observed_at` = 1º do mês ou 1º de setembro do ano de início da safra (mesma convenção do
+  WASDE/Conab). **`published_at` REAL, só a data** (a do arquivo no catálogo — o catálogo só guarda a versão
+  **atual** de cada planilha: o valor de um mês anterior dentro do arquivo entra com a data de publicação do
+  arquivo, não com a data em que o mercado o soube; limite superior conservador, como na Conab). Sem histórico de
+  edições anteriores no catálogo: **sem backfill possível**, mesmo limite do coletor de safra. `escolherArquivos`
+  pega, de cada (tipo, tecnologia), o arquivo mais **novo** (por `Data`, depois por `Id`, para o caso raro de dois
+  arquivos na mesma data).
 - **Guardas de leitura** (`imea-custo-milho.parser.js`), aprendidas nos 4 arquivos reais: confere o título da aba
   (tecnologia, "Mensal"/"Ponderado" e local, ignorando a preposição), a linha `Unidade: R$/ha.` no fim de cada
   aba (barra se a fonte mudar a unidade), colunas de período repetidas (ambíguas — nenhuma é gravada) e um rótulo
@@ -113,17 +117,38 @@ reconhecimento do AgroMind não tinha investigado.
   das planilhas de custo (derivada); o balanço de oferta e demanda, a intenção de plantio, o andamento de
   semeadura/colheita/comercialização e as estimativas de safra — todos só em PDF; o preço spot do milho (já
   reconhecido, não implementado); as demais cadeias da mesma API (soja, boi, algodão, leite, suíno).
-- **Catálogo (Observáveis)**: 4 cards novos.
+- **Catálogo (Observáveis)**: 3 cards novos — 1 de safra + 2 de custo (revisto depois de uma 1ª versão com 4 cards de
+  custo, ver "Consolidação de 4 para 3 cards" abaixo).
   - **"Milho de MT por safra e região (IMEA)"**: seletor de região (Mato Grosso + 7 regiões, `porRegiao`) e de
     métrica (área, produção, produtividade); destaque e padrão = Mato Grosso.
-  - **"Custo do milho - mensal (IMEA)"**, **"... ponderado, por mês (IMEA)"** e **"... ponderado, por safra
-    (IMEA)"**: cada um com o mesmo desenho — seletor de "região" (na verdade `<tecnologia>_<local>`, para comparar
-    alta e média tecnologia no mesmo gráfico) e de métrica (os ~62 itens de custo da planilha, tabela
-    `imea-custo-itens.js`); destaque e padrão = Mato Grosso em alta e em média tecnologia. Frequência `MENSAL` nos
-    dois primeiros, `ANUAL` no terceiro (a dimensão temporal muda; a tela decide o período inicial do gráfico por
-    isso, `periodo-grafico.js`).
+  - **"Custo do milho - por mês (IMEA)"**: seletor de "região" `<TIPO>_<TECNOLOGIA>_<LOCAL>` (Mensal e Ponderado
+    lado a lado, alta e média tecnologia comparáveis) e de métrica (os ~62 itens de custo, tabela
+    `imea-custo-itens.js`); destaque = Mato Grosso, Ponderado, alta tecnologia; padrão = as 4 combinações de
+    tipo × tecnologia para Mato Grosso. Frequência `MENSAL`.
+  - **"Custo do milho - por safra (IMEA)"**: mesmo desenho, seletor `<TECNOLOGIA>_<LOCAL>` (sem tipo: só existe no
+    Ponderado); destaque e padrão = Mato Grosso em alta e em média tecnologia. Frequência `ANUAL`.
   - A dimensão "região" do serviço (`observation-data.service.js::DIMENSOES_REGIAO`) ganhou dois descritores novos
-    (`imea`, `imea-custo`), no mesmo padrão de `wasde`/`conab`.
+    (`imea`, `imea-custo`), no mesmo padrão de `wasde`/`conab`; `imea-custo` reconhece os dois formatos de item
+    (com e sem tipo) numa função só (`shared/utils/imea-regiao.js::descreverLocalCustoImea`).
+
+## Consolidação de 4 para 3 cards de custo (revisão de desenho, mesmo dia)
+
+A 1ª versão tinha um card de custo por arquivo (Mensal Alta/Média + Ponderado Alta/Média, seguindo o limite dos
+arquivos-fonte): **4 cards no total**. Questionado pelo usuário, comparando com o WASDE (13 métricas dos EUA e 7 do
+mundo, só 2 cards): por que o custo do IMEA (bem menor em métricas por card) tinha o dobro?
+
+A resposta certa não é sobre volume de métrica, é sobre **compatibilidade**: o WASDE separa EUA de "por país" porque
+a UNIDADE é incompatível (bushels x toneladas) — nunca por "vieram de arquivos diferentes". Aplicando o mesmo
+critério ao IMEA: "Mensal" e "Ponderado" (na parte de meses) têm a MESMA unidade (R$/ha), a MESMA frequência e os
+MESMOS ~62 itens — não há incompatibilidade real, só o limite do arquivo-fonte copiado sem necessidade. Já "meses" e
+"safra consolidada" (dentro do Ponderado) têm frequências diferentes (mensal x anual) e não cabem no mesmo
+gráfico/seletor — essa separação continua necessária, mesmo critério do WASDE (aqui por granularidade temporal, não
+por unidade monetária).
+
+**Decisão revista:** Mensal e Ponderado (meses) viram itens do MESMO seletor (`<TIPO>_<TECNOLOGIA>_<LOCAL>`, tipo
+∈ {MENSAL, PONDERADO}), no card único "Custo do milho - por mês"; a safra consolidada continua em card à parte
+("Custo do milho - por safra"). Resultado: **3 cards**, sem perder nenhum dado (os dois tipos continuam gravados
+como séries distintas, só mudou como o item os identifica na tela) e sem misturar frequências incompatíveis.
 
 ## Dois achados reais na validação contra o banco de dev (2026-09-22), corrigidos antes de fechar
 
@@ -155,12 +180,12 @@ problemas abaixo não apareciam em nenhum teste unitário porque dependiam do sc
 | `imea-custo-milho` | 4 arquivos baixados (catálogo + 4 XLSX, com 1 s de pausa entre eles), **15.402 observações válidas, 2 inválidas** (a ambiguidade real de Tangará da Serra, ver acima), **15.402 criadas, 0 falhas de persistência** |
 | Reexecução (idempotência) | Mesmo comando repetido: `imea-milho-safra` 0 criadas / 96 ignoradas / 0 falhas; `imea-custo-milho` 0 criadas / 0 atualizadas / 15.402 ignoradas / 2 falhas (as mesmas 2, sempre) — **nenhuma revisão espúria** (confirma a correção do arredondamento) |
 
-Testes automatizados novos (backend, `node --test`): **68 casos**, todos passando — `imea-comum` (5),
+Testes automatizados novos (backend, `node --test`): **69 casos**, todos passando — `imea-comum` (5),
 `imea-milho-safra.parser` (9), `imea-milho-safra.collector` (8), `imea-custo-milho.parser` (24, contra os defeitos
 reais encontrados: colunas ambíguas, aba ausente do Índice, preposição variável, título trocado, unidade mudada,
-item repetido, valor não numérico, arredondamento), `imea-custo-milho.collector` (16) e 6 casos novos em
-`observaveis.service.test.js` (escopo, seletor de região/local, unidades próprias). Lint e a suíte inteira do
-backend (427 testes) seguem verdes.
+item repetido, valor não numérico, arredondamento), `imea-custo-milho.collector` (16) e 7 casos novos em
+`observaveis.service.test.js` (escopo, seletor de região/local/tipo, unidades próprias, os 2 cards de custo vs
+misturar frequência). Lint e a suíte inteira do backend (428 testes) seguem verdes.
 
 ## Consequências e riscos
 

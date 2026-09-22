@@ -38,6 +38,7 @@ const MUNICIPIOS = {
 };
 
 const TECNOLOGIAS = { ALTA: "alta tecnologia", MEDIA: "média tecnologia" };
+const TIPOS_CUSTO = { MENSAL: "mensal", PONDERADO: "ponderado" };
 
 // "PORTO_XYZ" -> "Porto Xyz" (só para um código que não está nas tabelas).
 function rotuloDerivado(codigo) {
@@ -54,15 +55,23 @@ function descreverRegiaoImea(codigo) {
   return { rotulo: rotuloDerivado(codigo), agregado: false };
 }
 
-// O item do card de custo é `<TECNOLOGIA>_<LOCAL>` (ex.: ALTA_SORRISO, MEDIA_MATO_GROSSO): a tecnologia faz parte do
-// item para que alta e média possam ser comparadas no mesmo gráfico. Devolve { rotulo, agregado } ou null se o código
-// não tem esse formato (é ignorado pela tela).
+// Item do card de custo POR MÊS: `<TIPO>_<TECNOLOGIA>_<LOCAL>` (ex.: PONDERADO_ALTA_SORRISO) - o tipo (Mensal/
+// Ponderado) faz parte do item porque os dois arquivos trazem o MESMO mês com valores diferentes (ADR 0018), sem
+// série única possível. Item do card de custo POR SAFRA: `<TECNOLOGIA>_<LOCAL>` (ex.: ALTA_SORRISO) - só existe no
+// Ponderado, sem ambiguidade de tipo. Tecnologia sempre no item para que alta e média convivam no mesmo gráfico.
+// Devolve { rotulo, agregado } ou null se o código não tem nenhum dos dois formatos (é ignorado pela tela).
 function descreverLocalCustoImea(codigo) {
-  const m = /^(ALTA|MEDIA)_(.+)$/.exec(codigo);
-  if (!m) return null;
-  const local = m[2];
+  const comTipo = /^(MENSAL|PONDERADO)_(ALTA|MEDIA)_(.+)$/.exec(codigo);
+  if (comTipo) {
+    const [, tipo, tecnologia, local] = comTipo;
+    const nome = REGIOES[local] ?? MUNICIPIOS[local] ?? rotuloDerivado(local);
+    return { rotulo: `${nome} - ${TECNOLOGIAS[tecnologia]} (${TIPOS_CUSTO[tipo]})`, agregado: local === "MATO_GROSSO" };
+  }
+  const semTipo = /^(ALTA|MEDIA)_(.+)$/.exec(codigo);
+  if (!semTipo) return null;
+  const [, tecnologia, local] = semTipo;
   const nome = REGIOES[local] ?? MUNICIPIOS[local] ?? rotuloDerivado(local);
-  return { rotulo: `${nome} - ${TECNOLOGIAS[m[1]]}`, agregado: local === "MATO_GROSSO" };
+  return { rotulo: `${nome} - ${TECNOLOGIAS[tecnologia]}`, agregado: local === "MATO_GROSSO" };
 }
 
 module.exports = { descreverRegiaoImea, descreverLocalCustoImea, REGIOES, MUNICIPIOS };

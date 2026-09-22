@@ -79,9 +79,9 @@ test("extrairAba: planilha Mensal - uma observação por mês, série com tipo/p
   assert.deepEqual(
     observacoes.map((o) => [o.seriesCode, o.observedAt, o.valor, o.unidade, o.estimativa]),
     [
-      ["IMEA.CUSTO.MILHO.MENSAL.MES.ALTA_MATO_GROSSO.A_CUSTEIO", "2026-06-01", 3696.73, "R$/ha", false],
-      ["IMEA.CUSTO.MILHO.MENSAL.MES.ALTA_MATO_GROSSO.A_CUSTEIO", "2026-07-01", 3779.19, "R$/ha", false],
-      ["IMEA.CUSTO.MILHO.MENSAL.MES.ALTA_MATO_GROSSO.A_CUSTEIO", "2026-08-01", 3788.94, "R$/ha", true]
+      ["IMEA.CUSTO.MILHO.MES.MENSAL_ALTA_MATO_GROSSO.A_CUSTEIO", "2026-06-01", 3696.73, "R$/ha", false],
+      ["IMEA.CUSTO.MILHO.MES.MENSAL_ALTA_MATO_GROSSO.A_CUSTEIO", "2026-07-01", 3779.19, "R$/ha", false],
+      ["IMEA.CUSTO.MILHO.MES.MENSAL_ALTA_MATO_GROSSO.A_CUSTEIO", "2026-08-01", 3788.94, "R$/ha", true]
     ]
   );
 });
@@ -92,8 +92,8 @@ test("extrairAba: planilha Ponderado - coluna 'Consolidado' vira SAFRA (1º de s
   assert.deepEqual(
     observacoes.map((o) => [o.seriesCode, o.periodo, o.observedAt, o.valor, o.safra]),
     [
-      ["IMEA.CUSTO.MILHO.PONDERADO.SAFRA.ALTA_MATO_GROSSO.A_CUSTEIO", "SAFRA", "2025-09-01", 3536.44, "2025/26"],
-      ["IMEA.CUSTO.MILHO.PONDERADO.MES.ALTA_MATO_GROSSO.A_CUSTEIO", "MES", "2026-07-01", 3535.73, "2026/27"]
+      ["IMEA.CUSTO.MILHO.SAFRA.ALTA_MATO_GROSSO.A_CUSTEIO", "SAFRA", "2025-09-01", 3536.44, "2025/26"],
+      ["IMEA.CUSTO.MILHO.MES.PONDERADO_ALTA_MATO_GROSSO.A_CUSTEIO", "MES", "2026-07-01", 3535.73, "2026/27"]
     ]
   );
 });
@@ -121,7 +121,7 @@ test("extrairAba: '-' e célula vazia são ausência (não viram zero); zero num
 
 test("extrairAba: local é o município (não o estado) quando o título e o Índice dizem o município", () => {
   const { observacoes } = extrairAba(abaMensal("Sorriso"), { tipo: "MENSAL", tecnologia: "ALTA", local: "Sorriso" });
-  assert.equal(observacoes[0].seriesCode, "IMEA.CUSTO.MILHO.MENSAL.MES.ALTA_SORRISO.A_CUSTEIO");
+  assert.equal(observacoes[0].seriesCode, "IMEA.CUSTO.MILHO.MES.MENSAL_ALTA_SORRISO.A_CUSTEIO");
   assert.equal(observacoes[0].localNome, "Sorriso");
 });
 

@@ -180,7 +180,7 @@ test("normalize: published_at é o fim do dia da data do arquivo; source_code e 
     urlPublica: "https://imea.com.br/x",
     observacoes: [
       {
-        seriesCode: "IMEA.CUSTO.MILHO.MENSAL.MES.ALTA_MATO_GROSSO.A_CUSTEIO",
+        seriesCode: "IMEA.CUSTO.MILHO.MES.MENSAL_ALTA_MATO_GROSSO.A_CUSTEIO",
         observedAt: "2026-06-01",
         valor: 3696.73,
         unidade: "R$/ha",
@@ -242,8 +242,8 @@ test("persist: agrupa por source_code (uma planilha não pode descartar a reinge
   };
 
   const validos = [
-    { series_code: "IMEA.CUSTO.MILHO.MENSAL.MES.ALTA_MATO_GROSSO.A_CUSTEIO", source_code: "IMEA_CUSTO_MILHO_MENSAL_ALTA", published_at: new Date("2026-09-15T23:59:59Z") },
-    { series_code: "IMEA.CUSTO.MILHO.PONDERADO.SAFRA.ALTA_MATO_GROSSO.A_CUSTEIO", source_code: "IMEA_CUSTO_MILHO_PONDERADO_ALTA", published_at: new Date("2026-09-15T23:59:59Z") }
+    { series_code: "IMEA.CUSTO.MILHO.MES.MENSAL_ALTA_MATO_GROSSO.A_CUSTEIO", source_code: "IMEA_CUSTO_MILHO_MENSAL_ALTA", published_at: new Date("2026-09-15T23:59:59Z") },
+    { series_code: "IMEA.CUSTO.MILHO.SAFRA.ALTA_MATO_GROSSO.A_CUSTEIO", source_code: "IMEA_CUSTO_MILHO_PONDERADO_ALTA", published_at: new Date("2026-09-15T23:59:59Z") }
   ];
 
   const resultado = await coletor.persist(validos, { execucaoId: "exec-1" }, deps);

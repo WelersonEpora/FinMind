@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    21,
-    "USD_BRL e SELIC (market_quote) + 19 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + 3 de custo) + 2 cards do CCM)"
+    20,
+    "USD_BRL e SELIC (market_quote) + 18 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 3 do IMEA (safra + custo por mês + custo por safra) + 2 cards do CCM)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -663,16 +663,19 @@ test("IMEA por safra: métrica escolhida vira a série, com a unidade certa", as
   await assert.rejects(() => observaveisService.obterHistoricoObservavel("IMEA_MILHO_SAFRA", { itens: "ATLANTIDA" }, deps), /Região\(s\) desconhecido/);
 });
 
-// Um card de custo: local x tecnologia, séries `IMEA.CUSTO.MILHO.<TIPO>.<PERIODO>.<TECNOLOGIA>_<LOCAL>.<ITEM>`.
-const locaisCustoImea = [
-  { codigo: "ALTA_SORRISO", primeira_data: "2026-06-01", ultima_data: "2026-08-01", pregoes: "3" },
-  { codigo: "ALTA_MATO_GROSSO", primeira_data: "2026-06-01", ultima_data: "2026-08-01", pregoes: "3" },
-  { codigo: "MEDIA_MATO_GROSSO", primeira_data: "2026-06-01", ultima_data: "2026-08-01", pregoes: "3" }
+// Card de custo POR MÊS: item é tipo x tecnologia x local, séries `IMEA.CUSTO.MILHO.MES.<TIPO>_<TECNOLOGIA>_<LOCAL>.<ITEM>`.
+// Mensal e Ponderado convivem como itens distintos do MESMO seletor (ADR 0018: os dois trazem o mesmo mês com
+// valores diferentes, sem série única possível).
+const locaisCustoMesImea = [
+  { codigo: "PONDERADO_ALTA_SORRISO", primeira_data: "2026-06-01", ultima_data: "2026-08-01", pregoes: "3" },
+  { codigo: "PONDERADO_ALTA_MATO_GROSSO", primeira_data: "2026-06-01", ultima_data: "2026-08-01", pregoes: "3" },
+  { codigo: "MENSAL_ALTA_MATO_GROSSO", primeira_data: "2026-06-01", ultima_data: "2026-08-01", pregoes: "3" },
+  { codigo: "PONDERADO_MEDIA_MATO_GROSSO", primeira_data: "2026-06-01", ultima_data: "2026-08-01", pregoes: "3" }
 ];
 
-function repoCustoImea(extra = {}) {
+function repoCustoMesImea(extra = {}) {
   return {
-    listarItens: async () => locaisCustoImea,
+    listarItens: async () => locaisCustoMesImea,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-08-01", 3788.94),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
@@ -680,28 +683,59 @@ function repoCustoImea(extra = {}) {
   };
 }
 
-test("IMEA custo mensal: local e tecnologia como 'região'; destaque é Mato Grosso em alta tecnologia; CT é o campo principal", async () => {
-  const { observavel } = await observaveisService.obterDetalheObservavel("IMEA_CUSTO_MILHO_MENSAL", {
-    observationRepository: repoCustoImea(),
+// Card de custo POR SAFRA: item é só tecnologia x local (só existe no Ponderado, sem ambiguidade de tipo).
+const locaisCustoSafraImea = [
+  { codigo: "ALTA_SORRISO", primeira_data: "2021-09-01", ultima_data: "2025-09-01", pregoes: "5" },
+  { codigo: "ALTA_MATO_GROSSO", primeira_data: "2021-09-01", ultima_data: "2025-09-01", pregoes: "5" },
+  { codigo: "MEDIA_MATO_GROSSO", primeira_data: "2021-09-01", ultima_data: "2025-09-01", pregoes: "5" }
+];
+
+function repoCustoSafraImea(extra = {}) {
+  return {
+    listarItens: async () => locaisCustoSafraImea,
+    buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2025-09-01", 6748.28),
+    buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
+    resumirSeries: async () => [],
+    ...extra
+  };
+}
+
+test("IMEA custo por mês: item é tipo x tecnologia x local; Mensal e Ponderado convivem no mesmo seletor; destaque é Ponderado/Mato Grosso/alta", async () => {
+  const { observavel } = await observaveisService.obterDetalheObservavel("IMEA_CUSTO_MILHO_MES", {
+    observationRepository: repoCustoMesImea(),
+    collectionExecutionRepository: semExecucao
+  });
+
+  const porCodigo = Object.fromEntries(observavel.itens.map((i) => [i.codigo, i]));
+  assert.equal(porCodigo.PONDERADO_ALTA_SORRISO.rotulo, "Sorriso - alta tecnologia (ponderado)");
+  assert.equal(porCodigo.PONDERADO_ALTA_MATO_GROSSO.rotulo, "Mato Grosso - alta tecnologia (ponderado)");
+  assert.equal(porCodigo.MENSAL_ALTA_MATO_GROSSO.rotulo, "Mato Grosso - alta tecnologia (mensal)");
+  assert.equal(porCodigo.PONDERADO_ALTA_MATO_GROSSO.agregado, true);
+  assert.equal(porCodigo.PONDERADO_ALTA_SORRISO.agregado, false);
+  assert.equal(observavel.rotuloModalidade, "Local e tecnologia");
+  assert.equal(observavel.itemPrincipal, "Mato Grosso - alta tecnologia (ponderado)");
+  assert.deepEqual(observavel.itensPadrao, ["PONDERADO_ALTA_MATO_GROSSO", "MENSAL_ALTA_MATO_GROSSO", "PONDERADO_MEDIA_MATO_GROSSO"], "padrão do catálogo, só com o que existe neste banco de teste (falta MENSAL_MEDIA_MATO_GROSSO)");
+  assert.equal(observavel.campoPrincipal, "CT");
+  assert.ok(observavel.campos.length > 50, "uma métrica por item de custo da planilha");
+  assert.equal(observavel.unidade, "R$/ha");
+});
+
+test("IMEA custo por safra: item é só tecnologia x local (sem tipo, só existe no Ponderado); destaque é Mato Grosso em alta tecnologia", async () => {
+  const { observavel } = await observaveisService.obterDetalheObservavel("IMEA_CUSTO_MILHO_SAFRA", {
+    observationRepository: repoCustoSafraImea(),
     collectionExecutionRepository: semExecucao
   });
 
   const porCodigo = Object.fromEntries(observavel.itens.map((i) => [i.codigo, i]));
   assert.equal(porCodigo.ALTA_SORRISO.rotulo, "Sorriso - alta tecnologia");
   assert.equal(porCodigo.ALTA_MATO_GROSSO.rotulo, "Mato Grosso - alta tecnologia");
-  assert.equal(porCodigo.ALTA_MATO_GROSSO.agregado, true);
-  assert.equal(porCodigo.ALTA_SORRISO.agregado, false);
-  assert.equal(observavel.rotuloModalidade, "Local e tecnologia");
   assert.equal(observavel.itemPrincipal, "Mato Grosso - alta tecnologia");
   assert.deepEqual(observavel.itensPadrao, ["ALTA_MATO_GROSSO", "MEDIA_MATO_GROSSO"]);
-  assert.equal(observavel.campoPrincipal, "CT");
-  assert.ok(observavel.campos.length > 50, "uma métrica por item de custo da planilha");
-  assert.equal(observavel.unidade, "R$/ha");
 });
 
 test("IMEA custo: 'Produtividade Modal' e 'Dólar compra' vêm na PRÓPRIA unidade, não em R$/ha", async () => {
-  const { observavel } = await observaveisService.obterDetalheObservavel("IMEA_CUSTO_MILHO_MENSAL", {
-    observationRepository: repoCustoImea(),
+  const { observavel } = await observaveisService.obterDetalheObservavel("IMEA_CUSTO_MILHO_MES", {
+    observationRepository: repoCustoMesImea(),
     collectionExecutionRepository: semExecucao
   });
   const porCodigo = Object.fromEntries(observavel.campos.map((c) => [c.codigo, c]));
@@ -709,33 +743,35 @@ test("IMEA custo: 'Produtividade Modal' e 'Dólar compra' vêm na PRÓPRIA unida
   assert.equal(porCodigo.DOLAR_COMPRA.unidade, "R$/US$");
 });
 
-test("IMEA custo mensal x ponderado x ponderado-safra: prefixos de série e frequência diferentes", async () => {
+test("IMEA custo por mês x por safra: prefixos de série e frequência diferentes (as duas frequências não cabem no mesmo card)", async () => {
   const { observaveis } = await observaveisService.listarObservaveis({
     marketQuoteRepository: { buscarMaisRecente: async () => null },
-    observationRepository: repoCustoImea()
+    observationRepository: repoCustoMesImea()
   });
 
-  const mensal = observaveis.find((o) => o.codigo === "IMEA_CUSTO_MILHO_MENSAL");
-  const ponderadoMes = observaveis.find((o) => o.codigo === "IMEA_CUSTO_MILHO_PONDERADO_MES");
-  const ponderadoSafra = observaveis.find((o) => o.codigo === "IMEA_CUSTO_MILHO_PONDERADO_SAFRA");
+  const mes = observaveis.find((o) => o.codigo === "IMEA_CUSTO_MILHO_MES");
+  const safra = observaveis.find((o) => o.codigo === "IMEA_CUSTO_MILHO_SAFRA");
 
-  assert.equal(mensal.frequencia, "MENSAL");
-  assert.equal(ponderadoMes.frequencia, "MENSAL");
-  assert.equal(ponderadoSafra.frequencia, "ANUAL");
+  assert.equal(mes.frequencia, "MENSAL");
+  assert.equal(safra.frequencia, "ANUAL");
 
   const pedidos = [];
-  const deps = {
-    observationRepository: repoCustoImea({
-      buscarHistoricoAtual: async (p) => {
-        pedidos.push(p.seriesCodes);
-        return { registros: [], total: 0 };
-      }
-    })
+  const buscarHistoricoAtual = async (p) => {
+    pedidos.push(p.seriesCodes);
+    return { registros: [], total: 0 };
   };
-  await observaveisService.obterHistoricoObservavel("IMEA_CUSTO_MILHO_MENSAL", { itens: "ALTA_MATO_GROSSO" }, deps);
-  await observaveisService.obterHistoricoObservavel("IMEA_CUSTO_MILHO_PONDERADO_SAFRA", { itens: "ALTA_MATO_GROSSO" }, deps);
-  assert.deepEqual(pedidos[0], ["IMEA.CUSTO.MILHO.MENSAL.MES.ALTA_MATO_GROSSO.CT"]);
-  assert.deepEqual(pedidos[1], ["IMEA.CUSTO.MILHO.PONDERADO.SAFRA.ALTA_MATO_GROSSO.CT"]);
+  await observaveisService.obterHistoricoObservavel(
+    "IMEA_CUSTO_MILHO_MES",
+    { itens: "PONDERADO_ALTA_MATO_GROSSO" },
+    { observationRepository: repoCustoMesImea({ buscarHistoricoAtual }) }
+  );
+  await observaveisService.obterHistoricoObservavel(
+    "IMEA_CUSTO_MILHO_SAFRA",
+    { itens: "ALTA_MATO_GROSSO" },
+    { observationRepository: repoCustoSafraImea({ buscarHistoricoAtual }) }
+  );
+  assert.deepEqual(pedidos[0], ["IMEA.CUSTO.MILHO.MES.PONDERADO_ALTA_MATO_GROSSO.CT"]);
+  assert.deepEqual(pedidos[1], ["IMEA.CUSTO.MILHO.SAFRA.ALTA_MATO_GROSSO.CT"]);
 });
 
 test("IMEA: o escopo de cada card diz o que cobre (só MT; os 3 indicadores identificados; a lacuna de vintage)", async () => {
@@ -745,7 +781,7 @@ test("IMEA: o escopo de cada card diz o que cobre (só MT; os 3 indicadores iden
   assert.match(porSafra, /Mato Grosso e as 7 regiões/);
   assert.match(porSafra, /casando os valores com o relatório/);
 
-  const custo = await escopoDe("IMEA_CUSTO_MILHO_MENSAL", repoCustoImea());
+  const custo = await escopoDe("IMEA_CUSTO_MILHO_MES", repoCustoMesImea());
   assert.match(custo, /só o milho de Mato Grosso/);
   assert.match(custo, /Nova Mutum/, "cita a lacuna real de abas ausentes no Índice");
 });
