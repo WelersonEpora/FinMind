@@ -153,7 +153,7 @@ onMounted(carregar)
       <div class="tabela-card__filtros">
         <div>
           <label class="form-label small mb-1 d-block">Coletor</label>
-          <input v-model="coletorFiltro" type="search" class="form-control form-control-sm" placeholder="ex.: bcb-usd-brl-venda" @input="onColetorInput" />
+          <input v-model="coletorFiltro" type="search" class="form-control form-control-sm" placeholder="ex.: imea, bcb, wasde..." @input="onColetorInput" />
         </div>
         <div>
           <label class="form-label small mb-1 d-block">Status</label>

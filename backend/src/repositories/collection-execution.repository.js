@@ -20,7 +20,8 @@ const COLUNAS_ORDENACAO = { iniciadoEm: "started_at", duracaoMs: "duration_ms", 
 async function listar({ coletor, status, dataInicio, dataFim, pagina, tamanhoPagina, ordenarPor, ordem }) {
   const where = {};
 
-  if (coletor) where.collector_code = coletor;
+  // Busca por PARTE do nome do coletor (ex.: "imea" acha "imea-milho-safra" e "imea-custo-milho"), não só o código exato.
+  if (coletor) where.collector_code = { [Op.like]: `%${coletor}%` };
   if (status) where.status = status;
 
   if (dataInicio || dataFim) {
