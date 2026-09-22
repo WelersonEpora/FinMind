@@ -110,7 +110,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM, Comex Stat (exportação de milho), WASDE (balanço do milho), Conab (milho do boletim mensal) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM, Comex Stat (exportação de milho), WASDE (balanço do milho), Conab (milho do boletim mensal), IMEA (milho de MT por safra e custo de produção) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

@@ -24,7 +24,8 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: randomUUID
       },
-      series_code: { type: DataTypes.STRING(60), allowNull: false },
+      // 120 chars (ADR 0018 alargou de 60: o IMEA precisa de até 91).
+      series_code: { type: DataTypes.STRING(120), allowNull: false },
       observed_at: { type: DataTypes.DATEONLY, allowNull: false },
       published_at: { type: DataTypes.DATE, allowNull: false },
       collected_at: { type: DataTypes.DATE, allowNull: false },

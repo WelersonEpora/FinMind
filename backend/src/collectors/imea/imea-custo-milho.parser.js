@@ -202,7 +202,12 @@ function extrairAba(linhas, { tipo, tecnologia, local }) {
       observacoes.push({
         seriesCode: `IMEA.CUSTO.MILHO.${tipo}.${col.periodo}.${tecnologia}_${codigoLocal}.${item}`,
         observedAt: col.observedAt,
-        valor,
+        // Arredondado a 6 casas (mesma precisão do DECIMAL(18,6) e do mesmoValor() do point-in-time.service.js).
+        // O IMEA calcula esses valores (custo ponderado por área etc.) e a planilha guarda o float bruto com mais
+        // de 6 casas (ex.: 27,8871875): sem arredondar aqui, a comparação em JS (Number(x).toFixed(6)) e o
+        // arredondamento do banco na 1ª gravação podem discordar no 6º dígito (double vs decimal), lendo uma
+        // republicação sem mudança real como revisão nova a cada coleta. Achado real (backend/database, 2026-09-22).
+        valor: Number(valor.toFixed(6)),
         unidade,
         tipo,
         tecnologia,

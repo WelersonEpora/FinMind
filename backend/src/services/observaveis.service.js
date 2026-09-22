@@ -460,6 +460,92 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- IMEA - milho de Mato Grosso (ADR 0018): área, produção e produtividade por safra, e custo de produção ---
+  {
+    instrumentCode: "IMEA_MILHO_SAFRA",
+    nome: "Milho de MT por safra e região (IMEA)",
+    unidade: "t",
+    casasDecimais: 0,
+    origem: "observation",
+    frequencia: "ANUAL",
+    toleranciaDias: 430,
+    fonte: FONTE_IMEA,
+    fonteCollectorCode: "imea-milho-safra",
+    // Séries `IMEA.MILHO.<REGIAO>.<METRICA>`: as regiões são descobertas no banco; vem marcado só Mato Grosso (o estado).
+    porRegiao: {
+      prefixoSerie: "IMEA.MILHO",
+      campoReferencia: "PRODUCAO",
+      itemPrincipal: "MATO_GROSSO",
+      itensPadrao: ["MATO_GROSSO"],
+      descritor: "imea"
+    },
+    campoPrincipal: "PRODUCAO",
+    campos: [
+      { codigo: "PRODUCAO", nome: "Produção", unidade: "t", casasDecimais: 0 },
+      { codigo: "AREA", nome: "Área", unidade: "ha", casasDecimais: 0 },
+      { codigo: "PRODUTIVIDADE", nome: "Produtividade", unidade: "sc/ha", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      metodologia:
+        "Um valor por safra (o dia da observação é 1º de setembro do ano de início; convenção, como no WASDE e na Conab). A API do IMEA devolve só a ÚLTIMA versão de cada safra, com a data da última atualização daquele valor: essa é a data de publicação (só a data; vale o fim do dia, para não antecipar o que se sabia), e cada revisão que a API passar a mostrar vira uma versão nova. Não há histórico de revisões a carregar: o vintage começa agora. A data de uma safra antiga é a da última atualização, não a da primeira publicação. Valores como publicados, sem conversão de unidade (ha, t, sc/ha). A produtividade é a que o IMEA publica, não a produção dividida pela área.",
+      formatoOrigem: "JSON (API pública e não documentada do site do IMEA, descoberta pelo JavaScript do próprio site)",
+      urlOficial: "https://www.imea.com.br/imea-site/indicador-milho",
+      escopo:
+        "só milho, só Mato Grosso e as 7 regiões do IMEA, com área, produção e produtividade das safras 2022/23 em diante. A resposta da API traz outros indicadores da cadeia (preço, custo por item, andamento de semeadura e colheita), mas sem nome: só estes 3 foram identificados com certeza, casando os valores com o relatório de Oferta e Demanda de 31/08/2026. Os demais não são coletados. A primeira estimativa da safra seguinte (2026/27, que o relatório traz) ainda não aparece na API; quando aparecer, entra sozinha. O balanço de oferta e demanda (estoques, consumo, exportação), a intenção de plantio e as versões antigas de cada estimativa estão só nos PDFs mensais do IMEA e não foram implementados.",
+      descricao:
+        "Área, produção e produtividade do milho de Mato Grosso por safra, para o estado e para as 7 regiões do IMEA, conforme os indicadores do IMEA (estimativa do IMEA, não da Conab). Uma linha por região."
+    }
+  },
+  {
+    ...BASE_CUSTO_IMEA,
+    instrumentCode: "IMEA_CUSTO_MILHO_MENSAL",
+    nome: "Custo do milho - mensal (IMEA)",
+    frequencia: "MENSAL",
+    // Publicado ~1 vez por mês (15/09/2026); o último ponto é o mês da estimativa (ago/2026, publicado em set).
+    toleranciaDias: 75,
+    porRegiao: porRegiaoCustoImea("MENSAL", "MES"),
+    fonteDetalhe: {
+      ...FONTE_DETALHE_CUSTO_IMEA,
+      metodologia:
+        "Uma coluna por mês da safra corrente (jun a ago/2026 na planilha de 15/09/2026; o mês com asterisco é estimativa e vira o metadado `estimativa`). O dia da observação é o 1º do mês. A data de publicação é a do arquivo no catálogo (só a data; vale o fim do dia). Valores como publicados, sem conversão. A coluna de variação mensal, derivada, não é coletada.",
+      escopo: ESCOPO_CUSTO_IMEA,
+      descricao:
+        "Custo de produção do milho em Mato Grosso, por item de custo (R$/ha), mês a mês, na planilha \"Mensal\" do IMEA, em alta e média tecnologia. O custo total (CT) é o item em destaque."
+    }
+  },
+  {
+    ...BASE_CUSTO_IMEA,
+    instrumentCode: "IMEA_CUSTO_MILHO_PONDERADO_MES",
+    nome: "Custo do milho - ponderado, por mês (IMEA)",
+    frequencia: "MENSAL",
+    toleranciaDias: 75,
+    porRegiao: porRegiaoCustoImea("PONDERADO", "MES"),
+    fonteDetalhe: {
+      ...FONTE_DETALHE_CUSTO_IMEA,
+      metodologia:
+        "As colunas mensais da planilha \"Ponderado\" (jul e ago/2026 na de 15/09/2026; o mês com asterisco é estimativa). O dia da observação é o 1º do mês. Os valores diferem dos da planilha \"Mensal\" no mesmo mês; o IMEA não explica a diferença no arquivo, então este card não a interpreta. A data de publicação é a do arquivo no catálogo (só a data; vale o fim do dia). Valores como publicados, sem conversão.",
+      escopo: ESCOPO_CUSTO_IMEA,
+      descricao:
+        "Custo de produção do milho em Mato Grosso, por item de custo (R$/ha), nas colunas mensais da planilha \"Ponderado\" do IMEA, em alta e média tecnologia. O custo total (CT) é o item em destaque."
+    }
+  },
+  {
+    ...BASE_CUSTO_IMEA,
+    instrumentCode: "IMEA_CUSTO_MILHO_PONDERADO_SAFRA",
+    nome: "Custo do milho - ponderado, por safra (IMEA)",
+    frequencia: "ANUAL",
+    toleranciaDias: 430,
+    porRegiao: porRegiaoCustoImea("PONDERADO", "SAFRA"),
+    fonteDetalhe: {
+      ...FONTE_DETALHE_CUSTO_IMEA,
+      metodologia:
+        "As colunas \"Consolidado\" da planilha \"Ponderado\" (safras 2021/22 a 2025/26 na de 15/09/2026): um valor por safra. O dia da observação é 1º de setembro do ano de início (convenção, como no WASDE e na Conab). A data de publicação é a do arquivo no catálogo, inclusive para safras antigas (limite superior conservador: o valor aparece depois, nunca antes). Valores como publicados, sem conversão.",
+      escopo: ESCOPO_CUSTO_IMEA,
+      descricao:
+        "Custo de produção do milho em Mato Grosso por safra consolidada, por item de custo (R$/ha), conforme a planilha \"Ponderado\" do IMEA, em alta e média tecnologia. O custo total (CT) é o item em destaque."
+    }
+  },
+
   // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
   // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por

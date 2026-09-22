@@ -4,7 +4,7 @@ Uma linha por fonte. Processo, checklist e definição dos níveis 0–5:
 `docs/processo-reconhecimento-fontes.md`. A evidência (chamadas reais, números)
 vive nos ADRs — este índice só aponta.
 
-**Última atualização: 2026-09-21** (registro retroativo das 7 fontes já implementadas; PSD reconhecida no nível 1; WASDE e Conab implementados).
+**Última atualização: 2026-09-22** (registro retroativo das 7 fontes já implementadas; PSD reconhecida no nível 1; WASDE, Conab e IMEA implementados).
 
 ## Fontes implementadas
 
@@ -20,6 +20,7 @@ vive nos ADRs — este índice só aponta.
 | USDA WASDE — balanço do milho, arquivo de edições (ESMIS) | 5 | **Vintage real por edição mensal**, com `published_at` real (data do release, na listagem em HTML). **Só de 2011 em diante** (antes só PDF/TXT, sem leitor). Só EUA e ~20 regiões; EUA em milhões de bushels. Raspa o HTML (sem API confirmada); republicação do mesmo dia mantém a 1ª versão. **Não confirmados:** API do ESMIS, licença, limite de uso. `curl` local falha por certificado nos hosts `usda.gov` (o `fetch` do Node funciona). Carga de 2011 a 2026-09 feita em dev e no servidor (2026-09-21, informado pelo usuário) | ADR 0015 |
 | Conab — Boletim da Safra de Grãos (milho: 1ª/2ª/3ª safra por UF e balanço) | 5 (limitado) | **Vintage real por levantamento mensal**, com `published_at` real (data e hora da página do levantamento). **Só de fev/2025 em diante** (o que o índice da Conab mantém: 15 planilhas, com lacunas). Sem API nem dicionário de dados (quebra se o layout mudar; unidade e mês conferidos). O `published_at` das safras antigas é um limite superior (conservador). A planilha é a versão atual, que pode ter correção posterior à publicação (`metadata.paginaAtualizadaEm`). Licença não verificada. Carga de 2025-02 a 2026-09 feita em dev e no servidor (2026-09-21, informado pelo usuário; a Conab é acessível de lá) | ADR 0017 (reconhecimento: ADR 0016) |
 | B3 — futuros CCM por vencimento | 5 (limitado) | Só existe uma **janela de ~15 meses** de graça; 10+ anos exigem fonte paga (decisão de orçamento). Feed sem documentação oficial | ADR 0009 |
+| IMEA — milho de MT: área/produção/produtividade por safra e custo de produção | 4 (sem backfill possível) | **Sem vintage histórico**: a API de safra só guarda o valor atual de cada safra e o catálogo de custo só a versão atual de cada planilha — o vintage começa a partir de agora, sem backfill a rodar (diferente do WASDE/Conab). 3 indicadores identificados por casamento de valor contra o relatório de O&D (IDs sem nome na API). Oferta e demanda, intenção de plantio e andamento de safra existem só em PDF, fora do escopo (mesmo limite do WASDE). Licença não investigada | ADR 0018 |
 
 ## Reconhecidas (nível 1 — sem coletor, sem autorização)
 
@@ -40,7 +41,6 @@ registrada em ADR (`CLAUDE.md`). "AgroMind" indica o nível que a fonte tem lá.
 
 | Fonte | Observação |
 |---|---|
-| IMEA (MT) | Boletins XLSX/PDF. AgroMind: nível 4, só o valor mais recente |
 | CEPEA | Bloqueada para automação (Cloudflare) — pergunta 7 do David |
 | FAO/AMIS | FAOSTAT API; nunca reconhecida |
 | BCB Focus | Expectativas de mercado. AgroMind: nível 3 (Selic) |

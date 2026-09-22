@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-09-21.**
+**Última atualização: 2026-09-22.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -33,7 +33,7 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js` (`DGS10 − T10YIE`), validado contra DFII10. Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
-| Telas de dados | `/dados-mercado/observaveis` (17 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Telas de dados | `/dados-mercado/observaveis` (21 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` (04:00, 06:00, 08:00 **UTC**, **não versionado**), confirmado por SSH em 2026-09-21: dispara nos 3 horários e todos os coletores terminam em `success` — ADR 0004 |
 | CI/CD | Lint + testes + build em toda branch; deploy por push na `main`, que já roda as migrations automaticamente (`scripts/deploy.sh`, passo 4/6) |
 
@@ -52,6 +52,7 @@ Status de cada fonte, evidências e ressalvas: **ADR 0009**.
 | Comex Stat (MDIC) | Exportação de milho, mensal (volume em kg e valor FOB em US$) | **Desde 2005** (jan/2005 a ago/2026, 260 meses); antes disso o código NCM muda e não foi mapeado — pode ser estendido depois | Estimado (dia 15 do mês seguinte); revisões da fonte não confirmadas | ✅ Validado em 2026-09-21 em dev e produção (260 meses por série) — ADR 0013 |
 | USDA WASDE (ESMIS) | Balanço do milho por edição mensal: EUA (13 atributos) e ~20 regiões do mundo (7 atributos), 167 séries | **Desde 2011-01** (188 edições, XLS; antes só PDF/TXT) | **Real, com dia** (data do release); **vintage real**: 24.542 revisões guardadas | ✅ Validado em 2026-09-21 em dev (27.309 linhas) e **backfill já rodado no servidor** (informado pelo usuário) — ADR 0015 |
 | Conab (Boletim da Safra de Grãos) | Milho por safra (1ª, 2ª, 3ª e total) por Região/UF (área, produtividade, produção) e balanço nacional (estoque inicial e final, produção, importação, suprimento, consumo, exportação, demanda total): 397 séries | **Vintage (estimativas mês a mês) só desde fev/2025**: são 15 levantamentos mensais, o máximo que o índice da Conab mantém (com lacunas); antes disso a fonte não oferece. O balanço traz também os valores de safras de 2018/19 a 2025/26, mas sem vintage próprio. As séries históricas desde 1976/77 e os preços **não** foram carregados (adiado por decisão) | **Real, com data e hora** (página do levantamento); **vintage real**: cada levantamento é uma versão (até 10 revisões por valor). Nas safras antigas é um **limite superior**: entra com a data do primeiro levantamento lido, então uma consulta anterior a fev/2025 volta vazia | ✅ Validado em 2026-09-21 em dev (3.436 linhas) e **backfill e coleta diária já rodados no servidor, 0 falhas** (informado pelo usuário) — ADR 0017 |
+| IMEA — milho de MT | Área/produção/produtividade por safra (Mato Grosso + 7 regiões, 3 indicadores identificados na API por casamento de valor) e custo de produção (Mensal/Ponderado × Alta/Média Tecnologia, ~62 itens por hectare): 4 cards | Safras 2022/23 a 2025/26 (API) e custo publicado em 15/09/2026 (catálogo). **Sem backfill possível**: nem a API nem o catálogo de arquivos guardam edições anteriores — o vintage começa a partir de agora | **Real, só a data** (data da última atualização na API; data do arquivo no catálogo) | ✅ Validado e gravado no banco de dev em 2026-09-22 (96 observações de safra; 15.402 de custo, 5.073 séries; reexecução idempotente) — ADR 0018 |
 
 ### Como tratamos as fontes de dados
 
@@ -80,7 +81,8 @@ licença pendente. Por isso a coluna de ressalvas é a que importa na reunião:
 | USDA WASDE — arquivo ESMIS (milho) | 5 | **Só de 2011 em diante** (antes só PDF/TXT); só EUA e ~20 regiões; raspa o HTML da listagem (sem API confirmada); republicação do mesmo dia mantém a 1ª versão; licença e limite de uso não confirmados. **Backfill já rodado em produção (informado pelo usuário)**. Em qualquer banco novo ele vem ANTES da coleta diária: a diária se recusa a gravar enquanto a fonte estiver vazia (senão truncaria o vintage) | — |
 | Conab — boletim mensal (milho: 1ª/2ª/3ª safra por UF e balanço) | 5 | **Vintage real por levantamento**, `published_at` real; **só de fev/2025 em diante** (o que o índice mantém, com lacunas). Sem API (quebra se o layout mudar); `published_at` das safras antigas é limite superior; a planilha é a versão atual (pode ter correção posterior); licença não verificada. **Backfill já rodado no servidor (2026-09-21, informado pelo usuário; o log mostra 15 levantamentos, 0 falhas, 88 s: a Conab é acessível de lá)**. Em qualquer banco novo ele vem ANTES da coleta diária | — |
 | Conab — séries históricas (desde 1976/77) e preços | 1 | Reconhecidas, **sem coletor por decisão do usuário**: as séries históricas não têm vintage; os preços em TXT cobrem só ~12 meses e o histórico longo segue bloqueado | Retomar quando houver uma opção |
-| CEPEA, IMEA, NOAA, CPI, WGC | 0 | Candidatas, fora do escopo; CEPEA bloqueada para automação | David (pergunta 7) |
+| IMEA — milho de MT (safra e custo) | 4 | **Sem backfill possível** (nem a API nem o catálogo guardam edição anterior): vintage começa agora. IDs de indicador sem nome (identificados por casamento de valor); oferta/demanda, intenção de plantio e andamento de safra existem só em PDF e não foram implementados; licença não investigada | — |
+| CEPEA, NOAA, CPI, WGC | 0 | Candidatas, fora do escopo; CEPEA bloqueada para automação | David (pergunta 7) |
 
 Processo: `docs/processo-reconhecimento-fontes.md`. Uma linha por fonte, com
 evidência: `docs/reconhecimento-fontes/README.md` (checklist completo de FRED e
@@ -90,7 +92,7 @@ LBMA em arquivos próprios, por causa da licença).
 
 Fontes de **milho** que o relatório do David lista (FEL 1, §6.5, §7 e o plano de
 integração da §9.2) e que ainda **não coletamos**. Já feitas: USDA NASS (Crop
-Progress), CFTC, B3 (CCM), Comex Stat, WASDE (balanço do milho), Conab (boletim mensal), BCB SGS e FRED. Aqui se faz o **reconhecimento** de cada
+Progress), CFTC, B3 (CCM), Comex Stat, WASDE (balanço do milho), Conab (boletim mensal), IMEA (área/produção/produtividade por safra e custo), BCB SGS e FRED. Aqui se faz o **reconhecimento** de cada
 fonte (níveis 0→1, `docs/processo-reconhecimento-fontes.md`) e a **recomendação**,
 para decidir e levar à reunião com o David. **Reconhecer não é implementar:**
 nenhum coletor novo entra sem a decisão do David ou autorização explícita
@@ -100,13 +102,18 @@ armadilhas), não o código (outro banco, outra arquitetura).
 
 | # | Fonte (como o relatório a descreve) | Observação |
 |---|---|---|
-| 1 | **IMEA (MT)** — oferta e demanda em MT, custos, intenção de plantio. Boletins mensais XLSX/PDF | AgroMind: nível 4, mas só devolve o valor mais recente (histórico não confirmado) |
-| 2 | **CEPEA/ESALQ** — indicador diário do preço do milho. O relatório diz "scraping viável; sem API oficial" | **Bloqueada:** Cloudflare e Termos de Uso (`docs/analise-critica-fel1-milho-ouro.md`). No AgroMind só entra por exportação manual. Depende do David: pergunta 7 |
-| 3 | **FAO/AMIS** — balanço global de grãos (FAOSTAT API). Fase 2 do plano | Nunca reconhecida, nem no AgroMind |
-| 4 | **BCB Focus** — expectativas de mercado. Fase 1 do plano (o SGS de dólar e Selic já está feito) | AgroMind: nível 3, só a Selic; API Olinda pública |
-| 5 | **Clima** (§6.5.1, acrescentada na revisão como obrigatória) — NOAA, INMET, NASA POWER, CPTEC/INPE, ECMWF/Copernicus ERA5 | NOAA, INMET e NASA POWER: API gratuita. ERA5: cadastro. Somar/Climatempo: comerciais, Fase 3. AgroMind: NOAA em nível 0 |
-| 6 | **Abimilho** e **CNA** — estatísticas e panorama do setor | Sem API (HTML/PDF), periódico. Menor prioridade |
-| 7 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3, 5 e 7 da §4 |
+| 1 | **CEPEA/ESALQ** — indicador diário do preço do milho. O relatório diz "scraping viável; sem API oficial" | **Bloqueada:** Cloudflare e Termos de Uso (`docs/analise-critica-fel1-milho-ouro.md`). No AgroMind só entra por exportação manual. Depende do David: pergunta 7 |
+| 2 | **FAO/AMIS** — balanço global de grãos (FAOSTAT API). Fase 2 do plano | Nunca reconhecida, nem no AgroMind |
+| 3 | **BCB Focus** — expectativas de mercado. Fase 1 do plano (o SGS de dólar e Selic já está feito) | AgroMind: nível 3, só a Selic; API Olinda pública |
+| 4 | **Clima** (§6.5.1, acrescentada na revisão como obrigatória) — NOAA, INMET, NASA POWER, CPTEC/INPE, ECMWF/Copernicus ERA5 | NOAA, INMET e NASA POWER: API gratuita. ERA5: cadastro. Somar/Climatempo: comerciais, Fase 3. AgroMind: NOAA em nível 0 |
+| 5 | **Abimilho** e **CNA** — estatísticas e panorama do setor | Sem API (HTML/PDF), periódico. Menor prioridade |
+| 6 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3, 5 e 7 da §4 |
+
+O IMEA foi implementado só em **área, produção, produtividade e custo de
+produção** (o que a API e o catálogo de arquivos do site oferecem em
+JSON/XLSX). Oferta e demanda (balanço), intenção de plantio e andamento de
+semeadura/colheita — o resto do que o item pedia — existem só em PDF e
+**não** foram implementados (ADR 0018).
 
 Fora desta lista, por já estarem na §4: o **preço histórico dos futuros** (B3 com
 10+ anos e CME ZC, ambos pagos — pergunta 3) e as fontes de ouro que ele lista e
@@ -143,7 +150,7 @@ Preencher a resposta e a data quando o David responder.
 Não implementar sem autorização explícita registrada em ADR:
 
 - Café, petróleo e qualquer ativo além de USD/BRL, Selic, ouro e milho.
-- CEPEA (bloqueada por Cloudflare), Conab (séries históricas e preços), IMEA, WGC, PSD, clima, CPI.
+- CEPEA (bloqueada por Cloudflare), Conab (séries históricas e preços), IMEA (oferta e demanda, intenção de plantio — só em PDF), WGC, PSD, clima, CPI.
 - Série contínua de futuros, rolagem e backtest.
 - Qualquer sinal, limiar, indicador técnico ou regra de compra/venda.
 - IA em qualquer ponto (o ADR 0010 é só proposta de desenho futuro).
@@ -152,6 +159,17 @@ Não implementar sem autorização explícita registrada em ADR:
 ## 6. Entregas realizadas
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-09-22</summary>
+
+Registro do que foi fechado na lista "Falta fazer" anterior (detalhe nos documentos apontados):
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| IMEA — milho de MT (safra e custo) | Dois coletores: `imea-milho-safra` (área, produção e produtividade de Mato Grosso e das 7 regiões do IMEA, por safra — 3 indicadores identificados por casamento de valor numa API que não nomeia os ~130 que traz) e `imea-custo-milho` (as 4 planilhas XLSX de custo de produção do site, ~62 itens por hectare, em Mensal/Ponderado × Alta/Média Tecnologia). Validado contra a fonte real e gravado no banco de dev: 96 observações de safra e 15.402 de custo (5.073 séries), com 2 inválidas reais (colunas ambíguas na planilha, não fixture); reexecução idempotente, 0 revisão espúria. 4 cards novos nos Observáveis. **Autorizado pelo usuário em 2026-09-22**. **Dois achados corrigidos na validação contra o banco real** (nenhum aparecia com fixture): `observation.series_code` era `VARCHAR(60)`, curto demais para a convenção do IMEA (até 91 chars) — 10.364 observações eram descartadas em silêncio pelo `INSERT IGNORE`; nova migration alarga para 120. E valores do IMEA com mais de 6 casas decimais discordavam do arredondamento do `DECIMAL(18,6)` e geravam revisão falsa a cada coleta; corrigido arredondando no parser. **Sem backfill possível**: nem a API nem o catálogo de arquivos guardam edição anterior — diferente do WASDE/Conab, o vintage só começa a existir a partir da 1ª coleta diária real. Oferta e demanda, intenção de plantio e andamento de safra existem só em PDF e **não** foram implementados (mesmo limite de PDF já visto no WASDE) | ADR 0018 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-09-21</summary>
