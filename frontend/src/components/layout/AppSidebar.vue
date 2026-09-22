@@ -157,7 +157,12 @@ const systemLinks = computed(() => {
 <style scoped>
 .finmind-sidebar {
   grid-area: sidebar;
-  width: 240px;
+  width: 216px;
+  /* Fonte um pouco menor que o corpo (padrão do Bootstrap) - visual mais
+     enxuto e ajuda a caber sem rolagem em telas baixas (notebook sem monitor
+     externo). Herda pra dentro do WorkspaceSwitcher também (Bootstrap Reboot
+     faz `button/input` herdarem font-size do ancestral). */
+  font-size: 0.9rem;
   position: sticky;
   top: 64px;
   /* Acima do conteúdo posicionado do <main>: o dropdown do seletor de espaço
@@ -198,7 +203,7 @@ const systemLinks = computed(() => {
 }
 
 .finmind-nav-icon {
-  font-size: 1.1rem;
+  font-size: 1rem;
   width: 18px;
   text-align: center;
 }
@@ -209,11 +214,11 @@ const systemLinks = computed(() => {
 .finmind-future-link {
   padding-top: 0.18rem !important;
   padding-bottom: 0.18rem !important;
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   opacity: 0.75;
 }
 .finmind-future-link .finmind-nav-icon {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 .finmind-sidebar .nav-pills .nav-link.active {
