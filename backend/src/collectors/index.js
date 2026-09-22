@@ -20,6 +20,7 @@ const wasdeMilhoCollector = require("./wasde/wasde-milho.collector");
 const conabMilhoCollector = require("./conab/conab-milho.collector");
 const imeaMilhoSafraCollector = require("./imea/imea-milho-safra.collector");
 const imeaCustoMilhoCollector = require("./imea/imea-custo-milho.collector");
+const imeaOfertaDemandaMilhoCollector = require("./imea/imea-oferta-demanda-milho.collector");
 
 function bootstrapCollectors() {
   if (listCollectors().length === 0) {
@@ -41,6 +42,7 @@ function bootstrapCollectors() {
     registerCollector(conabMilhoCollector);
     registerCollector(imeaMilhoSafraCollector);
     registerCollector(imeaCustoMilhoCollector);
+    registerCollector(imeaOfertaDemandaMilhoCollector);
 
     if (env.collectors.nassApiKey) {
       registerCollector(usdaCropProgressCollector);

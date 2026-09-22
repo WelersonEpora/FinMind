@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    20,
-    "USD_BRL e SELIC (market_quote) + 18 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 3 do IMEA (safra + custo por mês + custo por safra) + 2 cards do CCM)"
+    21,
+    "USD_BRL e SELIC (market_quote) + 19 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + 2 cards do CCM)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -784,6 +784,68 @@ test("IMEA: o escopo de cada card diz o que cobre (só MT; os 3 indicadores iden
   const custo = await escopoDe("IMEA_CUSTO_MILHO_MES", repoCustoMesImea());
   assert.match(custo, /só o milho de Mato Grosso/);
   assert.match(custo, /Nova Mutum/, "cita a lacuna real de abas ausentes no Índice");
+});
+
+// --- IMEA: balanço de oferta e demanda (seletor de métrica, sem seletor de item - só Mato Grosso) ---
+
+function repoImeaBalanco(extra = {}) {
+  return {
+    buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2025-09-01", 0.64),
+    buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
+    resumirSeries: async () => [],
+    listarItens: async () => [],
+    ...extra
+  };
+}
+
+test("IMEA balanço: 10 métricas (estoque final por padrão), série única (Mato Grosso) e nenhum seletor de item", async () => {
+  const { observavel } = await observaveisService.obterDetalheObservavel("IMEA_MILHO_BALANCO", {
+    observationRepository: repoImeaBalanco(),
+    collectionExecutionRepository: semExecucao
+  });
+
+  assert.deepEqual(observavel.campos.map((c) => c.codigo), [
+    "ESTOQUE_FINAL",
+    "OFERTA",
+    "ESTOQUE_INICIAL",
+    "PRODUCAO",
+    "IMPORTACAO",
+    "DEMANDA",
+    "CONSUMO_MT",
+    "CONSUMO_INTERESTADUAL",
+    "EXPORTACAO",
+    "AQUISICOES_PUBLICAS"
+  ]);
+  assert.equal(observavel.campoPrincipal, "ESTOQUE_FINAL");
+  assert.equal(observavel.itens, undefined, "sem itens: o balanço não tem quebra por região, só o seletor de métrica");
+  assert.equal(observavel.unidade, "milhões de t");
+  assert.equal(observavel.cotacaoAtual.valor, 0.64);
+});
+
+test("IMEA balanço: cada métrica consulta a sua própria série IMEA.MILHO.BALANCO.<CAMPO>", async () => {
+  const pedidos = [];
+  const deps = { observationRepository: repoImeaBalanco({ buscarHistoricoAtual: async (p) => { pedidos.push(p.seriesCodes); return { registros: [linhaObservation(p.seriesCodes[0], "2025-09-01", 58.04)], total: 1 }; } }) };
+
+  const padrao = await observaveisService.obterHistoricoObservavel("IMEA_MILHO_BALANCO", {}, deps);
+  const producao = await observaveisService.obterHistoricoObservavel("IMEA_MILHO_BALANCO", { campo: "PRODUCAO" }, deps);
+
+  assert.deepEqual(pedidos, [["IMEA.MILHO.BALANCO.ESTOQUE_FINAL"], ["IMEA.MILHO.BALANCO.PRODUCAO"]]);
+  assert.equal(padrao.historico[0].unidade, "milhões de t");
+  assert.equal(producao.historico[0].modalidade, "valor");
+  await assert.rejects(() => observaveisService.obterHistoricoObservavel("IMEA_MILHO_BALANCO", { campo: "INEXISTENTE" }, deps), /campo/);
+});
+
+test("IMEA balanço: a origem é explicitamente o PDF do IMEA (não uma API), e o escopo avisa que não tem quebra regional nem reconcilia Produção com o card de safra", async () => {
+  const { observavel } = await observaveisService.obterDetalheObservavel("IMEA_MILHO_BALANCO", {
+    observationRepository: repoImeaBalanco(),
+    collectionExecutionRepository: semExecucao
+  });
+
+  assert.match(observavel.fonteDetalhe.formatoOrigem, /^PDF/);
+  assert.match(observavel.fonteDetalhe.formatoOrigem, /extraído do texto do PDF/);
+  assert.match(observavel.fonteDetalhe.metodologia, /COORDENADA/);
+  assert.match(observavel.fonteDetalhe.escopo, /não tem quebra por região/);
+  assert.match(observavel.fonteDetalhe.escopo, /não são reconciliados/);
 });
 
 // --- padrão dos cards: a tela decide o período inicial do gráfico pela frequência (frontend/src/utils/periodo-grafico.js) ---

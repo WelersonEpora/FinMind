@@ -540,6 +540,46 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- IMEA - balanço de oferta e demanda do milho de Mato Grosso, do PDF mensal (ADR 0019) ---
+  // Card à parte do de safra (`IMEA_MILHO_SAFRA`): o balanço não tem quebra por região (só Mato
+  // Grosso, ao contrário do card de safra, que tem as 7 regiões do IMEA) - colocar as duas coisas no
+  // mesmo seletor `porRegiao` deixaria a maioria dos itens sem dado. Mesmo critério de
+  // compatibilidade do WASDE/custo, só que no eixo "item" em vez de "frequência"/"unidade".
+  {
+    instrumentCode: "IMEA_MILHO_BALANCO",
+    nome: "Milho - balanço de oferta e demanda (IMEA)",
+    unidade: "milhões de t",
+    casasDecimais: 2,
+    origem: "observation",
+    frequencia: "ANUAL",
+    toleranciaDias: 430,
+    fonte: FONTE_IMEA,
+    fonteCollectorCode: "imea-oferta-demanda-milho",
+    // Série `IMEA.MILHO.BALANCO.<CAMPO>`: UMA série por métrica, só Mato Grosso - a tela oferece só o seletor de métrica.
+    porCampo: { prefixoSerie: "IMEA.MILHO.BALANCO" },
+    campoPrincipal: "ESTOQUE_FINAL",
+    campos: [
+      { codigo: "ESTOQUE_FINAL", nome: "Estoque final", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "OFERTA", nome: "Oferta", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "ESTOQUE_INICIAL", nome: "Estoque inicial", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "PRODUCAO", nome: "Produção", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "IMPORTACAO", nome: "Importação", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "DEMANDA", nome: "Demanda", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "CONSUMO_MT", nome: "Consumo em Mato Grosso", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "CONSUMO_INTERESTADUAL", nome: "Consumo interestadual", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "EXPORTACAO", nome: "Exportação", unidade: "milhões de t", casasDecimais: 2 },
+      { codigo: "AQUISICOES_PUBLICAS", nome: "Aquisições públicas", unidade: "milhões de t", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      formatoOrigem: 'PDF (boletim mensal "Oferta e Demanda - Milho", do catálogo de arquivos do site do IMEA) - dado extraído do texto do PDF publicado pelo IMEA, não de uma API',
+      metodologia:
+        "Um valor por safra e por edição (o dia da observação é 1º de setembro do ano de início; convenção, como no WASDE/Conab/IMEA safra). Cada edição mensal do PDF reestima a safra corrente e as anteriores: a data de publicação é a REAL, do catálogo de arquivos do site (só a data; vale o fim do dia, para nunca gravar uma data no futuro do relógio), e cada revisão vira uma versão nova, o que preserva o que o mercado sabia em cada data. A tabela de balanço é lida por COORDENADA (posição x/y de cada texto do PDF), não por texto corrido: é o que torna esta fonte viável (uma tentativa anterior com extração de texto corrido desalinhava a tabela, como também acontecia no WASDE antes de mudar para a planilha). As colunas de variação percentual entre safras, que a fonte também traz, não são coletadas (não são dado, são derivadas). Valores como publicados, sem conversão de unidade.",
+      escopo:
+        'só Mato Grosso (o balanço da fonte não tem quebra por região, ao contrário do card de safra), com as 10 linhas que o PDF traz: Oferta, Estoque inicial, Importação, Produção, Demanda, Consumo em Mato Grosso, Consumo interestadual, Exportação, Aquisições públicas e Estoque final. "Oferta" e "Demanda" são os subtotais que a própria fonte publica (Estoque inicial + Produção + Importação, e Consumo MT + Consumo interestadual + Exportação, respectivamente) - não é um cálculo do FinMind. A métrica Produção também aparece no card de safra (`IMEA_MILHO_SAFRA`), vinda de uma rota diferente da mesma fonte (API x PDF): os dois valores não são reconciliados entre si, cada um é o que aquela rota publica. Catálogo com edições de 2014-04-14 em diante (a mais antiga disponível); o próprio catálogo também lista um PDF de metodologia (sem tabela de safra), que não é uma edição e não é coletado.',
+      urlOficial: "https://www.imea.com.br/imea-site/relatorios-mercado"
+    }
+  },
+
   // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
   // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por

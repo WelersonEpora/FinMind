@@ -20,7 +20,8 @@
     "backfill:b3-ccm": "node scripts/backfill-b3-ccm.js",
     "backfill:comex-milho": "node scripts/backfill-comex-milho.js",
     "backfill:wasde-milho": "node scripts/backfill-wasde-milho.js",
-    "backfill:conab-milho": "node scripts/backfill-conab-milho.js"
+    "backfill:conab-milho": "node scripts/backfill-conab-milho.js",
+    "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -30,6 +31,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
     "mysql2": "^3.11.5",
+    "pdfjs-dist": "^4.10.38",
     "pino": "^9.5.0",
     "pino-http": "^10.3.0",
     "sequelize": "^6.37.7",
