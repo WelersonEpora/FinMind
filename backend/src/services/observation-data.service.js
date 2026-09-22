@@ -7,6 +7,7 @@ const { validarOrdenacao } = require("../shared/utils/ordenacao");
 const { decodificarFuturoCcm } = require("../shared/utils/b3-contrato");
 const { descreverRegiaoWasde } = require("../shared/utils/wasde-regiao");
 const { descreverRegiaoConab } = require("../shared/utils/conab-regiao");
+const { descreverRegiaoImea, descreverLocalCustoImea } = require("../shared/utils/imea-regiao");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
 // Leitura, para a tela de Observáveis, dos observáveis que vivem em
@@ -55,14 +56,16 @@ const DIMENSAO_VENCIMENTO = {
   padrao: (itens) => itens.filter((i) => i.ativo).map((i) => i.codigo)
 };
 
-// Dimensão "região" (WASDE por país, Conab por UF): o que muda é o mapa de rótulos, o texto do rótulo da
+// Dimensão "região" (WASDE por país, Conab por UF, IMEA por região e por município): o que muda é o mapa de rótulos, o texto do rótulo da
 // coluna e as notas da tela; as regras (ativo, destaque, padrão) são as mesmas.
 function criarDimensaoRegiao({ rotuloModalidade, textos, descreverRegiao }) {
   return {
     rotuloModalidade,
     textos,
     descrever(codigo) {
-      const { rotulo, agregado } = descreverRegiao(codigo);
+      const descricao = descreverRegiao(codigo);
+      if (!descricao) return null; // código que não é deste tipo de item: ignorado
+      const { rotulo, agregado } = descricao;
       // regiões antes de agregados, cada grupo em ordem alfabética
       return { rotulo, ordem: `${agregado ? "1" : "0"}${rotulo}`, extras: { agregado } };
     },
@@ -102,6 +105,30 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos uma região ou UF.",
       nota:
         "Cada linha é uma UF, uma macrorregião ou o Brasil, com a estimativa mais recente de cada levantamento mensal da Conab, como publicado (mil t, mil ha e kg/ha). O Brasil e as macrorregiões somam UFs e têm escala maior."
+    }
+  }),
+  imea: criarDimensaoRegiao({
+    rotuloModalidade: "Região",
+    descreverRegiao: descreverRegiaoImea,
+    textos: {
+      titulo: "Regiões de Mato Grosso",
+      inativo: "descontinuada",
+      mostrarInativos: "Mostrar séries descontinuadas",
+      semSelecao: "Selecione ao menos uma região.",
+      nota:
+        "Cada linha é Mato Grosso ou uma das 7 regiões em que o IMEA divide o estado (não são as regiões do IBGE), com o último valor de cada safra, como publicado (ha, t e sc/ha). Mato Grosso soma as regiões e tem escala maior."
+    }
+  }),
+  "imea-custo": criarDimensaoRegiao({
+    rotuloModalidade: "Local e tecnologia",
+    descreverRegiao: descreverLocalCustoImea,
+    textos: {
+      titulo: "Locais e tecnologias",
+      inativo: "descontinuada",
+      mostrarInativos: "Mostrar séries descontinuadas",
+      semSelecao: "Selecione ao menos um local.",
+      nota:
+        "Cada linha é Mato Grosso ou um município, em alta ou média tecnologia, com o custo por hectare (R$/ha) como o IMEA publica. Nem todo município tem planilha nos quatro arquivos: os que não têm não aparecem em todos os cards."
     }
   })
 };

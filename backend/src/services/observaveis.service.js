@@ -5,6 +5,7 @@ const observationDataService = require("./observation-data.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
 const collectionExecutionRepository = require("../repositories/collection-execution.repository");
 const { NotFoundError } = require("../shared/errors");
+const { ITENS_CUSTO } = require("../collectors/imea/imea-custo-itens");
 
 // Partes comuns dos cards do WASDE (milho): série anual, uma edição mensal, valores como publicados.
 const BASE_WASDE_MILHO = {
@@ -31,6 +32,43 @@ const FONTE_DETALHE_CONAB_MILHO = {
   formatoOrigem: "XLSX (planilha de cada levantamento mensal do Boletim da Safra de Grãos)",
   urlOficial: "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/safras/safra-de-graos/boletim-da-safra-de-graos"
 };
+
+// Fonte do card de safra do IMEA (milho de Mato Grosso, ADR 0018).
+const FONTE_IMEA = "IMEA - Instituto Mato-Grossense de Economia Agropecuária";
+
+// Partes comuns dos 3 cards de custo de produção do milho (planilhas XLSX do IMEA, uma linha por item, em R$/ha).
+// Séries `IMEA.CUSTO.MILHO.<TIPO>.<PERIODO>.<TECNOLOGIA>_<LOCAL>.<ITEM>`: a "região" é `<TECNOLOGIA>_<LOCAL>` (alta e
+// média tecnologia comparáveis no mesmo gráfico) e o campo é o item de custo. Um card por (tipo, período), porque o
+// período muda a frequência da série (mês x safra consolidada) e a fonte não define "Mensal" x "Ponderado".
+const CAMPOS_CUSTO_IMEA = ITENS_CUSTO.map(({ codigo, nome, unidade }) => ({ codigo, nome, unidade, casasDecimais: unidade === "R$/US$" ? 4 : 2 }));
+
+const BASE_CUSTO_IMEA = {
+  origem: "observation",
+  unidade: "R$/ha",
+  casasDecimais: 2,
+  fonte: "IMEA - Custo de produção do milho",
+  fonteCollectorCode: "imea-custo-milho",
+  campoPrincipal: "CT",
+  campos: CAMPOS_CUSTO_IMEA
+};
+
+function porRegiaoCustoImea(tipo, periodo) {
+  return {
+    prefixoSerie: `IMEA.CUSTO.MILHO.${tipo}.${periodo}`,
+    campoReferencia: "CT",
+    itemPrincipal: "ALTA_MATO_GROSSO",
+    itensPadrao: ["ALTA_MATO_GROSSO", "MEDIA_MATO_GROSSO"],
+    descritor: "imea-custo"
+  };
+}
+
+const FONTE_DETALHE_CUSTO_IMEA = {
+  formatoOrigem: "XLSX (4 planilhas do catálogo de arquivos do site do IMEA: Mensal e Ponderado, em alta e média tecnologia)",
+  urlOficial: "https://www.imea.com.br/imea-site/relatorios-mercado"
+};
+
+const ESCOPO_CUSTO_IMEA =
+  "só o milho de Mato Grosso, com todas as linhas de custo de cada planilha (R$/ha), a produtividade modal (sc/ha) e o dólar que o IMEA usou, para Mato Grosso e para os municípios que têm aba (o Índice de algumas planilhas lista abas que não existem: Nova Mutum no Mensal de alta tecnologia, Querência e Paranatinga no Mensal de média). O IMEA não explica, no arquivo, a diferença entre \"Mensal\" e \"Ponderado\" (o valor do mesmo mês difere): são séries separadas, como a fonte as chama. O catálogo do IMEA só guarda a versão atual de cada planilha, então o vintage começa em 15/09/2026, e o valor de um mês anterior dentro do arquivo entra com a data de publicação do arquivo. Na aba de Tangará da Serra do Ponderado de média tecnologia, duas colunas estão rotuladas \"2025/26\" (uma deveria ser 2024/25): as duas ficam de fora, por não haver como saber qual é qual. Custo de outras culturas e o preço do milho do IMEA não fazem parte deste card.";
 
 // O escopo (o que o card cobre e o que não cobre) é de cada card: o dos EUA cobre só os EUA, o por país cobre a seleção do WASDE.
 const FIM_ESCOPO_WASDE_MILHO = "A PSD do USDA, com 125 países e dados desde 1960, não foi implementada. Histórico do WASDE: de 2011 em diante.";
