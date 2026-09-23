@@ -103,6 +103,10 @@ cd backend && npm run backfill:wasde-milho
 cd backend && npm run backfill:conab-milho
 # balanço de oferta e demanda do milho do IMEA (PDF mensal), edições de 2014-04-14 em diante (~77 downloads, ~2 min); ANTES da coleta diária em banco novo:
 cd backend && npm run backfill:imea-oferta-demanda
+# futuros de milho da B3 (CCM): janela de ~15 meses do Up2Data (CSV) e, antes disso, o Boletim Diário (PDF),
+# de 2022-03-21 a 2025-12-11, com abertura e contratos em aberto (~940 PDFs); o 2º só completa o que falta:
+cd backend && npm run backfill:b3-ccm
+cd backend && npm run backfill:b3-ccm-bdi
 ```
 
 A API do BCB rejeita (406) um pedido com mais de 10 anos: os scripts dividem o

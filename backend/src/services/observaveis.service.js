@@ -597,10 +597,11 @@ const CATALOGO_OBSERVAVEIS = [
         { codigo: "HIGH", nome: "Máxima do dia", unidade: "R$/saca", casasDecimais: 2 },
         { codigo: "LOW", nome: "Mínima do dia", unidade: "R$/saca", casasDecimais: 2 },
         { codigo: "AVG", nome: "Preço médio", unidade: "R$/saca", casasDecimais: 2 },
+        { codigo: "OPEN", nome: "Preço de abertura", unidade: "R$/saca", casasDecimais: 2 },
         { codigo: "OSCN_PCT", nome: "Oscilação", unidade: "%", casasDecimais: 2 }
       ],
       descricao:
-        "Preços diários de cada vencimento do futuro de milho da B3 (CCM): preço de ajuste, último, máxima, mínima, médio e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua."
+        "Preços diários de cada vencimento do futuro de milho da B3 (CCM): preço de ajuste, último, máxima, mínima, médio, abertura e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua."
     },
     {
       instrumentCode: "CCM_LIQUIDEZ",
@@ -610,10 +611,11 @@ const CATALOGO_OBSERVAVEIS = [
       campos: [
         { codigo: "CONTRACTS", nome: "Contratos negociados", unidade: "contratos", casasDecimais: 0 },
         { codigo: "TRADES", nome: "Número de negócios", unidade: "negócios", casasDecimais: 0 },
-        { codigo: "VOLUME_BRL", nome: "Volume financeiro", unidade: "R$", casasDecimais: 0 }
+        { codigo: "VOLUME_BRL", nome: "Volume financeiro", unidade: "R$", casasDecimais: 0 },
+        { codigo: "OPEN_INTEREST", nome: "Contratos em aberto", unidade: "contratos", casasDecimais: 0 }
       ],
       descricao:
-        "Liquidez diária de cada vencimento do futuro de milho da B3 (CCM): contratos negociados, número de negócios e volume financeiro. O relatório FEL 1 classifica a liquidez do CCM como modesta (§8.4, §13.3) - esta é a medida real."
+        "Liquidez diária de cada vencimento do futuro de milho da B3 (CCM): contratos negociados, número de negócios, volume financeiro e contratos em aberto. O relatório FEL 1 classifica a liquidez do CCM como modesta (§8.4, §13.3) - esta é a medida real."
     }
   ].map((cartao) => ({
     ...cartao,
@@ -622,13 +624,13 @@ const CATALOGO_OBSERVAVEIS = [
     casasDecimais: cartao.campos.find((c) => c.codigo === cartao.campoPrincipal).casasDecimais,
     frequencia: "DIARIA",
     toleranciaDias: 4,
-    fonte: "B3 - Up2Data (negócios consolidados)",
+    fonte: "B3 - Up2Data (negócios consolidados) e Boletim Diário (BDI)",
     fonteCollectorCode: "b3-ccm-futuro",
     fonteDetalhe: {
       descricao: cartao.descricao,
       metodologia:
-        "Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). Histórico: o arquivo público da B3 cobre só cerca de 15 meses e o FinMind acumula daqui em diante.",
-      formatoOrigem: "CSV (TradeInformationConsolidatedFile, B3 Up2Data)",
+        "Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). Histórico em duas fontes da própria B3, nas mesmas séries: de 2022-03-21 a 2025-12-11, o Boletim Diário de Informações (PDF, carga histórica única, ADR 0020); a partir de 2025-06-10, o arquivo diário do Up2Data (coleta diária, janela de ~15 meses). Onde as duas cobrem o mesmo pregão, vale o valor do Up2Data (o BDI arredonda o volume para inteiro). Abertura e contratos em aberto só existem no BDI: vão até 2025-12-11 (o boletim deixou de trazer a tabela por vencimento).",
+      formatoOrigem: "CSV (TradeInformationConsolidatedFile, B3 Up2Data) e PDF (BDI, capítulo de derivativos)",
       urlOficial: "https://arquivos.b3.com.br/tabelas/TradeInformationConsolidatedFile"
     }
   }))

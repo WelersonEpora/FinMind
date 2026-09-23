@@ -73,6 +73,12 @@ antigo some (o histórico que o FinMind acumular passa a ser o único). Confirma
 descontinuou as páginas de "Ajustes do pregão" em dez/2025 e o histórico anterior só existe no Acervo B3 (PDF)
 ou em provedores pagos (não verificado pelo FinMind).
 
+**Atualização (2026-09-23, ADR 0020):** o Boletim Diário de Informações (BDI) em PDF, também público e
+sem chave, tem a tabela por vencimento do CCM (com **contratos em aberto** e abertura) de **2022-03-21 a
+2025-12-11**. O histórico do CCM no FinMind passou a começar em 2022-03-21 (~4,5 anos), com um buraco
+de ~9 meses em 2023 (boletins publicados sem o capítulo de derivativos). Continua longe dos 10+ anos; o
+parágrafo abaixo segue valendo para o que vem antes de 2022.
+
 **Consequência:** o histórico gratuito da B3 (~1,25 ano) **não atende** os 10-15 anos do §12.1 do
 relatório FEL 1 (e mal alcança o piso de "1 a 5 anos" do §4). Alternativas para 10+ anos — nenhuma
 implementada nem verificada: (a) histórico pago da B3 (UP2DATA / Acervo B3); (b) provedor comercial

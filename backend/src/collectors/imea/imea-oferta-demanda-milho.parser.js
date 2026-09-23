@@ -225,26 +225,9 @@ function extrairBalanco(paginas) {
   return { linhas: {}, invalidos: [{ rotulo: null, safra: null, motivo: 'Tabela de balanço (âncora "Estoque Inicial") não encontrada em nenhuma página do PDF.' }] };
 }
 
-// Lê o PDF (Buffer) para páginas de itens de texto com coordenada. Impura (usa pdfjs-dist);
-// `extrairBalanco` acima é pura e testável com fixtures que reproduzem os layouts reais.
-async function lerPdf(buffer) {
-  const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.mjs");
-  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), useSystemFonts: true, isEvalSupported: false }).promise;
-  const paginas = [];
-  for (let p = 1; p <= doc.numPages; p += 1) {
-    const pagina = await doc.getPage(p);
-    const conteudo = await pagina.getTextContent();
-    const itens = conteudo.items
-      .map((it) => ({ str: it.str, x: Math.round(it.transform[4] * 10) / 10, y: Math.round(it.transform[5] * 10) / 10 }))
-      .filter((it) => texto(it.str) !== "");
-    paginas.push({ itens });
-  }
-  await doc.destroy();
-  return paginas;
-}
-
+// `lerPdf` (impura, pdfjs-dist) vive em shared/utils/pdf-texto.js, compartilhada com o Boletim Diário
+// da B3 (ADR 0020); `extrairBalanco` acima é pura e testável com fixtures que reproduzem os layouts reais.
 module.exports = {
-  lerPdf,
   extrairBalanco,
   agruparLinhas,
   acharCabecalho,

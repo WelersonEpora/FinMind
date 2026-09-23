@@ -261,7 +261,7 @@ test("CCM: vencimentos ordenados do mais próximo ao mais distante; só ativo qu
   assert.deepEqual(observavel.itens.map((v) => [v.codigo, v.ativo]), [["CCMU26", false], ["CCMX26", true], ["CCMF27", true]], "ticker que não é um futuro CCM é ignorado");
   assert.equal(observavel.itens[1].rotulo, "CCMX26 (nov/2026)");
   assert.equal(observavel.itemPrincipal, "CCMX26", "o destaque é o vencimento ativo mais próximo, e vem identificado");
-  assert.deepEqual(observavel.campos.map((c) => c.codigo), ["SETTLE", "LAST", "HIGH", "LOW", "AVG", "OSCN_PCT"]);
+  assert.deepEqual(observavel.campos.map((c) => c.codigo), ["SETTLE", "LAST", "HIGH", "LOW", "AVG", "OPEN", "OSCN_PCT"]);
   assert.equal(observavel.campoPrincipal, "SETTLE");
   assert.equal(observavel.rotuloModalidade, "Vencimento");
 });

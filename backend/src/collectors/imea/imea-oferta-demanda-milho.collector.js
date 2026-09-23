@@ -6,7 +6,8 @@ const { UpstreamServiceError } = require("../../shared/errors");
 const { fimDoDiaUtc } = require("../../shared/utils/date-utils");
 const { persistirPorEdicao } = require("../base/persist-observations");
 const { API_BASE, CADEIA_MILHO, buscar, semAcento } = require("./imea-comum");
-const { lerPdf, extrairBalanco } = require("./imea-oferta-demanda-milho.parser");
+const { extrairBalanco } = require("./imea-oferta-demanda-milho.parser");
+const { lerPdf } = require("../../shared/utils/pdf-texto");
 
 // IMEA - balanço de oferta e demanda do milho de Mato Grosso: PDF mensal "Oferta e Demanda - Milho",
 // do catálogo de arquivos do site (mesma rota do `imea-custo-milho`). ADR 0019.
