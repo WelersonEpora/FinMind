@@ -15,6 +15,7 @@ const lbmaGoldPmCollector = require("./lbma/lbma-gold-pm.collector");
 const { criarColetorCot } = require("./cftc/cftc-cot.collector");
 const usdaCropProgressCollector = require("./usda/usda-crop-progress.collector");
 const b3CcmCollector = require("./b3/b3-ccm.collector");
+const b3MilhoEsalqCollector = require("./b3/b3-milho-esalq.collector");
 const comexMilhoExportacaoCollector = require("./comex/comex-milho-exportacao.collector");
 const wasdeMilhoCollector = require("./wasde/wasde-milho.collector");
 const conabMilhoCollector = require("./conab/conab-milho.collector");
@@ -37,6 +38,7 @@ function bootstrapCollectors() {
     registerCollector(criarColetorCot("gold"));
     registerCollector(criarColetorCot("corn"));
     registerCollector(b3CcmCollector);
+    registerCollector(b3MilhoEsalqCollector);
     registerCollector(comexMilhoExportacaoCollector);
     registerCollector(wasdeMilhoCollector);
     registerCollector(conabMilhoCollector);

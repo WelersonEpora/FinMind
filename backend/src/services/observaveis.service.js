@@ -580,6 +580,34 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- Indicador do Milho CEPEA/ESALQ, divulgado pela B3 (ADR 0021) ---
+  // O número é o da CEPEA; a ORIGEM do dado é a B3 (arquivo `Indic`), e o card diz isso.
+  {
+    instrumentCode: "MILHO_CEPEA_ESALQ",
+    origem: "observation",
+    nome: "Milho — Indicador CEPEA/ESALQ",
+    unidade: "R$/saca",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "B3 - Indicadores Agropecuários (Indicador CEPEA/ESALQ)",
+    fonteCollectorCode: "b3-milho-esalq",
+    porCampo: { prefixoSerie: "B3.MILHO_ESALQ" },
+    campoPrincipal: "AVISTA_BRL",
+    campos: [
+      { codigo: "AVISTA_BRL", nome: "À vista (R$)", unidade: "R$/saca", casasDecimais: 2 },
+      { codigo: "AVISTA_USD", nome: "À vista (US$)", unidade: "US$/saca", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Indicador do Milho CEPEA/ESALQ (saca de 60 kg, à vista, região de Campinas/SP), o preço físico de referência do mercado interno e a base de liquidação do futuro de milho da B3 (CCM). O indicador é calculado pela CEPEA; o FinMind o obtém da B3, que o divulga no arquivo público de indicadores agropecuários - não do site da CEPEA, que bloqueia coleta automatizada.",
+      metodologia:
+        "Um valor por dia útil, desde 08/06/2018 (antes disso o milho não consta do arquivo da B3). Conferido contra o histórico exportado do site da CEPEA: 66 de 66 datas iguais ao centavo em R$. O valor em US$ é o que a B3 divulga e pode diferir por centavos do publicado pela CEPEA (câmbio de conversão diferente). A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). Licença: dado da CEPEA (CC BY-NC 4.0) divulgado pela B3; uso interno, sem exibir a terceiros (ADR 0021).",
+      formatoOrigem: "TXT de largura fixa em ZIP (B3, Pesquisa por pregão - Indicadores Econômicos e Agropecuários, arquivo Indic)",
+      urlOficial: "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/historico/boletins-diarios/pesquisa-por-pregao/pesquisa-por-pregao/"
+    }
+  },
+
   // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
   // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por

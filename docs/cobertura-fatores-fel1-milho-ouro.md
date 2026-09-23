@@ -32,7 +32,7 @@ banco de dev (`observation`/`market_quote`/`collection_execution`) em 2026-09-22
 | IMEA — oferta/demanda (PDF) | ✅ `imea-oferta-demanda-milho` | ✅ 802 linhas gravadas (3.369 itens válidos no parser, dedup por revisão) | ✅ 2014-04→2026-08, vintage real | ✅ |
 | B3 CCM (futuro) | ✅ `b3-ccm.collector.js` | ✅ 20.563 linhas, 135 séries | ❌ só ~15 meses (limite da fonte gratuita) | ✅ |
 | CFTC COT (milho) | ✅ `cftc-cot-corn` | ✅ 3.174 linhas | ✅ 2006→hoje | ✅ |
-| CEPEA (preço físico) | ❌ | ❌ | — | — |
+| Indicador CEPEA/ESALQ (preço físico), pela B3 | ✅ `b3-milho-esalq` (2026-09-23, ADR 0021) | ⏳ carga em andamento | ⚠️ só 2018-06-08→hoje | ✅ |
 | USDA FAS PSD | ❌ (reconhecida, adiada por decisão do usuário) | ❌ | — | — |
 | Clima (NOAA/INMET/NASA POWER) | ❌ nem reconhecida | ❌ | — | — |
 | EIA (etanol de milho) | ❌ nem reconhecida | ❌ | — | — |
@@ -113,7 +113,7 @@ Nenhuma das duas séries de preço atende, isoladamente, ao padrão de backtest 
 | Reuniões FOMC | Ouro | ❌ | — |
 | Gold Demand Trends (WGC) | Ouro | ❌ | — |
 | Gold Reserve Statistics (IMF) | Ouro | ❌ | — |
-| Indicadores de Preços (Cepea) | Milho | ❌ bloqueada | — |
+| Indicadores de Preços (Cepea) | Milho | ✅ pela B3 (ADR 0021) | ⚠️ 2018-06-08→hoje |
 | Relatório Focus e Reservas (BCB) | Ouro | ❌ | — |
 
 O FinMind não tem uma entidade de "calendário de relatórios" própria — o que existe é o coletor rodando no calendário real da fonte. Para os relatórios marcados ❌, não há coletor nem registro de calendário dentro do sistema: a única cobertura é a linha na planilha do David.

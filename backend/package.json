@@ -19,6 +19,7 @@
     "backfill:selic": "node scripts/backfill-selic.js",
     "backfill:b3-ccm": "node scripts/backfill-b3-ccm.js",
     "backfill:b3-ccm-bdi": "node scripts/backfill-b3-ccm-bdi.js",
+    "backfill:b3-milho-esalq": "node scripts/backfill-b3-milho-esalq.js",
     "backfill:comex-milho": "node scripts/backfill-comex-milho.js",
     "backfill:wasde-milho": "node scripts/backfill-wasde-milho.js",
     "backfill:conab-milho": "node scripts/backfill-conab-milho.js",

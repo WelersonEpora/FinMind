@@ -146,7 +146,14 @@ test("persist reexecutado com tudo já gravado não grava nada (idempotente)", a
 });
 
 // Resposta mínima de fetch (o ESLint do projeto não declara `Response` como global).
-const resposta = (status, json) => ({ ok: status >= 200 && status < 300, status, json: async () => json, arrayBuffer: async () => new ArrayBuffer(0) });
+const resposta = (status, json) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  arrayBuffer: async () => {
+    const buf = Buffer.from(json === undefined ? "" : JSON.stringify(json), "utf8");
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  }
+});
 
 test("baixarDia: data sem boletim no BDI (feriado) não baixa o PDF", async () => {
   const urls = [];

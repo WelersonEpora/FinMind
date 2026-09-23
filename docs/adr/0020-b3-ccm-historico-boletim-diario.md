@@ -140,5 +140,11 @@ todos os boletins fica em memória até a gravação). Em VM pequena, rodar por 
   da série, registrada aqui para quem montar backtest com o dado.
 - **Extração de PDF é frágil por natureza.** Mitigada pelas travas acima e pela conferência com o CSV
   no período sobreposto; um layout diferente vira inválido explícito, nunca dado gravado errado.
+- **Mais dados, tela mais lenta (achado real em produção, corrigido):** com o triplo de linhas do CCM, o
+  resumo de cobertura dos cards (`resumirSeries`) passou a ler cada linha na tabela, por causa de duas colunas
+  fora de índice. Em dev: ~1,1 s por detalhe do card; na VM, disputando CPU com o backfill, ~20 s e requisições
+  abortadas. Migration `20260923100000-add-observation-covering-index` (índice de cobertura
+  `series_code, source_code, observed_at, published_at_is_estimated`): resumo de ~800 ms para ~37 ms, detalhe
+  do card para ~250 ms.
 - **Arquivo sem documentação oficial nem licença lida** (mesma situação do CSV, ADR 0009). Uso
   interno.

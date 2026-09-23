@@ -107,6 +107,8 @@ cd backend && npm run backfill:imea-oferta-demanda
 # de 2022-03-21 a 2025-12-11, com abertura e contratos em aberto (~940 PDFs); o 2º só completa o que falta:
 cd backend && npm run backfill:b3-ccm
 cd backend && npm run backfill:b3-ccm-bdi
+# Indicador do Milho CEPEA/ESALQ pelo arquivo `Indic` da B3, de 2018-06-08 (1º pregão com o milho) em diante (~2.100 downloads):
+cd backend && npm run backfill:b3-milho-esalq
 ```
 
 A API do BCB rejeita (406) um pedido com mais de 10 anos: os scripts dividem o
@@ -116,7 +118,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM, Comex Stat (exportação de milho), WASDE (balanço do milho), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM, B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho), WASDE (balanço do milho), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

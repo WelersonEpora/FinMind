@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    21,
-    "USD_BRL e SELIC (market_quote) + 19 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + 2 cards do CCM)"
+    22,
+    "USD_BRL e SELIC (market_quote) + 20 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -489,6 +489,33 @@ test("WASDE EUA: a cobertura soma as séries de todas as métricas", async () =>
 
   assert.equal(consultadas.length, 13);
   assert.ok(consultadas.every((c) => c.startsWith("WASDE.MILHO.EUA.")));
+});
+
+// --- Indicador do Milho CEPEA/ESALQ: origem B3, seletor de métrica R$ / US$ (ADR 0021) ---
+
+test("Milho CEPEA/ESALQ: o card diz que a origem é a B3; R$ por padrão e US$ como segunda métrica", async () => {
+  const pedidos = [];
+  const deps = {
+    observationRepository: repoWasdeEua({
+      buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-22", 69.74),
+      buscarHistoricoAtual: async (p) => {
+        pedidos.push(p.seriesCodes);
+        return { registros: [linhaObservation(p.seriesCodes[0], "2026-09-22", 13.65)], total: 1 };
+      }
+    }),
+    collectionExecutionRepository: { buscarUltimaPorColetor: async () => null }
+  };
+
+  const { observavel } = await observaveisService.obterDetalheObservavel("MILHO_CEPEA_ESALQ", deps);
+  assert.match(observavel.cotacaoAtual.fonte, /^B3/);
+  assert.match(observavel.fonteDetalhe.descricao, /obtém da B3/);
+  assert.match(observavel.nome, /CEPEA\/ESALQ/);
+  assert.equal(observavel.cotacaoAtual.valor, 69.74);
+  assert.equal(observavel.cotacaoAtual.unidade, "R$/saca");
+
+  const usd = await observaveisService.obterHistoricoObservavel("MILHO_CEPEA_ESALQ", { campo: "AVISTA_USD" }, deps);
+  assert.deepEqual(pedidos, [["B3.MILHO_ESALQ.AVISTA_USD"]]);
+  assert.equal(usd.historico[0].unidade, "US$/saca");
 });
 
 // --- Conab: milho por safra e UF (seletor de região) e balanço nacional (seletor de métrica) ---

@@ -25,14 +25,20 @@ contratos vazios até que estas definições existam.
 > **Exceção pontual (2026-09-20):** o usuário do projeto autorizou
 > explicitamente a **aquisição de dados** de **ouro** e **milho** listados na
 > análise `docs/analise-critica-fel1-milho-ouro.md` (FRED, LBMA Gold PM,
-> CFTC COT, USDA Crop Progress; preço de ajuste do CCM na B3 investigado, ainda
-> não resolvido) e a criação da camada point-in-time — ver
+> CFTC COT, USDA Crop Progress; preço de ajuste do CCM na B3 — coletado desde
+> 2022-03-21, ~4 anos, com buraco em 2023, ADRs 0009 e 0020) e a criação da
+> camada point-in-time — ver
 > `docs/adr/0008-camada-observation-point-in-time.md` e
 > `docs/adr/0009-fontes-ouro-milho-status.md`. Vale **só para coleta e
 > armazenamento**: nenhum sinal, limiar, indicador técnico ou regra de
 > compra/venda foi definido (o "juro real 10a" é a leitura direta do DFII10, um
 > dado publicado pelo FRED). Café, petróleo e qualquer outro ativo seguem
 > pendentes.
+>
+> **Em aberto para o Comitê (2026-09-23):** preço futuro do milho — seguir só com
+> o CCM (grátis, ~4 anos de histórico) ou contratar o ZC da CME (pago, 16+ anos)?
+> Pergunta 2 de `STATUS_DO_PROJETO.md` §4, com o detalhe para a reunião logo
+> abaixo da tabela.
 
 1. **Ativos** — quais ativos serão analisados (ações, moedas,
    commodities, criptoativos, renda fixa...). *(USD/BRL e Selic resolvidos

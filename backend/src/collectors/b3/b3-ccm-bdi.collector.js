@@ -37,6 +37,9 @@ const ULTIMA_DATA_LAYOUT_ANTIGO = "2025-12-11";
 const CONCORRENCIA = 3;
 const TENTATIVAS_POR_REQUISICAO = 3;
 const PAUSA_ENTRE_TENTATIVAS_MS = 1000;
+// Por requisição (o timeout do script, de horas, é para o backfill inteiro): uma conexão que trava
+// numa VM não pode segurar o backfill - vira retentativa e, esgotadas, "erro" só daquele pregão.
+const TIMEOUT_REQUISICAO_MS = 60 * 1000;
 const TOLERANCIA_ARREDONDAMENTO = { VOLUME_BRL: 0.5 };
 
 const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,13 +49,21 @@ const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function buscar(url, signal) {
   let ultimoErro;
   for (let tentativa = 1; tentativa <= TENTATIVAS_POR_REQUISICAO; tentativa += 1) {
+    const limite = globalThis.AbortSignal.timeout(TIMEOUT_REQUISICAO_MS);
     try {
-      const response = await fetch(url, { signal, headers: { "user-agent": "FinMind/0.1 (coleta de dados de mercado)" } });
-      if (response.status < 500) return response;
+      const response = await fetch(url, {
+        signal: signal ? globalThis.AbortSignal.any([signal, limite]) : limite,
+        headers: { "user-agent": "FinMind/0.1 (coleta de dados de mercado)" }
+      });
+      if (response.status < 500) {
+        // Lê o corpo aqui, ainda dentro do limite: uma conexão pode travar no meio do download.
+        const corpo = Buffer.from(await response.arrayBuffer());
+        return { ok: response.ok, status: response.status, corpo };
+      }
       ultimoErro = new Error(`HTTP ${response.status}`);
     } catch (err) {
-      if (err.name === "AbortError") throw err;
-      ultimoErro = err;
+      if (signal?.aborted) throw err; // abortado pelo runner (timeout geral): não é retentativa
+      ultimoErro = limite.aborted ? new Error(`sem resposta em ${TIMEOUT_REQUISICAO_MS / 1000} s`) : err;
     }
     if (tentativa < TENTATIVAS_POR_REQUISICAO) await dormir(PAUSA_ENTRE_TENTATIVAS_MS * tentativa);
   }
@@ -71,7 +82,7 @@ async function baixarDia(data, signal) {
   try {
     const rStatus = await buscar(`${API}download/status?dateRef=${data}`, signal);
     if (!rStatus.ok) return { data, situacao: "erro", motivo: `Status do BDI: HTTP ${rStatus.status}` };
-    const status = await rStatus.json();
+    const status = JSON.parse(rStatus.corpo.toString("utf8"));
     if (!status?.statusName) return { data, situacao: "sem_boletim" };
 
     const publicacao = { status: status.statusName, atualizadoEm: status.lastUpdateDate, errata: Boolean(status.errata) };
@@ -85,7 +96,7 @@ async function baixarDia(data, signal) {
     }
     if (!rPdf.ok) return { data, situacao: "erro", publicacao, arquivo, motivo: `Download do ${arquivo}: HTTP ${rPdf.status}` };
 
-    const resultado = await extrairDoPdf(Buffer.from(await rPdf.arrayBuffer()));
+    const resultado = await extrairDoPdf(rPdf.corpo);
     if (resultado.dataReferencia && resultado.dataReferencia !== data) {
       return { data, situacao: "erro", publicacao, arquivo, motivo: `O boletim baixado é de ${resultado.dataReferencia}, não de ${data}.` };
     }

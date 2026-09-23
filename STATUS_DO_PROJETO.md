@@ -33,7 +33,7 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js` (`DGS10 − T10YIE`), validado contra DFII10. Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
-| Telas de dados | `/dados-mercado/observaveis` (21 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Telas de dados | `/dados-mercado/observaveis` (22 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` (04:00, 06:00, 08:00 **UTC**, **não versionado**), confirmado por SSH em 2026-09-21: dispara nos 3 horários e todos os coletores terminam em `success` — ADR 0004 |
 | CI/CD | Lint + testes + build em toda branch; deploy por push na `main`, que já roda as migrations automaticamente (`scripts/deploy.sh`, passo 4/6) |
 
@@ -84,7 +84,8 @@ licença pendente. Por isso a coluna de ressalvas é a que importa na reunião:
 | Conab — séries históricas (desde 1976/77) e preços | 1 | Reconhecidas, **sem coletor por decisão do usuário**: as séries históricas não têm vintage; os preços em TXT cobrem só ~12 meses e o histórico longo segue bloqueado | Retomar quando houver uma opção |
 | IMEA — milho de MT (safra e custo) | 4 | **Sem backfill possível** (nem a API nem o catálogo guardam edição anterior): vintage começa agora. IDs de indicador sem nome (identificados por casamento de valor); intenção de plantio e andamento de safra existem só em PDF e não foram implementados; licença não investigada | — |
 | IMEA — balanço de oferta e demanda (PDF) | 5 | **Vintage real, 2014-04-14 a 2026-08-31** (77 edições). Extração por coordenada (sem API nem dicionário de dados: quebra se o layout mudar). Só Mato Grosso (sem quebra regional); Produção não reconciliada com o card de safra; licença não investigada. **Repetir o backfill inteiro** (não a coleta diária) **depois de já ter terminado em sucesso pode logar falhas espúrias**, sem corromper dado (achado real, mecanismo compartilhado com WASDE/Conab) — não repetir um backfill já concluído | — |
-| CEPEA, NOAA, CPI, WGC, IMF | 0 | Candidatas, fora do escopo; CEPEA bloqueada para automação | David (pergunta 7) |
+| B3 — Indicador do Milho CEPEA/ESALQ | 5 | **Só desde 2018-06-08** (antes, só pela exportação manual do site da CEPEA, que bloqueia automação). Número da CEPEA, origem B3; US$ difere por centavos; endpoint de download não documentado como API | — |
+| NOAA, CPI, WGC, IMF | 0 | Candidatas, fora do escopo | David |
 | EIA (etanol de milho) | 0 | **Nunca reconhecida.** Fator "demanda de etanol" (peso Médio, `controle_fatores.xlsx`) hoje não tem nenhuma fonte de dado | David/Comitê |
 | Frete marítimo / prêmio de porto (Arco Norte) | 0 | **Nenhuma fonte identificada em nenhum documento.** Sem isso, "paridade de exportação" (fator do milho) não é calculável mesmo com câmbio e exportação completos | David/Comitê |
 
@@ -100,7 +101,7 @@ necessário → dado disponível → lacuna, sem propor fórmula.
 
 Fontes de **milho** que o relatório do David lista (FEL 1, §6.5, §7 e o plano de
 integração da §9.2) e que ainda **não coletamos**. Já feitas: USDA NASS (Crop
-Progress), CFTC, B3 (CCM), Comex Stat, WASDE (balanço do milho), Conab (boletim mensal), IMEA (área/produção/produtividade por safra, custo e balanço de oferta e demanda), BCB SGS e FRED. Aqui se faz o **reconhecimento** de cada
+Progress), CFTC, B3 (CCM), Indicador do Milho CEPEA/ESALQ (pela B3), Comex Stat, WASDE (balanço do milho), Conab (boletim mensal), IMEA (área/produção/produtividade por safra, custo e balanço de oferta e demanda), BCB SGS e FRED. Aqui se faz o **reconhecimento** de cada
 fonte (níveis 0→1, `docs/processo-reconhecimento-fontes.md`) e a **recomendação**,
 para decidir e levar à reunião com o David. **Reconhecer não é implementar:**
 nenhum coletor novo entra sem a decisão do David ou autorização explícita
@@ -110,12 +111,11 @@ armadilhas), não o código (outro banco, outra arquitetura).
 
 | # | Fonte (como o relatório a descreve) | Observação |
 |---|---|---|
-| 1 | **CEPEA/ESALQ** — indicador diário do preço do milho. O relatório diz "scraping viável; sem API oficial" | **Bloqueada:** Cloudflare e Termos de Uso (`docs/analise-critica-fel1-milho-ouro.md`). No AgroMind só entra por exportação manual. Depende do David: pergunta 7 |
-| 2 | **FAO/AMIS** — balanço global de grãos (FAOSTAT API). Fase 2 do plano | Nunca reconhecida, nem no AgroMind |
-| 3 | **BCB Focus** — expectativas de mercado. Fase 1 do plano (o SGS de dólar e Selic já está feito) | AgroMind: nível 3, só a Selic; API Olinda pública |
-| 4 | **Clima** (§6.5.1, acrescentada na revisão como obrigatória) — NOAA, INMET, NASA POWER, CPTEC/INPE, ECMWF/Copernicus ERA5 | NOAA, INMET e NASA POWER: API gratuita. ERA5: cadastro. Somar/Climatempo: comerciais, Fase 3. AgroMind: NOAA em nível 0 |
-| 5 | **Abimilho** e **CNA** — estatísticas e panorama do setor | Sem API (HTML/PDF), periódico. Menor prioridade |
-| 6 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3, 5 e 7 da §4 |
+| 1 | **FAO/AMIS** — balanço global de grãos (FAOSTAT API). Fase 2 do plano | Nunca reconhecida, nem no AgroMind |
+| 2 | **BCB Focus** — expectativas de mercado. Fase 1 do plano (o SGS de dólar e Selic já está feito) | AgroMind: nível 3, só a Selic; API Olinda pública |
+| 3 | **Clima** (§6.5.1, acrescentada na revisão como obrigatória) — NOAA, INMET, NASA POWER, CPTEC/INPE, ECMWF/Copernicus ERA5 | NOAA, INMET e NASA POWER: API gratuita. ERA5: cadastro. Somar/Climatempo: comerciais, Fase 3. AgroMind: NOAA em nível 0 |
+| 4 | **Abimilho** e **CNA** — estatísticas e panorama do setor | Sem API (HTML/PDF), periódico. Menor prioridade |
+| 5 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3 e 5 da §4 |
 
 O IMEA foi implementado em **área, produção, produtividade, custo de
 produção** (API e catálogo de arquivos, JSON/XLSX — ADR 0018) e **balanço de
@@ -137,20 +137,21 @@ Perguntas da análise crítica (`docs/analise-critica-fel1-milho-ouro.md`, §H).
 Preencher a resposta e a data quando o David responder.
 
 **Prioridade da próxima reunião (decidido em 2026-09-22, auditoria da camada de
-dados):** perguntas **3** e **5** — nenhuma implementação nova de fator faz sentido
-antes dessas duas respostas, porque definem se o backtest futuro é viável e se o
-vintage do agro pode ser aceito com viés declarado. Ver
+dados; a 2 somada em 2026-09-23):** perguntas **2 e 3** (juntas: preço futuro do
+milho e orçamento, detalhe abaixo da tabela) e **5** — nenhuma implementação nova de
+fator faz sentido antes dessas respostas, porque definem se o backtest futuro é viável
+e se o vintage do agro pode ser aceito com viés declarado. Ver
 `docs/cobertura-fatores-fel1-milho-ouro.md`, §7.
 
 | # | Pergunta | Trava? | Resposta / data |
 |---|---|---|---|
 | 1 | Milho + Ouro como **prova de arquitetura** (sem mudar a ordem CAFÉ→PETRÓLEO→MILHO→OURO) é aceitável? | | — |
-| 2 | Milho: **CCM (B3)** ou **ZC (CME)**? Ouro: **GC** ou preço de referência? | | — |
-| 3 | Existe **orçamento para dados de preço**? Sem isso não há backtest | ⛔ | — |
-| 4 | Confirmam que o **COTAHIST não atende CCM/ICF**? Qual a alternativa? (o ADR 0009 já confirma que não atende) | | — |
+| 2 | Milho: podemos seguir só com o **CCM (B3)**, que é grátis mas só tem **~4 anos** de histórico, ou precisamos do **ZC (CME)**, que é **pago**? Ouro: **GC** ou preço de referência? **Detalhe para a reunião logo abaixo da tabela** | ⛔ | — |
+| 3 | Existe **orçamento para dados de preço**? Sem isso não há backtest. **Para o milho, é respondida junto com a pergunta 2** (escolher o ZC = ter orçamento para ele); segue valendo para o **ouro** (o futuro GC da CME também é pago) | ⛔ | — |
+| 4 | Confirmam que o **COTAHIST não atende CCM/ICF**? Qual a alternativa? (o ADR 0009 já confirma que não atende; para o CCM, a alternativa encontrada foi o Boletim Diário da B3, ADR 0020 — ver pergunta 2) | | — |
 | 5 | **Vintage do agro:** backtest com dado revisado e viés declarado, ou acumular a partir de agora? | ⛔ | — |
 | 6 | Quem responde por **licença e redistribuição** das fontes? Não trava hoje (sem distribuição prevista, decisão de 2026-09-21); passa a travar se isso mudar | | — |
-| 7 | **CEPEA** está bloqueada para automação. Export manual é aceitável em produção? | | — |
+| 7 | **CEPEA** está bloqueada para automação. Export manual é aceitável em produção? | | **Não se aplica mais** (decisão do usuário, 2026-09-23): o mesmo indicador vem da B3, automatizado, desde 2018-06-08 — ADR 0021. Só voltaria se o David pedir o histórico anterior a 2018 |
 | 8 | Backtest de **1–5 anos** (§4) ou **10–15 anos** (§12.1)? Qual vale? | | — |
 | 9 | Qual o **benchmark** do Sharpe mínimo? | | — |
 | 10 | Os limiares da §12.2 serão deliberados **antes** dos testes? | | — |
@@ -159,12 +160,60 @@ vintage do agro pode ser aceito com viés declarado. Ver
 | 13 | As **Seções 15 e 16** (Registro de Revisão) do relatório existem? | | — |
 | 14 | **WASDE impacta café** (planilha) ou não (texto revisado)? Qual prevalece? | | — |
 
+### Pergunta 2 em detalhe — preço futuro do milho (para levar à reunião)
+
+**A decisão:** o FinMind pode fazer a análise e o backtest do milho **só com o CCM
+(B3)**, aceitando um histórico curto, ou precisamos do **ZC (CME/Chicago)**, que é **pago**? Esta resposta
+já responde a **pergunta 3 (orçamento) para o milho**: escolher o ZC é aprovar gasto com dado de preço.
+
+**O que temos hoje do CCM (B3, R$/saca) — grátis:**
+
+- Preço diário **por vencimento** (ajuste, abertura, máxima, mínima, médio, último), negócios, contratos,
+  volume e **contratos em aberto**.
+- **Desde 2022-03-21 — cerca de 4 anos e meio** (backfill do Boletim Diário da B3 + coleta diária), no
+  servidor desde 2026-09-23.
+- **Com um buraco de ~9 meses em 2023** (fev a nov): a B3 publicou esses boletins sem a tabela de
+  derivativos. Não há outra fonte grátis para esse período.
+- Contratos em aberto por vencimento **só até 2025-12-11** (a B3 deixou de publicar); preço e liquidez
+  seguem diários.
+- **Antes de 2022, nada de graça.** O histórico mais antigo do CCM só existe comprando da própria B3 (preço
+  não publicado, só por cotação).
+
+**Nossa leitura:** acreditamos que é possível trabalhar com o CCM — é o preço que o mercado brasileiro de
+fato negocia —, **mas com apenas ~4 anos de backfill**, e com o buraco de 2023. Isso fica **abaixo dos
+10–15 anos** que o próprio relatório FEL 1 pede para backtest (§12.1; a §4 fala em 1–5 anos — ver pergunta 8).
+
+**O ZC (CME, US$/bushel) — pago:**
+
+- É a referência mundial do milho, muito mais líquido que o CCM, com **histórico longo** (16+ anos por
+  vencimento, com contratos em aberto).
+- **Não há fonte grátis confiável.** As grátis (Yahoo, Stooq, Investing) são vetadas pelo próprio FEL 1
+  para decisão (série contínua com rolagem opaca). A Nasdaq Data Link (antiga Quandl) descontinuou a série.
+- **Opção mais barata encontrada (não contratada):** Databento, pagando só pelo uso — histórico de 2010 em
+  diante; estimativa de uma compra única pequena (possivelmente dentro do crédito grátis de US$ 125 da
+  conta nova — **a confirmar** com o cálculo de custo da própria Databento antes de qualquer compra).
+  Alternativas: Norgate (~US$ 270/ano, desde 1980, mas presa ao Windows), FirstRate (compra única, preço
+  não publicado), CME DataMine (oficial, só por cotação).
+- **Licença:** uso interno (análise e backtest da equipe) em geral é permitido; **mostrar o dado da CME a
+  usuários de fora** exige licença de distribuição da CME — muda o custo se o FinMind virar produto.
+
+**As respostas possíveis, e o que cada uma implica:**
+
+1. **Só CCM** → nada a comprar; backtest do milho limitado a ~4 anos (com o buraco de 2023) até o
+   histórico crescer com a coleta diária.
+2. **CCM + ZC** (o ZC como histórico longo e fator de preço global; o CCM como preço local operado) →
+   precisa de orçamento (pergunta 3). É a nossa recomendação técnica.
+3. **Só ZC** → precisa de orçamento; perde o preço em reais que o produtor brasileiro negocia.
+
+Em qualquer caso, **qual dos dois é o ativo operado** é uma decisão do Comitê; converter o ZC para R$/saca
+(paridade) é um fator, que também passa por ele.
+
 ## 5. Fora do escopo por enquanto
 
 Não implementar sem autorização explícita registrada em ADR:
 
 - Café, petróleo e qualquer ativo além de USD/BRL, Selic, ouro e milho.
-- CEPEA (bloqueada por Cloudflare), Conab (séries históricas e preços), IMEA (intenção de plantio, andamento de semeadura/colheita — só em PDF), WGC, PSD, clima, CPI.
+- CEPEA antes de 2018-06-08 (só por exportação manual do site), Conab (séries históricas e preços), IMEA (intenção de plantio, andamento de semeadura/colheita — só em PDF), WGC, PSD, clima, CPI.
 - Série contínua de futuros, rolagem e backtest.
 - Qualquer sinal, limiar, indicador técnico ou regra de compra/venda.
 - IA em qualquer ponto (o ADR 0010 é só proposta de desenho futuro).
@@ -181,7 +230,9 @@ Registro do que foi fechado na lista "Falta fazer" anterior (detalhe nos documen
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Indicador do Milho CEPEA/ESALQ, pela B3 | O site da CEPEA segue bloqueando automação (exportação com desafio do Cloudflare; `robots.txt` contra agentes de IA), mas a B3 divulga o **mesmo número** no arquivo público `Indic` (66 de 66 datas iguais ao centavo em R$). Coletor `b3-milho-esalq` na coleta diária + `npm run backfill:b3-milho-esalq` (desde 2018-06-08, um ano por execução, ~2 h). Card "Milho — Indicador CEPEA/ESALQ" com a fonte B3 explícita. **Decisão do usuário**: não passa pela pergunta 7. Carga histórica em andamento em dev; a rodar no servidor | ADR 0021 |
 | Histórico do CCM pelo Boletim Diário da B3 | Backfill `npm run backfill:b3-ccm-bdi` lê o capítulo de derivativos do BDI em PDF (extração por coordenada): **745 pregões de 2022-03-21 a 2025-12-11**, 42.303 observações nas mesmas séries `B3.CCM.*` (sem estrutura nova), mais **abertura** e **contratos em aberto** nos dois cards do CCM. Complementar ao CSV: o que já existe não é regravado; 0 divergências na conferência com o CSV; reexecutar não grava nada. **Buraco de ~9 meses em 2023** e 193 boletins publicados sem a tabela (lacuna da fonte). Em dev (2026-09-23); no servidor, rodar por ano (memória) | ADR 0020 |
+| Índice de cobertura em `observation` | O triplo de linhas do CCM deixou o detalhe dos cards lento (~1,1 s em dev; ~20 s e requisições abortadas na VM durante o backfill). Migration `20260923100000-add-observation-covering-index`: resumo de cobertura de ~800 ms para ~37 ms; detalhe do card do CCM para ~250 ms. Roda sozinha no deploy | ADR 0020 |
 
 </details>
 
