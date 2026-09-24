@@ -113,7 +113,7 @@ cd backend && npm run backfill:b3-milho-esalq
 cd backend && npm run backfill:bcb-focus
 # reservas internacionais do BCB (SGS 13621, total diário), desde 1998-09-01 (3 janelas de 10 anos):
 cd backend && npm run backfill:bcb-reservas
-# saúde da vegetação por cultura da NOAA STAR (milho: VHI/VCI/TCI, 15 regiões), desde 1982 (15 requisições, ~40 s):
+# saúde da vegetação por cultura da NOAA STAR (milho: VHI/VCI/TCI, 18 regiões, com mundo e hemisférios), desde 1982 (18 requisições, ~45 s):
 cd backend && npm run backfill:noaa-vh
 ```
 

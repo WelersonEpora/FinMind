@@ -34,10 +34,10 @@ são comerciais (Fase 3 do relatório).
 | 3 | Cadastro ou chave? | Não |
 | 4 | Formato | HTML com cabeçalho (país, província, cultura, versão) e um `<pre>` com `ano,semana, SMN,SMT,VCI,TCI, VHI`; semana sem dado = `-1` |
 | 5 | Documentação | VHP User Guide v1.4 (formato e definição da semana) e as páginas do produto; não há documentação do endpoint |
-| 6 | Histórico | Desde **1982**, semanal, 161 países, por estado/província, 20+ culturas (milho, café arábica e robusta, soja, trigo...). Buracos de satélite em 1984-85, 1994-95 e 2003-05 |
+| 6 | Histórico | Desde **1982**, semanal, mundo e hemisférios (modo "Global" da página: `W65`, `WNH`, `WSH`...), 161 países, por estado/província, 20+ culturas (milho, café arábica e robusta, soja, trigo...). Buracos de satélite em 1984-85, 1994-95 e 2003-05 |
 | 7 | Revisa? | **Sim, por reprocessamento**: versão atual "GC_Current" e uma experimental "WF2025"; valores recentes suavizados. Revisão semana a semana não medida (vai para `observation`) |
 | 8 | Publicação | A semana sai no **dia seguinte** ao fim (regra do JavaScript da página; em 24/09 a última era a 38, de 17 a 23/09). Sem calendário oficial: data estimada |
-| 9 | Limite de requisições | Não verificado. ~3 s e ~100 KB por série completa; a coleta diária faz 15 requisições pequenas |
+| 9 | Limite de requisições | Não verificado. ~3 s e ~100 KB por série completa; a coleta diária faz 18 requisições pequenas |
 | 10 | Licença | Governo dos EUA (NOAA/NESDIS), domínio público |
 | 11 | Riscos | (a) Endpoint não documentado: pode mudar sem aviso. (b) Máscara de cultura fixa (MapSPAM 2010), sem separar safrinha de 1ª safra. (c) Mede o efeito já ocorrido: não é previsão, e geada no café aparece com atraso. (d) Histórico = versão reprocessada de hoje |
 
@@ -47,7 +47,7 @@ calor). Conferido contra secas conhecidas: EUA em 2012 (VHI 33-39 no verão, con
 safrinha de 2021 (39 a 30) e café arábica em Minas Gerais em 2021 (de 53 a 35). Uma fonte só, com o mesmo método,
 cobre todos os produtores relevantes de milho e de café: não é preciso uma fonte de clima por país.
 
-**Recomendação: adotar.** Implementada para o milho (coletor `noaa-vh-milho`, 15 regiões, VHI/VCI/TCI, desde 1982 —
+**Recomendação: adotar.** Implementada para o milho (coletor `noaa-vh-milho`, 18 regiões com mundo e hemisférios, VHI/VCI/TCI, desde 1982 —
 ADR 0025). Café em seguida, pela mesma fonte.
 
 ## Outras fontes possíveis (reconhecidas, não serão implementadas por ora)

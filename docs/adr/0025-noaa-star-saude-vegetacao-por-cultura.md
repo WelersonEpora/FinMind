@@ -56,7 +56,7 @@ serviria a um fator ainda não definido). Ficam descartadas até o Comitê pedir
 
 - **Coletor `noaa-vh-milho`** (`backend/src/collectors/noaa/noaa-vh.collector.js`), criado por uma fábrica por
   cultura (`criarColetorVh("milho")`): o café entra como mais uma entrada em `CULTURAS`, sem código novo.
-- **15 regiões:** EUA, Brasil, Argentina, China e Ucrânia (os países do card "Milho por país" do WASDE mais a
+- **18 regiões:** o **mundo** (faixa global de 55°S a 65°N, código `W65` da página) e os **hemisférios Norte** (0 a 65°N, `WNH`) e **Sul** (40°S a 0, `WSH`), acrescentados no mesmo dia a pedido do usuário; EUA, Brasil, Argentina, China e Ucrânia (os países do card "Milho por país" do WASDE mais a
   Ucrânia, grande exportadora); as 5 maiores UFs de milho da Conab (MT, PR, GO, MS, MG); os 5 maiores estados de milho
   dos EUA (Iowa, Illinois, Nebraska, Minnesota, Indiana).
 - **3 índices**, que são o indicador pronto da fonte: **VHI** (saúde da vegetação), **VCI** (condição da vegetação,
@@ -65,16 +65,17 @@ serviria a um fator ainda não definido). Ficam descartadas até o Comitê pedir
 - **Em `observation`** (a NOAA reprocessa a série): `NOAA_VH.MILHO.<REGIAO>.<INDICE>`, `source_code = "NOAA_STAR_VH"`,
   `observed_at` = último dia da semana. **`published_at` estimado** (`lag_rule`): fim do dia (UTC) seguinte ao fim da
   semana, a regra da própria página; o serviço limita ao `collected_at` (ADR 0008).
-- **Coleta diária** relê o ano corrente e o anterior (15 requisições pequenas): pega a semana nova e as revisões
-  recentes. **Backfill** `npm run backfill:noaa-vh` pede desde 1981 (15 requisições de ~100 KB, ~40 s). Cada semana é
+- **Coleta diária** relê o ano corrente e o anterior (18 requisições pequenas): pega a semana nova e as revisões
+  recentes. **Backfill** `npm run backfill:noaa-vh` pede desde 1981 (18 requisições de ~100 KB, ~45 s). Cada semana é
   uma observação própria, então a ordem de carga não importa.
 - **Card `NOAA_VH_MILHO`** ("Clima sobre o milho - saúde da vegetação (NOAA)"), semanal, com seletor de país/estado
-  (padrão Brasil e EUA) e de índice (VHI por padrão).
+  (padrão Brasil, EUA e Mundo) e de índice (VHI por padrão).
 
 ## Resultado (2026-09-24, banco de dev)
 
-- **Backfill:** 102.420 observações (15 regiões × 3 índices × 2.276 semanas, de 1982-01-07 a 2026-09-23), 0
-  inválidas, 0 falhas, 37 s.
+- **Backfill:** 122.904 observações (18 regiões × 3 índices × 2.276 semanas, de 1982-01-07 a 2026-09-23), 0
+  inválidas, 0 falhas. As 3 regiões globais entraram num segundo backfill (20.484 criadas, as 102.420 anteriores
+  ignoradas). Mundo, Norte e Sul na semana 38/2026: 50,13, 48,24 e 54,58, iguais à página.
 - **Coleta diária em seguida:** 4.050 lidas, 4.050 ignoradas (idempotente).
 - **Conferência com a fonte:** Brasil, VHI das semanas 37 e 38 de 2026: 53,59 e 53,22 no banco e na página.
 
@@ -88,6 +89,8 @@ serviria a um fator ainda não definido). Ficam descartadas até o Comitê pedir
   semana do ano.
 - **Endpoint não documentado como API.** Se a página mudar, a coleta falha com erro de fonte (o parser confere país,
   província, cultura e colunas).
+- **Mundo e hemisférios diluem choques regionais** (média ponderada pela área do milho): na seca de 2012 os EUA
+  foram a VHI 33-35 e o mundo, a ~44. Servem de termômetro geral, não substituem os países.
 - **O VHI mede o efeito já ocorrido.** Não cobre previsão do tempo (o que o mercado precifica à frente) nem geada no
   café, que o VHI só mostra semanas depois. Se o Comitê pedir esses componentes, aí sim entram fontes de dado bruto
   (NOAA CPC, ECMWF, INMET) e um fator.

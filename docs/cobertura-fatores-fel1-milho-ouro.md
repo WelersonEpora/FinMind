@@ -34,7 +34,7 @@ banco de dev (`observation`/`market_quote`/`collection_execution`) em 2026-09-22
 | CFTC COT (milho) | ✅ `cftc-cot-corn` | ✅ 3.174 linhas | ✅ 2006→hoje | ✅ |
 | Indicador CEPEA/ESALQ (preço físico), pela B3 | ✅ `b3-milho-esalq` (2026-09-23, ADR 0021) | ⏳ carga em andamento | ⚠️ só 2018-06-08→hoje | ✅ |
 | USDA FAS PSD | ❌ (reconhecida, adiada por decisão do usuário) | ❌ | — | — |
-| Clima — NOAA STAR, saúde da vegetação sobre o milho | ✅ `noaa-vh-milho` (ADR 0025, 2026-09-24); as fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5) reconhecidas como inadequadas | ✅ 102.420 linhas, 45 séries (15 regiões × VHI/VCI/TCI) | ⚠️ 1982→hoje, mas é a versão reprocessada de hoje (vintage só daqui para frente) | Estimado |
+| Clima — NOAA STAR, saúde da vegetação sobre o milho | ✅ `noaa-vh-milho` (ADR 0025, 2026-09-24); as fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5) reconhecidas como inadequadas | ✅ 122.904 linhas, 54 séries (18 regiões, com mundo e hemisférios, × VHI/VCI/TCI) | ⚠️ 1982→hoje, mas é a versão reprocessada de hoje (vintage só daqui para frente) | Estimado |
 | EIA (etanol de milho) | ✅ produção e estoques semanais (ADR 0024, 2026-09-23) | ✅ | ✅ 2010→hoje | Estimado |
 | Frete marítimo / prêmio de porto | ⚠️ reconhecido em parte (2026-09-23): frete rodoviário e prêmio/paridade do IMEA (API e boletim semanal em PDF); frete marítimo sem fonte | ❌ | — | — |
 
