@@ -418,6 +418,44 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- NOAA STAR - saúde da vegetação sobre a área do milho, semanal (fator do milho "Clima e safra", ADR 0025) ---
+  // Séries `NOAA_VH.MILHO.<REGIAO>.<INDICE>`: um item por país ou estado, o índice (VHI, VCI, TCI) no seletor de métrica.
+  {
+    instrumentCode: "NOAA_VH_MILHO",
+    origem: "observation",
+    nome: "Clima sobre o milho - saúde da vegetação (NOAA)",
+    unidade: "índice 0-100",
+    casasDecimais: 2,
+    frequencia: "SEMANAL",
+    // Semana divulgada no dia seguinte ao fim: até ~9 dias sem ponto novo.
+    toleranciaDias: 9,
+    fonte: "NOAA STAR - Vegetation Health por cultura",
+    fonteCollectorCode: "noaa-vh-milho",
+    porRegiao: {
+      prefixoSerie: "NOAA_VH.MILHO",
+      campoReferencia: "VHI",
+      itemPrincipal: "BRASIL",
+      itensPadrao: ["BRASIL", "EUA"],
+      descritor: "noaa-vh"
+    },
+    campoPrincipal: "VHI",
+    campos: [
+      { codigo: "VHI", nome: "VHI - saúde da vegetação", unidade: "índice 0-100", casasDecimais: 2 },
+      { codigo: "VCI", nome: "VCI - condição da vegetação (umidade)", unidade: "índice 0-100", casasDecimais: 2 },
+      { codigo: "TCI", nome: "TCI - condição térmica (calor)", unidade: "índice 0-100", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Efeito do clima sobre a lavoura de milho, medido por satélite só onde há milho plantado: o VHI (saúde da vegetação, 0 a 100) é a média do VCI (verdor, ligado à umidade) e do TCI (temperatura, ligado ao calor). Abaixo de 40 a NOAA classifica como estresse. É um indicador pronto da fonte, não o tempo (chuva, temperatura) nem um cálculo do FinMind.",
+      metodologia:
+        "Um valor por semana e região, desde 1982. A semana N vai do dia do ano 7(N-1)+1 ao 7N (guia da NOAA); a data da observação é o último dia da semana. A NOAA disponibiliza a semana no dia seguinte ao fim (regra da própria página): a data de disponibilidade é ESTIMADA como o fim desse dia. Semanas sem dado de satélite (1984-85, 1994-95, 2003-05) ficam em branco. A NOAA reprocessa a série e suaviza os valores recentes: a coleta diária relê o ano corrente e o anterior, e uma mudança vira versão nova. O histórico é a versão reprocessada de hoje (o que se sabia em cada data só existe daqui para frente). A máscara de cultura é fixa (MapSPAM 2010) e não separa a safrinha da 1ª safra: a estação se vê pela semana do ano. Conferido contra secas conhecidas: EUA em 2012 (VHI 33-39 no verão; 64 em 2014) e Mato Grosso em 2021 (VHI 30-39 na safrinha). Licença: dado do governo dos EUA (domínio público).",
+      escopo:
+        "só milho, só os três índices (VHI, VCI, TCI), em EUA, Brasil, Argentina, China e Ucrânia, nas 5 maiores UFs de milho (MT, PR, GO, MS, MG) e nos 5 maiores estados de milho dos EUA (Iowa, Illinois, Nebraska, Minnesota, Indiana). A fonte cobre 161 países e outras culturas (café, soja, trigo...), não coletados. Não coletados: o NDVI e a temperatura suavizados (insumos dos índices), a distribuição por faixa de VHI e a versão experimental WF2025. Nenhum fator: como o índice entra no preço é definição do Comitê.",
+      formatoOrigem: "Texto (tabela da página \"VH Time Series by administrative regions for specific crop\" da NOAA STAR, sem chave; endpoint não documentado como API)",
+      urlOficial: "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot"
+    }
+  },
+
   // --- USDA WASDE - balanço do milho, uma edição por mês desde 2011 (ADR 0015). Todas as linhas do WASDE são coletadas ---
   // A série é ANUAL (um ponto por safra, observed_at = 1º/set do ano de início) e cada edição do
   // WASDE pode revisá-la: o histórico mostra a versão mais recente de cada safra, e o vintage (o

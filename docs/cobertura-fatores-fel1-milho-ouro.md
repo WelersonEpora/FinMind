@@ -34,7 +34,7 @@ banco de dev (`observation`/`market_quote`/`collection_execution`) em 2026-09-22
 | CFTC COT (milho) | ✅ `cftc-cot-corn` | ✅ 3.174 linhas | ✅ 2006→hoje | ✅ |
 | Indicador CEPEA/ESALQ (preço físico), pela B3 | ✅ `b3-milho-esalq` (2026-09-23, ADR 0021) | ⏳ carga em andamento | ⚠️ só 2018-06-08→hoje | ✅ |
 | USDA FAS PSD | ❌ (reconhecida, adiada por decisão do usuário) | ❌ | — | — |
-| Clima (NOAA/INMET/NASA POWER) | ❌ nem reconhecida | ❌ | — | — |
+| Clima — NOAA STAR, saúde da vegetação sobre o milho | ✅ `noaa-vh-milho` (ADR 0025, 2026-09-24); as fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5) reconhecidas como inadequadas | ✅ 102.420 linhas, 45 séries (15 regiões × VHI/VCI/TCI) | ⚠️ 1982→hoje, mas é a versão reprocessada de hoje (vintage só daqui para frente) | Estimado |
 | EIA (etanol de milho) | ✅ produção e estoques semanais (ADR 0024, 2026-09-23) | ✅ | ✅ 2010→hoje | Estimado |
 | Frete marítimo / prêmio de porto | ⚠️ reconhecido em parte (2026-09-23): frete rodoviário e prêmio/paridade do IMEA (API e boletim semanal em PDF); frete marítimo sem fonte | ❌ | — | — |
 
@@ -58,7 +58,7 @@ banco de dev (`observation`/`market_quote`/`collection_execution`) em 2026-09-22
 
 | # | Fator (peso, xlsx) | Dados necessários | Já disponível | Lacuna |
 |---|---|---|---|---|
-| 1 | Clima e safra EUA — Crop Progress (Alto) | % condição/progresso da lavoura EUA; clima (chuva/temperatura) | Crop Progress completo (USDA, 1980→hoje) | Clima (NOAA/INMET/NASA POWER) — não coletado, nem reconhecido |
+| 1 | Clima e safra EUA — Crop Progress (Alto) | % condição/progresso da lavoura EUA; clima (chuva/temperatura) | Crop Progress completo (USDA, 1980→hoje); efeito do clima na lavoura (VHI/VCI/TCI da NOAA STAR sobre a área do milho, EUA e Brasil por estado, 1982→hoje, ADR 0025) | Previsão do tempo (o que o mercado precifica à frente): só em dado bruto, não coletado |
 | 2 | Safrinha brasileira, 2ª safra (Alto) | Área/produção/produtividade da 2ª safra | Conab (nacional/UF, vintage fev/2025+) e IMEA (só MT, sem vintage) | Vintage anterior a fev/2025 é irrecuperável; série 1976/77+ não carregada (decisão) |
 | 3 | Estoques globais e balanço — WASDE (Alto) | Estoque final, produção, balanço mundial | WASDE EUA + por país, vintage real 2011+ | Pré-2011 só em PDF, não coletado |
 | 4 | Dólar/USDBRL e paridade de exportação (Médio) | USD/BRL + frete marítimo + prêmio de porto | USD/BRL completo (1994+); exportação Comex Stat (2005+) | **Frete e prêmio de porto: nenhuma fonte identificada** — o fator não é calculável hoje mesmo com o resto perfeito |
@@ -135,6 +135,6 @@ O FinMind não tem uma entidade de "calendário de relatórios" própria — o q
 
 **B. Parcial:** Conab e IMEA (dado de qualidade, vintage começando agora ou só desde fev/2025); B3 CCM (~15 meses, sem OI por vencimento, contrato diferente do CME ZC); índice do dólar via proxy FRED (não é o DXY real); custo de insumos do milho só via agregados IMEA/MT.
 
-**C. Faltante:** preço de futuros de 10+ anos (bloqueador nº1 para qualquer backtest); frete marítimo/prêmio de porto; demanda de etanol (EIA); CPI, reservas de bancos centrais e fluxo de ETFs de ouro (WGC/IMF); exportação de milho por país de destino; clima (NOAA/INMET/NASA POWER).
+**C. Faltante:** preço de futuros de 10+ anos (bloqueador nº1 para qualquer backtest); frete marítimo/prêmio de porto; demanda de etanol (EIA); CPI, reservas de bancos centrais e fluxo de ETFs de ouro (WGC/IMF); exportação de milho por país de destino; previsão do tempo (o efeito do clima já ocorrido está coberto pela NOAA STAR desde 2026-09-24, ADR 0025).
 
 **D. Próximo passo:** as perguntas 3 (orçamento para preço de futuros) e 5 (vintage do agro: aceitar viés retroativo ou só acumular a partir de agora) do §4 de `STATUS_DO_PROJETO.md` são as duas decisões do Comitê que travam qualquer avanço de fator — nenhuma implementação nova faz sentido antes dessas respostas. As fontes sem cobertura listadas em "C" ficam no radar (`STATUS_DO_PROJETO.md`, §3) até decisão do David sobre prioridade.

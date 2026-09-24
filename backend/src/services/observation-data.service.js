@@ -8,6 +8,7 @@ const { decodificarFuturoCcm } = require("../shared/utils/b3-contrato");
 const { descreverRegiaoWasde } = require("../shared/utils/wasde-regiao");
 const { descreverRegiaoConab } = require("../shared/utils/conab-regiao");
 const { descreverRegiaoImea, descreverLocalCustoImea } = require("../shared/utils/imea-regiao");
+const { descreverRegiaoNoaaVh } = require("../shared/utils/noaa-vh-regiao");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
 // Leitura, para a tela de Observáveis, dos observáveis que vivem em
@@ -130,6 +131,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos um local.",
       nota:
         "Cada linha é Mato Grosso ou um município, em alta ou média tecnologia, com o custo por hectare (R$/ha) como o IMEA publica. Nem todo município tem planilha nos quatro arquivos: os que não têm não aparecem em todos os cards."
+    }
+  }),
+  "noaa-vh": criarDimensaoRegiao({
+    rotuloModalidade: "Região",
+    descreverRegiao: descreverRegiaoNoaaVh,
+    textos: {
+      titulo: "Países e estados",
+      inativo: "descontinuada",
+      mostrarInativos: "Mostrar séries descontinuadas",
+      semSelecao: "Selecione ao menos um país ou estado.",
+      nota:
+        "Cada linha é um país ou estado, com o índice medido só sobre a área da cultura (0 a 100, como a NOAA publica). Abaixo de 40 a NOAA classifica como estresse da vegetação."
     }
   })
 };

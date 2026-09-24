@@ -25,7 +25,8 @@
     "backfill:comex-milho": "node scripts/backfill-comex-milho.js",
     "backfill:wasde-milho": "node scripts/backfill-wasde-milho.js",
     "backfill:conab-milho": "node scripts/backfill-conab-milho.js",
-    "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js"
+    "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",
+    "backfill:noaa-vh": "node scripts/backfill-noaa-vh.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

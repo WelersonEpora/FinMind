@@ -113,6 +113,8 @@ cd backend && npm run backfill:b3-milho-esalq
 cd backend && npm run backfill:bcb-focus
 # reservas internacionais do BCB (SGS 13621, total diário), desde 1998-09-01 (3 janelas de 10 anos):
 cd backend && npm run backfill:bcb-reservas
+# saúde da vegetação por cultura da NOAA STAR (milho: VHI/VCI/TCI, 15 regiões), desde 1982 (15 requisições, ~40 s):
+cd backend && npm run backfill:noaa-vh
 ```
 
 A API do BCB rejeita (406) um pedido com mais de 10 anos: os scripts dividem o
@@ -122,7 +124,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FRED, LBMA, CFTC, B3/CCM, B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho), EIA (etanol), WASDE (balanço do milho), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FRED, LBMA, CFTC, B3/CCM, B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho), EIA (etanol), NOAA STAR (saúde da vegetação sobre o milho), WASDE (balanço do milho), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

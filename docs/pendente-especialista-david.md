@@ -48,6 +48,16 @@ contratos vazios até que estas definições existam.
 > 2026-09-23: a **produção e os estoques semanais de etanol da EIA** (fator do
 > milho "Demanda de etanol") — ver `docs/adr/0024-eia-etanol-producao-estoques.md`.
 >
+> **Exceção pontual (2026-09-24):** o usuário do projeto autorizou a coleta da
+> **saúde da vegetação por cultura da NOAA STAR** (VHI, VCI e TCI semanais,
+> medidos só sobre a área do milho, por país e estado) para o fator do milho
+> "Clima e safra" — ver `docs/adr/0025-noaa-star-saude-vegetacao-por-cultura.md`.
+> As fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5) foram
+> reconhecidas como inadequadas (dado de tempo, não o efeito na lavoura). O
+> usuário pediu o **café pela mesma fonte** como próximo passo. Só aquisição de
+> dado: como o índice entra no preço (regiões, pesos, fases do ciclo, limiar) é
+> do Comitê.
+>
 > **Em aberto para o Comitê (2026-09-23):** preço futuro do milho — seguir só com
 > o CCM (grátis, ~4 anos de histórico) ou contratar o ZC da CME (pago, 16+ anos)?
 > Pergunta 2 de `STATUS_DO_PROJETO.md` §4, com o detalhe para a reunião logo

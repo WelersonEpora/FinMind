@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    25,
-    "USD_BRL e SELIC (market_quote) + 23 de observation (Focus + reservas do BCB + etanol da EIA + 5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM)"
+    26,
+    "USD_BRL e SELIC (market_quote) + 24 de observation (Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho da NOAA + 5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -923,4 +923,39 @@ test("Focus: anos em ordem, ativo = ainda no último boletim; destaque é o ano 
   assert.deepEqual(pedido.seriesCodes, ["BCB_FOCUS.ANUAL.2026.IPCA", "BCB_FOCUS.ANUAL.2027.IPCA"]);
   await observaveisService.obterHistoricoObservavel("FOCUS_EXPECTATIVAS", { itens: "2025", campo: "CAMBIO" }, { observationRepository: repo });
   assert.deepEqual(pedido.seriesCodes, ["BCB_FOCUS.ANUAL.2025.CAMBIO"]);
+});
+
+// --- NOAA STAR: saúde da vegetação sobre a área do milho, por país e estado (ADR 0025) ---
+const regioesNoaaVh = [
+  { codigo: "EUA_IA", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" },
+  { codigo: "BRASIL", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" },
+  { codigo: "BR_MT", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" },
+  { codigo: "EUA", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" }
+];
+
+test("NOAA VH milho: país antes dos seus estados, destaque é o Brasil, VHI por padrão; índice escolhido vira a série", async () => {
+  const pedidos = [];
+  const repo = {
+    listarItens: async () => regioesNoaaVh,
+    buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-23", 63.4),
+    buscarHistoricoAtual: async (p) => {
+      pedidos.push(p.seriesCodes);
+      return { registros: [], total: 0 };
+    },
+    resumirSeries: async () => []
+  };
+  const { observavel } = await observaveisService.obterDetalheObservavel("NOAA_VH_MILHO", {
+    observationRepository: repo,
+    collectionExecutionRepository: semExecucao
+  });
+
+  assert.deepEqual(observavel.itens.map((i) => i.rotulo), ["Brasil", "Brasil - Mato Grosso", "EUA", "EUA - Iowa"]);
+  assert.equal(observavel.itemPrincipal, "Brasil");
+  assert.deepEqual(observavel.itensPadrao, ["BRASIL", "EUA"]);
+  assert.equal(observavel.frequencia, "SEMANAL");
+  assert.deepEqual(observavel.campos.map((c) => c.codigo), ["VHI", "VCI", "TCI"]);
+  assert.match(observavel.fonteDetalhe.escopo, /Nenhum fator/);
+
+  await observaveisService.obterHistoricoObservavel("NOAA_VH_MILHO", { itens: "BR_MT", campo: "TCI" }, { observationRepository: repo });
+  assert.deepEqual(pedidos.pop(), ["NOAA_VH.MILHO.BR_MT.TCI"]);
 });
