@@ -435,7 +435,7 @@ const CATALOGO_OBSERVAVEIS = [
       prefixoSerie: "NOAA_VH.MILHO",
       campoReferencia: "VHI",
       itemPrincipal: "BRASIL",
-      itensPadrao: ["BRASIL", "EUA"],
+      itensPadrao: ["BRASIL", "EUA", "MUNDO"],
       descritor: "noaa-vh"
     },
     campoPrincipal: "VHI",
@@ -450,7 +450,7 @@ const CATALOGO_OBSERVAVEIS = [
       metodologia:
         "Um valor por semana e região, desde 1982. A semana N vai do dia do ano 7(N-1)+1 ao 7N (guia da NOAA); a data da observação é o último dia da semana. A NOAA disponibiliza a semana no dia seguinte ao fim (regra da própria página): a data de disponibilidade é ESTIMADA como o fim desse dia. Semanas sem dado de satélite (1984-85, 1994-95, 2003-05) ficam em branco. A NOAA reprocessa a série e suaviza os valores recentes: a coleta diária relê o ano corrente e o anterior, e uma mudança vira versão nova. O histórico é a versão reprocessada de hoje (o que se sabia em cada data só existe daqui para frente). A máscara de cultura é fixa (MapSPAM 2010) e não separa a safrinha da 1ª safra: a estação se vê pela semana do ano. Conferido contra secas conhecidas: EUA em 2012 (VHI 33-39 no verão; 64 em 2014) e Mato Grosso em 2021 (VHI 30-39 na safrinha). Licença: dado do governo dos EUA (domínio público).",
       escopo:
-        "só milho, só os três índices (VHI, VCI, TCI), em EUA, Brasil, Argentina, China e Ucrânia, nas 5 maiores UFs de milho (MT, PR, GO, MS, MG) e nos 5 maiores estados de milho dos EUA (Iowa, Illinois, Nebraska, Minnesota, Indiana). A fonte cobre 161 países e outras culturas (café, soja, trigo...), não coletados. Não coletados: o NDVI e a temperatura suavizados (insumos dos índices), a distribuição por faixa de VHI e a versão experimental WF2025. Nenhum fator: como o índice entra no preço é definição do Comitê.",
+        "só milho, só os três índices (VHI, VCI, TCI), no mundo (55°S a 65°N) e nos hemisférios Norte (0 a 65°N) e Sul (40°S a 0), que são médias ponderadas pela área do milho e diluem choques regionais (na seca de 2012 os EUA foram a 33-35 e o mundo, a ~44), em EUA, Brasil, Argentina, China e Ucrânia, nas 5 maiores UFs de milho (MT, PR, GO, MS, MG) e nos 5 maiores estados de milho dos EUA (Iowa, Illinois, Nebraska, Minnesota, Indiana). A fonte cobre 161 países e outras culturas (café, soja, trigo...), não coletados. Não coletados: o NDVI e a temperatura suavizados (insumos dos índices), a distribuição por faixa de VHI e a versão experimental WF2025. Nenhum fator: como o índice entra no preço é definição do Comitê.",
       formatoOrigem: "Texto (tabela da página \"VH Time Series by administrative regions for specific crop\" da NOAA STAR, sem chave; endpoint não documentado como API)",
       urlOficial: "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot"
     }

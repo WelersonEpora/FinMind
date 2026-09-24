@@ -45,8 +45,11 @@ const INDICES = [
 ];
 
 // Regiões por cultura. `provinceId` 0 = país inteiro; os ids de estado são os de `getProvinceNames.php` da NOAA.
-// Milho: os países de referência do card do WASDE (maiores produtores/exportadores) + Ucrânia (exportador), as
-// 5 maiores UFs de milho da Conab e os 5 maiores estados de milho dos EUA (Corn Belt).
+// Faixas globais (modo "Global" da página, no lugar do país): W65 = mundo de 55°S a 65°N (a mais larga; cobre todo o
+// milho), WNH = Hemisfério Norte (0 a 65°N), WSH = Hemisfério Sul (40°S a 0). A média global é ponderada pela área
+// da cultura e dilui choques regionais (EUA 2012: VHI 33-35; mundo: ~44).
+// Milho: mundo e hemisférios, os países de referência do card do WASDE (maiores produtores/exportadores) + Ucrânia
+// (exportador), as 5 maiores UFs de milho da Conab e os 5 maiores estados de milho dos EUA (Corn Belt).
 const CULTURAS = {
   milho: {
     codigo: "noaa-vh-milho",
@@ -54,6 +57,9 @@ const CULTURAS = {
     nome: "milho",
     prefixoSerie: "NOAA_VH.MILHO",
     regioes: [
+      { codigo: "MUNDO", pais: "W65", provinceId: 0, nome: "Global: 55S~65N" },
+      { codigo: "HEMISFERIO_NORTE", pais: "WNH", provinceId: 0, nome: "Northern Hemisphere: 0~65N" },
+      { codigo: "HEMISFERIO_SUL", pais: "WSH", provinceId: 0, nome: "Southern Hemisphere: 40S~0" },
       { codigo: "EUA", pais: "USA", provinceId: 0, nome: "United States" },
       { codigo: "BRASIL", pais: "BRA", provinceId: 0, nome: "Brazil" },
       { codigo: "ARGENTINA", pais: "ARG", provinceId: 0, nome: "Argentina" },
@@ -97,7 +103,8 @@ function fimDaSemana(ano, semana) {
 // região e da cultura pedidas (a página devolve 200 com tabela vazia para parâmetro errado).
 function lerResposta(texto, cultura, regiao) {
   const limpo = String(texto).replace(/<[^>]*>/g, "\n");
-  const cabecalho = /Mean data for ([A-Z]{3})\b[^\n]*/.exec(limpo);
+  // País (ISO3, "BRA") ou faixa global ("W65", "WNH").
+  const cabecalho = /Mean data for ([A-Z0-9]{3})\b[^\n]*/.exec(limpo);
   if (!cabecalho || cabecalho[1] !== regiao.pais) {
     throw new UpstreamServiceError(`Resposta da NOAA VH sem o cabeçalho esperado para ${regiao.pais} (${regiao.codigo}).`);
   }

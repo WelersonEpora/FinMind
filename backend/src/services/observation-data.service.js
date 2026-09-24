@@ -137,12 +137,12 @@ const DIMENSOES_REGIAO = {
     rotuloModalidade: "Região",
     descreverRegiao: descreverRegiaoNoaaVh,
     textos: {
-      titulo: "Países e estados",
+      titulo: "Regiões",
       inativo: "descontinuada",
       mostrarInativos: "Mostrar séries descontinuadas",
-      semSelecao: "Selecione ao menos um país ou estado.",
+      semSelecao: "Selecione ao menos uma região.",
       nota:
-        "Cada linha é um país ou estado, com o índice medido só sobre a área da cultura (0 a 100, como a NOAA publica). Abaixo de 40 a NOAA classifica como estresse da vegetação."
+        "Cada linha é um país, um estado, o mundo ou um hemisfério, com o índice medido só sobre a área da cultura (0 a 100, como a NOAA publica). Abaixo de 40 a NOAA classifica como estresse da vegetação. Mundo e hemisférios são médias de áreas grandes e diluem choques regionais."
     }
   })
 };

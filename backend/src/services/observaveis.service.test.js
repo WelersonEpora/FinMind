@@ -930,10 +930,12 @@ const regioesNoaaVh = [
   { codigo: "EUA_IA", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" },
   { codigo: "BRASIL", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" },
   { codigo: "BR_MT", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" },
-  { codigo: "EUA", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" }
+  { codigo: "EUA", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" },
+  { codigo: "MUNDO", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" },
+  { codigo: "HEMISFERIO_SUL", primeira_data: "1982-01-07", ultima_data: "2026-09-23", pregoes: "2275" }
 ];
 
-test("NOAA VH milho: país antes dos seus estados, destaque é o Brasil, VHI por padrão; índice escolhido vira a série", async () => {
+test("NOAA VH milho: país antes dos seus estados, mundo e hemisférios no fim; destaque é o Brasil, VHI por padrão; índice escolhido vira a série", async () => {
   const pedidos = [];
   const repo = {
     listarItens: async () => regioesNoaaVh,
@@ -949,9 +951,10 @@ test("NOAA VH milho: país antes dos seus estados, destaque é o Brasil, VHI por
     collectionExecutionRepository: semExecucao
   });
 
-  assert.deepEqual(observavel.itens.map((i) => i.rotulo), ["Brasil", "Brasil - Mato Grosso", "EUA", "EUA - Iowa"]);
+  assert.deepEqual(observavel.itens.map((i) => i.rotulo), ["Brasil", "Brasil - Mato Grosso", "EUA", "EUA - Iowa", "Hemisfério Sul", "Mundo"]);
+  assert.equal(observavel.itens.find((i) => i.codigo === "MUNDO").agregado, true);
   assert.equal(observavel.itemPrincipal, "Brasil");
-  assert.deepEqual(observavel.itensPadrao, ["BRASIL", "EUA"]);
+  assert.deepEqual(observavel.itensPadrao, ["BRASIL", "EUA", "MUNDO"]);
   assert.equal(observavel.frequencia, "SEMANAL");
   assert.deepEqual(observavel.campos.map((c) => c.codigo), ["VHI", "VCI", "TCI"]);
   assert.match(observavel.fonteDetalhe.escopo, /Nenhum fator/);

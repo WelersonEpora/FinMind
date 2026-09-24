@@ -67,6 +67,19 @@ test("estado: confere a província pedida; valor fora de 0-100 é inválido, sem
   assert.match(invalidos[0].motivo, /0-100/);
 });
 
+test("faixa global: o cabeçalho traz o código da faixa (W65) no lugar do país", () => {
+  const resposta =
+    "Mean data for W65 ( Global: 55S~65N),  from 2026 to 2026, weekly; version='GC_Current'<br>for   area with 'MAIZ' <br>\n" +
+    "year,week, SMN,SMT,VCI,TCI, VHI<br>\n<tt><pre>2026,38, 0.310,297.16, 61.23, 39.01, 50.13,\n</pre></tt>";
+  const { validos } = coletor.normalize(coletor.parse({ respostas: [{ regiao: "MUNDO", texto: resposta }] }));
+  assert.deepEqual(validos.map((v) => [v.series_code, v.value]), [
+    ["NOAA_VH.MILHO.MUNDO.VCI", 61.23],
+    ["NOAA_VH.MILHO.MUNDO.TCI", 39.01],
+    ["NOAA_VH.MILHO.MUNDO.VHI", 50.13]
+  ]);
+  assert.throws(() => lerResposta(resposta, MILHO, regiao("HEMISFERIO_SUL")), /cabeçalho esperado para WSH/);
+});
+
 test("lerResposta: resposta de outra região, cultura ou província, ou sem as colunas, é erro de fonte", () => {
   assert.throws(() => lerResposta(RESPOSTA_BRASIL, MILHO, regiao("EUA")), /cabeçalho esperado para USA/);
   assert.throws(() => lerResposta(RESPOSTA_BRASIL.replace("'MAIZ'", "'ACOF'"), MILHO, regiao("BRASIL")), /cultura MAIZ/);
