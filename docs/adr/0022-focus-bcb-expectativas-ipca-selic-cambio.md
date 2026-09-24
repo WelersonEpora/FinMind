@@ -125,6 +125,9 @@ escrita; o desenho escolhido não precisa de mudança nenhuma no serviço.
   Selic de 2026 passa de **13,75** para **13,50** com o boletim de 18/09. O IPCA de 2020 passa de 3,2 para 3,1
   no boletim de 13/03/2020, que vale a partir de 16/03.
 
+**Servidor (2026-09-23):** `npm run backfill:bcb-focus` gravou 20.258 observações, 0 falhas, em ~87 s: os mesmos
+números de dev.
+
 ## Consequências e limitações
 
 - **100% das datas de publicação são estimadas**: a fonte não informa o instante. O horário não é informado; vale

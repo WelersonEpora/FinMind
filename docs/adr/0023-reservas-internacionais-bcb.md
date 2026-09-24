@@ -64,6 +64,9 @@ Em 2026-09-23 o usuário pediu para completar o que o FEL 1 pede. Mesmo padrão 
 - `asOf()`: até 2026-09-08 12:00 UTC vale o dado de 03/09 (373.396). O de sexta, 04/09 (372.881), só vale a partir
   do fim de 08/09, porque a segunda, 07/09, foi feriado.
 
+**Servidor (2026-09-23):** `npm run backfill:bcb-reservas` gravou 7.046 observações, 0 falhas, em ~65 s: os mesmos
+números de dev.
+
 ## Consequências e limitações
 
 - 100% das datas de publicação são estimadas, com uma medição só da defasagem. O ponto mais recente de cada coleta

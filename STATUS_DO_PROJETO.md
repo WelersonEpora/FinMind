@@ -44,8 +44,8 @@ Evidências e ressalvas de cada fonte: no ADR apontado na coluna Status (o ADR 0
 | Fonte | Acesso | Séries | Histórico | `published_at` | Status |
 |---|---|---|---|---|---|
 | BCB SGS | API REST (JSON) | Dólar (PTAX venda), Selic meta e realizada | Dólar desde 01/07/1994, Selic realizada desde 04/07/1994, meta desde 05/03/1999 — dev e produção (backfill feito em 2026-09-21) | — (`market_quote`, não revisa) | ✅ ADRs 0001, 0006 |
-| BCB Focus | API OData (JSON) | Expectativas (mediana, base 30 dias) de **IPCA, Selic de fim de ano e câmbio de fim de ano**, por ano-calendário (ano corrente + até 4): 93 séries, uma observação por boletim semanal | **Desde 2000-01-07** (1.394 boletins, 20.258 observações em dev) | **Estimado** (1º dia útil depois da semana do boletim, tirado da própria fonte; o boletim mais recente entra com a data da coleta) | ✅ Validado em 2026-09-23 em dev: igual ao PDF do boletim em 6 datas (2005–2026), 0 duplicatas, reexecução idempotente — ADR 0022. Escopo estrito do FEL 1 |
-| BCB SGS — reservas internacionais | API REST (JSON) | Total, diária (série 13621), US$ milhões: a outra metade da linha "Relatório Focus e Reservas" do FEL 1 | **Desde 1998-09-01** (7.046 dias úteis em dev) | **Estimado** (o valor de D sai no dia útil seguinte, data tirada da própria série; o ponto mais recente entra com a data da coleta) | ✅ Validado em 2026-09-23 em dev: fim de mês igual à série mensal oficial em 330 de 336 meses, 0 duplicatas, reexecução idempotente — ADR 0023 |
+| BCB Focus | API OData (JSON) | Expectativas (mediana, base 30 dias) de **IPCA, Selic de fim de ano e câmbio de fim de ano**, por ano-calendário (ano corrente + até 4): 93 séries, uma observação por boletim semanal | **Desde 2000-01-07** (1.394 boletins, 20.258 observações em dev e no servidor) | **Estimado** (1º dia útil depois da semana do boletim, tirado da própria fonte; o boletim mais recente entra com a data da coleta) | ✅ Validado em 2026-09-23 em dev: igual ao PDF do boletim em 6 datas (2005–2026), 0 duplicatas, reexecução idempotente — ADR 0022. **Backfill rodado no servidor em 2026-09-23** (20.258 criados, 0 falhas, os mesmos números de dev). Escopo estrito do FEL 1 |
+| BCB SGS — reservas internacionais | API REST (JSON) | Total, diária (série 13621), US$ milhões: a outra metade da linha "Relatório Focus e Reservas" do FEL 1 | **Desde 1998-09-01** (7.046 dias úteis em dev e no servidor) | **Estimado** (o valor de D sai no dia útil seguinte, data tirada da própria série; o ponto mais recente entra com a data da coleta) | ✅ Validado em 2026-09-23 em dev: fim de mês igual à série mensal oficial em 330 de 336 meses, 0 duplicatas, reexecução idempotente — ADR 0023. **Backfill rodado no servidor em 2026-09-23** (7.046 criados, 0 falhas) |
 | FRED | API REST (JSON, com chave); CSV de reserva | DGS10, T10YIE, DFII10, DTWEXBGS | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | Estimado | ✅ Coleta pela API, CSV de reserva — ADR 0012. Vintage real (ALFRED) provado via teste — ADR 0011 |
 | LBMA | Feed JSON público (não documentado) | Ouro PM (USD/oz) | Desde 1968 | Estimado | ✅ Licença da IBA exigida p/ exibir/redistribuir — adiada (uso interno) |
 | CFTC COT | API Socrata (JSON) | Ouro e milho (open interest, MM long/short) | Desde 2006 | Real desde 2022-08; estimado antes | ✅ |
@@ -141,9 +141,7 @@ na coluna Status de "Dados coletados" (§2).
 
 | Carga | Comando | Tempo aproximado | Cuidado | Onde |
 |---|---|---|---|---|
-| BCB Focus | `npm run backfill:bcb-focus` | ~6 s | Nenhum: a ordem em relação à coleta diária não importa | ADR 0022 |
-| BCB reservas internacionais | `npm run backfill:bcb-reservas` | segundos a ~1 min (3 janelas de 10 anos) | Nenhum: a ordem em relação à coleta diária não importa | ADR 0023 |
-| EIA — etanol | nenhum: a própria coleta diária (`eia-etanol`) baixa a série inteira | segundos | Só depois do deploy | ADR 0024 |
+| EIA — etanol | nenhum: a própria coleta diária (`eia-etanol`) baixa a série inteira; para carregar já, `npm run collect -- --coletor=eia-etanol` | segundos | Deploy feito em 2026-09-23; confirmar a 1ª coleta (1.702 criados em dev) | ADR 0024 |
 
 ## 4. Bloqueado — depende do David / Comitê
 
