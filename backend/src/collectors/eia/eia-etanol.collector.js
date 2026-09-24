@@ -1,5 +1,6 @@
 "use strict";
 
+const { URL } = require("node:url");
 const env = require("../../config/env");
 const { UpstreamServiceError } = require("../../shared/errors");
 const { somarDias, diaDaSemanaIso, fimDoDiaUtc } = require("../../shared/utils/date-utils");
