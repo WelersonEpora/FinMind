@@ -10,6 +10,9 @@ const { registerCollector, listCollectors } = require("./base/collector.interfac
 const bcbUsdBrlCollector = require("./bcb/bcb-usd-brl.collector");
 const bcbSelicMetaCollector = require("./bcb/bcb-selic-meta.collector");
 const bcbSelicRealizadaCollector = require("./bcb/bcb-selic-realizada.collector");
+const bcbFocusCollector = require("./bcb/bcb-focus.collector");
+const bcbReservasCollector = require("./bcb/bcb-reservas.collector");
+const eiaEtanolCollector = require("./eia/eia-etanol.collector");
 const { criarColetorFred } = require("./fred/fred.collector");
 const lbmaGoldPmCollector = require("./lbma/lbma-gold-pm.collector");
 const { criarColetorCot } = require("./cftc/cftc-cot.collector");
@@ -35,11 +38,14 @@ function bootstrapCollectors() {
       registerCollector(criarColetorFred(fredId));
     }
     registerCollector(lbmaGoldPmCollector);
+    registerCollector(bcbFocusCollector);
+    registerCollector(bcbReservasCollector);
     registerCollector(criarColetorCot("gold"));
     registerCollector(criarColetorCot("corn"));
     registerCollector(b3CcmCollector);
     registerCollector(b3MilhoEsalqCollector);
     registerCollector(comexMilhoExportacaoCollector);
+    registerCollector(eiaEtanolCollector);
     registerCollector(wasdeMilhoCollector);
     registerCollector(conabMilhoCollector);
     registerCollector(imeaMilhoSafraCollector);

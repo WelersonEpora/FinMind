@@ -142,6 +142,63 @@ const CATALOGO_OBSERVAVEIS = [
   // `origem: "observation"` faz o serviço ler de observation em vez de
   // market_quote. Um card agrupa séries de MESMA unidade (a modalidade é a
   // chave de cada série no gráfico). Mesma convenção da Selic.
+  // --- Focus (BCB): expectativas de mercado de IPCA, Selic e câmbio por ano-calendário (ADR 0022) ---
+  // Escopo estrito do FEL 1 (ouro em R$: "Focus impacta Selic, IPCA e BRL"). Séries
+  // `BCB_FOCUS.ANUAL.<ANO>.<CAMPO>`: o item é o ano-alvo, o eixo do tempo é a data da pesquisa do boletim.
+  {
+    instrumentCode: "FOCUS_EXPECTATIVAS",
+    origem: "observation",
+    nome: "Expectativas de mercado - Focus (BCB)",
+    unidade: "%",
+    casasDecimais: 2,
+    frequencia: "SEMANAL",
+    // Boletim com a pesquisa de sexta, publicado na segunda (terça/quarta em feriado): até ~11 dias sem ponto novo.
+    toleranciaDias: 12,
+    fonte: "BCB - Focus (Relatório de Mercado)",
+    fonteCollectorCode: "bcb-focus",
+    porAnoReferencia: { prefixoSerie: "BCB_FOCUS.ANUAL", campoReferencia: "IPCA" },
+    campoPrincipal: "IPCA",
+    campos: [
+      { codigo: "IPCA", nome: "IPCA (variação no ano)", unidade: "%", casasDecimais: 2 },
+      { codigo: "SELIC", nome: "Selic (fim de ano)", unidade: "% a.a.", casasDecimais: 2 },
+      { codigo: "CAMBIO", nome: "Câmbio (fim de ano)", unidade: "R$/US$", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Mediana das expectativas do mercado (Focus - Relatório de Mercado do Banco Central) para o IPCA do ano, a Selic de fim de ano e o câmbio (R$/US$) de fim de ano, para o ano corrente e os seguintes. É a opinião dos participantes da pesquisa, não um dado realizado nem uma projeção do FinMind.",
+      metodologia:
+        "Um ponto por boletim semanal: a pesquisa do último dia útil da semana (normalmente sexta), que é o número do boletim, na base dos últimos 30 dias. O BCB calcula a estatística todo dia útil, mas publica a semana inteira de uma vez, no primeiro dia útil da semana seguinte: a data de disponibilidade é ESTIMADA como o fim desse dia, tirado das próprias datas de pesquisa da fonte (feriado desloca para terça ou quarta). Na semana mais recente, antes de a fonte ter o dia seguinte, vale o momento da coleta. O dia da observação é a data da pesquisa; o ano esperado é o item. Conferido contra o PDF do boletim (2015 e 2026): iguais. Licença: ODbL (Portal de Dados Abertos do BCB).",
+      escopo:
+        "só IPCA, Selic e câmbio do endpoint anual, mediana, base de 30 dias, desde 2000. Não coletados, por estarem fora do que o relatório FEL 1 pede: PIB e os demais indicadores, expectativas mensais e trimestrais, Selic por reunião do Copom, inflação 12/24 meses, ranking Top 5, média, desvio e base de 5 dias úteis. Os dias de pesquisa entre um boletim e outro também não (nunca foram o valor vigente).",
+      formatoOrigem: "JSON (API OData Olinda do BCB, ExpectativasMercadoAnuais)",
+      urlOficial: "https://dadosabertos.bcb.gov.br/dataset/expectativas-mercado"
+    }
+  },
+  // --- Reservas internacionais brasileiras (BCB, SGS 13621), a outra metade da linha "Relatório Focus e Reservas" do FEL 1 (ADR 0023) ---
+  {
+    instrumentCode: "RESERVAS_INTERNACIONAIS_BCB",
+    origem: "observation",
+    nome: "Reservas internacionais (BCB)",
+    unidade: "US$ milhões",
+    casasDecimais: 0,
+    frequencia: "DIARIA",
+    // O valor de D sai no dia útil seguinte: na segunda de manhã, o último ponto ainda é o de quinta (~4 dias).
+    toleranciaDias: 5,
+    fonte: "BCB - SGS (série 13621)",
+    fonteCollectorCode: "bcb-reservas-internacionais",
+    series: [{ modalidade: "total", seriesCode: "BCB_SGS.RESERVAS_INTERNACIONAIS" }],
+    modalidadePrincipal: "total",
+    fonteDetalhe: {
+      descricao:
+        "Reservas internacionais brasileiras, total, em milhões de dólares: os ativos externos prontamente disponíveis e controlados pelo Banco Central do Brasil (série 13621 do SGS, \"Reservas internacionais - Total - diária\").",
+      metodologia:
+        "Um valor por dia útil, desde 01/09/1998. A série mensal oficial (\"Total - mensal\", SGS 3546) é o fim de mês desta diária (32 de 32 meses iguais na conferência), por isso não é coletada à parte. A fonte não informa quando publica: o valor de um dia aparece no dia útil seguinte, e a data de disponibilidade é ESTIMADA como o fim desse dia, tirado da própria série (feriado desloca). No ponto mais recente, antes de a série ter o dia seguinte, vale o momento da coleta. Revisões não foram medidas; se ocorrerem, entram como versão nova. Licença: ODbL (Portal de Dados Abertos do BCB).",
+      escopo:
+        "só o total. Não coletados: o conceito liquidez (SGS 13982, que inclui linhas com recompra e empréstimos em moeda estrangeira), a série mensal (1971 em diante) e a composição das reservas (ouro, moedas, títulos).",
+      formatoOrigem: "JSON (API do SGS, api.bcb.gov.br)",
+      urlOficial: "https://dadosabertos.bcb.gov.br/dataset/13621-reservas-internacionais---conceito-caixa---total---diaria"
+    }
+  },
   {
     instrumentCode: "OURO_LBMA",
     origem: "observation",
@@ -330,6 +387,37 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
+  // --- EIA - etanol combustível dos EUA, semanal (fator do milho "Demanda de etanol", ADR 0024) ---
+  // Séries `EIA.ETANOL.<CAMPO>`: produção e estoques têm unidades diferentes, uma por vez no seletor de métrica.
+  {
+    instrumentCode: "ETANOL_EUA_EIA",
+    origem: "observation",
+    nome: "Etanol EUA - produção e estoques (EIA)",
+    unidade: "mil barris/dia",
+    casasDecimais: 0,
+    frequencia: "SEMANAL",
+    // Semana encerrada na sexta, divulgada na quarta seguinte (quinta em semana de feriado): até ~13 dias sem ponto novo.
+    toleranciaDias: 13,
+    fonte: "EIA - Weekly Petroleum Status Report",
+    fonteCollectorCode: "eia-etanol",
+    porCampo: { prefixoSerie: "EIA.ETANOL" },
+    campoPrincipal: "PRODUCAO",
+    campos: [
+      { codigo: "PRODUCAO", nome: "Produção", unidade: "mil barris/dia", casasDecimais: 0 },
+      { codigo: "ESTOQUES", nome: "Estoques (fim da semana)", unidade: "mil barris", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Produção semanal de etanol combustível nas usinas dos EUA (mil barris por dia) e estoques no fim da semana (mil barris), conforme o Weekly Petroleum Status Report da EIA. O etanol americano é feito de milho: é a medida de demanda que o relatório FEL 1 associa ao fator \"Demanda de etanol e biocombustível\".",
+      metodologia:
+        "Um valor por semana, encerrada na sexta, desde 04/06/2010. A EIA divulga as tabelas depois das 10:30 ET de quarta; em semana de feriado, atrasa (normalmente para quinta). A data de disponibilidade é ESTIMADA: a data alternativa do calendário oficial de feriados da EIA quando ele lista a semana (~2 anos); fora disso, quarta, ou quinta com feriado federal de segunda a quarta; sempre o fim do dia. A regra bate com 13 das 14 exceções do calendário oficial; a que não bate (Natal de 2025, divulgado 10 dias depois) vem do próprio calendário, mas no histórico antigo semanas de fim de ano podem ter data antecipada. A planilha traz só o valor atual: se a EIA revisar uma semana, a revisão entra como versão nova. Licença: dado do governo dos EUA (domínio público).",
+      escopo:
+        "só produção e estoques de etanol combustível dos EUA, semanais. Não coletados: consumo, importação e exportação de etanol, os dados mensais da EIA e o milho usado para etanol (este está no WASDE do USDA, não extraído).",
+      formatoOrigem: "XLS (planilha histórica de cada série no site da EIA, sem chave; a API v2 exige chave)",
+      urlOficial: "https://www.eia.gov/dnav/pet/pet_pnp_wprode_s1_w.htm"
+    }
+  },
+
   // --- USDA WASDE - balanço do milho, uma edição por mês desde 2011 (ADR 0015). Todas as linhas do WASDE são coletadas ---
   // A série é ANUAL (um ponto por safra, observed_at = 1º/set do ano de início) e cada edição do
   // WASDE pode revisá-la: o histórico mostra a versão mais recente de cada safra, e o vintage (o
@@ -501,7 +589,7 @@ const CATALOGO_OBSERVAVEIS = [
       formatoOrigem: "JSON (API pública e não documentada do site do IMEA, descoberta pelo JavaScript do próprio site)",
       urlOficial: "https://www.imea.com.br/imea-site/indicador-milho",
       escopo:
-        "só milho, só Mato Grosso e as 7 regiões do IMEA, com área, produção e produtividade das safras 2022/23 em diante. A resposta da API traz outros indicadores da cadeia (preço, custo por item, andamento de semeadura e colheita), mas sem nome: só estes 3 foram identificados com certeza, casando os valores com o relatório de Oferta e Demanda de 31/08/2026. Os demais não são coletados. A primeira estimativa da safra seguinte (2026/27, que o relatório traz) ainda não aparece na API; quando aparecer, entra sozinha. O balanço de oferta e demanda (estoques, consumo, exportação), a intenção de plantio e as versões antigas de cada estimativa estão só nos PDFs mensais do IMEA e não foram implementados.",
+        "só milho, só Mato Grosso e as 7 regiões do IMEA, com área, produção e produtividade das safras 2022/23 em diante. A resposta da API traz outros indicadores da cadeia (preço, custo por item, andamento de semeadura e colheita), mas sem nome: só estes 3 foram identificados com certeza, casando os valores com o relatório de Oferta e Demanda de 31/08/2026. Os demais não são coletados. A primeira estimativa da safra 2026/27 apareceu na API em 23/09/2026 e entrou pela coleta diária, como previsto. O balanço de oferta e demanda (estoques, consumo, exportação), a intenção de plantio e as versões antigas de cada estimativa estão só nos PDFs mensais do IMEA e não foram implementados.",
       descricao:
         "Área, produção e produtividade do milho de Mato Grosso por safra, para o estado e para as 7 regiões do IMEA, conforme os indicadores do IMEA (estimativa do IMEA, não da Conab). Uma linha por região."
     }

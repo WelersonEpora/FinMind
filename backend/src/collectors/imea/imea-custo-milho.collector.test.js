@@ -83,6 +83,14 @@ test("escolherArquivos: cada campo devolvido não carrega a URL assinada (path) 
   assert.equal(escolhido.nome, MENSAL_ALTA.Nome);
 });
 
+test("escolherArquivos: a source_code das 4 planilhas cabe na coluna (sem truncar, a reingestão não acha as edições)", () => {
+  const { TAMANHO_MAXIMO } = require("../../repositories/observation.repository");
+  const nomes = ["Mensal Alta", "Mensal Média", "Ponderado Alta", "Ponderado Média"].map((t) => `Custo de Produção - Milho - ${t} Tecnologia`);
+  const escolhidos = coletor.escolherArquivos(nomes.map((nome, i) => arquivoCatalogo({ nome, id: String(i + 1), data: "2026-09-15T00:00:00" })));
+  assert.equal(escolhidos.length, 4);
+  for (const { sourceCode } of escolhidos) assert.ok(sourceCode.length <= TAMANHO_MAXIMO.source_code, sourceCode);
+});
+
 // --- listarCatalogo ---
 
 test("listarCatalogo: pede cadeia=3, nome=Custo e para quando junta o TotalCount", async () => {

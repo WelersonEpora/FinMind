@@ -35,8 +35,8 @@ banco de dev (`observation`/`market_quote`/`collection_execution`) em 2026-09-22
 | Indicador CEPEA/ESALQ (preço físico), pela B3 | ✅ `b3-milho-esalq` (2026-09-23, ADR 0021) | ⏳ carga em andamento | ⚠️ só 2018-06-08→hoje | ✅ |
 | USDA FAS PSD | ❌ (reconhecida, adiada por decisão do usuário) | ❌ | — | — |
 | Clima (NOAA/INMET/NASA POWER) | ❌ nem reconhecida | ❌ | — | — |
-| EIA (etanol de milho) | ❌ nem reconhecida | ❌ | — | — |
-| Frete marítimo / prêmio de porto | ❌ nenhuma fonte identificada | ❌ | — | — |
+| EIA (etanol de milho) | ✅ produção e estoques semanais (ADR 0024, 2026-09-23) | ✅ | ✅ 2010→hoje | Estimado |
+| Frete marítimo / prêmio de porto | ⚠️ reconhecido em parte (2026-09-23): frete rodoviário e prêmio/paridade do IMEA (API e boletim semanal em PDF); frete marítimo sem fonte | ❌ | — | — |
 
 ### Ouro
 
@@ -62,7 +62,7 @@ banco de dev (`observation`/`market_quote`/`collection_execution`) em 2026-09-22
 | 2 | Safrinha brasileira, 2ª safra (Alto) | Área/produção/produtividade da 2ª safra | Conab (nacional/UF, vintage fev/2025+) e IMEA (só MT, sem vintage) | Vintage anterior a fev/2025 é irrecuperável; série 1976/77+ não carregada (decisão) |
 | 3 | Estoques globais e balanço — WASDE (Alto) | Estoque final, produção, balanço mundial | WASDE EUA + por país, vintage real 2011+ | Pré-2011 só em PDF, não coletado |
 | 4 | Dólar/USDBRL e paridade de exportação (Médio) | USD/BRL + frete marítimo + prêmio de porto | USD/BRL completo (1994+); exportação Comex Stat (2005+) | **Frete e prêmio de porto: nenhuma fonte identificada** — o fator não é calculável hoje mesmo com o resto perfeito |
-| 5 | Demanda de etanol/biocombustível (Médio) | Produção de etanol de milho, estoques (EIA/USDA) | — | **Nada.** EIA nem foi reconhecida como fonte |
+| 5 | Demanda de etanol/biocombustível (Médio) | Produção de etanol de milho, estoques (EIA/USDA) | — | **Atualizado em 2026-09-23:** produção e estoques semanais da EIA desde 2010 (ADR 0024). Falta a parte USDA (milho usado para etanol, no WASDE, não extraído) |
 | 6 | Custo de insumos — fertilizantes, diesel (Médio) | Preço de fertilizantes e diesel | IMEA custo de produção traz linhas agregadas ("Fertilizantes e corretivos", "Operações mecanizadas — diesel"), só Mato Grosso, em R$/ha (custo composto, não preço isolado) | Sem cobertura fora de MT; sem série de preço de insumo isolada |
 | 7 | Especulação — COT (Médio) | Posições CFTC (OI, MM long/short) | Completo, 2006+ | Nenhuma relevante |
 | 8 | Política comercial/exportações — China, tarifas (Médio) | Exportação por destino, eventos de tarifa | Comex Stat só traz total nacional exportado, sem quebra por país | Sem exportação por destino (China específica); sem captura de evento de tarifa (doutrina do projeto veda isso como "número" sem camada de evidência) |
@@ -114,7 +114,7 @@ Nenhuma das duas séries de preço atende, isoladamente, ao padrão de backtest 
 | Gold Demand Trends (WGC) | Ouro | ❌ | — |
 | Gold Reserve Statistics (IMF) | Ouro | ❌ | — |
 | Indicadores de Preços (Cepea) | Milho | ✅ pela B3 (ADR 0021) | ⚠️ 2018-06-08→hoje |
-| Relatório Focus e Reservas (BCB) | Ouro | ❌ | — |
+| Relatório Focus e Reservas (BCB) | Ouro | ✅ Focus (IPCA, Selic e câmbio por ano, ADR 0022) e Reservas (total diário, ADR 0023), 2026-09-23 | ✅ Focus 2000→hoje; Reservas 1998→hoje |
 
 O FinMind não tem uma entidade de "calendário de relatórios" própria — o que existe é o coletor rodando no calendário real da fonte. Para os relatórios marcados ❌, não há coletor nem registro de calendário dentro do sistema: a única cobertura é a linha na planilha do David.
 

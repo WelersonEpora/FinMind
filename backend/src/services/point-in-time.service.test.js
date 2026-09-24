@@ -161,6 +161,20 @@ test("published_at REAL no futuro do relógio é rejeitado, não corrigido em si
   assert.match(erro, /futuro/);
 });
 
+test("texto mais longo que a coluna é rejeitado, não gravado truncado pelo INSERT IGNORE", () => {
+  const { erro, versao } = montarVersao(obs({ source_code: "X".repeat(observationRepository.TAMANHO_MAXIMO.source_code + 1) }), T0);
+
+  assert.equal(versao, undefined);
+  assert.match(erro, /source_code .* passa de 64 caracteres/);
+});
+
+test("TAMANHO_MAXIMO do repositório bate com as colunas do model", () => {
+  const atributos = Observation.getAttributes();
+  for (const [campo, maximo] of Object.entries(observationRepository.TAMANHO_MAXIMO)) {
+    assert.equal(atributos[campo].type.options.length, maximo, campo);
+  }
+});
+
 test("valor diferente com published_at não posterior à última versão vira falha (append-only não representa)", async () => {
   const repo = criarRepoFake();
   await registrarObservacoes([obs({ value: 10, published_at: T1 })], { execucaoId: "e1", coletadoEm: T1 }, { observationRepository: repo });
@@ -187,6 +201,7 @@ test("item inválido não aborta o lote", async () => {
 
 test("o repository não expõe nenhuma operação de update/delete", () => {
   assert.deepEqual(Object.keys(observationRepository).sort(), [
+    "TAMANHO_MAXIMO",
     "buscarAsOf",
     "buscarHistoricoAtual",
     "buscarMaisRecente",

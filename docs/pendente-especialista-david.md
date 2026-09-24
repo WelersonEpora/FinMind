@@ -35,6 +35,19 @@ contratos vazios até que estas definições existam.
 > dado publicado pelo FRED). Café, petróleo e qualquer outro ativo seguem
 > pendentes.
 >
+> **Exceção pontual (2026-09-23):** o usuário do projeto autorizou
+> explicitamente a coleta das **expectativas do Focus (BCB)** de **IPCA, Selic e
+> câmbio** por ano-calendário, no escopo estrito da linha "Relatório Focus e
+> Reservas (BCB)" do FEL 1 (ouro) — ver
+> `docs/adr/0022-focus-bcb-expectativas-ipca-selic-cambio.md`. Só aquisição de
+> dado: nenhum fator sobre o Focus (surpresa, variação, dispersão) foi definido.
+> No mesmo dia, a outra metade da linha, as **reservas internacionais
+> brasileiras** (SGS 13621, total diário) — ver
+> `docs/adr/0023-reservas-internacionais-bcb.md`. PIB, Top 5, Selic por reunião,
+> inflação 12/24 meses e a composição das reservas seguem fora. Também em
+> 2026-09-23: a **produção e os estoques semanais de etanol da EIA** (fator do
+> milho "Demanda de etanol") — ver `docs/adr/0024-eia-etanol-producao-estoques.md`.
+>
 > **Em aberto para o Comitê (2026-09-23):** preço futuro do milho — seguir só com
 > o CCM (grátis, ~4 anos de histórico) ou contratar o ZC da CME (pago, 16+ anos)?
 > Pergunta 2 de `STATUS_DO_PROJETO.md` §4, com o detalhe para a reunião logo

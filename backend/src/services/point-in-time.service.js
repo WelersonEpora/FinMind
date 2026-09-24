@@ -29,6 +29,9 @@ function montarVersao(obs, coletadoEm) {
   if (!obs?.series_code || !obs?.source_code || !obs?.unit) {
     return { erro: "series_code, source_code e unit são obrigatórios." };
   }
+  for (const [campo, maximo] of Object.entries(observationRepository.TAMANHO_MAXIMO)) {
+    if (String(obs[campo]).length > maximo) return { erro: `${campo} "${obs[campo]}" passa de ${maximo} caracteres (seria gravado truncado).` };
+  }
   try {
     paraDate(obs.observed_at);
   } catch {

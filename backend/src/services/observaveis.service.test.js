@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    22,
-    "USD_BRL e SELIC (market_quote) + 20 de observation (5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM)"
+    25,
+    "USD_BRL e SELIC (market_quote) + 23 de observation (Focus + reservas do BCB + etanol da EIA + 5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -887,4 +887,40 @@ test("todo card do catálogo tem uma frequência que a tela conhece (senão o pe
   for (const observavel of observaveis) {
     assert.ok(conhecidas.includes(observavel.frequencia), `${observavel.codigo}: frequência "${observavel.frequencia}" não é uma das conhecidas (${conhecidas.join(", ")})`);
   }
+});
+
+// --- Focus (BCB): um item por ano-alvo (ADR 0022) ---
+const anosFocusDoBanco = [
+  { codigo: "2025", primeira_data: "2021-01-08", ultima_data: "2026-01-09", pregoes: "262" },
+  { codigo: "2027", primeira_data: "2023-01-06", ultima_data: "2026-09-18", pregoes: "194" },
+  { codigo: "2026", primeira_data: "2022-01-07", ultima_data: "2026-09-18", pregoes: "246" },
+  { codigo: "XX", primeira_data: "2026-09-18", ultima_data: "2026-09-18", pregoes: "1" }
+];
+
+test("Focus: anos em ordem, ativo = ainda no último boletim; destaque é o ano corrente; campo trocável, ano encerrado selecionável", async () => {
+  let pedido = null;
+  const repo = {
+    listarItens: async () => anosFocusDoBanco,
+    buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-18", 4.9205),
+    buscarHistoricoAtual: async (p) => {
+      pedido = p;
+      return { registros: [], total: 0 };
+    },
+    resumirSeries: async () => []
+  };
+  const { observavel } = await observaveisService.obterDetalheObservavel("FOCUS_EXPECTATIVAS", {
+    observationRepository: repo,
+    collectionExecutionRepository: { buscarUltimaPorColetor: async () => null }
+  });
+
+  assert.deepEqual(observavel.itens.map((i) => [i.codigo, i.ativo]), [["2025", false], ["2026", true], ["2027", true]], "código que não é ano é ignorado");
+  assert.equal(observavel.itemPrincipal, "2026");
+  assert.equal(observavel.rotuloModalidade, "Ano de referência");
+  assert.equal(observavel.frequencia, "SEMANAL");
+  assert.deepEqual(observavel.campos.map((c) => [c.codigo, c.unidade]), [["IPCA", "%"], ["SELIC", "% a.a."], ["CAMBIO", "R$/US$"]]);
+
+  await observaveisService.obterHistoricoObservavel("FOCUS_EXPECTATIVAS", {}, { observationRepository: repo });
+  assert.deepEqual(pedido.seriesCodes, ["BCB_FOCUS.ANUAL.2026.IPCA", "BCB_FOCUS.ANUAL.2027.IPCA"]);
+  await observaveisService.obterHistoricoObservavel("FOCUS_EXPECTATIVAS", { itens: "2025", campo: "CAMBIO" }, { observationRepository: repo });
+  assert.deepEqual(pedido.seriesCodes, ["BCB_FOCUS.ANUAL.2025.CAMBIO"]);
 });

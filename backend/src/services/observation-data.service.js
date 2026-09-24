@@ -22,8 +22,9 @@ const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = re
 //     modalidade é a série no gráfico);
 //   - `porCampo` + `campos` - UMA série por métrica (`<prefixoSerie>.<CAMPO>`), sem
 //     itens: a tela oferece só o seletor de métrica (unidades diferentes, uma por vez);
-//   - `porVencimento` (futuros com VÁRIOS vencimentos) ou `porRegiao` (uma
-//     série por região do WASDE ou da Conab) + `campos` - séries `<prefixoSerie>.<ITEM>.<CAMPO>`.
+//   - `porVencimento` (futuros com VÁRIOS vencimentos), `porRegiao` (uma
+//     série por região do WASDE ou da Conab) ou `porAnoReferencia` (uma série por
+//     ano-alvo das expectativas do Focus) + `campos` - séries `<prefixoSerie>.<ITEM>.<CAMPO>`.
 //     Aqui a modalidade é o ITEM (vencimento ou região), o campo escolhido é UM
 //     por vez (unidades diferentes) e cada item é uma linha própria - nunca uma
 //     série contínua.
@@ -133,10 +134,33 @@ const DIMENSOES_REGIAO = {
   })
 };
 
+// Dimensão "ano de referência" (Focus, ADR 0022): o item é o ANO-ALVO da expectativa (`2026`, `2027`...), e cada
+// boletim é um ponto da linha daquele ano. Ativo = o ano ainda consta do boletim mais recente (a fonte deixa de
+// perguntar por um ano depois que ele termina).
+const DIMENSAO_ANO_REFERENCIA = {
+  rotuloModalidade: "Ano de referência",
+  textos: {
+    titulo: "Anos de referência",
+    inativo: "encerrado",
+    mostrarInativos: "Mostrar anos que o Focus já não pergunta",
+    semSelecao: "Selecione ao menos um ano.",
+    nota: "Cada linha é a expectativa para um ano-calendário, boletim a boletim (mediana, como publicada). O eixo do tempo é a data da pesquisa do boletim, não o ano esperado."
+  },
+  descrever(codigo) {
+    return /^\d{4}$/.test(codigo) ? { rotulo: codigo, ordem: codigo, extras: {} } : null;
+  },
+  ativo: (ultimaDataDoItem, ultimaDataGeral) => ultimaDataDoItem === ultimaDataGeral,
+  // Destaque do card: o ano mais próximo ainda perguntado (o ano corrente).
+  escolherPrincipal: (itens) => itens.find((i) => i.ativo),
+  destaque: (principal) => principal.rotulo,
+  padrao: (itens) => itens.filter((i) => i.ativo).map((i) => i.codigo)
+};
+
 // { config, ...dimensão } do item, ou null quando o item é de formato fixo. `porRegiao.descritor` escolhe o
 // mapa de rótulos ("wasde" por padrão).
 function dimensaoDe(item) {
   if (item.porVencimento) return { ...DIMENSAO_VENCIMENTO, config: item.porVencimento };
+  if (item.porAnoReferencia) return { ...DIMENSAO_ANO_REFERENCIA, config: item.porAnoReferencia };
   if (item.porRegiao) return { ...DIMENSOES_REGIAO[item.porRegiao.descritor || "wasde"], config: item.porRegiao };
   return null;
 }

@@ -31,7 +31,7 @@ module.exports = (sequelize) => {
       collected_at: { type: DataTypes.DATE, allowNull: false },
       value: { type: DataTypes.DECIMAL(18, 6), allowNull: false },
       unit: { type: DataTypes.STRING(20), allowNull: false },
-      source_code: { type: DataTypes.STRING(30), allowNull: false },
+      source_code: { type: DataTypes.STRING(64), allowNull: false },
       published_at_is_estimated: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       revision_seq: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
       collection_execution_id: { type: DataTypes.UUID, allowNull: false },

@@ -17,6 +17,8 @@
     "collect": "node scripts/run-coleta.js",
     "backfill:dolar": "node scripts/backfill-dolar.js",
     "backfill:selic": "node scripts/backfill-selic.js",
+    "backfill:bcb-focus": "node scripts/backfill-bcb-focus.js",
+    "backfill:bcb-reservas": "node scripts/backfill-bcb-reservas.js",
     "backfill:b3-ccm": "node scripts/backfill-b3-ccm.js",
     "backfill:b3-ccm-bdi": "node scripts/backfill-b3-ccm-bdi.js",
     "backfill:b3-milho-esalq": "node scripts/backfill-b3-milho-esalq.js",

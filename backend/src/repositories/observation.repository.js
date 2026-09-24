@@ -8,6 +8,11 @@ const { paraDatetimeSql } = require("../shared/utils/date-utils");
 // De propósito NÃO expõe nenhum update/delete: a única escrita é inserir
 // versões novas.
 
+// Tamanho das colunas de texto (espelha as migrations e o model). O `INSERT IGNORE` rebaixa o erro de truncamento
+// do modo estrito a aviso: um valor mais longo que a coluna seria gravado CORTADO, sem erro (já aconteceu com
+// `series_code` e com `source_code`). O serviço rejeita esses valores antes de chegar aqui.
+const TAMANHO_MAXIMO = { series_code: 120, source_code: 64, unit: 20 };
+
 const COLUNAS_INSERT = [
   "id",
   "series_code",
@@ -218,4 +223,4 @@ async function resumirSeries(seriesCodes, { transaction } = {}) {
   );
 }
 
-module.exports = { inserirVersoes, buscarUltimasVersoes, listarSeriesEInstantes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, resumirSeries };
+module.exports = { TAMANHO_MAXIMO, inserirVersoes, buscarUltimasVersoes, listarSeriesEInstantes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, resumirSeries };

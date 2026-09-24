@@ -109,6 +109,10 @@ cd backend && npm run backfill:b3-ccm
 cd backend && npm run backfill:b3-ccm-bdi
 # Indicador do Milho CEPEA/ESALQ pelo arquivo `Indic` da B3, de 2018-06-08 (1º pregão com o milho) em diante (~2.100 downloads):
 cd backend && npm run backfill:b3-milho-esalq
+# expectativas do Focus (BCB) de IPCA, Selic e câmbio por ano, uma observação por boletim, desde 2000 (3 requisições, ~6 s):
+cd backend && npm run backfill:bcb-focus
+# reservas internacionais do BCB (SGS 13621, total diário), desde 1998-09-01 (3 janelas de 10 anos):
+cd backend && npm run backfill:bcb-reservas
 ```
 
 A API do BCB rejeita (406) um pedido com mais de 10 anos: os scripts dividem o
@@ -118,7 +122,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — FRED, LBMA, CFTC, B3/CCM, B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho), WASDE (balanço do milho), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FRED, LBMA, CFTC, B3/CCM, B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho), EIA (etanol), WASDE (balanço do milho), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/
