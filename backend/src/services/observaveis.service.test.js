@@ -19,7 +19,7 @@ function isoHaDias(dias) {
 
 // Os observáveis de `observation` também passam pela listagem: um fake que
 // nunca abre o banco (nenhum teste daqui conecta).
-const observationRepositoryVazio = { buscarMaisRecente: async () => null, resumirSeries: async () => [], listarItens: async () => [] };
+const observationRepositoryVazio = { buscarMaisRecente: async () => null, resumirSeries: async () => [], listarItens: async () => [], listarUltimasDatasItens: async () => [] };
 
 const registroFake = (dataReferencia) => ({
   instrument_code: "USD_BRL",
@@ -107,7 +107,7 @@ test("a listagem mostra os observáveis de observation, com casas decimais próp
   const deps = {
     marketQuoteRepository: { buscarMaisRecente: async () => null },
     observationRepository: {
-      listarItens: async () => [],
+      listarItens: async () => [], listarUltimasDatasItens: async () => [],
       buscarMaisRecente: async (seriesCode) => {
         consultadas.push(seriesCode);
         return linhaObservation(seriesCode, isoHaDias(1), 2.61);
@@ -131,7 +131,7 @@ test("a listagem mostra os observáveis de observation, com casas decimais próp
 test("série semanal/divulgada em lote tolera mais dias que a diária antes de ficar ATRASADA", async () => {
   const deps = {
     marketQuoteRepository: { buscarMaisRecente: async () => null },
-    observationRepository: { listarItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(8), 1) }
+    observationRepository: { listarItens: async () => [], listarUltimasDatasItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(8), 1) }
   };
 
   const { observaveis } = await observaveisService.listarObservaveis(deps);
@@ -146,7 +146,7 @@ test("COT: posição de terça fica em dia até a divulgação da sexta seguinte
   const situacaoCom = async (dias) => {
     const { observaveis } = await observaveisService.listarObservaveis({
       marketQuoteRepository: { buscarMaisRecente: async () => null },
-      observationRepository: { listarItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(dias), 1) }
+      observationRepository: { listarItens: async () => [], listarUltimasDatasItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(dias), 1) }
     });
     return observaveis.find((o) => o.codigo === "COT_MILHO").situacao;
   };
@@ -160,7 +160,7 @@ test("FRED tolera o atraso de fim de semana: Treasury até 5 dias, índice do d�
   const situacaoCom = async (dias) => {
     const deps = {
       marketQuoteRepository: { buscarMaisRecente: async () => null },
-      observationRepository: { listarItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(dias), 1) }
+      observationRepository: { listarItens: async () => [], listarUltimasDatasItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(dias), 1) }
     };
     const { observaveis } = await observaveisService.listarObservaveis(deps);
     return (codigo) => observaveis.find((o) => o.codigo === codigo).situacao;
@@ -258,7 +258,7 @@ const vencimentosDoBanco = [
 
 function repoCcm(extra = {}) {
   return {
-    listarItens: async () => vencimentosDoBanco,
+    listarItens: async () => vencimentosDoBanco, listarUltimasDatasItens: async () => vencimentosDoBanco,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(1), 76.36),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
@@ -334,7 +334,7 @@ test("CCM: campo de outro card, campo inexistente ou vencimento desconhecido sã
 });
 
 test("CCM: sem nenhum vencimento ativo o histórico vem vazio (não quebra)", async () => {
-  const deps = { observationRepository: repoCcm({ listarItens: async () => [] }) };
+  const deps = { observationRepository: repoCcm({ listarItens: async () => [], listarUltimasDatasItens: async () => [] }) };
 
   const r = await observaveisService.obterHistoricoObservavel("CCM_PRECOS", {}, deps);
 
@@ -388,7 +388,7 @@ const regioesDoBanco = [
 
 function repoWasdePaises(extra = {}) {
   return {
-    listarItens: async () => regioesDoBanco,
+    listarItens: async () => regioesDoBanco, listarUltimasDatasItens: async () => regioesDoBanco,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-01", 300),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
@@ -431,6 +431,36 @@ test("WASDE por país: a lista mostra o valor de UMA região, dizendo qual", asy
   assert.equal(observaveis.find((o) => o.codigo === "WASDE_MILHO_PAISES").unidade, "milhões de t (Mundo)");
 });
 
+test("a listagem nunca usa a cobertura completa dos itens (consulta pesada): região configurada vai direto na série, vencimento usa a consulta leve", async () => {
+  const leves = [];
+  const falhar = async () => { throw new Error("listarItens (cobertura completa) não deveria ser chamado na listagem"); };
+  const { observaveis } = await observaveisService.listarObservaveis({
+    marketQuoteRepository: { buscarMaisRecente: async () => null },
+    observationRepository: {
+      listarItens: falhar,
+      listarUltimasDatasItens: async (config) => { leves.push(config.prefixoSerie); return config.prefixoSerie === "B3.CCM" ? vencimentosDoBanco : []; },
+      buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(1), 1)
+    }
+  });
+
+  assert.equal(observaveis.find((o) => o.codigo === "WASDE_MILHO_PAISES").unidade, "milhões de t (Mundo)");
+  assert.equal(observaveis.find((o) => o.codigo === "CCM_PRECOS").unidade, "R$/saca (CCMX26)");
+  assert.ok(!leves.includes("WASDE.MILHO.MUNDO"), "região configurada que existe no banco não lista os itens");
+  assert.ok(leves.includes("B3.CCM"), "vencimento escolhe o destaque pela consulta leve");
+});
+
+test("região configurada ainda sem dado: o destaque cai na primeira região ativa (comportamento anterior)", async () => {
+  const { observaveis } = await observaveisService.listarObservaveis({
+    marketQuoteRepository: { buscarMaisRecente: async () => null },
+    observationRepository: repoWasdePaises({
+      listarUltimasDatasItens: async () => regioesDoBanco.filter((r) => r.codigo !== "WORLD"),
+      buscarMaisRecente: async (seriesCode) => (seriesCode.includes(".WORLD.") ? null : linhaObservation(seriesCode, "2026-09-01", 300))
+    })
+  });
+
+  assert.equal(observaveis.find((o) => o.codigo === "WASDE_MILHO_PAISES").unidade, "milhões de t (Brasil)");
+});
+
 test("WASDE por país: sem escolha, o histórico traz as regiões padrão; com escolha, as regiões e a métrica pedidas", async () => {
   const pedidos = [];
   const deps = { observationRepository: repoWasdePaises({ buscarHistoricoAtual: async (p) => { pedidos.push(p.seriesCodes); return { registros: [], total: 0 }; } }) };
@@ -459,7 +489,7 @@ function repoWasdeEua(extra = {}) {
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-01", 1567),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
-    listarItens: async () => [],
+    listarItens: async () => [], listarUltimasDatasItens: async () => [],
     ...extra
   };
 }
@@ -546,7 +576,7 @@ const regioesConab = [
 
 function repoConab(extra = {}) {
   return {
-    listarItens: async () => regioesConab,
+    listarItens: async () => regioesConab, listarUltimasDatasItens: async () => regioesConab,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2025-09-01", 144009.6),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
@@ -660,7 +690,7 @@ const regioesImea = [
 
 function repoImea(extra = {}) {
   return {
-    listarItens: async () => regioesImea,
+    listarItens: async () => regioesImea, listarUltimasDatasItens: async () => regioesImea,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2025-09-01", 58036957.95),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
@@ -716,7 +746,7 @@ const locaisCustoMesImea = [
 
 function repoCustoMesImea(extra = {}) {
   return {
-    listarItens: async () => locaisCustoMesImea,
+    listarItens: async () => locaisCustoMesImea, listarUltimasDatasItens: async () => locaisCustoMesImea,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-08-01", 3788.94),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
@@ -733,7 +763,7 @@ const locaisCustoSafraImea = [
 
 function repoCustoSafraImea(extra = {}) {
   return {
-    listarItens: async () => locaisCustoSafraImea,
+    listarItens: async () => locaisCustoSafraImea, listarUltimasDatasItens: async () => locaisCustoSafraImea,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2025-09-01", 6748.28),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
@@ -834,7 +864,7 @@ function repoImeaBalanco(extra = {}) {
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2025-09-01", 0.64),
     buscarHistoricoAtual: async () => ({ registros: [], total: 0 }),
     resumirSeries: async () => [],
-    listarItens: async () => [],
+    listarItens: async () => [], listarUltimasDatasItens: async () => [],
     ...extra
   };
 }
@@ -914,7 +944,7 @@ const anosFocusDoBanco = [
 test("Focus: anos em ordem, ativo = ainda no último boletim; destaque é o ano corrente; campo trocável, ano encerrado selecionável", async () => {
   let pedido = null;
   const repo = {
-    listarItens: async () => anosFocusDoBanco,
+    listarItens: async () => anosFocusDoBanco, listarUltimasDatasItens: async () => anosFocusDoBanco,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-18", 4.9205),
     buscarHistoricoAtual: async (p) => {
       pedido = p;
@@ -952,7 +982,7 @@ const regioesNoaaVh = [
 test("NOAA VH milho: país antes dos seus estados, mundo e hemisférios no fim; destaque é o Brasil, VHI por padrão; índice escolhido vira a série", async () => {
   const pedidos = [];
   const repo = {
-    listarItens: async () => regioesNoaaVh,
+    listarItens: async () => regioesNoaaVh, listarUltimasDatasItens: async () => regioesNoaaVh,
     buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-23", 63.4),
     buscarHistoricoAtual: async (p) => {
       pedidos.push(p.seriesCodes);

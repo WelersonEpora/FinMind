@@ -209,6 +209,7 @@ test("o repository não expõe nenhuma operação de update/delete", () => {
     "inserirVersoes",
     "listarItens",
     "listarSeriesEInstantes",
+    "listarUltimasDatasItens",
     "resumirSeries"
   ]);
 });

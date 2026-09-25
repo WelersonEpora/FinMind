@@ -202,7 +202,19 @@ function seriesDoCampo(item, codigoCampo) {
 async function listarItens(item, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
   const dimensao = dimensaoDe(item);
-  const descritos = (await repo.listarItens(dimensao.config))
+  return montarItens(dimensao, await repo.listarItens(dimensao.config));
+}
+
+// Mesmos itens, só com o necessário para escolher o destaque do card (codigo, rotulo,
+// ativo): uma consulta leve em vez da cobertura completa de cada item.
+async function listarItensParaDestaque(item, deps = {}) {
+  const repo = deps.observationRepository || observationRepository;
+  const dimensao = dimensaoDe(item);
+  return montarItens(dimensao, await repo.listarUltimasDatasItens(dimensao.config));
+}
+
+function montarItens(dimensao, linhas) {
+  const descritos = linhas
     .map((linha) => ({ linha, descricao: dimensao.descrever(linha.codigo) }))
     .filter(({ descricao }) => descricao);
   const ultimaData = descritos.map(({ linha }) => linha.ultima_data).sort().pop() ?? null;
@@ -213,9 +225,9 @@ async function listarItens(item, deps = {}) {
       rotulo: descricao.rotulo,
       ...descricao.extras,
       ativo: dimensao.ativo(linha.ultima_data, ultimaData),
-      primeiraData: linha.primeira_data,
+      primeiraData: linha.primeira_data ?? null,
       ultimaData: linha.ultima_data,
-      pregoes: Number(linha.pregoes),
+      pregoes: linha.pregoes == null ? null : Number(linha.pregoes),
       ordem: descricao.ordem
     }))
     .sort((a, b) => a.ordem.localeCompare(b.ordem, "pt-BR") || a.codigo.localeCompare(b.codigo))
@@ -269,10 +281,25 @@ async function obterCotacaoAtual(item, deps = {}) {
   }
 
   if (dimensao) {
-    const principal = dimensao.escolherPrincipal(await listarItens(item, deps), dimensao.config);
+    const campo = campoDe(item, item.campoPrincipal);
+
+    // Região configurada (WASDE, Conab, IMEA, NOAA): vai direto na série dela, sem
+    // listar os itens. Só cai na escolha pela lista se ela ainda não existir no banco.
+    const configurado = dimensao.config.itemPrincipal && dimensao.descrever(dimensao.config.itemPrincipal);
+    if (configurado) {
+      const codigo = dimensao.config.itemPrincipal;
+      const linha = await repo.buscarMaisRecente(seriesDoItem(item, codigo, campo.codigo));
+      if (linha) {
+        return {
+          cotacao: paraRegistroResposta(item, linha, { series: [{ seriesCode: linha.series_code, modalidade: codigo }], unidade: campo.unidade }),
+          destaque: dimensao.destaque({ codigo, rotulo: configurado.rotulo })
+        };
+      }
+    }
+
+    const principal = dimensao.escolherPrincipal(await listarItensParaDestaque(item, deps), dimensao.config);
     if (!principal) return { cotacao: null, mensagem: "Nenhuma observação coletada ainda para este observável." };
 
-    const campo = campoDe(item, item.campoPrincipal);
     const linha = await repo.buscarMaisRecente(seriesDoItem(item, principal.codigo, campo.codigo));
     if (!linha) return { cotacao: null, mensagem: "Nenhuma observação coletada ainda para este observável." };
 

@@ -205,6 +205,22 @@ async function listarItens({ prefixoSerie, campoReferencia }, { transaction } = 
   );
 }
 
+// Versão leve do `listarItens` para o destaque do card: só a última data de cada item.
+// Agrupa pela própria `series_code` (sem MIN/COUNT DISTINCT e sem agrupar por
+// expressão), o que deixa o MariaDB resolver pelo índice `uk_pit` sem varrer o
+// histórico inteiro - a listagem de Observáveis chama isto para vários cards de uma vez.
+async function listarUltimasDatasItens({ prefixoSerie, campoReferencia }, { transaction } = {}) {
+  const posicao = prefixoSerie.split(".").length;
+  const linhas = await sequelize.query(
+    `SELECT series_code, MAX(observed_at) AS ultima_data
+       FROM observation
+      WHERE series_code LIKE :padrao
+      GROUP BY series_code`,
+    { replacements: { padrao: `${prefixoSerie}.%.${campoReferencia}` }, type: QueryTypes.SELECT, transaction }
+  );
+  return linhas.map((linha) => ({ codigo: linha.series_code.split(".")[posicao], ultima_data: linha.ultima_data }));
+}
+
 // Resumo por série (cobertura) - usado para reportar o que já está no banco.
 // Sem `seriesCodes`, resume todas.
 async function resumirSeries(seriesCodes, { transaction } = {}) {
@@ -223,4 +239,4 @@ async function resumirSeries(seriesCodes, { transaction } = {}) {
   );
 }
 
-module.exports = { TAMANHO_MAXIMO, inserirVersoes, buscarUltimasVersoes, listarSeriesEInstantes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, resumirSeries };
+module.exports = { TAMANHO_MAXIMO, inserirVersoes, buscarUltimasVersoes, listarSeriesEInstantes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, listarUltimasDatasItens, resumirSeries };
