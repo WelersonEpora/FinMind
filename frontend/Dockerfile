@@ -1,4 +1,6 @@
-FROM node:22-alpine AS build
+# O build gera só estáticos (iguais em qualquer arquitetura): roda na
+# plataforma do runner, sem emulação; só o estágio nginx é por arquitetura.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 
 WORKDIR /app
 
