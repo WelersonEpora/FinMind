@@ -93,6 +93,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # "git checkout -- scripts/" descarta mudança local nos scripts (ex.: o
+      # chmod +x numa VM clonada quando eles ainda eram 644), que faria o pull
+      # abortar; os scripts pertencem ao repositório, nada local se perde.
       - name: Deploy on Oracle VM
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -102,4 +105,4 @@ jobs:
           script_stop: false
           command_timeout: 30m
           script: |
-            echo "${{ secrets.GHCR_PAT }}" | sudo -iu deploy bash -lc 'cd /opt/apps/finmind/app && git pull --ff-only && chmod +x scripts/deploy.sh && bash scripts/github-deploy.sh "${{ secrets.GHCR_USERNAME }}"'
+            echo "${{ secrets.GHCR_PAT }}" | sudo -iu deploy bash -lc 'cd /opt/apps/finmind/app && git checkout -- scripts/ && git pull --ff-only && chmod +x scripts/deploy.sh && bash scripts/github-deploy.sh "${{ secrets.GHCR_USERNAME }}"'
