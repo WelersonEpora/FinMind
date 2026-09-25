@@ -142,6 +142,20 @@ test("série semanal/divulgada em lote tolera mais dias que a diária antes de f
   assert.equal(situacao("DOLAR_AMPLO_FED"), "EM_DIA", "divulgada em lote semanal");
 });
 
+test("COT: posição de terça fica em dia até a divulgação da sexta seguinte (11 dias) e em semana de feriado (14)", async () => {
+  const situacaoCom = async (dias) => {
+    const { observaveis } = await observaveisService.listarObservaveis({
+      marketQuoteRepository: { buscarMaisRecente: async () => null },
+      observationRepository: { listarItens: async () => [], buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, isoHaDias(dias), 1) }
+    });
+    return observaveis.find((o) => o.codigo === "COT_MILHO").situacao;
+  };
+
+  assert.equal(await situacaoCom(11), "EM_DIA", "quinta/sexta antes da divulgação");
+  assert.equal(await situacaoCom(14), "EM_DIA", "divulgação na segunda, em semana de feriado");
+  assert.equal(await situacaoCom(16), "ATRASADA", "semana inteira sem divulgação nova");
+});
+
 test("FRED tolera o atraso de fim de semana: Treasury até 5 dias, índice do dólar até 12", async () => {
   const situacaoCom = async (dias) => {
     const deps = {

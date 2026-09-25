@@ -278,7 +278,9 @@ const CATALOGO_OBSERVAVEIS = [
     unidade: "contratos",
     casasDecimais: 0,
     frequencia: "SEMANAL",
-    toleranciaDias: 10,
+    // Posição de terça divulgada na sexta seguinte (15:30 ET) e coletada no sábado: o ponto mais recente fica até
+    // 11 dias sem sucessor; em semana de feriado a CFTC divulga na segunda (até ~14 dias).
+    toleranciaDias: 15,
     fonte: "CFTC - Commitments of Traders",
     fonteCollectorCode: ativo === "ouro" ? "cftc-cot-gold" : "cftc-cot-corn",
     series: ["open_interest", "mm_long", "mm_short"].map((modalidade) => ({

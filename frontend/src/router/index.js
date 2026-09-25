@@ -12,11 +12,13 @@ import ExecucoesView from '../views/ExecucoesView.vue'
 import EspacoView from '../views/EspacoView.vue'
 import StatusProjetoView from '../views/StatusProjetoView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
+import ServidorIndisponivelView from '../views/ServidorIndisponivelView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
+    { path: '/indisponivel', name: 'indisponivel', component: ServidorIndisponivelView, meta: { public: true } },
     { path: '/', name: 'dashboard', component: DashboardView },
     { path: '/como-funciona', name: 'como-funciona', component: ComoFuncionaView },
     { path: '/dados-mercado/observaveis', name: 'dados-mercado-observaveis', component: ObservaveisView },
@@ -44,8 +46,13 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  if (!auth.state.checked) {
+  if (!auth.state.checked && to.name !== 'indisponivel') {
     await auth.fetchCurrentUser()
+  }
+
+  // Servidor não respondeu (nem depois das novas tentativas): não é "não logado", então não manda para o login.
+  if (auth.state.unavailable && !to.meta.public) {
+    return { name: 'indisponivel', query: { destino: to.fullPath } }
   }
 
   if (!to.meta.public && !auth.state.user) {
