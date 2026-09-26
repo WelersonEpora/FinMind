@@ -1,8 +1,15 @@
 const path = require("path");
 
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
+const { lerConfigBanco } = require("./src/config/db-env");
+
+// O PostgreSQL recomeça o schema por uma migration de linha de base (ADR 0026): pasta própria,
+// sem o histórico do MariaDB. Os seeders são os mesmos nos dois bancos.
+const pastaMigrations = lerConfigBanco().dialect === "postgres" ? "database/migrations-postgres" : "database/migrations";
+
 module.exports = {
   config: path.resolve("sequelize.config.js"),
   "models-path": path.resolve("src/models"),
   "seeders-path": path.resolve("database/seeders"),
-  "migrations-path": path.resolve("database/migrations")
+  "migrations-path": path.resolve(pastaMigrations)
 };

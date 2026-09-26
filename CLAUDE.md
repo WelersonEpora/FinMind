@@ -59,7 +59,7 @@ decisão foi tomada). Resumo do que muda com mais frequência:
 
 ```bash
 cp .env.example .env   # preencher JWT_SECRET, ADMIN_EMAIL/ADMIN_PASSWORD
-docker compose --project-directory . -f docker/compose.dev.yml up -d   # MariaDB + phpMyAdmin
+docker compose --project-directory . -f docker/compose.dev.yml up -d   # MariaDB + phpMyAdmin + PostgreSQL (em migração, ADR 0026)
 
 cd backend && npm install && npm run db:migrate && npm run db:seed && npm run dev
 cd frontend && npm install && npm run dev   # http://localhost:5173

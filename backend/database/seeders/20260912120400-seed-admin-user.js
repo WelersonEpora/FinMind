@@ -17,6 +17,12 @@ const bcrypt = require("bcryptjs");
 // Nome copiado de propósito - seeder é histórico, não importa código da app.
 const PERSONAL_WORKSPACE_NAME = "Espaço pessoal";
 
+// Mesma normalização do user.service (e-mail sempre gravado em minúsculas). "user" vai entre aspas pelo
+// quoteIdentifier: é palavra reservada no PostgreSQL (ADR 0026); no MariaDB vira crase.
+function normalizarEmail(email) {
+  return email ? email.trim().toLowerCase() : email;
+}
+
 async function ensurePersonalWorkspace(queryInterface, userId, now) {
   const [existing] = await queryInterface.sequelize.query(
     "SELECT id FROM workspace WHERE personal_user_id = :userId LIMIT 1",
@@ -41,7 +47,7 @@ async function ensurePersonalWorkspace(queryInterface, userId, now) {
 
 module.exports = {
   async up(queryInterface) {
-    const email = process.env.ADMIN_EMAIL;
+    const email = normalizarEmail(process.env.ADMIN_EMAIL);
     const password = process.env.ADMIN_PASSWORD;
 
     if (!email || !password) {
@@ -54,7 +60,7 @@ module.exports = {
     const now = new Date();
 
     const [existingUser] = await queryInterface.sequelize.query(
-      "SELECT id FROM user WHERE email = :email LIMIT 1",
+      `SELECT id FROM ${queryInterface.quoteIdentifier("user")} WHERE email = :email LIMIT 1`,
       { replacements: { email }, type: queryInterface.sequelize.QueryTypes.SELECT }
     );
 
@@ -85,11 +91,11 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    const email = process.env.ADMIN_EMAIL;
+    const email = normalizarEmail(process.env.ADMIN_EMAIL);
     if (!email) return;
 
     // Vínculos e espaço pessoal têm FK para user (sem CASCADE) - saem antes.
-    const [user] = await queryInterface.sequelize.query("SELECT id FROM user WHERE email = :email LIMIT 1", {
+    const [user] = await queryInterface.sequelize.query(`SELECT id FROM ${queryInterface.quoteIdentifier("user")} WHERE email = :email LIMIT 1`, {
       replacements: { email },
       type: queryInterface.sequelize.QueryTypes.SELECT
     });

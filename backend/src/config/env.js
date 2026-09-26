@@ -1,16 +1,11 @@
 const path = require("path");
 const dotenv = require("dotenv");
+const { lerConfigBanco } = require("./db-env");
 
 dotenv.config({ path: path.resolve(__dirname, "..", "..", "..", ".env") });
 
-const requiredKeys = [
-  "MARIADB_HOST",
-  "MARIADB_PORT",
-  "MARIADB_DATABASE",
-  "MARIADB_USER",
-  "MARIADB_PASSWORD",
-  "JWT_SECRET"
-];
+const banco = lerConfigBanco();
+const requiredKeys = [...banco.chavesObrigatorias, "JWT_SECRET"];
 
 requiredKeys.forEach((key) => {
   if (!process.env[key]) {
@@ -28,11 +23,12 @@ module.exports = {
   nodeEnv: process.env.NODE_ENV || "development",
   appPort: Number(process.env.APP_PORT || 3000),
   db: {
-    host: process.env.MARIADB_HOST,
-    port: Number(process.env.MARIADB_PORT || 3306),
-    database: process.env.MARIADB_DATABASE,
-    username: process.env.MARIADB_USER,
-    password: process.env.MARIADB_PASSWORD
+    dialect: banco.dialect,
+    host: banco.host,
+    port: banco.port,
+    database: banco.database,
+    username: banco.username,
+    password: banco.password
   },
   jwt: {
     secret: process.env.JWT_SECRET,

@@ -64,7 +64,7 @@ FinMind/
       components/charts/            # EChartsBase + LineChart (vue-echarts)
       theme/                         # preset PrimeVue (finmind-preset.js)
   docker/
-    compose.dev.yml               # MariaDB + phpMyAdmin (backend roda local)
+    compose.dev.yml               # MariaDB + phpMyAdmin + PostgreSQL (backend roda local; DB_DIALECT escolhe, ADR 0026)
     compose.prod.yml              # MariaDB + backend + frontend (imagens GHCR)
   docs/adr/
     NNNN-titulo.md                 # decisões arquiteturais registradas (ADRs)

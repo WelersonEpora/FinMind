@@ -21,7 +21,9 @@ async function login(email, plainPassword, deps = {}) {
   const pwd = deps.password || password;
   const signer = deps.jwt || jwt;
 
-  const user = await repo.findByEmail(email);
+  // O e-mail é gravado em minúsculas (user.service); normalizar aqui mantém o login sem distinção de
+  // maiúsculas também no PostgreSQL, que compara texto com distinção (no MariaDB a collation fazia isso).
+  const user = await repo.findByEmail(typeof email === "string" ? email.trim().toLowerCase() : email);
 
   if (!user || !user.active) {
     throw new UnauthorizedError("E-mail ou senha inválidos.");

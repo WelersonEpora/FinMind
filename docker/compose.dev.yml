@@ -18,6 +18,25 @@ services:
       timeout: 5s
       retries: 5
 
+  # PostgreSQL (ADR 0026): convive com o MariaDB até a virada. O backend usa um ou outro por DB_DIALECT.
+  postgres:
+    image: postgres:16-alpine
+    container_name: finmind-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE:-finmind}
+      POSTGRES_USER: ${POSTGRES_USER:-finmind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finmind}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   phpmyadmin:
     image: phpmyadmin:5
     container_name: finmind-phpmyadmin
@@ -32,3 +51,4 @@ services:
 
 volumes:
   mariadb_data:
+  postgres_data:

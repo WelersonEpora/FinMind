@@ -40,6 +40,24 @@ test("login returns a token and the safe user on valid credentials", async () =>
   });
 });
 
+test("login looks the e-mail up in lowercase and trimmed (PostgreSQL compares text case-sensitively)", async () => {
+  let emailBuscado;
+  const deps = {
+    userRepository: {
+      findByEmail: async (email) => {
+        emailBuscado = email;
+        return fakeUser;
+      }
+    },
+    password: { compare: async () => true },
+    jwt: { sign: () => "token" }
+  };
+
+  await authService.login("  Admin@FinMind.Local ", "correct-password", deps);
+
+  assert.equal(emailBuscado, "admin@finmind.local");
+});
+
 test("login rejects when the user does not exist", async () => {
   const deps = {
     userRepository: { findByEmail: async () => null },
