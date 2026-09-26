@@ -11,7 +11,9 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # Runner ARM nativo (gratuito em repositório público): a VM de produção é Ampere A1 (arm64) e a imagem é
+    # gerada sem emulação. O QEMU num runner x86 travava no `npm ci` ("Illegal instruction").
+    runs-on: ubuntu-24.04-arm
 
     permissions:
       contents: read
@@ -33,11 +35,8 @@ jobs:
       - name: Include STATUS_DO_PROJETO.md in the backend image
         run: cp STATUS_DO_PROJETO.md backend/STATUS_DO_PROJETO.md
 
-      # Imagens multi-arquitetura: amd64 (VM atual, x86) e arm64 (VM Ampere A1).
-      # O QEMU emula o arm64 no runner x86.
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
+      # Só arm64: o FinMind roda apenas na VM Ampere A1. Para voltar a rodar em x86, incluir linux/amd64 em
+      # `platforms` (e o docker/setup-qemu-action, ou um job num runner x86).
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -62,7 +61,7 @@ jobs:
         with:
           context: ./backend
           file: ./backend/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           push: true
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
@@ -86,7 +85,7 @@ jobs:
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64
           push: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
