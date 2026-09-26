@@ -150,8 +150,6 @@ ressalvas da §2 e na §5.
 
 | Item | Observação |
 |---|---|
-| Cópia dos backups para fora da VM | O `pg_dump` diário fica no disco da `servidor02` (e no backup semanal do disco). Falta enviar para o Object Storage da Oracle: criar a chave de acesso no console e configurar `BACKUP_RCLONE_DESTINO` (`servidor02-infra`, ADR 0026) |
-| Restos do MariaDB | Na `servidor02`, o volume `finmind_mariadb_data` ficou sem uso (`sudo docker volume rm finmind_mariadb_data` quando estiver seguro). Na VM antiga (`servidor01`), o FinMind antigo ainda está no ar, sem deploy nem coleta: desligar (`docker compose -p finmind down`) |
 | `imea-custo-milho` parcial | Toda coleta termina em "Parcial" pelos mesmos 2 registros com problema (anterior à troca de banco) |
 
 ### Carga histórica pendente no servidor
@@ -364,6 +362,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 | Correções achadas na paridade | Booleano tratado como número no SQL do `asOf` estrito e do resumo das séries (quebraria no Postgres); ordenações sem desempate (histórico por valor, execuções), que podiam repetir ou pular linhas entre páginas | ADR 0026, § "Resultado da paridade" |
 | Cards com seletor lentos | O detalhe do NOAA levava ~20 s e estourava o timeout ("Não foi possível carregar o observável"): `GROUP BY` por expressão sem índice, chamado duas vezes. Agrupado por `series_code`: NOAA 5,3 s → 0,2 s, CCM 1,4 s → 0,12 s, Focus 1,0 s → 0,07 s, mesmo conteúdo | `observation.repository.js::listarItens` |
 | Backups | Diário: `pg_dump` por database, conferido, 7 diários + 4 semanais em `/opt/backups/postgres` (cron 10:00 UTC). Semanal: backup do disco das duas VMs pela Oracle, dentro da cota gratuita | `servidor02-infra`, ADR 0026 |
+| Pendências de infraestrutura fechadas | Cópia diária dos dumps para o Object Storage da Oracle (bucket privado `backups-servidor02`, `rclone copy`, regra do bucket apaga após 35 dias). MariaDB apagado da `servidor02` (volume e imagem) e FinMind desligado na VM antiga (containers, volumes, imagens, cron e pasta) | `servidor02-infra` |
 | CI em ARM nativo | Build das imagens num runner `ubuntu-24.04-arm`, só `linux/arm64`: o QEMU num runner x86 travava no `npm ci` | `.github/workflows/deploy.yml` |
 | "Executar coleta agora" sem erro falso | A API esperava a coleta inteira (~3 min) e a tela desistia em 20 s, mostrando erro com a coleta rodando normalmente. Agora responde 202 na hora, roda em segundo plano, recusa (409) um segundo pedido durante a coleta, e a tela se atualiza sozinha até terminar. Primeira coleta manual no PostgreSQL de produção: 22 de 23 coletores em sucesso, sem novos (idempotente); o `imea-custo-milho` segue parcial pelos 2 registros já conhecidos | ADR 0004, "Atualização (2026-09-26)" |
 

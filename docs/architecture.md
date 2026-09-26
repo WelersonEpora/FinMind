@@ -129,7 +129,9 @@ servidor02
   /opt/apps/finmind/app/      este repositório: backend + frontend (compose.prod.yml)
   /opt/apps/proxy/            Nginx Proxy Manager (network_mode: host):
                                 finmind.weslab.com.br -> 127.0.0.1:8083, HTTPS (Let's Encrypt)
-  /opt/backups/postgres/      pg_dump diário por database (7 diários + 4 semanais)
+  /opt/backups/postgres/      pg_dump diário por database (7 diários + 4 semanais),
+                                copiado para o bucket privado backups-servidor02 (Object Storage,
+                                apaga após 35 dias)
 ```
 
 - **Banco:** fora deste compose. O backend entra na rede externa `db` e
@@ -146,7 +148,8 @@ servidor02
   06:00 e 08:00 (`docker compose ... exec -T backend npm run collect`,
   log em `/opt/apps/finmind/logs/coleta-diaria.log`) e backup às 10:00
   (`/opt/apps/infra/postgres/scripts/backup.sh`, log em
-  `/opt/backups/postgres/backup.log`).
+  `/opt/backups/postgres/backup.log`), que também copia os dumps para o
+  Object Storage (`rclone`, configuração em `~deploy/.config/rclone`).
 - **Backup do disco:** política `semanal-3-semanas` da Oracle no boot
   volume (domingo 12:00 UTC).
 - **Portainer:** o da VM antiga vê a `servidor02` por um Portainer Agent
