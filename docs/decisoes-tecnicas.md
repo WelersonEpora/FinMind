@@ -109,6 +109,10 @@ MariaDB 11 (LTS), driver `mysql2`, Sequelize com migrations como fonte
 da verdade do schema (nunca `sequelize.sync()`), mesmo princípio do
 AgroMind.
 
+**Migração para PostgreSQL decidida em 2026-09-26** (servidor compartilhado
+na VM de produção, um database e um usuário por app): ver
+`docs/adr/0026-postgresql-como-banco.md`. Até a virada, vale o MariaDB.
+
 ## CI/CD
 
 `ci.yml` roda lint + testes + build em toda branch/PR, sem depender de
