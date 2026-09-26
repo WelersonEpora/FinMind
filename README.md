@@ -112,7 +112,8 @@ Sem `node-cron`/fila no processo — em produção, um cron externo (fora deste
 repositório) chama esse mesmo comando periodicamente (ver
 `docs/adr/0004-agendamento-coleta.md`). Também é possível disparar uma
 coleta manual autenticado como `admin` via `POST /api/v1/coletas`, ou pela
-tela `/dados-mercado/execucoes` no frontend.
+tela `/dados-mercado/execucoes` no frontend. A API responde na hora (202) e a
+coleta roda em segundo plano; o progresso aparece na lista de execuções.
 
 Consultar os dados coletados:
 - `GET /api/v1/observaveis` — catálogo de observáveis (hoje: dólar e Selic).

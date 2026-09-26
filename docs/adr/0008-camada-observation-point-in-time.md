@@ -131,7 +131,8 @@ sabia em D" continua sendo `obterAsOf`, usada por fatores e pelo experimento.
 - A coleta baixa a **série inteira** a cada execução (dezenas de KB a ~1 MB por fonte) —
   aceitável hoje, revisitar se alguma fonte crescer muito.
 - `POST /api/v1/coletas` executa **todos** os coletores registrados em sequência (ADR 0004);
-  com os novos, uma execução manual leva dezenas de segundos.
+  com os novos, uma execução manual leva dezenas de segundos (em 2026-09 já ~3 min: desde 2026-09-26 ela roda
+  em segundo plano e a API responde 202 na hora, ver ADR 0004, "Atualização (2026-09-26)").
 
 ## Alternativas consideradas
 

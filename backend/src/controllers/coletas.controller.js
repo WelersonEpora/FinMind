@@ -18,9 +18,11 @@ async function detalhar(req, res, next) {
   }
 }
 
-async function executar(req, res, next) {
+// 202: a coleta foi iniciada e roda em segundo plano (leva minutos); o progresso aparece em GET /coletas.
+function executar(req, res, next) {
   try {
-    return res.status(201).json(await coletasService.executarColetaManual(req.user.sub));
+    const { coleta } = coletasService.iniciarColetaManual(req.user.sub);
+    return res.status(202).json({ coleta });
   } catch (err) {
     return next(err);
   }

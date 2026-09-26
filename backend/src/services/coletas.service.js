@@ -3,7 +3,8 @@
 const collectionExecutionRepository = require("../repositories/collection-execution.repository");
 const { listCollectors } = require("../collectors/base/collector.interface");
 const { executarColetor } = require("../collectors/base/collector-runner");
-const { NotFoundError } = require("../shared/errors");
+const { NotFoundError, ConflictError } = require("../shared/errors");
+const logger = require("../shared/logger");
 const { validarPaginacao } = require("../shared/utils/pagination");
 const { validarOrdenacao } = require("../shared/utils/ordenacao");
 
@@ -65,19 +66,36 @@ async function obterExecucao(id, deps = {}) {
   return { execucao: paraExecucaoResposta(execucao) };
 }
 
-// Roda todos os coletores registrados, sequencialmente (nesta etapa não há
-// fila/worker - ver docs/adr/0004-agendamento-coleta.md). Hoje é só o
-// coletor do dólar, mas o endpoint já cobre o caso de múltiplos coletores.
-async function executarColetaManual(userId, deps = {}) {
-  const coletores = listCollectors();
-  const execucoes = [];
+// Coleta manual em andamento neste processo: um segundo pedido enquanto ela roda é recusado (409), em vez de
+// disparar duas coletas em paralelo contra as mesmas fontes.
+let coletaManualEmAndamento = false;
 
-  for (const coletor of coletores) {
-    const execucao = await executarColetor(coletor, { triggerType: "manual", triggeredBy: userId }, deps);
-    execucoes.push(paraExecucaoResposta(execucao));
+// Inicia a coleta manual de todos os coletores registrados, em sequência e em SEGUNDO PLANO (sem fila/worker -
+// ver docs/adr/0004-agendamento-coleta.md): a coleta leva minutos e a requisição não fica esperando. Devolve na
+// hora o que foi iniciado; cada coletor vira uma execução em `collection_execution`, acompanhada pela lista.
+// `concluida` resolve quando a última execução termina (usada pelos testes; a API não espera por ela).
+function iniciarColetaManual(userId, deps = {}) {
+  if (coletaManualEmAndamento) {
+    throw new ConflictError("Já há uma coleta manual em andamento. Acompanhe as execuções na lista.");
   }
+  const coletores = listCollectors();
+  const log = deps.logger || logger;
+  coletaManualEmAndamento = true;
 
-  return { execucoes };
+  const concluida = (async () => {
+    try {
+      for (const coletor of coletores) {
+        await executarColetor(coletor, { triggerType: "manual", triggeredBy: userId }, deps);
+      }
+    } catch (err) {
+      // executarColetor já registra a falha de cada coletor; aqui só chega erro inesperado fora dele.
+      log.error({ err }, "Coleta manual interrompida por erro inesperado");
+    } finally {
+      coletaManualEmAndamento = false;
+    }
+  })();
+
+  return { coleta: { status: "iniciada", coletores: coletores.map((c) => c.codigo) }, concluida };
 }
 
-module.exports = { listarExecucoes, obterExecucao, executarColetaManual };
+module.exports = { listarExecucoes, obterExecucao, iniciarColetaManual };

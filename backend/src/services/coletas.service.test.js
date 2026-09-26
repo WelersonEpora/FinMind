@@ -81,7 +81,25 @@ test("obterExecucao retorna a execução mapeada quando encontrada", async () =>
   assert.equal(resultado.execucao.status, "success");
 });
 
-test("executarColetaManual roda todos os coletores registrados e retorna as execuções", async () => {
+function depsDeTeste(execucoesRegistradas, { antesDeTerminar } = {}) {
+  return {
+    collectionExecutionRepository: {
+      async criar(dados) {
+        const execucao = { id: `exec-${execucoesRegistradas.length + 1}`, ...dados };
+        execucoesRegistradas.push(execucao);
+        return execucao;
+      },
+      async atualizar(execucao, dados) {
+        if (antesDeTerminar) await antesDeTerminar;
+        Object.assign(execucao, dados);
+        return execucao;
+      }
+    },
+    logger: { child: () => ({ info: () => {}, error: () => {}, warn: () => {} }), error: () => {} }
+  };
+}
+
+test("iniciarColetaManual responde na hora e roda os coletores em segundo plano", async () => {
   registerCollector({
     codigo: "coletor-fake-teste",
     download: async () => [{ valor: 1 }],
@@ -90,25 +108,36 @@ test("executarColetaManual roda todos os coletores registrados e retorna as exec
     persist: async (validos) => ({ criados: validos.length, atualizados: 0, ignorados: 0, falhas: [] })
   });
 
+  let liberar;
+  const antesDeTerminar = new Promise((resolve) => (liberar = resolve));
   const execucoesRegistradas = [];
-  const deps = {
-    collectionExecutionRepository: {
-      async criar(dados) {
-        const execucao = { id: "exec-x", ...dados };
-        execucoesRegistradas.push(execucao);
-        return execucao;
-      },
-      async atualizar(execucao, dados) {
-        Object.assign(execucao, dados);
-        return execucao;
-      }
-    },
-    logger: { child: () => ({ info: () => {}, error: () => {}, warn: () => {} }) }
-  };
 
-  const resultado = await coletasService.executarColetaManual("user-1", deps);
+  const { coleta, concluida } = coletasService.iniciarColetaManual("user-1", depsDeTeste(execucoesRegistradas, { antesDeTerminar }));
 
-  assert.ok(resultado.execucoes.some((e) => e.coletor === "coletor-fake-teste"));
-  assert.equal(execucoesRegistradas[0].trigger_type, "manual");
-  assert.equal(execucoesRegistradas[0].triggered_by, "user-1");
+  assert.equal(coleta.status, "iniciada");
+  assert.ok(coleta.coletores.includes("coletor-fake-teste"));
+
+  liberar();
+  await concluida;
+  const execucao = execucoesRegistradas.find((e) => e.collector_code === "coletor-fake-teste");
+  assert.equal(execucao.trigger_type, "manual");
+  assert.equal(execucao.triggered_by, "user-1");
+  assert.equal(execucao.status, "success");
+});
+
+test("iniciarColetaManual recusa (409) um segundo pedido enquanto a primeira coleta roda, e libera ao terminar", async () => {
+  let liberar;
+  const antesDeTerminar = new Promise((resolve) => (liberar = resolve));
+  const execucoesRegistradas = [];
+
+  const primeira = coletasService.iniciarColetaManual("user-1", depsDeTeste(execucoesRegistradas, { antesDeTerminar }));
+
+  assert.throws(() => coletasService.iniciarColetaManual("user-2", depsDeTeste([])), (err) => err.statusCode === 409);
+
+  liberar();
+  await primeira.concluida;
+
+  const segunda = coletasService.iniciarColetaManual("user-2", depsDeTeste([]));
+  assert.equal(segunda.coleta.status, "iniciada");
+  await segunda.concluida;
 });

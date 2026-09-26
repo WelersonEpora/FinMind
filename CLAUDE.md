@@ -128,7 +128,10 @@ Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/
-execucoes`. Sem `node-cron`/fila no processo — produção depende de um cron
+execucoes`: a API responde na hora (**202**, `{ coleta }`) e roda os coletores em
+segundo plano (a coleta leva minutos); um segundo pedido com uma coleta manual em
+andamento recebe **409**. A tela se atualiza sozinha enquanto houver execução em
+andamento. Sem `node-cron`/fila no processo — produção depende de um cron
 externo (fora deste repositório) chamando esse mesmo comando (ver
 `docs/adr/0004-agendamento-coleta.md`).
 

@@ -89,6 +89,26 @@ rodava o código anterior (USDA lendo 3.525 linhas = padrão de 2006; FRED pelo 
 total histórico de execuções com falha (`grep -c ... failed|partial_success`), só as três de 21/09. O
 comentário do crontab ("coleta diária (dólar via BCB)") está desatualizado; é só um rótulo.
 
+## Atualização (2026-09-26) — VM nova e disparo manual em segundo plano
+
+**Produção mudou de VM.** O FinMind saiu da VM x86 de 1 GB, compartilhada com o AgroMind, para a `servidor02`
+(Ampere A1, 2 OCPU / 12 GB; `docs/architecture.md` § "Deploy"), e o banco passou a ser PostgreSQL (ADR 0026). O
+cron continua no crontab do usuário `deploy` (não versionado), agora na `servidor02`, nos mesmos horários UTC:
+`0 4,6,8 * * * cd /opt/apps/finmind/app && docker compose -p finmind ... exec -T backend npm run collect >> /opt/apps/finmind/logs/coleta-diaria.log 2>&1`
+(Compose v2: `docker compose`, não mais `docker-compose`). Como o AgroMind ficou na VM antiga, a colisão de horário
+descrita acima deixou de existir. No mesmo crontab, às 10:00 UTC, roda o backup do banco
+(`/opt/apps/infra/postgres/scripts/backup.sh`, ADR 0026). Em dev, o Agendador do Windows continua igual, agora com o
+PostgreSQL de dev no lugar do MariaDB.
+
+**Disparo manual em segundo plano.** `POST /api/v1/coletas` esperava a coleta inteira terminar para responder;
+com ~23 coletores isso passou a levar minutos, e o frontend (timeout de 20 s) mostrava "Não foi possível executar
+a coleta agora" mesmo com a coleta rodando normalmente no servidor. Agora a API responde na hora com **202** e
+`{ coleta: { status: "iniciada", coletores } }`, e os coletores rodam em sequência em segundo plano, cada um
+registrado em `collection_execution` como antes. Enquanto uma coleta manual roda, um novo pedido recebe **409**
+(evita duas coletas em paralelo contra as mesmas fontes; o controle é por processo, e o cron roda noutro processo).
+A tela `/dados-mercado/execucoes` se atualiza sozinha a cada 5 s enquanto houver execução em andamento. Continua
+sem `node-cron`, fila ou worker: é a mesma execução sequencial, só que sem prender a requisição.
+
 ## Em aberto
 
 - Definição exata do cron de produção (frequência, horário) — decisão

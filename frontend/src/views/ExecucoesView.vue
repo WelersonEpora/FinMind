@@ -36,6 +36,13 @@ const dataFimFiltro = ref('')
 
 const executandoAgora = ref(false)
 const erroExecucaoManual = ref('')
+const avisoExecucaoManual = ref('')
+
+// Enquanto a coleta manual roda (em segundo plano no servidor), a lista se atualiza sozinha a cada 5 s, até não
+// haver execução "Em andamento" na página (ou 15 min, como teto).
+const INTERVALO_ACOMPANHAMENTO_MS = 5000
+const TETO_ACOMPANHAMENTO_MS = 15 * 60_000
+let acompanhamento = null
 
 const detalheAberto = ref(false)
 const carregandoDetalhe = ref(false)
@@ -50,8 +57,8 @@ function formatarDuracao(ms) {
   return ms == null ? '-' : `${(ms / 1000).toFixed(1)}s`
 }
 
-async function carregar() {
-  carregando.value = true
+async function carregar({ silencioso = false } = {}) {
+  if (!silencioso) carregando.value = true
   errorMessage.value = ''
   try {
     const resultado = await coletasService.listarExecucoes({
@@ -100,15 +107,40 @@ function onSort(evento) {
   carregar()
 }
 
+function pararAcompanhamento() {
+  clearInterval(acompanhamento)
+  acompanhamento = null
+}
+onBeforeUnmount(pararAcompanhamento)
+
+function acompanharColeta() {
+  pararAcompanhamento()
+  const inicio = Date.now()
+  acompanhamento = setInterval(async () => {
+    await carregar({ silencioso: true })
+    const emAndamento = execucoes.value.some((execucao) => execucao.status === 'running')
+    if (!emAndamento) {
+      pararAcompanhamento()
+      avisoExecucaoManual.value = 'Coleta concluída. Confira o status de cada coletor na lista.'
+    } else if (Date.now() - inicio > TETO_ACOMPANHAMENTO_MS) {
+      pararAcompanhamento()
+    }
+  }, INTERVALO_ACOMPANHAMENTO_MS)
+}
+
+// O servidor responde na hora (202) e roda a coleta em segundo plano: a requisição não espera os minutos da coleta.
 async function executarAgora() {
   executandoAgora.value = true
   erroExecucaoManual.value = ''
+  avisoExecucaoManual.value = ''
   try {
-    await coletasService.executarColeta()
+    const { coleta } = await coletasService.executarColeta()
+    avisoExecucaoManual.value = `Coleta iniciada (${coleta.coletores.length} coletores). A lista se atualiza sozinha enquanto ela roda.`
     paginaAtual.value = 1
     await carregar()
+    acompanharColeta()
   } catch (err) {
-    erroExecucaoManual.value = err.response?.data?.error?.message || 'Não foi possível executar a coleta agora.'
+    erroExecucaoManual.value = err.response?.data?.error?.message || 'Não foi possível iniciar a coleta agora.'
   } finally {
     executandoAgora.value = false
   }
@@ -146,6 +178,7 @@ onMounted(carregar)
       />
     </header>
 
+    <div v-if="avisoExecucaoManual" class="alert alert-info py-2 small">{{ avisoExecucaoManual }}</div>
     <div v-if="erroExecucaoManual" class="alert alert-danger py-2 small">{{ erroExecucaoManual }}</div>
     <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
 
