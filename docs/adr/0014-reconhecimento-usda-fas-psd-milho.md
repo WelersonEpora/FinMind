@@ -8,7 +8,7 @@ API, WASDE é PDF mensal"). O NASS (Crop Progress) já é coletado; o balanço n
 nível 0 (nunca testada), então não havia endpoint nem armadilha a reaproveitar.
 
 Este ADR **só reconhece a fonte** (nível 0 → 1, `docs/processo-reconhecimento-fontes.md`). **Nenhum coletor é
-escrito e nada é desbloqueado**: a PSD continua "fora do escopo" (`STATUS_DO_PROJETO.md` §5) até a decisão do
+escrito e nada é desbloqueado**: a PSD continua "fora do escopo" (`STATUS_DO_PROJETO.md` §6) até a decisão do
 David ou autorização explícita registrada em novo ADR (`CLAUDE.md`).
 
 ## Evidência (chamadas reais, 2026-09-21)

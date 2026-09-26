@@ -97,6 +97,18 @@ onMounted(async () => {
 .finmind-markdown :deep(details[open] > summary) {
   margin-bottom: 0.75rem;
 }
+/* Seção de 1º nível (a sanfona do documento): sem moldura, título no tamanho de um h2. */
+.finmind-markdown > :deep(details) {
+  border: none;
+  padding: 0;
+  margin-top: 1.75rem;
+}
+.finmind-markdown > :deep(details > summary) {
+  font-size: 1.25rem;
+  font-weight: 500;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+}
 .finmind-markdown :deep(code) {
   font-size: 0.85em;
 }

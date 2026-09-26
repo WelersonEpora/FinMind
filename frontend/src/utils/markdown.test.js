@@ -48,6 +48,21 @@ test('renderizarMarkdown: <details>/<summary> sem atributos viram seção recolh
   assert.match(html, /<\/details>/)
 })
 
+test('renderizarMarkdown: <details open> e seção aninhada (sanfona por seção), com títulos e tabelas dentro', () => {
+  const html = renderizarMarkdown(
+    '<details open>\n<summary>4. Bloqueado</summary>\n\n### Tabela\n\n| a |\n|---|\n| 1 |\n\n' +
+      '<details>\n<summary>Pergunta 2</summary>\n\n**detalhe**\n\n</details>\n\n</details>\n'
+  )
+
+  assert.match(html, /<details open>\s*<summary>4\. Bloqueado<\/summary>/)
+  assert.match(html, /<h3[^>]*>Tabela<\/h3>/)
+  assert.match(html, /<table>/)
+  assert.match(html, /<details>\s*<summary>Pergunta 2<\/summary>/)
+  assert.match(html, /<strong>detalhe<\/strong>/)
+  assert.equal((html.match(/<\/details>/g) || []).length, 2)
+  assert.equal(html.includes('&lt;'), false)
+})
+
 test('renderizarMarkdown: outras tags e atributos continuam escapados, mesmo dentro de <details>', () => {
   const html = renderizarMarkdown('<details onclick="alert(1)">\n<summary><b>x</b><script>alert(1)</script></summary>\n\ntexto\n\n</details>\n')
 

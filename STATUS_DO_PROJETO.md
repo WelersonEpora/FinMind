@@ -21,7 +21,8 @@ Observáveis. **Nada interpreta esses dados ainda** — motor analítico, IA,
 sinais, backtest e execução de ordens seguem como contratos vazios, à espera
 das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 
-## 2. Pronto
+<details>
+<summary>2. Pronto</summary>
 
 ### Plataforma
 
@@ -118,7 +119,10 @@ próprio para FRED, LBMA, FAO/AMIS, BCB Focus, reservas do BCB, Abimilho e CNA e
 2026-09-22):** `docs/cobertura-fatores-fel1-milho-ouro.md` — fator → dado
 necessário → dado disponível → lacuna, sem propor fórmula.
 
-## 3. Falta fazer
+</details>
+
+<details>
+<summary>3. Falta fazer</summary>
 
 Fontes de **milho** que o relatório do David lista (FEL 1, §6.5, §7 e o plano de
 integração da §9.2) e que ainda **não coletamos**. Já feitas: USDA NASS (Crop
@@ -126,14 +130,18 @@ Progress), CFTC, B3 (CCM), Indicador do Milho CEPEA/ESALQ (pela B3), Comex Stat,
 fonte (níveis 0→1, `docs/processo-reconhecimento-fontes.md`) e a **recomendação**,
 para decidir e levar à reunião com o David. **Reconhecer não é implementar:**
 nenhum coletor novo entra sem a decisão do David ou autorização explícita
-registrada em ADR (§5). Só entram fontes que ele mencionou; o AgroMind já
+registrada em ADR (§6). Só entram fontes que ele mencionou; o AgroMind já
 reconheceu várias delas, e reaproveita-se o conhecimento (endpoints, layout,
 armadilhas), não o código (outro banco, outra arquitetura).
 
 | # | Fonte (como o relatório a descreve) | Observação |
 |---|---|---|
-| 1 | **Clima do café** — NOAA STAR, saúde da vegetação por cultura (café arábica e robusta) | **Próximo passo, pedido pelo usuário em 2026-09-24.** Mesma fonte e mesmo coletor do milho (ADR 0025): é só uma entrada nova em `CULTURAS` (`ACOF`/`RCOF`), com as regiões do café (Brasil: MG, ES, SP, BA, RO; Vietnã, Colômbia, Indonésia...) a definir. O clima do milho já está feito; as fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5) ficaram **inadequadas** e outras três possíveis não serão feitas por ora (§2, tabela de níveis) |
+| 1 | **Medidas dos fatores do milho** (camada A do motor) | Aguarda o Comitê confirmar o entendimento da §5. Confirmado, a ordem proposta é COT, estoque/uso do WASDE e % boa + excelente do Crop Progress, no molde do juro real 10a |
 | 2 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3 e 5 da §4 |
+
+**Café, numa onda completa (decisão do usuário, 2026-09-26):** as fontes do café, inclusive o clima pela NOAA STAR
+(mesmo coletor do milho, ADR 0025: uma entrada nova em `CULTURAS`, com `ACOF`/`RCOF`), entram juntas, com as regiões
+escolhidas a partir das fontes de produção do café, não de conhecimento geral.
 
 O IMEA foi implementado em **área, produção, produtividade, custo de
 produção** (API e catálogo de arquivos, JSON/XLSX — ADR 0018) e **balanço de
@@ -144,7 +152,7 @@ item pedia — existem só em PDF e **não** foram implementados.
 Fora desta lista: o **preço histórico dos futuros** (B3 com 10+ anos e CME ZC, ambos
 pagos), que está na §4 (perguntas 2 e 3), e as fontes de ouro que ele lista e não
 coletamos (WGC, CME/COMEX, FMI, US Treasury, USGS, Banco Mundial), que estão nas
-ressalvas da §2 e na §5.
+ressalvas da §2 e na §6.
 
 ### Infraestrutura pendente
 
@@ -159,7 +167,10 @@ na coluna Status de "Dados coletados" (§2).
 
 Nenhuma no momento (a última, NOAA STAR — clima sobre o milho, rodou no servidor em 2026-09-24).
 
-## 4. Bloqueado — depende do David / Comitê
+</details>
+
+<details open>
+<summary>4. Bloqueado — depende do David / Comitê</summary>
 
 Itens 4 a 8 de `docs/pendente-especialista-david.md` continuam sem definição:
 regras e cálculos do motor, formato de apresentação, avaliação da IA,
@@ -194,7 +205,8 @@ e se o vintage do agro pode ser aceito com viés declarado. Ver
 | 15 | **FAO/AMIS** foi reconhecida e **adiada**: o WASDE já traz o balanço mundial do milho com vintage. Existe necessidade de implantá-la no futuro? **Detalhe logo abaixo da tabela** | | — |
 | 16 | **Paridade de exportação do milho:** o FinMind deve guardar a **paridade já calculada pelo IMEA** (valor pronto), os **componentes** dela (frete, prêmio de porto) ou nada por ora? **Detalhe logo abaixo da tabela** | | — |
 
-### Pergunta 2 em detalhe — preço futuro do milho (para levar à reunião)
+<details>
+<summary>Pergunta 2 em detalhe — preço futuro do milho (para levar à reunião)</summary>
 
 **A decisão:** o FinMind pode fazer a análise e o backtest do milho **só com o CCM
 (B3)**, aceitando um histórico curto, ou precisamos do **ZC (CME/Chicago)**, que é **pago**? Esta resposta
@@ -242,7 +254,10 @@ fato negocia —, **mas com apenas ~4 anos de backfill**, e com o buraco de 2023
 Em qualquer caso, **qual dos dois é o ativo operado** é uma decisão do Comitê; converter o ZC para R$/saca
 (paridade) é um fator, que também passa por ele.
 
-### Pergunta 15 em detalhe — FAO/AMIS (para levar à reunião)
+</details>
+
+<details>
+<summary>Pergunta 15 em detalhe — FAO/AMIS (para levar à reunião)</summary>
 
 **A decisão:** o FinMind precisa, no futuro, de uma **segunda visão do balanço mundial do milho** (FAO/AMIS),
 além da do USDA que já temos? Enquanto o Comitê não pedir, a fonte fica **adiada**.
@@ -279,7 +294,10 @@ relatório FEL 1 pede ao citar "balanço global de grãos".
 
 Evidência completa: `docs/reconhecimento-fontes/fao-amis.md`.
 
-### Pergunta 16 em detalhe — paridade de exportação do milho (para levar à reunião)
+</details>
+
+<details>
+<summary>Pergunta 16 em detalhe — paridade de exportação do milho (para levar à reunião)</summary>
 
 **De onde veio esta pergunta:** a auditoria da camada de dados (2026-09-22) listou "frete marítimo / prêmio de
 porto" como lacuna, porque o fator da paridade não teria matéria-prima sem eles, e o frete entrou em "Falta
@@ -335,11 +353,214 @@ frete.** O dólar (desde 1994) e a exportação do Comex Stat (desde 2005) já e
 Evidência: `STATUS_DO_PROJETO.md` §2 (ressalvas, linha "Frete e paridade de exportação") e os boletins do catálogo
 de arquivos do IMEA (`api1.imea.com.br/api/arquivo?cadeia=3`, "Boletim Semanal - Milho").
 
-## 5. Fora do escopo por enquanto
+</details>
+
+</details>
+
+<details open>
+<summary>5. Confirmar entendimento — Motor do Milho</summary>
+
+**Para a reunião.** Queremos confirmar com o Comitê como entendemos os **8 fatores do milho** da planilha
+`controle_fatores.xlsx` (aba "Controle de Fatores"). Nome, peso e fonte vêm da planilha; a coluna "Resumo (cálculo)"
+está vazia, e é ela que propomos preencher. Os exemplos usam **números reais do banco** (dev, 2026-09-26).
+**Nenhum número aqui diz se o preço sobe ou desce:** é só a medida de cada fator.
+
+### Como entendemos o motor
+
+Cada fator passa por três camadas. O FinMind só adianta a primeira:
+
+| Camada | O que é | Exemplo | Quem decide |
+|---|---|---|---|
+| **A. Medir** | Transformar o dado publicado no indicador que a planilha nomeia, com a definição usual do mercado | estoque/uso = estoque final ÷ uso total | Propomos aqui; **o Comitê confirma** |
+| **B. Ler** | Comparar a medida com o próprio histórico ou com a expectativa | percentil em 10 anos; surpresa contra o relatório anterior | Comitê (método) |
+| **C. Decidir** | Direção, peso, limiar e combinação dos fatores num sinal | "estoque/uso baixo pesa para alta" | **Só o Comitê** |
+
+**Quem decide é o Comitê; quem executa as três camadas é o motor, em código.** A IA só entra depois, para explicar
+o resultado (ver o exemplo abaixo da tabela). Cada medida da camada A segue o molde do fator que já existe (juro real
+10a, do ouro): função determinística e versionada, que só usa o que já estava publicado na data consultada
+(point-in-time) e nunca é gravada no banco.
+
+### Os 8 fatores do milho
+
+Dificuldade: 🟢 **fácil** (dado já coletado, cálculo de uma linha) · 🟡 **médio** (dado parcial ou depende de uma
+resposta do Comitê) · 🔴 **difícil** (falta a fonte).
+
+| # | Fator (peso) | Resumo do cálculo | Exemplo com dado real | Dificuldade |
+|---|---|---|---|---|
+| 1 | Clima e safra nos EUA — Crop Progress (Alto) | **% da lavoura em condição boa + excelente** (USDA, semanal, durante a safra). Complemento: **VHI** da NOAA, a saúde da vegetação medida só sobre a área do milho (0 a 100) | Semana até 20/09/2026: 44% boa + 13% excelente = **57%**. VHI dos EUA, semana até 23/09: **48,8** | 🟢 Soma de duas classes que o USDA publica; desde 1980 |
+| 2 | Safrinha brasileira, 2ª safra (Alto) | **Produção estimada da 2ª safra** (Conab, Brasil) e a **revisão** contra o levantamento anterior | Safra 2025/26: 112.130,8 mil t no 12º levantamento (15/09/2026) contra 111.030,9 mil t no 11º (13/08) = **+1.099,9 mil t (+1,0%)** | 🟡 Cálculo simples, mas as revisões só existem desde fev/2025 (pergunta 5) |
+| 3 | Estoques globais e balanço — WASDE (Alto) | **Estoque/uso = estoque final ÷ uso total**, dos EUA e do mundo, e a revisão contra a edição anterior. No mundo, o uso é o consumo interno total (exportação e importação se anulam) | Safra 2026/27, WASDE de 11/09/2026: EUA 1.567 ÷ 16.180 M bu = **9,7%** (na edição de 12/08: 1.653 ÷ 16.330 = 10,1%, revisão de −0,4 p.p.). Mundo: 272,1 ÷ 1.320,2 Mt = **20,6%** | 🟢 Indicador citado pelo nome na planilha ("relação estoque/uso"); revisões desde 2011 |
+| 4 | Dólar (USDBRL) e paridade de exportação (Médio) | **Dólar PTAX de venda** (BCB), como publicado. **Paridade:** a já calculada pelo IMEA (MT, R$/saca), se a pergunta 16 aprovar | Dólar em 25/09/2026: **R$ 5,1991**. Paridade: não coletada | 🟡 Dólar pronto; a paridade exige um leitor do boletim semanal do IMEA (PDF) |
+| 5 | Demanda de etanol e biocombustível (Médio) | **Produção semanal e estoques de etanol** dos EUA (EIA), como publicados | Semana até 18/09/2026: **1.028 mil barris/dia**; estoques de **24.683 mil barris** | 🟢 Pronto. Falta a parte do USDA (milho usado para etanol, no WASDE), não extraída |
+| 6 | Custo de insumos — fertilizantes, diesel (Médio) | **Peso dos fertilizantes no custo total** e a variação no mês (IMEA, custo de produção de MT, R$/ha) | Ago/2026, média de MT: R$ 1.404,89 de R$ 6.724,28 por hectare = **20,9%** do custo; **−2,4%** contra julho | 🔴 Só Mato Grosso e custo agregado; sem preço de fertilizante ou diesel isolado |
+| 7 | Especulação e posicionamento de fundos — COT (Médio) | **Posição líquida dos fundos** = managed money comprado − vendido, em contratos e em % dos contratos em aberto (CFTC, milho de Chicago) | Semana até 15/09/2026 (publicada em 18/09): 483.738 − 69.278 = **414.460 contratos**, **22,5%** de 1.843.824 | 🟢 Desde 2006; o mesmo cálculo serve ao ouro |
+| 8 | Política comercial e exportações — China, tarifas (Médio) | **Exportação brasileira por destino** (Comex Stat), com a China em destaque. Tarifas são eventos, não números | Hoje só o total: **4,65 milhões de t** exportadas em ago/2026, sem o destino | 🟡 Destino: a API do Comex Stat já usada tem a quebra por país (falta estender o coletor). 🔴 Tarifas: exigem a camada de evidência (pergunta 12) |
+
+<details>
+<summary>Exemplo: do fator ao prompt da IA (ilustração, nada implementado)</summary>
+
+**Ilustração** de como o Motor do Milho levaria os números da tabela acima até uma IA, supondo que a resposta da
+pergunta 11 seja "sim" (a IA organiza e narra, mas não gera o sinal). Nenhuma IA foi chamada.
+
+**Fluxo:** fatores medidos (camada A) → leitura de cada fator pelas regras do Comitê (camadas B e C), **aplicadas pelo
+motor, em código** → base com a medida e a leitura → prompt → IA → narrativa estruturada → **uma pessoa decide**.
+
+**A IA não cria o motor nem aplica as regras: ela recebe o que o motor produziu.** O motor mede (A) e lê cada fator
+pelas regras do Comitê (B e C), sempre do mesmo jeito; a IA só organiza e explica em linguagem. Por isso as
+decisões do Comitê são o centro do processo: com a camada A confirmada e as camadas B e C definidas, a leitura é
+**auditável, repetível e comparável** ao longo do tempo. Sem elas, os números chegam à IA sem leitura, e a resposta
+não tem base estruturada para ir além de descrevê-los.
+
+```text
+[1. PAPEL E OBJETIVO]
+Você é o redator do Motor do Milho do FinMind. Organize e explique, fator a fator, a situação
+do milho a partir da BASE e da LEITURA DO MOTOR abaixo.
+Você não cria leitura própria e não recomenda compra nem venda: a decisão é de uma pessoa.
+
+[2. BASE — montada pelo motor, sem IA]
+Data da análise: 26/09/2026. Só entram dados publicados até essa data.
+
+Fator 1 - Clima e safra nos EUA (peso Alto)
+  - Lavoura em condição boa + excelente: 57% (44% + 13%)
+    Fonte: USDA Crop Progress | referência: semana até 20/09/2026 | publicado: 21/09/2026
+  - Saúde da vegetação (VHI) sobre o milho dos EUA: 48,8 (escala 0 a 100)
+    Fonte: NOAA STAR | referência: semana até 23/09/2026 | publicado: 24/09/2026 (estimado)
+Fator 2 - Safrinha brasileira (peso Alto)
+  - Produção da 2ª safra 2025/26: 112.130,8 mil t; revisão: +1.099,9 mil t (+1,0%)
+    Fonte: Conab, 12º levantamento | publicado: 15/09/2026
+Fator 3 - Estoques e balanço, WASDE (peso Alto)
+  - Estoque/uso dos EUA 2026/27: 9,7% (edição anterior: 10,1%; revisão: -0,4 p.p.)
+  - Estoque/uso do mundo 2026/27: 20,6%
+    Fonte: USDA WASDE | publicado: 11/09/2026
+Fator 4 - Dólar e paridade de exportação (peso Médio)
+  - Dólar PTAX de venda: R$ 5,1991 | Fonte: BCB | referência: 25/09/2026
+  - Paridade de exportação: SEM DADO
+Fator 5 - Etanol (peso Médio)
+  - Produção: 1.028 mil barris/dia; estoques: 24.683 mil barris
+    Fonte: EIA | referência: semana até 18/09/2026 | publicado: 23/09/2026 (estimado)
+Fator 6 - Custo de insumos (peso Médio)
+  - Fertilizantes: 20,9% do custo de produção; -2,4% contra julho (só Mato Grosso)
+    Fonte: IMEA | referência: ago/2026 | publicado: 15/09/2026
+Fator 7 - Posicionamento de fundos, COT (peso Médio)
+  - Posição líquida dos fundos: +414.460 contratos (22,5% dos contratos em aberto)
+    Fonte: CFTC | referência: 15/09/2026 | publicado: 18/09/2026
+Fator 8 - Política comercial (peso Médio)
+  - Exportação total do Brasil: 4,65 milhões de t em ago/2026 | Fonte: Comex Stat
+  - Exportação por destino (China): SEM DADO | Tarifas: SEM DADO
+
+[3. LEITURA DO MOTOR — camadas B e C, aplicadas em código pelas regras do Comitê]
+Versão das regras: <a definir pelo Comitê>
+  Fator 1 a 8, leitura de cada um:  <resultado da regra do Comitê, com o id e a versão da regra>
+  Leitura conjunta (pesos):         Alto/Médio da planilha; como combinar: <a definir pelo Comitê>
+Hoje nenhuma regra está definida: todos os fatores estão "sem leitura definida".
+
+[4. COMPORTAMENTO]
+  - Trate um fator de cada vez, na ordem da BASE.
+  - Cite o número e a fonte de toda afirmação.
+  - Separe o dado (BASE) da leitura (bloco 3). A leitura é do motor, não sua.
+  - Se as leituras dos fatores apontarem em direções diferentes, diga isso; não force uma conclusão.
+
+[5. LIMITES]
+  - Não recomende compra, venda ou posição, e não preveja preço.
+  - Não use número, notícia ou dado que não esteja na BASE.
+  - Não crie leitura: se o bloco 3 não tiver leitura para o fator, escreva "sem leitura definida".
+  - Onde a BASE diz SEM DADO, escreva "sem dado"; nunca estime.
+
+[6. FORMATO DA RESPOSTA — JSON]
+{
+  "dataAnalise": "2026-09-26",
+  "versaoRegras": "...",
+  "fatores": [
+    { "fator": 3,
+      "resumo": "...",
+      "numerosCitados": ["9,7%", "10,1%", "20,6%"],
+      "leitura": "copiada do bloco 3, ou 'sem leitura definida'",
+      "lacunas": [] }
+  ],
+  "divergenciasEntreFatores": "...",
+  "lacunasGerais": ["paridade", "exportação por destino", "tarifas"]
+}
+Não há campo de recomendação: a decisão é de uma pessoa.
+```
+
+**O que o exemplo mostra, e os cuidados:**
+
+- **Hoje, a IA só poderia descrever.** Com o bloco 3 vazio, a resposta certa para todo fator é "sem leitura
+  definida". Isso não é uma falha do processo: é o processo mostrando onde entra a decisão do Comitê. Cada regra
+  definida transforma uma descrição numa leitura com critério.
+- **Sem as regras, a IA inventaria.** Sem o bloco 3 e os limites do bloco 5, a IA julgaria sozinha ("9,7% é baixo")
+  com o que aprendeu no treino: sem fonte, sem versão, sem como auditar ou repetir.
+- **Por que o motor, e não a IA, aplica as regras.** Em código, a mesma entrada dá sempre a mesma leitura (a IA pode
+  variar de uma chamada para outra), e cada regra pode ser testada no histórico (backtest) sem IA nenhuma.
+- **A base é do motor, não da IA.** Todo número vem do banco, com fonte e data de publicação, e nada publicado depois
+  da data da análise entra (point-in-time). Os dados têm datas diferentes (COT de 15/09, WASDE de 11/09, Crop
+  Progress de 20/09), e o prompt mostra isso.
+- **O que falta aparece como falta.** Paridade, exportação por destino e tarifas entram como SEM DADO, e a IA é
+  proibida de estimar.
+- **A resposta é conferível.** Com o formato fixo, dá para checar automaticamente se todo número citado existe na
+  base. O prompt é versionado como um fator: modelo, versão e hash registrados em cada execução (ADR 0010).
+- **É uma ilustração, não uma estratégia.** O que se propõe é a estrutura em 6 blocos, não a redação das frases.
+  **Nenhuma resposta de IA foi gerada**, de propósito: seria uma "análise" sem regra validada.
+- **Pressupõe "sim" na pergunta 11.** Se a IA também gerar o sinal, os blocos 1, 3, 5 e 6 mudam.
+
+</details>
+
+### O que queremos confirmar
+
+1. **As medidas acima** são as que o Comitê tem em mente para cada fator? (linha a linha)
+2. **COT:** managed money (relatório desagregado, o que coletamos) ou não comerciais (relatório legado)? Em contratos
+   ou em % dos contratos em aberto?
+3. **WASDE:** estoque/uso dos EUA, do mundo ou os dois? A revisão de uma edição para a outra conta como informação?
+4. **Safrinha:** vale o nível da produção, a revisão ou os dois? Só Brasil (Conab) ou também Mato Grosso (IMEA)?
+5. **Clima:** % boa + excelente basta, ou o VHI da NOAA entra junto (e de quais regiões)?
+6. **Insumos:** o custo do IMEA (só MT) atende, ou é preciso o preço de fertilizante e diesel? Nesse caso, de qual
+   fonte?
+
+### Por onde começamos (se o Comitê confirmar)
+
+1. **COT (fator 7):** o cálculo mais simples e mais usado do mercado, dados completos desde 2006 e **um cálculo só
+   para milho e ouro** (e depois café e petróleo: os 4 ativos da planilha têm um fator de COT). Como segundo fator do
+   sistema, é também quando o molde do juro real vira um padrão para todos.
+2. **Estoque/uso do WASDE (fator 3):** peso Alto, indicador nomeado na planilha e o nosso melhor dado point-in-time
+   (revisões desde 2011).
+3. **% boa + excelente do Crop Progress (fator 1):** peso Alto, cálculo trivial, desde 1980.
+
+Com esses três, somados aos fatores que usam o dado como publicado (dólar e etanol), **5 dos 8 fatores do milho**
+ficam com medida. Os outros três dependem de fonte nova ou de resposta do Comitê.
+
+### Aprendizagem no nosso desenho
+
+No nosso desenho, a **aprendizagem** do motor pode acontecer em **três dimensões**, sempre com uma pessoa decidindo
+e com versão registrada:
+
+| # | Dimensão | Como funciona | Depende de |
+|---|---|---|---|
+| 1 | **Memória com avaliação** | Cada leitura do motor fica registrada e nunca é apagada (data da análise, base, versão das regras, versão do prompt, resposta da IA). Depois, é comparada com o que o preço fez. É a base das outras duas: sem registro, não há o que avaliar | O Comitê definir o que é acerto (horizonte e métrica): item 6, "Avaliação da saída da IA", de `docs/pendente-especialista-david.md` |
+| 2 | **Aprendizado governado** | Com a avaliação, o Comitê revisa as regras das camadas B e C (direção, pesos, limiares): a versão 1 vira a versão 2. A versão nova só entra depois de testada no histórico, e cada leitura guarda a versão que usou | Histórico de preço para testar (perguntas 2 e 3) |
+| 3 | **Calibração estatística** | O sistema **sugere** pesos e limiares a partir do histórico (fatores contra preço), e o Comitê aprova ou não. Uma sugestão aprovada vira uma versão nova, como na dimensão 2 | Histórico longo de preço e de revisões (perguntas 2, 3 e 5) |
+
+**As regras B e C podem, sim, ser ajustadas ao longo do tempo para melhorar o desempenho** (dimensão 2), com quatro
+condições:
+
+- **Toda mudança vira uma versão nova**, nunca uma edição silenciosa. As leituras passadas continuam ligadas à versão
+  que usaram.
+- **Testada num período que não foi usado para ajustá-la.** Senão, a regra decora o passado e falha no futuro.
+- **Contar as tentativas.** Quanto mais versões testadas, maior a chance de uma parecer boa por acaso (o mesmo cuidado
+  do ADR 0010 com as versões de prompt).
+- **A decisão de adotar é do Comitê.**
+
+**Fica fora do desenho:** o modelo de IA não aprende com o uso. Nada de ajuste fino do modelo, de a IA receber as
+próprias análises antigas para "lembrar", nem de pesos que se ajustam sozinhos: tudo isso mudaria o comportamento sem
+versão e sem auditoria.
+
+</details>
+
+<details>
+<summary>6. Fora do escopo por enquanto</summary>
 
 Não implementar sem autorização explícita registrada em ADR:
 
-- Café, petróleo e qualquer ativo além de USD/BRL, Selic, ouro e milho (exceção já pedida pelo usuário: o clima do café pela NOAA STAR, §3).
+- Café, petróleo e qualquer ativo além de USD/BRL, Selic, ouro e milho (o café, inclusive o clima pela NOAA STAR, fica para uma onda completa do café, decisão do usuário de 2026-09-26).
 - CEPEA antes de 2018-06-08 (só por exportação manual do site), Conab (séries históricas e preços), IMEA (intenção de plantio, andamento de semeadura/colheita — só em PDF), WGC, PSD, FAO/AMIS, CPI.
 - Clima além da NOAA STAR por cultura: as fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5), USDA Ag in Drought, FAO ASIS, ONI, previsão do tempo e risco de geada.
 - Focus além das expectativas anuais de IPCA, Selic e câmbio (PIB e demais indicadores, mensais/trimestrais, Selic por reunião, inflação 12/24 meses, Top 5), fatores sobre o Focus (surpresa, variação, dispersão); das reservas do BCB, o conceito liquidez, a série mensal e a composição (ouro).
@@ -348,7 +569,10 @@ Não implementar sem autorização explícita registrada em ADR:
 - IA em qualquer ponto (o ADR 0010 é só proposta de desenho futuro).
 - Execução automática de ordens e corretora.
 
-## 6. Entregas realizadas
+</details>
+
+<details>
+<summary>7. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
@@ -430,9 +654,11 @@ Registro do que foi fechado na lista "Falta fazer" anterior (detalhe nos documen
 | Comex Stat — exportação de milho | Primeira fonte da lista do David que saiu do reconhecimento: coletor, backfill em blocos de 5 anos e 2 cards. **Cobertura a partir de 2005** (260 meses; a soma mensal bate com o total anual da API), em dev e produção (conferido por consulta ao banco da VM: 260 linhas por série, 5 blocos em `success`). Autorizado pelo usuário em 2026-09-21 | ADR 0013 |
 | Exportação da tabela histórica (CSV) | Botão "Exportar CSV" na tela de detalhe do observável: baixa a série **inteira** da tabela (não só a página), com os mesmos filtros dela (modalidade; campo e vencimentos nos futuros). CSV para Excel pt-BR (`;`, vírgula decimal, BOM), valor sem arredondar, com colunas de publicação nos observáveis point-in-time. Rate limit por usuário; teto de 500 mil linhas | `GET /api/v1/observaveis/:codigo/exportacao.csv` |
 | WASDE por país e período do gráfico | Dois cards, no lugar dos seis por série: "Milho EUA" (13 métricas no seletor, cada uma na unidade do USDA) e "Milho por país" (22 regiões e 7 métricas com checkboxes; padrão Brasil, EUA, Argentina e China; agregados e séries descontinuadas opt-in). O título do gráfico e da tabela mostra a métrica e a unidade em uso; o CSV exportado traz a coluna "Métrica". O mecanismo do CCM foi generalizado de "vencimento" para "item" (parâmetro da API: `itens`). Gráficos ganham a opção **Tudo** e abrem em **10 anos** nas séries anuais | ADR 0015 |
-| Reconhecimento da PSD do USDA (adiada) | Fonte reconhecida (nível 1): API JSON com chave própria `FAS_API_KEY`, milho desde 1960, 125 países + mundo. **Adiada por decisão do usuário**, sem coletor: o WASDE por país já cobre 14 países e os agregados desde 2008, com vintage real. **Ressalvas:** a PSD só acrescentaria os países fora da seleção do WASDE (Índia, Indonésia, Vietnã etc.) e o histórico anterior a 2008; a API só devolve a edição mais recente, **sem vintage**; licença e janela do rate limit não confirmadas; continua listada na §5 e só vira coletor com decisão do David ou autorização registrada em ADR (a pergunta 5 da §4, sobre o vintage do agro, segue aberta, mas não trava mais a PSD) | ADR 0014 |
+| Reconhecimento da PSD do USDA (adiada) | Fonte reconhecida (nível 1): API JSON com chave própria `FAS_API_KEY`, milho desde 1960, 125 países + mundo. **Adiada por decisão do usuário**, sem coletor: o WASDE por país já cobre 14 países e os agregados desde 2008, com vintage real. **Ressalvas:** a PSD só acrescentaria os países fora da seleção do WASDE (Índia, Indonésia, Vietnã etc.) e o histórico anterior a 2008; a API só devolve a edição mais recente, **sem vintage**; licença e janela do rate limit não confirmadas; continua listada na §6 e só vira coletor com decisão do David ou autorização registrada em ADR (a pergunta 5 da §4, sobre o vintage do agro, segue aberta, mas não trava mais a PSD) | ADR 0014 |
 | Reconhecimento da Conab (nível 1) — base do coletor abaixo | Três caminhos públicos, sem chave e sem captcha, abertos com chamada real: **(A)** planilha XLSX do boletim mensal (1ª/2ª/3ª safra por UF e balanço com estoque, consumo, importação e exportação; um vintage por levantamento), **(B)** séries históricas XLS de 1ª/2ª safra desde 1976/77 (sem vintage) e **(C)** preços em TXT (só ~12 meses, atualizados diariamente). Sem coletor: depende do David. **Ressalvas:** sem API nem dicionário de dados (quebra se o layout mudar); licença não verificada; aba da 3ª safra e arquivos municipais não abertos; o histórico longo de preço segue bloqueado | ADR 0016 |
-| Conab — milho do boletim mensal (coletor + backfill + 2 cards) | Coletor diário `conab-milho`: safra 1ª/2ª/3ª/total por Região/UF (área, produtividade, produção) e balanço nacional (estoque, consumo, importação, exportação), **com `published_at` real** (data e hora da página do levantamento). Backfill dos 15 levantamentos do índice (fev/2025 a set/2026): 397 séries, 3.436 linhas, até 10 revisões por valor, 0 falhas; a coleta diária repetida é idempotente (0 criados, 830 iguais). Cards "Milho por safra e UF (Conab)" (checkboxes de Região/UF) e "Milho - balanço nacional (Conab)" (seletor de métrica). **Autorizado pelo usuário em 2026-09-21**. **Backfill já rodado no servidor (informado pelo usuário; log: 15 levantamentos, 0 falhas, 88 s)**; em um banco novo ele vem antes da coleta diária (a diária recusa enquanto a fonte estiver vazia). **Ressalvas:** só de fev/2025 em diante (lacunas no índice); `published_at` das safras antigas é limite superior; a planilha é a versão atual (pode ter correção posterior à publicação); sem API (quebra se o layout mudar); licença não verificada. **Fora, por decisão do usuário (adiado, não pendente):** as séries históricas de 1ª/2ª safra desde 1976/77 (XLS, sem vintage) e os preços da Conab (TXT, só ~12 meses; o histórico longo segue bloqueado), reconhecidos no ADR 0016, ver §2 e §5. **Conab concluída em 2026-09-21**: o coletor rodou no servidor (backfill e coleta diária, 0 falhas) | ADR 0017 |
+| Conab — milho do boletim mensal (coletor + backfill + 2 cards) | Coletor diário `conab-milho`: safra 1ª/2ª/3ª/total por Região/UF (área, produtividade, produção) e balanço nacional (estoque, consumo, importação, exportação), **com `published_at` real** (data e hora da página do levantamento). Backfill dos 15 levantamentos do índice (fev/2025 a set/2026): 397 séries, 3.436 linhas, até 10 revisões por valor, 0 falhas; a coleta diária repetida é idempotente (0 criados, 830 iguais). Cards "Milho por safra e UF (Conab)" (checkboxes de Região/UF) e "Milho - balanço nacional (Conab)" (seletor de métrica). **Autorizado pelo usuário em 2026-09-21**. **Backfill já rodado no servidor (informado pelo usuário; log: 15 levantamentos, 0 falhas, 88 s)**; em um banco novo ele vem antes da coleta diária (a diária recusa enquanto a fonte estiver vazia). **Ressalvas:** só de fev/2025 em diante (lacunas no índice); `published_at` das safras antigas é limite superior; a planilha é a versão atual (pode ter correção posterior à publicação); sem API (quebra se o layout mudar); licença não verificada. **Fora, por decisão do usuário (adiado, não pendente):** as séries históricas de 1ª/2ª safra desde 1976/77 (XLS, sem vintage) e os preços da Conab (TXT, só ~12 meses; o histórico longo segue bloqueado), reconhecidos no ADR 0016, ver §2 e §6. **Conab concluída em 2026-09-21**: o coletor rodou no servidor (backfill e coleta diária, 0 falhas) | ADR 0017 |
 | Padrão das telas de observável | Toda tela de detalhe herda, sem código por card: **exportação da tabela em CSV** (série inteira, mesmos filtros, coluna de métrica), período do gráfico com a opção **Tudo** e **10 anos como padrão nas séries anuais** (`utils/periodo-grafico.js`), título com a métrica em uso e gráfico com até 12 cores distintas. Fixado como convenção no `CLAUDE.md` (um card novo é só uma entrada no catálogo; um teste barra frequência desconhecida). O nginx passou a servir o `index.html` com `Cache-Control: no-cache` (e os arquivos com hash em cache longo): depois de um deploy o navegador não abre mais a tela antiga (achado real: só o refresh forçado mostrava a tela nova) | `CLAUDE.md`, `frontend/nginx.conf` |
+
+</details>
 
 </details>
