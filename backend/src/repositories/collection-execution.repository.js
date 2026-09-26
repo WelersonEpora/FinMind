@@ -21,7 +21,9 @@ async function listar({ coletor, status, dataInicio, dataFim, pagina, tamanhoPag
   const where = {};
 
   // Busca por PARTE do nome do coletor (ex.: "imea" acha "imea-milho-safra" e "imea-custo-milho"), não só o código exato.
-  if (coletor) where.collector_code = { [Op.like]: `%${coletor}%` };
+  // `iLike` no PostgreSQL, que compara com distinção de maiúsculas; no MariaDB a collation já ignora.
+  const contem = CollectionExecution.sequelize.getDialect() === "postgres" ? Op.iLike : Op.like;
+  if (coletor) where.collector_code = { [contem]: `%${coletor}%` };
   if (status) where.status = status;
 
   if (dataInicio || dataFim) {

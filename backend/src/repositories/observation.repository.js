@@ -8,9 +8,9 @@ const { paraDatetimeSql } = require("../shared/utils/date-utils");
 // De propósito NÃO expõe nenhum update/delete: a única escrita é inserir
 // versões novas.
 
-// Tamanho das colunas de texto (espelha as migrations e o model). O `INSERT IGNORE` rebaixa o erro de truncamento
-// do modo estrito a aviso: um valor mais longo que a coluna seria gravado CORTADO, sem erro (já aconteceu com
-// `series_code` e com `source_code`). O serviço rejeita esses valores antes de chegar aqui.
+// Tamanho das colunas de texto (espelha as migrations e o model). No MariaDB, o `INSERT IGNORE` rebaixa o erro de
+// truncamento do modo estrito a aviso: um valor mais longo que a coluna seria gravado CORTADO, sem erro (já aconteceu
+// com `series_code` e com `source_code`). O PostgreSQL recusa com erro. O serviço rejeita esses valores antes.
 const TAMANHO_MAXIMO = { series_code: 120, source_code: 64, unit: 20 };
 
 const COLUNAS_INSERT = [
@@ -30,37 +30,67 @@ const COLUNAS_INSERT = [
 
 const TAMANHO_LOTE = 1000;
 
-function paraLinhaSql(v) {
+function ehPostgres() {
+  return sequelize.getDialect() === "postgres";
+}
+
+// Linha na ordem de COLUNAS_INSERT. No MariaDB, DATETIME sem fuso recebe o texto UTC de `paraDatetimeSql`; no
+// PostgreSQL, `timestamptz` recebe o ISO com "Z" (fuso explícito, sem depender do fuso da sessão).
+function paraLinhaSql(v, postgres) {
+  const instante = postgres ? (data) => data.toISOString() : paraDatetimeSql;
   return [
     v.id,
     v.series_code,
     v.observed_at,
-    paraDatetimeSql(v.published_at),
-    paraDatetimeSql(v.collected_at),
+    instante(v.published_at),
+    instante(v.collected_at),
     v.value,
     v.unit,
     v.source_code,
-    v.published_at_is_estimated ? 1 : 0,
+    postgres ? Boolean(v.published_at_is_estimated) : v.published_at_is_estimated ? 1 : 0,
     v.revision_seq,
     v.collection_execution_id,
     v.metadata ? JSON.stringify(v.metadata) : null
   ];
 }
 
-// Insere versões novas. INSERT IGNORE só como rede de segurança contra a
-// chave única (series_code, observed_at, published_at) - o serviço já decide
-// o que inserir; devolve quantas linhas REALMENTE entraram (affectedRows),
-// para o chamador detectar colisões silenciosas.
+// Um lote no PostgreSQL: placeholders numerados ($1, $2, ...) e ON CONFLICT na chave point-in-time, que faz o papel
+// do INSERT IGNORE. 1.000 linhas x 12 colunas = 12.000 parâmetros, abaixo do limite de 65.535 do protocolo.
+async function inserirLotePostgres(linhas, transaction) {
+  const valores = [];
+  const tuplas = linhas.map((linha) => {
+    const marcadores = linha.map((valor) => {
+      valores.push(valor);
+      return `$${valores.length}`;
+    });
+    return `(${marcadores.join(", ")})`;
+  });
+  const [, resultado] = await sequelize.query(
+    `INSERT INTO observation (${COLUNAS_INSERT.join(", ")}) VALUES ${tuplas.join(", ")}
+     ON CONFLICT (series_code, observed_at, published_at) DO NOTHING`,
+    { bind: valores, transaction }
+  );
+  return Number(resultado?.rowCount ?? resultado ?? 0);
+}
+
+async function inserirLoteMariadb(linhas, transaction) {
+  const [resultado] = await sequelize.query(`INSERT IGNORE INTO observation (${COLUNAS_INSERT.join(", ")}) VALUES ?`, {
+    replacements: [linhas],
+    transaction
+  });
+  return Number(resultado?.affectedRows ?? 0);
+}
+
+// Insere versões novas. Ignorar a colisão na chave única (series_code, observed_at, published_at) é só rede de
+// segurança - o serviço já decide o que inserir; devolve quantas linhas REALMENTE entraram, para o chamador detectar
+// colisões silenciosas.
 async function inserirVersoes(versoes, { transaction } = {}) {
+  const postgres = ehPostgres();
   let inseridas = 0;
 
   for (let i = 0; i < versoes.length; i += TAMANHO_LOTE) {
-    const lote = versoes.slice(i, i + TAMANHO_LOTE).map(paraLinhaSql);
-    const [resultado] = await sequelize.query(`INSERT IGNORE INTO observation (${COLUNAS_INSERT.join(", ")}) VALUES ?`, {
-      replacements: [lote],
-      transaction
-    });
-    inseridas += Number(resultado?.affectedRows ?? 0);
+    const lote = versoes.slice(i, i + TAMANHO_LOTE).map((v) => paraLinhaSql(v, postgres));
+    inseridas += postgres ? await inserirLotePostgres(lote, transaction) : await inserirLoteMariadb(lote, transaction);
   }
 
   return inseridas;
