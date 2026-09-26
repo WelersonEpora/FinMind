@@ -27,6 +27,11 @@ services:
       - "${APP_PORT:-3000}"
     volumes:
       - photo_storage:/app/storage/photos
+    # "db": rede do PostgreSQL compartilhado da VM (repositório servidor02-infra, ADR 0026). O backend usa o
+    # Postgres quando o .env tem DB_DIALECT=postgres; até a virada, segue no MariaDB abaixo.
+    networks:
+      - default
+      - db
     depends_on:
       mariadb:
         condition: service_healthy
@@ -42,3 +47,7 @@ services:
 volumes:
   mariadb_data:
   photo_storage:
+
+networks:
+  db:
+    external: true

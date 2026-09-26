@@ -136,7 +136,7 @@ async function buscarAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, est
   const replacements = { seriesCodes, asOf: instante };
 
   const filtros = ["series_code IN (:seriesCodes)", "published_at <= :asOf"];
-  if (estrito) filtros.push("(published_at_is_estimated = 0 OR collected_at <= :asOf)");
+  if (estrito) filtros.push("(published_at_is_estimated = FALSE OR collected_at <= :asOf)");
   if (observadoDesde) {
     filtros.push("observed_at >= :observadoDesde");
     replacements.observadoDesde = observadoDesde;
@@ -193,6 +193,8 @@ async function buscarHistoricoAtual({ seriesCodes, dataInicio, dataFim, ordenarP
   const where = filtros.join(" AND ");
   const coluna = COLUNAS_ORDENACAO_HISTORICO[ordenarPor] || COLUNAS_ORDENACAO_HISTORICO.referenceDate;
   const direcao = ordem === "ASC" ? "ASC" : "DESC";
+  // (series_code, observed_at) é único nesta visão (uma versão por período): o desempate completo deixa a ordem
+  // estável entre páginas e igual em qualquer banco quando há valores repetidos (ex.: Selic ordenada por valor).
 
   const registros = await sequelize.query(
     `SELECT series_code, observed_at, value, unit, published_at, published_at_is_estimated, collected_at
@@ -203,7 +205,7 @@ async function buscarHistoricoAtual({ seriesCodes, dataInicio, dataFim, ordenarP
           WHERE ${where}
        ) t
       WHERE rn = 1
-      ORDER BY ${coluna} ${direcao}, series_code ASC
+      ORDER BY ${coluna} ${direcao}, series_code ASC, observed_at ${direcao}
       LIMIT :limite OFFSET :deslocamento`,
     { replacements, type: QueryTypes.SELECT, transaction }
   );
@@ -264,7 +266,7 @@ async function resumirSeries(seriesCodes, { transaction } = {}) {
             COUNT(DISTINCT observed_at) AS total_observacoes,
             MIN(observed_at) AS primeira_data,
             MAX(observed_at) AS ultima_data,
-            SUM(published_at_is_estimated) AS versoes_estimadas
+            SUM(CASE WHEN published_at_is_estimated THEN 1 ELSE 0 END) AS versoes_estimadas
        FROM observation
       ${seriesCodes ? "WHERE series_code IN (:seriesCodes)" : ""}
       GROUP BY series_code, source_code

@@ -36,7 +36,12 @@ async function listar({ coletor, status, dataInicio, dataFim, pagina, tamanhoPag
 
   const { rows, count } = await CollectionExecution.findAndCountAll({
     where,
-    order: [[coluna, ordem || "DESC"]],
+    // Desempate por started_at e id: várias execuções começam no mesmo segundo (a coleta roda em sequência).
+    order: [
+      [coluna, ordem || "DESC"],
+      ["started_at", ordem || "DESC"],
+      ["id", "ASC"]
+    ],
     limit: tamanhoPagina,
     offset: (pagina - 1) * tamanhoPagina
   });

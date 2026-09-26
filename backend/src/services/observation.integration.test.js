@@ -1,10 +1,13 @@
 "use strict";
 
-// Verificação do SQL real do asOf() contra o MariaDB - OPT-IN.
+// Verificação do SQL real do asOf() contra o banco de dev - OPT-IN.
 //
 // `npm test` NÃO abre conexão com o banco (regra do projeto, ver CLAUDE.md).
 // Este arquivo só roda com FINMIND_TEST_DB=1 e o banco de dev migrado:
 //   FINMIND_TEST_DB=1 node --test src/services/observation.integration.test.js
+//   FINMIND_TEST_DB=1 DB_DIALECT=postgres node --test src/services/observation.integration.test.js
+// Durante a migração para PostgreSQL (ADR 0026), rodar nos dois: foi aqui que apareceu a comparação de
+// booleano com número (`published_at_is_estimated = 0`) que só o Postgres recusa.
 // Tudo acontece dentro de uma transação que sofre ROLLBACK no final - nada
 // fica gravado (a tabela é append-only, então não haveria como limpar depois).
 
@@ -19,7 +22,7 @@ const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 
 const habilitado = process.env.FINMIND_TEST_DB === "1";
-const opcoes = { skip: habilitado ? false : "defina FINMIND_TEST_DB=1 para rodar contra o MariaDB" };
+const opcoes = { skip: habilitado ? false : "defina FINMIND_TEST_DB=1 para rodar contra o banco de dev" };
 
 const SERIE = "TESTE.PIT.REVISAVEL";
 const SERIE_B = "TESTE.PIT.OUTRA";

@@ -32,7 +32,13 @@ async function buscarHistorico({ instrumentCode, modality, dataInicio, dataFim, 
 
   const { rows, count } = await MarketQuote.findAndCountAll({
     where,
-    order: [[coluna, ordem || "DESC"]],
+    // Desempate pela chave natural (dentro do instrumento): ordem estável entre páginas com valores repetidos.
+    order: [
+      [coluna, ordem || "DESC"],
+      ["reference_date", ordem || "DESC"],
+      ["source_code", "ASC"],
+      ["modality", "ASC"]
+    ],
     limit: tamanhoPagina,
     offset: (pagina - 1) * tamanhoPagina
   });

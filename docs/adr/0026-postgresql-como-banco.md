@@ -25,7 +25,7 @@ verdade usa Postgres). Três coisas mudaram desde então:
 - **Um único servidor Postgres na VM**, compartilhado pelos apps pessoais que forem para ela, com **um database e
   um usuário por app** (`finmind`, `personal`, …). Cada usuário só tem permissão no próprio database. Nenhum app
   conecta como superusuário.
-- **O Postgres fica num compose próprio** (`/opt/apps/postgres`, fora do repositório de cada app), numa **rede
+- **O Postgres fica num compose próprio** (repositório privado `servidor02-infra`, clonado em `/opt/apps/infra`; o Postgres em `/opt/apps/infra/postgres`, fora do repositório de cada app), numa **rede
   Docker externa** (`db`) na qual os composes dos apps entram. Nenhuma porta publicada no host.
 - **Backup lógico diário por database** (`pg_dump`, consistente), com retenção **7 diários + 4 semanais**, guardado
   no disco da VM e copiado para um bucket do Object Storage da Oracle com regra de ciclo de vida de 35 dias. Soma-se
@@ -96,3 +96,19 @@ algumas semanas antes de ser apagado, para permitir voltar atrás.
 - O BI (em discussão, dependente de reunião) nasceria sobre este Postgres, com um usuário somente leitura e views
   de "versão vigente" e "como se sabia na data", para não ler a `observation` crua e cair em *look-ahead bias*.
   Não faz parte desta decisão.
+
+## Resultado da paridade (2026-09-26, bancos de dev com os mesmos dados)
+
+Mesmas funções dos serviços rodadas nos dois bancos e comparadas: listagem de Observáveis, detalhe dos 26 cards,
+histórico com várias paginações/ordenações/filtros e cada item x métrica dos cards com seletor (6.296 consultas),
+exportação CSV dos 26 cards, execuções, e o `asOf` de todas as 6.195 séries em 6 datas, nos modos padrão e estrito
+(1.556.697 linhas). **Conteúdo idêntico em tudo**, depois de duas correções que o teste revelou:
+
+- `published_at_is_estimated = 0` e `SUM(published_at_is_estimated)`: o Postgres não compara nem soma booleano como
+  número. Trocados por `= FALSE` e `SUM(CASE WHEN ... THEN 1 ELSE 0 END)`, que valem nos dois bancos (o teste de
+  integração `observation.integration.test.js` passa 7/7 em ambos).
+- Ordenações sem desempate (histórico por valor, execuções por início): com valores repetidos cada banco devolvia
+  os empatados numa ordem, e a paginação podia repetir ou pular linhas. Ganharam desempate pela chave de cada linha.
+
+Diferença que fica: a **ordem** das séries com `_` no nome (collations diferentes) quando a consulta ordena por
+`series_code`; o conteúdo é o mesmo. Tempo da bateria completa: ~1h51 no MariaDB, ~6 min no PostgreSQL.
