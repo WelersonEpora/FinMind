@@ -48,8 +48,4 @@ function fimDoDiaUtc(dataIso) {
 }
 
 // "YYYY-MM-DD HH:MM:SS" em UTC (formato aceito por DATETIME do MariaDB).
-function paraDatetimeSql(data) {
-  return data.toISOString().slice(0, 19).replace("T", " ");
-}
-
-module.exports = { paraDate, paraIso, somarDias, diaDaSemanaIso, proximoDiaUtil, proximaSegunda, fimDoDiaUtc, paraDatetimeSql };
+module.exports = { paraDate, paraIso, somarDias, diaDaSemanaIso, proximoDiaUtil, proximaSegunda, fimDoDiaUtc };

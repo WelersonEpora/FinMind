@@ -1,7 +1,9 @@
 # 0026 — PostgreSQL como banco (servidor compartilhado na VM de produção)
 
-**Status:** aceito em 2026-09-26 (decisão do usuário). Execução pendente: até a virada, o FinMind continua em
-MariaDB 11 e vale `docs/decisoes-tecnicas.md` § "Banco de dados".
+**Status:** aceito e executado em 2026-09-26 (decisão do usuário). A virada foi feita no mesmo dia, e o MariaDB
+saiu do código, dos composes e do CI logo depois (não havia uso em produção a proteger). Onde este ADR fala em
+"conviver até a virada", `DB_DIALECT` ou script de carga, é o registro de como a migração foi feita: nada disso
+existe mais no código (está no histórico do git).
 
 ## Contexto
 

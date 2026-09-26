@@ -1,24 +1,5 @@
 services:
-  mariadb:
-    image: mariadb:11
-    container_name: finmind-mariadb
-    restart: unless-stopped
-    environment:
-      MARIADB_DATABASE: ${MARIADB_DATABASE:-finmind}
-      MARIADB_USER: ${MARIADB_USER:-finmind}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-finmind}
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-finmind_root}
-    ports:
-      - "${MARIADB_PORT:-3306}:3306"
-    volumes:
-      - mariadb_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # PostgreSQL (ADR 0026): convive com o MariaDB até a virada. O backend usa um ou outro por DB_DIALECT.
+  # PostgreSQL de desenvolvimento (em produção o banco é o Postgres compartilhado da VM, ADR 0026).
   postgres:
     image: postgres:16-alpine
     container_name: finmind-postgres
@@ -37,18 +18,22 @@ services:
       timeout: 5s
       retries: 5
 
-  phpmyadmin:
-    image: phpmyadmin:5
-    container_name: finmind-phpmyadmin
+  # 5051 (e não 5050) para não colidir com o pgAdmin do AgroMind na mesma máquina.
+  pgadmin:
+    image: dpage/pgadmin4:9
+    container_name: finmind-pgadmin
     restart: unless-stopped
     environment:
-      PMA_HOST: mariadb
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@finmind.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
     ports:
-      - "${PHPMYADMIN_PORT:-8080}:80"
+      - "${PGADMIN_PORT:-5051}:80"
     depends_on:
-      mariadb:
+      postgres:
         condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
 
 volumes:
-  mariadb_data:
   postgres_data:
+  pgadmin_data:

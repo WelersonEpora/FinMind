@@ -1,8 +1,8 @@
 "use strict";
 
 // Linha de base do schema no PostgreSQL (docs/adr/0026-postgresql-como-banco.md): cria de uma vez o schema que
-// as 13 migrations do MariaDB (database/migrations) produziram até 2026-09-24, sem repetir o histórico de
-// correções delas. Migrations do Postgres a partir daqui entram nesta pasta, depois deste arquivo.
+// as 13 migrations da época do MariaDB produziram até 2026-09-24 (removidas; estão no histórico do git), sem
+// repetir o histórico de correções delas. Migrations novas entram nesta pasta, depois deste arquivo.
 //
 // Escopo das tabelas (ADR 0007, §3):
 // - GLOBAL: collection_execution, market_quote, observation, system_setting (dado de mercado e da plataforma;

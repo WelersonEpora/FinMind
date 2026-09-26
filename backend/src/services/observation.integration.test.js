@@ -5,17 +5,16 @@
 // `npm test` NÃO abre conexão com o banco (regra do projeto, ver CLAUDE.md).
 // Este arquivo só roda com FINMIND_TEST_DB=1 e o banco de dev migrado:
 //   FINMIND_TEST_DB=1 node --test src/services/observation.integration.test.js
-//   FINMIND_TEST_DB=1 DB_DIALECT=postgres node --test src/services/observation.integration.test.js
-// Durante a migração para PostgreSQL (ADR 0026), rodar nos dois: foi aqui que apareceu a comparação de
-// booleano com número (`published_at_is_estimated = 0`) que só o Postgres recusa.
+// Na migração para PostgreSQL (ADR 0026) foi este teste que pegou a comparação de booleano com número
+// (`published_at_is_estimated = 0`), que o Postgres recusa.
 // Tudo acontece dentro de uma transação que sofre ROLLBACK no final - nada
 // fica gravado (a tabela é append-only, então não haveria como limpar depois).
 
-process.env.MARIADB_HOST = process.env.MARIADB_HOST || "localhost";
-process.env.MARIADB_PORT = process.env.MARIADB_PORT || "3306";
-process.env.MARIADB_DATABASE = process.env.MARIADB_DATABASE || "finmind";
-process.env.MARIADB_USER = process.env.MARIADB_USER || "finmind";
-process.env.MARIADB_PASSWORD = process.env.MARIADB_PASSWORD || "finmind";
+process.env.POSTGRES_HOST = process.env.POSTGRES_HOST || "localhost";
+process.env.POSTGRES_PORT = process.env.POSTGRES_PORT || "5432";
+process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE || "finmind";
+process.env.POSTGRES_USER = process.env.POSTGRES_USER || "finmind";
+process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || "finmind";
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test, before, after } = require("node:test");
@@ -108,7 +107,7 @@ test("dois períodos diferentes da mesma série, com revisão só de um", opcoes
   assert.deepEqual(await em("2026-06-01T00:00:00Z"), [["2026-04-01", 1.5], ["2026-04-02", 2]]);
 });
 
-test("mesma versão não duplica na chave única (INSERT IGNORE devolve 0 linhas)", opcoes, async () => {
+test("mesma versão não duplica na chave única (ON CONFLICT devolve 0 linhas)", opcoes, async () => {
   const repo = require("../repositories/observation.repository");
   const versao = {
     id: require("node:crypto").randomUUID(),

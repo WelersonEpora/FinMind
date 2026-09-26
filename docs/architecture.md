@@ -64,13 +64,13 @@ FinMind/
       components/charts/            # EChartsBase + LineChart (vue-echarts)
       theme/                         # preset PrimeVue (finmind-preset.js)
   docker/
-    compose.dev.yml               # MariaDB + phpMyAdmin + PostgreSQL (backend roda local; DB_DIALECT escolhe, ADR 0026)
-    compose.prod.yml              # MariaDB + backend + frontend (imagens GHCR)
+    compose.dev.yml               # PostgreSQL + pgAdmin (backend roda local)
+    compose.prod.yml              # backend + frontend (imagens GHCR); banco = Postgres compartilhado da VM
   docs/adr/
     NNNN-titulo.md                 # decisões arquiteturais registradas (ADRs)
   .github/workflows/
     ci.yml                         # lint + test + build, toda branch/PR
-    publish.yml                    # build + push das imagens no GHCR, push em main
+    deploy.yml                     # build (runner ARM) + push GHCR + deploy SSH, push em main
 ```
 
 ## Camadas do backend
@@ -110,68 +110,58 @@ continuam bloqueados por `docs/pendente-especialista-david.md`. Ver o
 
 ## Deploy
 
-`.github/workflows/deploy.yml` builda e publica `ghcr.io/<owner>/
-finmind-backend` e `finmind-frontend` em push pra `main`, e então faz
-deploy via SSH na mesma VM Oracle Cloud onde o AgroMind já roda —
-mesmo padrão validado lá (`appleboy/ssh-action`, usuário `deploy`,
-`scripts/deploy.sh` + `scripts/github-deploy.sh` na raiz do repo).
+`.github/workflows/deploy.yml` builda num runner ARM nativo
+(`ubuntu-24.04-arm`) e publica `ghcr.io/<owner>/finmind-backend` e
+`finmind-frontend` (só `linux/arm64`) em push pra `main`, e então faz
+deploy via SSH (`appleboy/ssh-action`, `scripts/github-deploy.sh` +
+`scripts/deploy.sh`) na VM de produção.
 
-**Importante:** essa VM é Always Free (1 vCPU / 1GB RAM) e já roda o
-AgroMind inteiro (Postgres + backend + frontend). Rodar os dois lado a
-lado é uma decisão consciente, não uma validação de capacidade — se
-houver sinal de falta de memória (containers reiniciando, OOM no
-`dmesg`), a resposta é mover um dos dois pra outra VM, não espremer
-mais serviço na mesma.
+**VM `servidor02`** (Oracle Cloud Always Free, Ampere A1 arm64, 2 OCPU /
+12 GB, São Paulo), desde 2026-09-26. Até essa data o FinMind dividia com
+AgroMind, Personal e Portal uma VM x86 de 1 GB (`servidor01`), que ficou
+pequena (~920 MB em swap, três servidores de banco).
 
-Convenções que diferem do AgroMind só para não colidir na mesma
-máquina:
-
-- **Diretório:** `/opt/apps/finmind/app` (AgroMind usa
-  `/opt/apps/agromind/app`).
-- **Nome do projeto Docker Compose:** `finmind` (`scripts/deploy.sh`),
-  o que prefixa containers/rede como `finmind_...` — sem colisão com
-  `agromind_...`.
-- **Porta do frontend:** `8083` (`FRONTEND_PORT` no `.env` da VM) —
-  AgroMind usa `8081`.
-- **MariaDB não publica porta no host** em produção (só rede interna
-  Docker), igual ao Postgres do AgroMind — sem risco de colisão de
-  porta de banco.
-
-### Bootstrap único na VM (antes do primeiro deploy automático)
-
-Segue o mesmo processo já usado pro AgroMind, só apontando pro
-diretório do FinMind:
-
-```bash
-sudo -iu deploy bash -lc '
-  mkdir -p /opt/apps/finmind &&
-  cd /opt/apps/finmind &&
-  git clone https://github.com/WelersonEpora/FinMind.git app &&
-  cd app &&
-  cp .env.example .env
-  # editar .env: JWT_SECRET, ADMIN_EMAIL/ADMIN_PASSWORD, MARIADB_*,
-  # FRONTEND_PORT=8083, GHCR_OWNER=welersonepora
-'
 ```
+servidor02
+  /opt/apps/infra/            repositório privado servidor02-infra
+    postgres/                   PostgreSQL 16 compartilhado, rede Docker "db",
+                                sem porta no host; um database/usuário por app
+  /opt/apps/finmind/app/      este repositório: backend + frontend (compose.prod.yml)
+  /opt/apps/proxy/            Nginx Proxy Manager (network_mode: host):
+                                finmind.weslab.com.br -> 127.0.0.1:8083, HTTPS (Let's Encrypt)
+  /opt/backups/postgres/      pg_dump diário por database (7 diários + 4 semanais)
+```
+
+- **Banco:** fora deste compose. O backend entra na rede externa `db` e
+  usa `POSTGRES_HOST=postgres`, com o usuário `finmind` (dono só do
+  database `finmind`). Ver `docs/adr/0026-postgresql-como-banco.md` e o
+  README do `servidor02-infra`.
+- **Frontend:** `FRONTEND_PORT=127.0.0.1:8083` no `.env`: só o proxy da
+  própria VM alcança; o acesso externo é por HTTPS.
+- **Firewall:** security list da sub-rede + `iptables` da imagem Ubuntu
+  da Oracle (22, 80 e 443 liberadas antes do `REJECT`). Portas publicadas
+  pelo Docker não passam pelo `INPUT`: o que não deve ficar exposto é
+  publicado só em `127.0.0.1`.
+- **Cron** (crontab do usuário `deploy`, fuso UTC): coleta às 04:00,
+  06:00 e 08:00 (`docker compose ... exec -T backend npm run collect`,
+  log em `/opt/apps/finmind/logs/coleta-diaria.log`) e backup às 10:00
+  (`/opt/apps/infra/postgres/scripts/backup.sh`, log em
+  `/opt/backups/postgres/backup.log`).
+- **Backup do disco:** política `semanal-3-semanas` da Oracle no boot
+  volume (domingo 12:00 UTC).
+- **Portainer:** o da VM antiga vê a `servidor02` por um Portainer Agent
+  (porta 9001, liberada só para o IP privado da `servidor01`).
 
 ### Secrets do GitHub Actions (repositório FinMind)
 
-Secrets são por repositório — os do AgroMind não são reaproveitados
-automaticamente. Adicionar em Settings → Secrets and variables →
-Actions do repo `FinMind`:
+Em Settings → Secrets and variables → Actions:
 
-- `ORACLE_HOST`, `ORACLE_USER` — mesmos valores já usados no repo do
-  AgroMind (mesma VM).
-- `ORACLE_SSH_KEY` — pode ser a mesma chave privada já usada pelo
-  AgroMind (`github-actions-agromind`, já autorizada nessa VM/usuário
-  `deploy`) ou uma chave dedicada nova, se preferir segregar por
-  aplicação.
-- `GHCR_PAT`, `GHCR_USERNAME` — mesmos usados no AgroMind (PAT com
-  permissão de leitura no GHCR, pra `docker login` dentro da VM).
+- `ORACLE_HOST` — IP público da `servidor02`.
+- `ORACLE_USER` — `ubuntu` (o workflow entra como `ubuntu` e roda o deploy
+  com `sudo -iu deploy`).
+- `ORACLE_SSH_KEY` — chave privada autorizada no `ubuntu` da VM.
+- `GHCR_PAT`, `GHCR_USERNAME` — PAT com leitura no GHCR, para o
+  `docker login` dentro da VM.
 
-Nenhum desses valores deve ser colado nesta conversa nem commitado no
+Nenhum desses valores deve ser colado numa conversa nem commitado no
 repositório — são configurados diretamente na interface do GitHub.
-
-(adicionar esse job em `.github/workflows/publish.yml`, junto com os
-secrets `ORACLE_HOST`/`ORACLE_USER`/`ORACLE_SSH_KEY` no repositório,
-quando a VM estiver pronta).

@@ -32,11 +32,11 @@ jobs:
       - name: Test
         run: npm test
         env:
-          MARIADB_HOST: localhost
-          MARIADB_PORT: 3306
-          MARIADB_DATABASE: finmind_test
-          MARIADB_USER: finmind
-          MARIADB_PASSWORD: finmind
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DATABASE: finmind_test
+          POSTGRES_USER: finmind
+          POSTGRES_PASSWORD: finmind
           JWT_SECRET: ci-test-secret
 
   frontend:

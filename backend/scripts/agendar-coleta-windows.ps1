@@ -14,7 +14,7 @@
     .\scripts\agendar-coleta-windows.ps1 -Remover
 
   Limites: só roda com o usuário logado e a máquina ligada (se perder o
-  horário, roda quando puder - StartWhenAvailable) e precisa do MariaDB de dev
+  horário, roda quando puder - StartWhenAvailable) e precisa do PostgreSQL de dev
   no ar (docker/compose.dev.yml). Em produção (VM) o equivalente é um cron
   chamando `docker compose exec backend npm run collect` (ver ADR 0004).
 #>

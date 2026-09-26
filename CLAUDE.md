@@ -59,7 +59,7 @@ decisão foi tomada). Resumo do que muda com mais frequência:
 
 ```bash
 cp .env.example .env   # preencher JWT_SECRET, ADMIN_EMAIL/ADMIN_PASSWORD
-docker compose --project-directory . -f docker/compose.dev.yml up -d   # MariaDB + phpMyAdmin + PostgreSQL (em migração, ADR 0026)
+docker compose --project-directory . -f docker/compose.dev.yml up -d   # PostgreSQL + pgAdmin (dev; produção usa o Postgres compartilhado da VM, ADR 0026)
 
 cd backend && npm install && npm run db:migrate && npm run db:seed && npm run dev
 cd frontend && npm install && npm run dev   # http://localhost:5173
@@ -173,8 +173,8 @@ Ver também `backend/src/collectors/base/README.md`.
 
 - Sequelize migrations são a única fonte da verdade do schema —
   `sequelize.sync()` nunca é usado.
-- UUID `CHAR(36)` gerado na aplicação (`crypto.randomUUID()`), nunca
-  default do banco.
+- UUID (tipo `uuid` do PostgreSQL) gerado na aplicação
+  (`crypto.randomUUID()`), nunca default do banco.
 - Tabelas/colunas em `snake_case`, `created_at`/`updated_at` explícitos via
   `Sequelize.literal("CURRENT_TIMESTAMP")`.
 - Services nunca chamam Sequelize direto — sempre por um repository
@@ -293,11 +293,19 @@ Ver também `backend/src/collectors/base/README.md`.
 
 `.github/workflows/ci.yml` roda lint + test (backend e frontend) + build
 (frontend) em toda branch/PR, sem depender de banco real.
-`.github/workflows/deploy.yml` builda/publica as imagens no GHCR e faz
-deploy via SSH na VM em push pra `main`. **Migrations rodam
+`.github/workflows/deploy.yml` builda num runner ARM nativo, publica as
+imagens (só `linux/arm64`) no GHCR e faz deploy via SSH na VM `servidor02`
+(Oracle Cloud, Ampere A1) em push pra `main`. **Migrations rodam
 automaticamente** como parte do deploy — `scripts/deploy.sh` (passo 4/6)
 executa `npm run db:migrate` dentro do container `backend` logo após subir
 os containers atualizados (seeders no passo 5/6).
+
+O banco de produção **não está no compose do FinMind**: é o PostgreSQL
+compartilhado da VM, do repositório privado `servidor02-infra`
+(`/opt/apps/infra/postgres`), com database e usuário `finmind`, alcançado
+pela rede Docker `db`. Backup diário (`pg_dump`, 7 diários + 4 semanais em
+`/opt/backups/postgres`) e o cron da coleta rodam no crontab do usuário
+`deploy` da VM. Ver `docs/adr/0026-postgresql-como-banco.md`.
 
 ## Status do projeto
 

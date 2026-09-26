@@ -2,15 +2,13 @@
 
 const { QueryTypes } = require("sequelize");
 const { sequelize } = require("../models");
-const { paraDatetimeSql } = require("../shared/utils/date-utils");
 
 // Repository da camada point-in-time (observation, append-only - ADR 0008).
 // De propósito NÃO expõe nenhum update/delete: a única escrita é inserir
 // versões novas.
 
-// Tamanho das colunas de texto (espelha as migrations e o model). No MariaDB, o `INSERT IGNORE` rebaixa o erro de
-// truncamento do modo estrito a aviso: um valor mais longo que a coluna seria gravado CORTADO, sem erro (já aconteceu
-// com `series_code` e com `source_code`). O PostgreSQL recusa com erro. O serviço rejeita esses valores antes.
+// Tamanho das colunas de texto (espelha a migration e o model). O PostgreSQL recusa um valor mais longo que a
+// coluna; o serviço rejeita esses valores antes, com mensagem clara.
 const TAMANHO_MAXIMO = { series_code: 120, source_code: 64, unit: 20 };
 
 const COLUNAS_INSERT = [
@@ -30,33 +28,27 @@ const COLUNAS_INSERT = [
 
 const TAMANHO_LOTE = 1000;
 
-function ehPostgres() {
-  return sequelize.getDialect() === "postgres";
-}
-
-// Linha na ordem de COLUNAS_INSERT. No MariaDB, DATETIME sem fuso recebe o texto UTC de `paraDatetimeSql`; no
-// PostgreSQL, `timestamptz` recebe o ISO com "Z" (fuso explícito, sem depender do fuso da sessão).
-function paraLinhaSql(v, postgres) {
-  const instante = postgres ? (data) => data.toISOString() : paraDatetimeSql;
+// Linha na ordem de COLUNAS_INSERT. Instantes em ISO com "Z": fuso explícito, sem depender do fuso da sessão.
+function paraLinhaSql(v) {
   return [
     v.id,
     v.series_code,
     v.observed_at,
-    instante(v.published_at),
-    instante(v.collected_at),
+    v.published_at.toISOString(),
+    v.collected_at.toISOString(),
     v.value,
     v.unit,
     v.source_code,
-    postgres ? Boolean(v.published_at_is_estimated) : v.published_at_is_estimated ? 1 : 0,
+    Boolean(v.published_at_is_estimated),
     v.revision_seq,
     v.collection_execution_id,
     v.metadata ? JSON.stringify(v.metadata) : null
   ];
 }
 
-// Um lote no PostgreSQL: placeholders numerados ($1, $2, ...) e ON CONFLICT na chave point-in-time, que faz o papel
-// do INSERT IGNORE. 1.000 linhas x 12 colunas = 12.000 parâmetros, abaixo do limite de 65.535 do protocolo.
-async function inserirLotePostgres(linhas, transaction) {
+// Um lote: placeholders numerados ($1, $2, ...) e ON CONFLICT na chave point-in-time. 1.000 linhas x 12 colunas
+// = 12.000 parâmetros, abaixo do limite de 65.535 do protocolo.
+async function inserirLote(linhas, transaction) {
   const valores = [];
   const tuplas = linhas.map((linha) => {
     const marcadores = linha.map((valor) => {
@@ -73,24 +65,14 @@ async function inserirLotePostgres(linhas, transaction) {
   return Number(resultado?.rowCount ?? resultado ?? 0);
 }
 
-async function inserirLoteMariadb(linhas, transaction) {
-  const [resultado] = await sequelize.query(`INSERT IGNORE INTO observation (${COLUNAS_INSERT.join(", ")}) VALUES ?`, {
-    replacements: [linhas],
-    transaction
-  });
-  return Number(resultado?.affectedRows ?? 0);
-}
-
 // Insere versões novas. Ignorar a colisão na chave única (series_code, observed_at, published_at) é só rede de
 // segurança - o serviço já decide o que inserir; devolve quantas linhas REALMENTE entraram, para o chamador detectar
 // colisões silenciosas.
 async function inserirVersoes(versoes, { transaction } = {}) {
-  const postgres = ehPostgres();
   let inseridas = 0;
 
   for (let i = 0; i < versoes.length; i += TAMANHO_LOTE) {
-    const lote = versoes.slice(i, i + TAMANHO_LOTE).map((v) => paraLinhaSql(v, postgres));
-    inseridas += postgres ? await inserirLotePostgres(lote, transaction) : await inserirLoteMariadb(lote, transaction);
+    inseridas += await inserirLote(versoes.slice(i, i + TAMANHO_LOTE).map(paraLinhaSql), transaction);
   }
 
   return inseridas;
@@ -132,7 +114,7 @@ async function listarSeriesEInstantes(sourceCode, { transaction } = {}) {
 // `estrito`, uma estimativa por regra documentada vale a partir do
 // published_at estimado - a visão "o que o mercado já podia saber".
 async function buscarAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, estrito = false }, { transaction } = {}) {
-  const instante = paraDatetimeSql(asOf);
+  const instante = asOf.toISOString();
   const replacements = { seriesCodes, asOf: instante };
 
   const filtros = ["series_code IN (:seriesCodes)", "published_at <= :asOf"];
@@ -169,7 +151,7 @@ async function buscarMaisRecente(seriesCode, { transaction } = {}) {
       WHERE series_code = :seriesCode AND published_at <= :agora
       ORDER BY observed_at DESC, published_at DESC
       LIMIT 1`,
-    { replacements: { seriesCode, agora: paraDatetimeSql(new Date()) }, type: QueryTypes.SELECT, transaction }
+    { replacements: { seriesCode, agora: new Date().toISOString() }, type: QueryTypes.SELECT, transaction }
   );
   return linha || null;
 }
@@ -180,7 +162,7 @@ const COLUNAS_ORDENACAO_HISTORICO = { referenceDate: "observed_at", value: "valu
 // (série, período observado), a versão mais recente. É a mesma regra do
 // buscarAsOf, com filtro por período, ordenação e paginação para a tela.
 async function buscarHistoricoAtual({ seriesCodes, dataInicio, dataFim, ordenarPor, ordem, limite, deslocamento }, { transaction } = {}) {
-  const replacements = { seriesCodes, agora: paraDatetimeSql(new Date()), limite, deslocamento };
+  const replacements = { seriesCodes, agora: new Date().toISOString(), limite, deslocamento };
   const filtros = ["series_code IN (:seriesCodes)", "published_at <= :agora"];
   if (dataInicio) {
     filtros.push("observed_at >= :dataInicio");
@@ -243,7 +225,7 @@ async function listarItens({ prefixoSerie, campoReferencia }, { transaction } = 
 
 // Versão leve do `listarItens` para o destaque do card: só a última data de cada item.
 // Agrupa pela própria `series_code` (sem MIN/COUNT DISTINCT e sem agrupar por
-// expressão), o que deixa o MariaDB resolver pelo índice `uk_pit` sem varrer o
+// expressão), o que deixa o banco resolver pelo índice `uk_pit` sem varrer o
 // histórico inteiro - a listagem de Observáveis chama isto para vários cards de uma vez.
 async function listarUltimasDatasItens({ prefixoSerie, campoReferencia }, { transaction } = {}) {
   const posicao = prefixoSerie.split(".").length;

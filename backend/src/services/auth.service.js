@@ -22,7 +22,7 @@ async function login(email, plainPassword, deps = {}) {
   const signer = deps.jwt || jwt;
 
   // O e-mail é gravado em minúsculas (user.service); normalizar aqui mantém o login sem distinção de
-  // maiúsculas também no PostgreSQL, que compara texto com distinção (no MariaDB a collation fazia isso).
+  // maiúsculas: o PostgreSQL compara texto com distinção de maiúsculas.
   const user = await repo.findByEmail(typeof email === "string" ? email.trim().toLowerCase() : email);
 
   if (!user || !user.active) {

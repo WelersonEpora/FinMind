@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-09-24.**
+**Última atualização: 2026-09-26.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -34,8 +34,10 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js`: juro real 10a = `DFII10`, com `DGS10 − T10YIE` como validação cruzada (5.932 de 5.932 datas iguais). Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
 | Telas de dados | `/dados-mercado/observaveis` (26 cards) e `/dados-mercado/execucoes` — ADR 0005 |
-| Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` (04:00, 06:00, 08:00 **UTC**, **não versionado**), confirmado por SSH em 2026-09-21: dispara nos 3 horários e todos os coletores terminam em `success` — ADR 0004 |
-| CI/CD | Lint + testes + build em toda branch; deploy por push na `main`, que já roda as migrations automaticamente (`scripts/deploy.sh`, passo 4/6) |
+| Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
+| Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
+| Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` na `servidor02` (coleta 04:00, 06:00, 08:00 **UTC**; backup 10:00 UTC, **não versionado**) — ADR 0004, ADR 0026 |
+| CI/CD | Lint + testes + build em toda branch; deploy por push na `main` (imagens `linux/arm64` num runner ARM nativo), que já roda as migrations automaticamente (`scripts/deploy.sh`, passo 4/6) |
 
 ### Dados coletados
 
@@ -343,6 +345,20 @@ Não implementar sem autorização explícita registrada em ADR:
 ## 6. Entregas realizadas
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-09-26</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| VM de produção nova | FinMind saiu da VM x86 de 1 GB (dividida com AgroMind, Personal e Portal; ~920 MB em swap) para a `servidor02` (Ampere A1 arm64, 2 OCPU / 12 GB, Always Free). HTTPS em `finmind.weslab.com.br` (Nginx Proxy Manager), frontend só em `127.0.0.1`, cron da coleta movido, Portainer vendo as duas VMs | `docs/architecture.md` § "Deploy" |
+| MariaDB → PostgreSQL | Postgres 16 compartilhado (repositório `servidor02-infra`, database e usuário por app, sem porta no host). Schema recomeçado por uma migration de linha de base; dados **copiados** (341.807 observações em 10.859 séries, conferência por contagem e soma de cada série). Paridade nos bancos de dev: conteúdo idêntico em listagem, 26 detalhes, 6.296 históricos, CSV, execuções e `asOf` de todas as séries (1.556.697 linhas); a bateria levou ~6 min no Postgres e ~1h51 no MariaDB. O MariaDB saiu do código, dos composes e do CI | ADR 0026 |
+| Correções achadas na paridade | Booleano tratado como número no SQL do `asOf` estrito e do resumo das séries (quebraria no Postgres); ordenações sem desempate (histórico por valor, execuções), que podiam repetir ou pular linhas entre páginas | ADR 0026, § "Resultado da paridade" |
+| Cards com seletor lentos | O detalhe do NOAA levava ~20 s e estourava o timeout ("Não foi possível carregar o observável"): `GROUP BY` por expressão sem índice, chamado duas vezes. Agrupado por `series_code`: NOAA 5,3 s → 0,2 s, CCM 1,4 s → 0,12 s, Focus 1,0 s → 0,07 s, mesmo conteúdo | `observation.repository.js::listarItens` |
+| Backups | Diário: `pg_dump` por database, conferido, 7 diários + 4 semanais em `/opt/backups/postgres` (cron 10:00 UTC). Semanal: backup do disco das duas VMs pela Oracle, dentro da cota gratuita | `servidor02-infra`, ADR 0026 |
+| CI em ARM nativo | Build das imagens num runner `ubuntu-24.04-arm`, só `linux/arm64`: o QEMU num runner x86 travava no `npm ci` | `.github/workflows/deploy.yml` |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-09-24</summary>

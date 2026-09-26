@@ -1,10 +1,10 @@
 "use strict";
 
-process.env.MARIADB_HOST = process.env.MARIADB_HOST || "localhost";
-process.env.MARIADB_PORT = process.env.MARIADB_PORT || "3306";
-process.env.MARIADB_DATABASE = process.env.MARIADB_DATABASE || "finmind_test";
-process.env.MARIADB_USER = process.env.MARIADB_USER || "finmind";
-process.env.MARIADB_PASSWORD = process.env.MARIADB_PASSWORD || "finmind";
+process.env.POSTGRES_HOST = process.env.POSTGRES_HOST || "localhost";
+process.env.POSTGRES_PORT = process.env.POSTGRES_PORT || "5432";
+process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE || "finmind_test";
+process.env.POSTGRES_USER = process.env.POSTGRES_USER || "finmind";
+process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || "finmind";
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 // Vazia (não `delete`): o dotenv não sobrescreve variável já definida, então a
 // chave real do .env local não vaza para este teste.

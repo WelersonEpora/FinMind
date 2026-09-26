@@ -30,10 +30,10 @@ for exposto a muito mais usuários, reavaliar.
 
 ## Identificadores (UUID)
 
-`CHAR(36)`, gerado na aplicação via `crypto.randomUUID()` (Sequelize
-`defaultValue`), nunca por default do banco. Evita depender de
-`UUID()`/tipo nativo do MariaDB, que varia por versão do servidor —
-mesma convenção usada no AgroMind (Postgres), adaptada.
+Tipo `uuid` nativo do PostgreSQL, gerado na aplicação via
+`crypto.randomUUID()` (Sequelize `defaultValue`), nunca por default do
+banco. (Na época do MariaDB era `CHAR(36)`; a linha de base do Postgres
+passou para `uuid`, ADR 0026.)
 
 ## Papéis e permissões
 
@@ -105,26 +105,25 @@ implementação futura específica.
 
 ## Banco de dados
 
-MariaDB 11 (LTS), driver `mysql2`, Sequelize com migrations como fonte
-da verdade do schema (nunca `sequelize.sync()`), mesmo princípio do
-AgroMind.
-
-**Migração para PostgreSQL decidida em 2026-09-26** (servidor compartilhado
-na VM de produção, um database e um usuário por app): ver
-`docs/adr/0026-postgresql-como-banco.md`. Até a virada, vale o MariaDB.
+PostgreSQL 16, driver `pg`, Sequelize com migrations como fonte da
+verdade do schema (nunca `sequelize.sync()`). Em produção, um servidor
+Postgres compartilhado pelos apps da VM, com database e usuário próprios
+do FinMind (repositório `servidor02-infra`). Até 2026-09-26 o banco foi
+MariaDB 11; a troca e o porquê estão em
+`docs/adr/0026-postgresql-como-banco.md`.
 
 ## CI/CD
 
 `ci.yml` roda lint + testes + build em toda branch/PR, sem depender de
 nenhum serviço externo (os testes de backend não abrem conexão real
 com o banco — só validam contratos e regras isoladas). `deploy.yml`
-builda e publica as imagens Docker no GHCR e faz deploy via SSH na
-mesma VM Oracle Cloud onde o AgroMind já roda, em push pra `main` —
-mesmo padrão do AgroMind (`appleboy/ssh-action` + `scripts/deploy.sh`).
-Decisão consciente de dividir a mesma VM Always Free (1 vCPU/1GB RAM)
-entre os dois projetos; ver `docs/architecture.md` § "Deploy" pelo
-risco de memória e pelas convenções usadas para não colidir com o
-AgroMind (diretório, nome do projeto Compose, porta do frontend).
+builda num runner ARM nativo (`ubuntu-24.04-arm`) e publica as imagens
+`linux/arm64` no GHCR, e faz deploy via SSH na VM `servidor02` (Oracle
+Cloud, Ampere A1, 2 OCPU / 12 GB) em push pra `main` — mesmo padrão do
+AgroMind (`appleboy/ssh-action` + `scripts/deploy.sh`). Até 2026-09-26 o
+FinMind dividia com o AgroMind uma VM x86 de 1 GB, que ficou pequena
+(swap cheio, três servidores de banco); ver `docs/architecture.md` §
+"Deploy".
 
 ## Lint
 

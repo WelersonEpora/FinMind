@@ -35,7 +35,6 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
-    "mysql2": "^3.11.5",
     "pdfjs-dist": "^4.10.38",
     "pg": "^8.23.0",
     "pg-hstore": "^2.3.4",

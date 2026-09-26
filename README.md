@@ -20,13 +20,13 @@ coleta → análise → IA → resultado) e `docs/decisoes-tecnicas.md`
   ECharts (gráficos), PrimeVue (tabelas de dados densas — ver
   `docs/adr/0005-primevue-para-tabelas-de-dados.md`).
 - **Backend:** Node.js, Express, Sequelize.
-- **Banco de dados:** MariaDB.
+- **Banco de dados:** PostgreSQL 16 (ver `docs/adr/0026-postgresql-como-banco.md`).
 - **Infra:** Docker, Docker Compose, Nginx, GitHub Actions, GHCR.
 
 ## Pré-requisitos
 
 - Node.js 22+
-- Docker e Docker Compose (para subir o MariaDB local)
+- Docker e Docker Compose (para subir o PostgreSQL local)
 
 ## Configuração
 
@@ -45,8 +45,8 @@ administrador inicial).
 docker compose --project-directory . -f docker/compose.dev.yml up -d
 ```
 
-Sobe MariaDB (`localhost:${MARIADB_PORT}`) e phpMyAdmin
-(`http://localhost:${PHPMYADMIN_PORT}`).
+Sobe PostgreSQL (`localhost:${POSTGRES_PORT}`) e pgAdmin
+(`http://localhost:${PGADMIN_PORT}`, 5051 por padrão).
 
 ## Backend
 
@@ -146,16 +146,14 @@ docker compose --project-directory . -f docker/compose.prod.yml up -d
 ```
 
 Usa as imagens publicadas no GHCR (`ghcr.io/<owner>/finmind-backend` e
-`finmind-frontend`) — nunca builda localmente em produção.
+`finmind-frontend`, só `linux/arm64`) — nunca builda localmente em produção.
+O banco não faz parte deste compose: é o PostgreSQL compartilhado da VM
+(repositório `servidor02-infra`), alcançado pela rede Docker `db`.
 
-Em push pra `main`, `.github/workflows/deploy.yml` builda, publica no
-GHCR e faz deploy automático via SSH na mesma VM Oracle Cloud onde o
-AgroMind já roda (porta `8083`, para não colidir com o `8081` do
-AgroMind). Ver `docs/architecture.md` § "Deploy" pelas convenções
-usadas para os dois projetos dividirem a mesma VM sem colidir, pelo
-risco de memória (VM Always Free, 1 vCPU/1GB RAM) e pelos secrets do
-GitHub Actions que precisam ser configurados no repositório antes do
-primeiro deploy automático.
+Em push pra `main`, `.github/workflows/deploy.yml` builda num runner ARM,
+publica no GHCR e faz deploy automático via SSH na VM `servidor02`
+(Oracle Cloud, Ampere A1). O site sai em `https://finmind.weslab.com.br`
+pelo Nginx Proxy Manager da VM. Ver `docs/architecture.md` § "Deploy".
 
 ## O que está pronto
 
@@ -200,7 +198,7 @@ primeiro deploy automático.
   os demais cartões seguem placeholders explícitos (nenhum outro dado de
   mercado fictício).
 - Tela de configuração/status dos módulos (`/configuracao`).
-- Banco de dados MariaDB com migrations e seeders.
+- Banco de dados PostgreSQL com migrations e seeders.
 - Motor analítico e integração com IA seguem como contratos vazios,
   prontos para receber implementação real quando o especialista de mercado
   definir regras/critérios.

@@ -2,7 +2,7 @@
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { somarDias, diaDaSemanaIso, proximoDiaUtil, proximaSegunda, fimDoDiaUtc, paraDatetimeSql } = require("./date-utils");
+const { somarDias, diaDaSemanaIso, proximoDiaUtil, proximaSegunda, fimDoDiaUtc } = require("./date-utils");
 const { zonedParaUtc } = require("./zoned-time");
 
 test("somarDias atravessa mês e ano sem depender do fuso da máquina", () => {
@@ -23,9 +23,8 @@ test("proximaSegunda é sempre ESTRITAMENTE depois da data", () => {
   assert.equal(diaDaSemanaIso("2026-09-13"), 7);
 });
 
-test("fimDoDiaUtc e paraDatetimeSql", () => {
+test("fimDoDiaUtc", () => {
   assert.equal(fimDoDiaUtc("2026-09-18").toISOString(), "2026-09-18T23:59:59.000Z");
-  assert.equal(paraDatetimeSql(new Date("2026-09-18T19:30:07.471Z")), "2026-09-18 19:30:07");
 });
 
 test("zonedParaUtc respeita o horário de verão de Nova York (CFTC sexta 15:30 ET)", () => {

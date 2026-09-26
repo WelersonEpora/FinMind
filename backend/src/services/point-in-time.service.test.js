@@ -1,10 +1,10 @@
 "use strict";
 
-process.env.MARIADB_HOST = process.env.MARIADB_HOST || "localhost";
-process.env.MARIADB_PORT = process.env.MARIADB_PORT || "3306";
-process.env.MARIADB_DATABASE = process.env.MARIADB_DATABASE || "finmind_test";
-process.env.MARIADB_USER = process.env.MARIADB_USER || "finmind";
-process.env.MARIADB_PASSWORD = process.env.MARIADB_PASSWORD || "finmind";
+process.env.POSTGRES_HOST = process.env.POSTGRES_HOST || "localhost";
+process.env.POSTGRES_PORT = process.env.POSTGRES_PORT || "5432";
+process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE || "finmind_test";
+process.env.POSTGRES_USER = process.env.POSTGRES_USER || "finmind";
+process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || "finmind";
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
@@ -14,7 +14,7 @@ const observationRepository = require("../repositories/observation.repository");
 const { Observation } = require("../models");
 
 // Repository fake em memória: reproduz só a semântica de ESCRITA do real
-// (últimas versões por observed_at + INSERT IGNORE pela chave única). A regra
+// (últimas versões por observed_at + ON CONFLICT DO NOTHING pela chave única). A regra
 // de LEITURA (asOf, em SQL) é verificada contra o MariaDB real em
 // observation.integration.test.js - nenhum teste daqui abre conexão.
 function criarRepoFake() {
@@ -161,7 +161,7 @@ test("published_at REAL no futuro do relógio é rejeitado, não corrigido em si
   assert.match(erro, /futuro/);
 });
 
-test("texto mais longo que a coluna é rejeitado, não gravado truncado pelo INSERT IGNORE", () => {
+test("texto mais longo que a coluna é rejeitado, nunca chega ao banco (que recusaria)", () => {
   const { erro, versao } = montarVersao(obs({ source_code: "X".repeat(observationRepository.TAMANHO_MAXIMO.source_code + 1) }), T0);
 
   assert.equal(versao, undefined);

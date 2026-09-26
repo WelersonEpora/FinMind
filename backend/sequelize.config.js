@@ -19,7 +19,7 @@ module.exports = {
   development: common,
   test: {
     ...common,
-    database: (dialect === "postgres" ? process.env.POSTGRES_DATABASE_TEST : process.env.MARIADB_DATABASE_TEST) || "finmind_test"
+    database: process.env.POSTGRES_DATABASE_TEST || "finmind_test"
   },
   production: common
 };
