@@ -189,20 +189,24 @@ async function buscarHistoricoAtual({ seriesCodes, dataInicio, dataFim, ordenarP
 // Itens distintos de um grupo de séries `<prefixo>.<ITEM>.<CAMPO>` (ex.:
 // vencimentos do CCM, regiões do WASDE), com a cobertura de cada um, medida
 // numa série de referência que existe em todo período (ex.: SETTLE).
+// Agrupa pela própria `series_code` (uma série por item) e extrai o item em JS: agrupar pela
+// expressão `SUBSTRING_INDEX(...)` impedia o uso do índice `uk_pit` no COUNT(DISTINCT) e levava
+// ~10 s no NOAA (122 mil linhas); assim fica em ~0,2 s.
 async function listarItens({ prefixoSerie, campoReferencia }, { transaction } = {}) {
   // posição do item no código (contada a partir de um prefixo constante do catálogo)
-  const posicao = prefixoSerie.split(".").length + 1;
-  return sequelize.query(
-    `SELECT SUBSTRING_INDEX(SUBSTRING_INDEX(series_code, '.', ${posicao}), '.', -1) AS codigo,
+  const posicao = prefixoSerie.split(".").length;
+  const linhas = await sequelize.query(
+    `SELECT series_code,
             MIN(observed_at) AS primeira_data,
             MAX(observed_at) AS ultima_data,
             COUNT(DISTINCT observed_at) AS pregoes
        FROM observation
       WHERE series_code LIKE :padrao
-      GROUP BY codigo
-      ORDER BY codigo`,
+      GROUP BY series_code`,
     { replacements: { padrao: `${prefixoSerie}.%.${campoReferencia}` }, type: QueryTypes.SELECT, transaction }
   );
+  // Sem ORDER BY: quem consome (`montarItens`) ordena pela ordem de exibição de cada dimensão.
+  return linhas.map(({ series_code: seriesCode, ...resto }) => ({ codigo: seriesCode.split(".")[posicao], ...resto }));
 }
 
 // Versão leve do `listarItens` para o destaque do card: só a última data de cada item.
