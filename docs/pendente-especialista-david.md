@@ -62,6 +62,13 @@ contratos vazios até que estas definições existam.
 > o CCM (grátis, ~4 anos de histórico) ou contratar o ZC da CME (pago, 16+ anos)?
 > Pergunta 2 de `STATUS_DO_PROJETO.md` §4, com o detalhe para a reunião logo
 > abaixo da tabela.
+>
+> **Papel da IA decidido (2026-09-27):** a IA **gera a recomendação** (manter,
+> comprar ou vender, por horizonte), sempre com base nos dados e nas regras que
+> o motor envia; uma pessoa decide e executa, sem execução automática. Era a
+> pergunta 11 de `STATUS_DO_PROJETO.md` §4 (desenho na §5, "O papel da IA").
+> Continuam pendentes: os horizontes, as regras B e C (item 4), a avaliação da
+> saída da IA (item 6) e o que qualifica um sinal (item 7).
 
 1. **Ativos** — quais ativos serão analisados (ações, moedas,
    commodities, criptoativos, renda fixa...). *(USD/BRL e Selic resolvidos

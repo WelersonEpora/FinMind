@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-09-26.**
+**Última atualização: 2026-09-27.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -20,6 +20,8 @@ armazenamento point-in-time (com data de publicação) e exibição nos
 Observáveis. **Nada interpreta esses dados ainda** — motor analítico, IA,
 sinais, backtest e execução de ordens seguem como contratos vazios, à espera
 das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
+O desenho já está decidido: o motor prepara a base (fatores e regras do Comitê)
+e a **IA gera a recomendação**, que uma pessoa decide se segue (§5).
 
 <details>
 <summary>2. Pronto</summary>
@@ -198,7 +200,7 @@ e se o vintage do agro pode ser aceito com viés declarado. Ver
 | 8 | Backtest de **1–5 anos** (§4) ou **10–15 anos** (§12.1)? Qual vale? | | — |
 | 9 | Qual o **benchmark** do Sharpe mínimo? | | — |
 | 10 | Os limiares da §12.2 serão deliberados **antes** dos testes? | | — |
-| 11 | A **IA propõe hipóteses e narra, mas não gera o sinal**? | ⛔ | — |
+| 11 | A **IA propõe hipóteses e narra, mas não gera o sinal**? | | **Não se aplica mais** (decidido em 2026-09-27): a IA **gera a recomendação** (manter, comprar ou vender, por horizonte), sempre com base nos dados e nas regras que o motor envia; uma pessoa decide e executa. Ver §5, "O papel da IA" |
 | 12 | IA Search só para descoberta de fonte e evento qualitativo, **vedada** como origem de número? | | — |
 | 13 | As **Seções 15 e 16** (Registro de Revisão) do relatório existem? | | — |
 | 14 | **WASDE impacta café** (planilha) ou não (texto revisado)? Qual prevalece? | | — |
@@ -363,22 +365,47 @@ de arquivos do IMEA (`api1.imea.com.br/api/arquivo?cadeia=3`, "Boletim Semanal -
 **Para a reunião.** Queremos confirmar com o Comitê como entendemos os **8 fatores do milho** da planilha
 `controle_fatores.xlsx` (aba "Controle de Fatores"). Nome, peso e fonte vêm da planilha; a coluna "Resumo (cálculo)"
 está vazia, e é ela que propomos preencher. Os exemplos usam **números reais do banco** (dev, 2026-09-26).
-**Nenhum número aqui diz se o preço sobe ou desce:** é só a medida de cada fator.
+**Nenhum número da tabela de fatores diz se o preço sobe ou desce:** é só a medida de cada fator. Quem recomenda é a
+IA, no fim do processo.
 
 ### Como entendemos o motor
 
-Cada fator passa por três camadas. O FinMind só adianta a primeira:
+**O produto do FinMind é a recomendação da IA.** Todo o resto existe para que ela seja a mais embasada possível:
+
+```text
+Coleta → A. Medir → B. Ler → C. Decidir → prompt → IA analista → RECOMENDAÇÃO → uma pessoa decide
+         └──── motor, sem IA: base ───┘            └─────── a estrela ──────┘
+```
+
+Cada fator passa por três camadas no motor. O FinMind só adianta a primeira:
 
 | Camada | O que é | Exemplo | Quem decide |
 |---|---|---|---|
 | **A. Medir** | Transformar o dado publicado no indicador que a planilha nomeia, com a definição usual do mercado | estoque/uso = estoque final ÷ uso total | Propomos aqui; **o Comitê confirma** |
 | **B. Ler** | Comparar a medida com o próprio histórico ou com a expectativa | percentil em 10 anos; surpresa contra o relatório anterior | Comitê (método) |
-| **C. Decidir** | Direção, peso, limiar e combinação dos fatores num sinal | "estoque/uso baixo pesa para alta" | **Só o Comitê** |
+| **C. Decidir** | Direção e peso de cada fator, por regras com limiar | "estoque/uso baixo pesa para alta, peso Alto" | **Só o Comitê** |
 
-**Quem decide é o Comitê; quem executa as três camadas é o motor, em código.** A IA só entra depois, para explicar
-o resultado (ver o exemplo abaixo da tabela). Cada medida da camada A segue o molde do fator que já existe (juro real
-10a, do ouro): função determinística e versionada, que só usa o que já estava publicado na data consultada
-(point-in-time) e nunca é gravada no banco.
+**O Comitê define as regras, e o motor executa as três camadas em código.** Sem IA, a mesma entrada sempre dá a mesma
+base. Cada medida da camada A segue o molde do fator que já existe (juro real 10a, do ouro): função determinística e
+versionada, que só usa o que já estava publicado na data consultada (point-in-time) e nunca é gravada no banco.
+
+### O papel da IA: a recomendação
+
+**A IA é a analista do processo** (decidido em 2026-09-27; era a pergunta 11 da §4). Ela recebe a base do motor, as
+medidas e a leitura de cada fator, confronta os fatores entre si e **recomenda manter, comprar ou vender, no curto,
+no médio e no longo prazo**. A decisão e a execução são de uma pessoa: nenhuma ordem sai da resposta da IA.
+
+- **O nosso maior desafio é a base, não a IA.** Uma recomendação só é tão boa quanto os dados e as regras que chegam a
+  ela. Cada fonte coletada e cada regra definida pelo Comitê tornam a recomendação mais certeira.
+- **Sempre contra o preço.** O preço é o dado principal da base: a IA recebe o preço de hoje e a curva de preços
+  futuros (no milho, os vencimentos do CCM) e responde, para cada horizonte, se os fatores sustentam um preço acima ou
+  abaixo do que o mercado já paga por aquele prazo.
+- **Crítica, direta e objetiva.** A recomendação vem primeiro, com a tese em poucas frases, o argumento mais forte
+  contra ela e o que a invalidaria. Todo argumento cita o número e a fonte.
+- **Sem embasamento, não recomenda.** Se os fatores de peso Alto estiverem sem dado, ou se os fatores se anularem,
+  a resposta é "dados insuficientes" naquele horizonte. Isso é uma resposta válida, não uma falha.
+- **Interpretação própria aparece como tal.** Onde o Comitê ainda não definiu a regra de um fator, a IA pode
+  interpretar a medida, mas marca a interpretação como "sem regra do Comitê" e reduz a confiança.
 
 ### Os 8 fatores do milho
 
@@ -396,29 +423,82 @@ resposta do Comitê) · 🔴 **difícil** (falta a fonte).
 | 7 | Especulação e posicionamento de fundos — COT (Médio) | **Posição líquida dos fundos** = managed money comprado − vendido, em contratos e em % dos contratos em aberto (CFTC, milho de Chicago) | Semana até 15/09/2026 (publicada em 18/09): 483.738 − 69.278 = **414.460 contratos**, **22,5%** de 1.843.824 | 🟢 Desde 2006; o mesmo cálculo serve ao ouro |
 | 8 | Política comercial e exportações — China, tarifas (Médio) | **Exportação brasileira por destino** (Comex Stat), com a China em destaque. Tarifas são eventos, não números | Hoje só o total: **4,65 milhões de t** exportadas em ago/2026, sem o destino | 🟡 Destino: a API do Comex Stat já usada tem a quebra por país (falta estender o coletor). 🔴 Tarifas: exigem a camada de evidência (pergunta 12) |
 
-<details>
-<summary>Exemplo: do fator ao prompt da IA (ilustração, nada implementado)</summary>
+<details open>
+<summary>Exemplo: do fator à recomendação da IA (ilustração, nada implementado)</summary>
 
-**Ilustração** de como o Motor do Milho levaria os números da tabela acima até uma IA, supondo que a resposta da
-pergunta 11 seja "sim" (a IA organiza e narra, mas não gera o sinal). Nenhuma IA foi chamada.
+**Ilustração** de como o Motor do Milho levaria os números da tabela acima até a recomendação da IA. Nenhuma IA foi
+chamada.
 
 **Fluxo:** fatores medidos (camada A) → leitura de cada fator pelas regras do Comitê (camadas B e C), **aplicadas pelo
-motor, em código** → base com a medida e a leitura → prompt → IA → narrativa estruturada → **uma pessoa decide**.
+motor, em código** → base com a medida e a leitura → prompt → **IA analista → recomendação estruturada** → **uma
+pessoa decide**.
 
-**A IA não cria o motor nem aplica as regras: ela recebe o que o motor produziu.** O motor mede (A) e lê cada fator
-pelas regras do Comitê (B e C), sempre do mesmo jeito; a IA só organiza e explica em linguagem. Por isso as
-decisões do Comitê são o centro do processo: com a camada A confirmada e as camadas B e C definidas, a leitura é
-**auditável, repetível e comparável** ao longo do tempo. Sem elas, os números chegam à IA sem leitura, e a resposta
-não tem base estruturada para ir além de descrevê-los.
+**O motor prepara, a IA analisa e recomenda.** O motor mede (A) e lê cada fator pelas regras do Comitê (B e C),
+sempre do mesmo jeito. A IA recebe esse material, pesa os fatores uns contra os outros e recomenda. Quanto mais firme a
+base (fatores com dado e com regra do Comitê), mais embasada a recomendação. Sem regras, os números chegam à IA sem
+leitura, e ela teria de interpretar tudo sozinha, com confiança baixa.
+
+**Um fator do começo ao fim: a Safrinha (fator 2).** Os números são reais (Conab, banco de dev, 2026-09-26). O método
+de B e a regra de C são **fictícios**, inventados só para mostrar o formato. Não são proposta: quem os define é o
+Comitê (item 4 de "O que queremos confirmar", abaixo, e pergunta 5 da §4).
+
+| Etapa | O que faz | Resultado na Safrinha |
+|---|---|---|
+| **Coleta** (já existe) | Guarda o boletim da Conab como publicado, uma linha por levantamento, sem apagar as anteriores | Produção da 2ª safra 2025/26: 111.030,9 mil t no 11º levantamento (13/08) e 112.130,8 mil t no 12º (15/09) |
+| **A. Medir** | Calcula o indicador da planilha: nível da produção e revisão contra o levantamento anterior | **112.130,8 mil t; revisão de +1.099,9 mil t (+1,0%)** |
+| **B. Ler** | Situa a medida. Método fictício: (1) contra a safra anterior; (2) sequência das revisões | (1) **−1,0%** contra a safra 2024/25 (113.228,4 mil t, número final da Conab em 11/12/2025); (2) **3ª revisão seguida para cima** (jul, ago e set) e +1,5% contra a 1ª estimativa (110.460,4 mil t, out/2025). **Leitura:** "safra do tamanho da anterior, com estimativa subindo há três meses". Ainda sem direção |
+| **C. Decidir** | Aplica a regra do Comitê e dá direção e peso. Regra fictícia "R-SAF-01 v0": 2 ou mais revisões seguidas para cima, com a safra a menos de 2% da anterior, = oferta crescendo, pesa para baixa | **Fator 2: pesa para baixa, peso Alto** (a partir de 3 revisões para cima e −1,0% contra a safra anterior) |
+
+Com só 14 revisões guardadas (desde fev/2025), não dá para dizer se +1,0% é uma revisão grande ou pequena para
+setembro. Por isso o método de B depende da pergunta 5 da §4.
+
+**Como a Safrinha entra no prompt junto com os outros fatores.** Cada fator entra em dois lugares: a medida (A) no
+bloco 2, ao lado dos demais fatores, e a leitura (B e C) no bloco 3. Se a regra fictícia existisse, o bloco 3 seria
+este:
+
+```text
+[3. LEITURA DO MOTOR — camadas B e C, aplicadas em código pelas regras do Comitê]
+Versão das regras: v0 (ilustração)
+  Fator 2 - Safrinha (peso Alto): PESA PARA BAIXA
+    Regra: R-SAF-01 v0 (fictícia) | motivo: 3ª revisão seguida para cima (+1,0% no 12º levantamento);
+    produção -1,0% contra a safra 2024/25, dentro da faixa de ±2%
+  Fatores 1, 3, 4, 5, 6, 7 e 8: sem leitura definida
+```
+
+A IA usa essa leitura como **um dos argumentos da recomendação**: a Safrinha, com peso Alto, entra nos fatores a favor
+ou contra a tese, ao lado dos outros fatores, e é citada com o número e a regra. Ela não reabre a regra: se o motor
+diz "pesa para baixa", a IA não conclui o contrário sobre a Safrinha. O que ela decide é como esse fator se soma aos
+demais em cada horizonte. Nos fatores sem regra, interpreta a medida e marca "sem regra do Comitê".
+
+O prompt completo, como ele seria hoje, sem nenhuma regra do Comitê definida:
 
 ```text
 [1. PAPEL E OBJETIVO]
-Você é o redator do Motor do Milho do FinMind. Organize e explique, fator a fator, a situação
-do milho a partir da BASE e da LEITURA DO MOTOR abaixo.
-Você não cria leitura própria e não recomenda compra nem venda: a decisão é de uma pessoa.
+Você é um analista sênior do mercado de milho. Com base SOMENTE na BASE e na LEITURA DO MOTOR
+abaixo, recomende MANTER, COMPRAR ou VENDER milho em três horizontes:
+curto (<prazo a definir pelo Comitê>), médio (<a definir>) e longo (<a definir>).
+Em cada horizonte, a pergunta é: os fatores sustentam um preço ACIMA ou ABAIXO do que o
+mercado já paga hoje pelo vencimento daquele prazo?
+Seja crítico, direto e objetivo. Sua recomendação vai para uma pessoa, que decide e executa.
 
 [2. BASE — montada pelo motor, sem IA]
 Data da análise: 26/09/2026. Só entram dados publicados até essa data.
+
+PREÇO DO MILHO (referência de cada horizonte; pregão de 25/09/2026)
+  - Hoje, físico: Indicador do Milho ESALQ/B3, R$ 69,65/saca
+    Variação: +1,8% em 1 mês | +10,1% em 3 meses | +8,2% em 12 meses
+    Fonte: B3 (arquivo Indic) | publicado: 25/09/2026
+  - Curva do CCM (B3, R$/saca), preço de ajuste por vencimento:
+      Vencimento   Ajuste   Negócios   Contratos negociados
+      nov/2026     75,52     5.384       14.357
+      jan/2027     79,45     2.214        2.927
+      mar/2027     81,71       914        1.128
+      mai/2027     79,70       236          277
+      jul/2027     78,65       422          875
+      set/2027     78,34       665        1.124
+      nov/2027     80,48        78          120
+    Contratos em aberto: SEM DADO desde dez/2025 (a fonte atual não os publica)
+    Fonte: B3 (Up2Data) | publicado: 25/09/2026
 
 Fator 1 - Clima e safra nos EUA (peso Alto)
   - Lavoura em condição boa + excelente: 57% (44% + 13%)
@@ -451,57 +531,87 @@ Fator 8 - Política comercial (peso Médio)
 [3. LEITURA DO MOTOR — camadas B e C, aplicadas em código pelas regras do Comitê]
 Versão das regras: <a definir pelo Comitê>
   Fator 1 a 8, leitura de cada um:  <resultado da regra do Comitê, com o id e a versão da regra>
-  Leitura conjunta (pesos):         Alto/Médio da planilha; como combinar: <a definir pelo Comitê>
+  Peso de cada fator:               Alto ou Médio, da planilha do Comitê
+  Orientação para combinar:         <se o Comitê quiser dar uma; senão, a IA pondera pelos pesos>
 Hoje nenhuma regra está definida: todos os fatores estão "sem leitura definida".
 
-[4. COMPORTAMENTO]
-  - Trate um fator de cada vez, na ordem da BASE.
-  - Cite o número e a fonte de toda afirmação.
-  - Separe o dado (BASE) da leitura (bloco 3). A leitura é do motor, não sua.
-  - Se as leituras dos fatores apontarem em direções diferentes, diga isso; não force uma conclusão.
+[4. COMO ANALISAR]
+  - Comece pelos fatores de peso Alto; os de peso Médio confirmam ou enfraquecem a tese.
+  - Onde o bloco 3 tem leitura, ela vale para aquele fator: use-a e cite a regra; não a contradiga.
+  - Onde não tem, você pode interpretar a medida, mas marque "sem regra do Comitê" e reduza a confiança.
+  - Para cada horizonte, pese os fatores a favor e contra e chegue a UMA ação, SEMPRE comparada ao
+    preço do vencimento daquele prazo: diga se os fatores já parecem refletidos nesse preço.
+  - Use a variação recente do preço: um preço que já subiu com os mesmos fatores pode já tê-los
+    incorporado.
+  - Vencimento com poucos negócios não é referência confiável: diga isso e reduza a confiança.
+  - Seja crítico: diga o argumento mais forte CONTRA a sua recomendação e a condição objetiva que a
+    invalidaria. Aponte dado velho, estimado ou ausente que enfraqueça a análise.
+  - Seja direto e objetivo: a recomendação vem primeiro; frases curtas; nada de "depende" sem dizer do quê.
+  - Se os fatores de peso Alto estiverem sem dado, ou se os fatores se anularem, responda INSUFICIENTE
+    naquele horizonte. É uma resposta válida, não uma falha.
 
 [5. LIMITES]
-  - Não recomende compra, venda ou posição, e não preveja preço.
-  - Não use número, notícia ou dado que não esteja na BASE.
-  - Não crie leitura: se o bloco 3 não tiver leitura para o fator, escreva "sem leitura definida".
-  - Onde a BASE diz SEM DADO, escreva "sem dado"; nunca estime.
+  - Use só o que está na BASE e no bloco 3: nenhum número, preço ou notícia de fora, nem da sua memória.
+  - Todo argumento cita o número e a fonte da BASE.
+  - Onde a BASE diz SEM DADO, trate como sem dado; nunca estime.
+  - Em cada horizonte, cite o vencimento e o preço de referência usados. Não invente preço-alvo.
+  - Sua resposta é uma recomendação para uma pessoa decidir; nenhuma ordem é executada a partir dela.
 
 [6. FORMATO DA RESPOSTA — JSON]
 {
   "dataAnalise": "2026-09-26",
   "versaoRegras": "...",
-  "fatores": [
-    { "fator": 3,
-      "resumo": "...",
-      "numerosCitados": ["9,7%", "10,1%", "20,6%"],
-      "leitura": "copiada do bloco 3, ou 'sem leitura definida'",
-      "lacunas": [] }
+  "recomendacoes": [
+    { "horizonte": "curto",
+      "precoReferencia": { "vencimento": "nov/2026", "ajuste": "75,52" },
+      "acao": "MANTER | COMPRAR | VENDER | INSUFICIENTE",
+      "confianca": "alta | media | baixa",
+      "tese": "no máximo duas frases",
+      "fatoresAFavor": [ { "fator": "<n>", "argumento": "...", "numerosCitados": ["..."] } ],
+      "fatoresContra": [ { "fator": "<n>", "argumento": "...", "numerosCitados": ["..."] } ],
+      "argumentoMaisForteContra": "...",
+      "invalidaSe": "condição objetiva que derruba a tese",
+      "semRegraDoComite": [1, 4, 5, 6, 7, 8] },
+    { "horizonte": "medio", ... },
+    { "horizonte": "longo", ... }
   ],
-  "divergenciasEntreFatores": "...",
-  "lacunasGerais": ["paridade", "exportação por destino", "tarifas"]
+  "lacunas": ["paridade", "exportação por destino", "tarifas", "contratos em aberto do CCM"]
 }
-Não há campo de recomendação: a decisão é de uma pessoa.
 ```
 
 **O que o exemplo mostra, e os cuidados:**
 
-- **Hoje, a IA só poderia descrever.** Com o bloco 3 vazio, a resposta certa para todo fator é "sem leitura
-  definida". Isso não é uma falha do processo: é o processo mostrando onde entra a decisão do Comitê. Cada regra
-  definida transforma uma descrição numa leitura com critério.
-- **Sem as regras, a IA inventaria.** Sem o bloco 3 e os limites do bloco 5, a IA julgaria sozinha ("9,7% é baixo")
-  com o que aprendeu no treino: sem fonte, sem versão, sem como auditar ou repetir.
-- **Por que o motor, e não a IA, aplica as regras.** Em código, a mesma entrada dá sempre a mesma leitura (a IA pode
-  variar de uma chamada para outra), e cada regra pode ser testada no histórico (backtest) sem IA nenhuma.
+- **A recomendação é tão boa quanto a base.** Hoje, com o bloco 3 vazio, a IA interpretaria os oito fatores
+  sozinha: a resposta certa seria confiança baixa ou INSUFICIENTE. Cada regra definida pelo Comitê troca uma
+  interpretação da IA por uma leitura com critério, e cada fonte nova troca um SEM DADO por um número.
+- **Por que o motor, e não a IA, faz A, B e C.** Em código, a mesma entrada dá sempre a mesma leitura (a IA pode
+  variar de uma chamada para outra), e cada regra pode ser testada no histórico (backtest) sem IA nenhuma. A IA fica
+  com o que só ela faz bem: pesar fatores que apontam para lados diferentes e explicar por quê.
 - **A base é do motor, não da IA.** Todo número vem do banco, com fonte e data de publicação, e nada publicado depois
   da data da análise entra (point-in-time). Os dados têm datas diferentes (COT de 15/09, WASDE de 11/09, Crop
   Progress de 20/09), e o prompt mostra isso.
 - **O que falta aparece como falta.** Paridade, exportação por destino e tarifas entram como SEM DADO, e a IA é
   proibida de estimar.
 - **A resposta é conferível.** Com o formato fixo, dá para checar automaticamente se todo número citado existe na
-  base. O prompt é versionado como um fator: modelo, versão e hash registrados em cada execução (ADR 0010).
-- **É uma ilustração, não uma estratégia.** O que se propõe é a estrutura em 6 blocos, não a redação das frases.
-  **Nenhuma resposta de IA foi gerada**, de propósito: seria uma "análise" sem regra validada.
-- **Pressupõe "sim" na pergunta 11.** Se a IA também gerar o sinal, os blocos 1, 3, 5 e 6 mudam.
+  base e se cada ação tem tese, contraponto e condição de invalidação. O prompt é versionado como um fator: modelo,
+  versão e hash registrados em cada execução (ADR 0010).
+- **Medir antes de confiar.** Cada recomendação fica registrada e é comparada depois com o que o preço fez, contra
+  referências simples (manter sempre, neutro, aleatório; ADR 0010). No histórico, o modelo pode "lembrar" o preço que
+  veio depois: o teste precisa esconder o ativo e as datas.
+- **O preço é o dado principal.** Os fatores dizem para onde o mercado *deveria* ir; o preço diz o que ele *já*
+  acredita. Por isso a recomendação é sempre relativa ao preço do vencimento de cada horizonte (a curva do CCM), com
+  o Indicador ESALQ/B3 como preço de hoje. Sem o preço, a IA recomendaria sobre uma notícia talvez já precificada.
+- **O longo prazo pode não ter preço confiável.** Os vencimentos distantes têm poucos negócios (nov/2027: 78), e os
+  contratos em aberto, a melhor medida de liquidez, só existem até dez/2025 (vinham do Boletim Diário, ADR 0020).
+  Quais vencimentos valem para cada horizonte, e quais medidas de preço entram (as variações de 1, 3 e 12 meses são
+  um exemplo), é decisão do Comitê: item 7 abaixo.
+- **O CCM não substitui Chicago como explicação.** WASDE, COT e Crop Progress movem primeiro o preço de Chicago (ZC,
+  pago): sem ele, a IA vê a causa, mas não quanto Chicago já reagiu (pergunta 2 da §4).
+- **No ouro, a curva não entra.** O futuro do ouro é o preço à vista mais os juros e não traz expectativa de
+  mercado. O prompt do ouro levaria o LBMA (já coletado), em US$ e em R$ (com a PTAX), e o histórico recente.
+- **É uma ilustração, não uma estratégia.** O que se propõe é a estrutura em 6 blocos, não a redação das frases, e
+  os horizontes são do Comitê. **Nenhuma resposta de IA foi gerada**, de propósito: seria uma recomendação sem regra
+  validada.
 
 </details>
 
@@ -515,6 +625,16 @@ Não há campo de recomendação: a decisão é de uma pessoa.
 5. **Clima:** % boa + excelente basta, ou o VHI da NOAA entra junto (e de quais regiões)?
 6. **Insumos:** o custo do IMEA (só MT) atende, ou é preciso o preço de fertilizante e diesel? Nesse caso, de qual
    fonte?
+7. **Preço e instrumento da recomendação.** "Comprar, vender ou manter" *o quê*, e para quem?
+   - **Instrumento:** o que se opera de fato? No milho, o CCM na B3 (com margem e rolagem)? No ouro, um ETF, o ouro
+     físico ou o GC? O preço de referência é o do instrumento operado.
+   - **Preço por horizonte:** quais vencimentos do CCM correspondem a curto, médio e longo prazo, e qual a liquidez
+     mínima para um vencimento valer como referência?
+   - **Medidas de preço:** além do preço, o que entra (variação em 1, 3 e 12 meses? outra medida)?
+   - **Posição atual:** "manter" supõe uma posição. A IA recebe a posição atual, ou recomenda só "comprado, vendido
+     ou fora"?
+   - **Perfil:** para quem investe, vender o futuro é apostar na queda; para um produtor, é proteção (hedge). Qual é
+     o nosso caso?
 
 ### Por onde começamos (se o Comitê confirmar)
 
@@ -535,7 +655,7 @@ e com versão registrada:
 
 | # | Dimensão | Como funciona | Depende de |
 |---|---|---|---|
-| 1 | **Memória com avaliação** | Cada leitura do motor fica registrada e nunca é apagada (data da análise, base, versão das regras, versão do prompt, resposta da IA). Depois, é comparada com o que o preço fez. É a base das outras duas: sem registro, não há o que avaliar | O Comitê definir o que é acerto (horizonte e métrica): item 6, "Avaliação da saída da IA", de `docs/pendente-especialista-david.md` |
+| 1 | **Memória com avaliação** | Cada leitura do motor fica registrada e nunca é apagada (data da análise, base, versão das regras, versão do prompt, recomendação da IA). Depois, é comparada com o que o preço fez. É a base das outras duas: sem registro, não há o que avaliar | O Comitê definir o que é acerto (horizonte e métrica): item 6, "Avaliação da saída da IA", de `docs/pendente-especialista-david.md` |
 | 2 | **Aprendizado governado** | Com a avaliação, o Comitê revisa as regras das camadas B e C (direção, pesos, limiares): a versão 1 vira a versão 2. A versão nova só entra depois de testada no histórico, e cada leitura guarda a versão que usou | Histórico de preço para testar (perguntas 2 e 3) |
 | 3 | **Calibração estatística** | O sistema **sugere** pesos e limiares a partir do histórico (fatores contra preço), e o Comitê aprova ou não. Uma sugestão aprovada vira uma versão nova, como na dimensão 2 | Histórico longo de preço e de revisões (perguntas 2, 3 e 5) |
 
@@ -566,7 +686,8 @@ Não implementar sem autorização explícita registrada em ADR:
 - Focus além das expectativas anuais de IPCA, Selic e câmbio (PIB e demais indicadores, mensais/trimestrais, Selic por reunião, inflação 12/24 meses, Top 5), fatores sobre o Focus (surpresa, variação, dispersão); das reservas do BCB, o conceito liquidez, a série mensal e a composição (ouro).
 - Série contínua de futuros, rolagem e backtest.
 - Qualquer sinal, limiar, indicador técnico ou regra de compra/venda.
-- IA em qualquer ponto (o ADR 0010 é só proposta de desenho futuro).
+- Implementar a IA (o papel dela já está decidido, §5; o ADR 0010 é o desenho do experimento): só depois das regras e
+  dos critérios de avaliação do Comitê.
 - Execução automática de ordens e corretora.
 
 </details>
