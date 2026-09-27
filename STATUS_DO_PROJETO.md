@@ -182,30 +182,139 @@ Perguntas da análise crítica (`docs/analise-critica-fel1-milho-ouro.md`, §H).
 Preencher a resposta e a data quando o David responder.
 
 **Prioridade da próxima reunião (decidido em 2026-09-22, auditoria da camada de
-dados; a 2 somada em 2026-09-23):** perguntas **2 e 3** (juntas: preço futuro do
-milho e orçamento, detalhe abaixo da tabela) e **5** — nenhuma implementação nova de
-fator faz sentido antes dessas respostas, porque definem se o backtest futuro é viável
-e se o vintage do agro pode ser aceito com viés declarado. Ver
-`docs/cobertura-fatores-fel1-milho-ouro.md`, §7.
+dados; a 2 somada em 2026-09-23; a 8 e a ordem, em 2026-09-27):** primeiro o
+**"Backtest em detalhe"** (abaixo da tabela: o que é e o que o Comitê define), depois
+a **pergunta 8** (quantos anos de histórico, que resolve boa parte da 2), depois as
+**perguntas 2 e 3** (juntas: preço futuro do milho e orçamento), porque definem se o
+backtest é viável, e por fim a **9 e a 10** (contra o que comparar e limites fixados
+antes). As **5, 6 e 11** deixaram de ser perguntas em 2026-09-27: viraram informes, para
+ciência do Comitê. Ver `docs/cobertura-fatores-fel1-milho-ouro.md`, §7.
 
 | # | Pergunta | Trava? | Resposta / data |
 |---|---|---|---|
 | 1 | Milho + Ouro como **prova de arquitetura** (sem mudar a ordem CAFÉ→PETRÓLEO→MILHO→OURO) é aceitável? | | — |
-| 2 | Milho: podemos seguir só com o **CCM (B3)**, que é grátis mas só tem **~4 anos** de histórico, ou precisamos do **ZC (CME)**, que é **pago**? Ouro: **GC** ou preço de referência? **Detalhe para a reunião logo abaixo da tabela** | ⛔ | — |
+| 2 | Milho: podemos seguir só com o **CCM (B3)**, que é grátis mas só tem **~4 anos** de histórico, ou precisamos do **ZC (CME)**, que é **pago**? Ouro: **GC** ou preço de referência? **Discutir depois da pergunta 8**, que resolve boa parte desta. **Detalhe para a reunião logo abaixo da tabela** | ⛔ | — |
 | 3 | Existe **orçamento para dados de preço**? Sem isso não há backtest. **Para o milho, é respondida junto com a pergunta 2** (escolher o ZC = ter orçamento para ele); segue valendo para o **ouro** (o futuro GC da CME também é pago) | ⛔ | — |
-| 4 | Confirmam que o **COTAHIST não atende CCM/ICF**? Qual a alternativa? (o ADR 0009 já confirma que não atende; para o CCM, a alternativa encontrada foi o Boletim Diário da B3, ADR 0020 — ver pergunta 2) | | — |
-| 5 | **Vintage do agro:** backtest com dado revisado e viés declarado, ou acumular a partir de agora? | ⛔ | — |
-| 6 | Quem responde por **licença e redistribuição** das fontes? Não trava hoje (sem distribuição prevista, decisão de 2026-09-21); passa a travar se isso mudar | | — |
+| 4 | Confirmam que o **COTAHIST não atende CCM/ICF**? Qual a alternativa? (o ADR 0009 já confirma que não atende; para o CCM, a alternativa encontrada foi o Boletim Diário da B3, ADR 0020 — ver pergunta 2). **Detalhe logo abaixo da tabela** | | — |
+| 5 | **Vintage do agro (para ciência do Comitê):** o dado do agro é revisado depois de publicado, e parte do passado só existe na versão final. Isso limita o **backtest** de algumas regras (sobretudo as da Safrinha antes de fev/2025), mas o impacto é localizado: o WASDE tem as revisões do milho desde 2011 (EUA e ~20 países, incluindo o Brasil), e **a partir de agora o FinMind guarda cada revisão de todas as fontes**. A avaliação da IA será feita daqui para frente. **Detalhe logo abaixo da tabela** | | — |
+| 6 | **Licença e redistribuição (para ciência do Comitê):** hoje todo o uso é interno (decisão de 2026-09-21). **Antes de exibir, redistribuir ou comercializar** dados ou análises para terceiros, algumas fontes exigem licença ou autorização específica: LBMA (ouro), CEPEA/ESALQ e B3 (preços do milho) e Conab. **Detalhe logo abaixo da tabela** | | — |
 | 7 | **CEPEA** está bloqueada para automação. Export manual é aceitável em produção? | | **Não se aplica mais** (decisão do usuário, 2026-09-23): o mesmo indicador vem da B3, automatizado, desde 2018-06-08 — ADR 0021. Só voltaria se o David pedir o histórico anterior a 2018 |
-| 8 | Backtest de **1–5 anos** (§4) ou **10–15 anos** (§12.1)? Qual vale? | | — |
-| 9 | Qual o **benchmark** do Sharpe mínimo? | | — |
-| 10 | Os limiares da §12.2 serão deliberados **antes** dos testes? | | — |
-| 11 | A **IA propõe hipóteses e narra, mas não gera o sinal**? | | **Não se aplica mais** (decidido em 2026-09-27): a IA **gera a recomendação** (manter, comprar ou vender, por horizonte), sempre com base nos dados e nas regras que o motor envia; uma pessoa decide e executa. Ver §5, "O papel da IA" |
-| 12 | IA Search só para descoberta de fonte e evento qualitativo, **vedada** como origem de número? | | — |
-| 13 | As **Seções 15 e 16** (Registro de Revisão) do relatório existem? | | — |
-| 14 | **WASDE impacta café** (planilha) ou não (texto revisado)? Qual prevalece? | | — |
+| 8 | **Contradição do FEL 1:** o backtest precisa de **1 a 5 anos** de histórico (§4) ou de **10 a 15 anos** (§12.1)? Qual vale? **Discutir antes da pergunta 2:** com 1 a 5 anos, o CCM (~4,5 anos, grátis) praticamente atende; com 10 a 15, o milho só fecha com o ZC (pago). **Detalhe logo abaixo da tabela** | | — |
+| 9 | Qual o **benchmark** do Sharpe mínimo, isto é, **contra o que** o resultado do backtest é comparado (ex.: só comprar e segurar)? **Detalhe logo abaixo da tabela** | | — |
+| 10 | **Tarefa do Comitê:** fixar os **limites de aprovação da §12.2 antes do primeiro teste**, a "nota que passa" (Sharpe mínimo, perda máxima tolerada, número mínimo de operações etc.). O FEL 1 já exige que seja antes: definir depois de ver o resultado invalida o teste. **Depende das perguntas 8 e 9.** Ver "Backtest em detalhe", abaixo da tabela | | — |
+| 11 | **O papel da IA (para ciência do Comitê):** a IA é a **analista** do processo e **gera a recomendação** (comprar, vender, manter ou ficar de fora, no curto, médio e longo prazo), sempre com base nos dados e nas regras que o motor envia. Uma pessoa decide e executa; nenhuma ordem sai automaticamente. Ver §5, "O papel da IA" | | — |
+| 12 | **Como abastecer o fator 8 do milho (política comercial: China, tarifas)?** Proposta: (1) **exportação por destino** (hoje só temos o total), número oficial: se o Comitê confirmar a medida, estendemos o coletor do Comex Stat que já existe, e B e C são do Comitê, como nos demais fatores; (2) **tarifas e decisões de governo**, que são eventos (a busca de eventos **ainda não foi desenvolvida**): a IA leria boletins oficiais e registraria cada evento de forma estruturada (tipo, país, produto, data, link), capturado no dia em que sai. A IA nunca produz um número que entre no motor. **Detalhe logo abaixo da tabela** | | — |
+| 13 | **Ajustes no documento FEL 1 (para os autores corrigirem):** inconsistências encontradas no relatório v1.1 e na planilha, reunidas num item só: a Seção 16 citada mas inexistente, o COTAHIST, o WASDE e o café, o período do Crop Progress e o prazo da demo. Nenhuma trava o FinMind. **Detalhe logo abaixo da tabela** | | — |
+| 14 | **WASDE impacta café** (planilha) ou não (texto revisado)? Qual prevalece? **Incluída no item 13** | | — |
 | 15 | **FAO/AMIS** foi reconhecida e **adiada**: o WASDE já traz o balanço mundial do milho com vintage. Existe necessidade de implantá-la no futuro? **Detalhe logo abaixo da tabela** | | — |
 | 16 | **Paridade de exportação do milho:** o FinMind deve guardar a **paridade já calculada pelo IMEA** (valor pronto), os **componentes** dela (frete, prêmio de porto) ou nada por ora? **Detalhe logo abaixo da tabela** | | — |
+
+<details>
+<summary>Backtest em detalhe — o que é e o que o Comitê define (perguntas 8, 9 e 10; ler antes das outras)</summary>
+
+**O que é:** fingir que estamos numa data do passado, aplicar uma regra usando **só o que se sabia naquele dia**,
+anotar a decisão e depois ver o que o preço fez. Repete-se para centenas de datas e soma-se o resultado. Responde a
+uma pergunta: **"se essa regra existisse nos últimos X anos, teria funcionado?"**
+
+**Exemplos com os nossos fatores** (as regras são **inventadas**, só para ilustrar):
+
+| Fator | Regra (fictícia) | Como se testa | Armadilha |
+|---|---|---|---|
+| COT (fundos) | "Fundos muito comprados → preço cai nas 4 semanas seguintes" | Toda sexta desde 2006: olhar o COT publicado naquele dia e o preço 4 semanas depois | O COT se refere à **terça** mas só sai na **sexta**: usar o dado na terça é saber 3 dias antes de todo mundo |
+| WASDE (estoque/uso) | "Corte do estoque/uso dos EUA → alta no mês seguinte" | Cada edição desde 2011 (~180 testes) | Nenhuma: temos o número exato de cada edição. É o nosso melhor caso |
+| Safrinha (Conab) | "3 revisões seguidas para cima → pesa para baixa" | Cada levantamento mensal | Antes de fev/2025 só existe o número final: a regra não pode ser testada ali (pergunta 5) |
+| Crop Progress | "Lavoura abaixo de 60% boa + excelente em julho → alta até a colheita" | Um julho por ano | Com o preço do CCM desde 2022, são **só 4 julhos**: 4 acertos podem ser sorte |
+| Sistema completo (FEL 1, §12) | Todas as regras juntas, gerando operações | Simular as operações descontando os custos (corretagem, rolagem, spread) | Esquecer um custo faz o resultado parecer melhor do que é |
+
+**Cada fator do FEL 1 é um candidato a backtest.** Os fatores vieram do conhecimento de mercado (FEL 1, §7.2), não
+de um teste com dados. Um fator sozinho ("o WASDE influencia o preço") não se testa: testa-se a **regra** que o Comitê
+construir sobre ele. Em princípio, todo fator pode ser validado; na prática, depende de haver dado e casos
+suficientes. Os 8 do milho:
+
+| Fator | Dá para validar? | Por quê |
+|---|---|---|
+| 3. WASDE (estoque/uso) | ✅ Bem | Uma edição por mês desde 2011, com a data de cada número |
+| 7. COT (fundos) | ✅ Bem | Semanal desde 2006, muitos casos |
+| 4. Dólar | ✅ Bem | Diário desde 1994 (a paridade ainda não tem dado) |
+| 5. Etanol (EIA) | ✅ Razoável | Semanal desde 2010 |
+| 1. Crop Progress | ⚠️ Pouco | Um ciclo por ano: com o CCM desde 2022, são só 4 safras |
+| 2. Safrinha (Conab) | ⚠️ Pouco | Revisões só desde fev/2025; antes, só a aproximação pelo WASDE (pergunta 5) |
+| 6. Insumos (IMEA) | ⚠️ Ainda não | O histórico com as datas de publicação começou agora |
+| 8. Política comercial | ❌ Difícil | Tarifas são eventos raros e não são números; a exportação por destino ainda não é coletada |
+
+Um backtest precisa de muitas repetições para separar regra de sorte. Nos fatores com poucos casos (um por ano, ou
+eventos raros), a validação vem mais da experiência de mercado do que do teste, e isso deve ser dito abertamente.
+
+**A recomendação da IA não passa por backtest.** O modelo **conhece** o passado (aprendeu com textos da época), então
+o teste seria viciado. Ela é testada **daqui para frente**, em simulação: é a "Camada 3 — Demo" do FEL 1 (§12.1, no
+mínimo 6 meses). O backtest vale para as regras B e C, feitas em código.
+
+**Quem define o quê:**
+
+| Quem | Define |
+|---|---|
+| **Comitê** | **O que testar:** as regras B e C de cada fator. **Com quanto histórico:** pergunta 8. **Contra o que comparar:** pergunta 9 (ex.: "só comprar e segurar"). **Qual resultado aprova:** os limites da §12.2, definidos **antes** do teste (pergunta 10). E qual instrumento e horizonte (item 7 da §5) |
+| **FinMind (engenharia)** | **Como testar sem trapacear:** só o dado publicado em cada data (o motor já faz isso), custos descontados, e o período usado para ajustar a regra separado do período usado para testá-la (walk-forward). A §12 do FEL 1 já define boa parte disso |
+
+**O que o FEL 1 já pede como critério de aprovação (§12.2):** número mínimo de operações (sugere 100 por ativo),
+Sharpe mínimo (retorno ajustado ao risco), perda máxima tolerada (drawdown), profit factor, desempenho fora da amostra
+que não degrade demais, lucro mantido com custos 50% maiores e resultado estável com pequenas mudanças nos parâmetros.
+**Os limites de cada um estão em aberto**, e a §12.2 exige que sejam fixados antes do teste: definir depois de ver o
+resultado é se enganar.
+
+**Ordem sugerida na reunião:** esta seção → **pergunta 8** (quantos anos; resolve boa parte da 2) → **perguntas 2 e 3**
+(preço e orçamento) → **9 e 10** (comparação e limites).
+
+**Como apresentar:** "Backtest é testar uma regra no passado, só com o que se sabia em cada data. O Comitê decide o
+que testar, com quanto histórico, contra o que comparar e qual resultado aprova, antes de testar. A engenharia garante
+que o teste não trapaceia. A IA é testada daqui para frente, em simulação."
+
+</details>
+
+<details>
+<summary>Pergunta 8 em detalhe — quantos anos de backtest (para levar à reunião)</summary>
+
+**A decisão:** quantos anos de histórico o backtest precisa ter para o Comitê confiar numa regra? O próprio FEL 1 dá
+duas respostas diferentes (`docs/analise-critica-fel1-milho-ouro.md`, contradição 1). O texto, conferido no relatório
+v1.1 em 2026-09-27:
+
+- **§4 (Metodologia, item "Execução"):** "Backtest histórico (**1 a 5 anos**) com separação in-sample/out-of-sample
+  e walk-forward analysis [...]. Os critérios de aprovação estão detalhados na Seção 12."
+- **§12.1 (Camada 1, acrescentada na v1.1):** "Backtest histórico: **10 a 15 anos** de dados point-in-time, cobrindo
+  ao menos um ciclo completo de alta e de baixa **em cada commodity** (para o café, obrigatoriamente incluindo a geada
+  de 2021; para o petróleo, o choque de 2020 e o de 2022)."
+
+**Não é uma diferença por ativo:** nenhuma das duas passagens fala de um ativo específico. A §4 vale para o sistema
+todo, e a §12.1 vale para "cada commodity". **Indício de qual prevalece:** a própria §4 remete os critérios à §12, que
+é mais nova (v1.1) e mais detalhada; tudo indica que a §4 ficou desatualizada. Mesmo assim, cabe ao Comitê confirmar.
+A §12.1 também traz um critério melhor que o número de anos: **um ciclo completo de alta e de baixa**, e a §12.2
+sugere **no mínimo 100 operações por ativo** no backtest.
+
+**Por que importa:** esta resposta decide a pergunta 2. É o critério; a pergunta 2 (CCM ou ZC) é a consequência.
+
+| Se valer | Milho | Ouro |
+|---|---|---|
+| **1 a 5 anos** (§4) | O **CCM** (grátis, desde mar/2022, ~4,5 anos) praticamente atende, com o buraco de ~9 meses em 2023. Nada a comprar | O **LBMA** (desde 1968) atende com folga |
+| **10 a 15 anos** (§12.1) | Só o **ZC** (Chicago, pago) tem histórico para isso. O CCM só chega lá por volta de 2032-2037 | O LBMA atende; a licença da IBA é o ponto de atenção (pergunta 6) |
+
+**E os fatores?** O preço não é o único limite. Com 10 a 15 anos, o **WASDE** atende (revisões desde 2011, ~15 anos),
+mas a **Conab** (revisões só desde fev/2025) não; ela entraria com o número revisado ou pela aproximação do WASDE
+(pergunta 5).
+
+**Nossa leitura:** 1 a 5 anos é pouco para testar regras de um ativo com ciclo anual de safra: 4 anos são só 4 safras,
+e dificilmente um ciclo completo de alta e de baixa.
+Mas 10 a 15 anos custam dinheiro (ZC) e esbarram no vintage do agro. Um caminho intermediário: testar agora com o que
+existe (CCM, ~4,5 anos), declarando o limite, e usar o ZC para confirmar as regras num histórico longo, se houver
+orçamento (pergunta 3).
+
+**A IA não entra nesta conta.** A recomendação da IA é avaliada daqui para frente, não no passado (pergunta 5): o
+número de anos de backtest vale para as regras B e C, feitas em código.
+
+**Como apresentar:** "O FEL 1 pede 1 a 5 anos na §4 e 10 a 15 na §12.1, as duas para todos os ativos. A §12 é a
+mais nova e a própria §4 remete a ela, então entendemos que vale a §12.1. Confirmam? Se sim, o milho exige comprar o
+ZC para o histórico longo; se valer a §4, o CCM gratuito atende."
+
+</details>
 
 <details>
 <summary>Pergunta 2 em detalhe — preço futuro do milho (para levar à reunião)</summary>
@@ -255,6 +364,280 @@ fato negocia —, **mas com apenas ~4 anos de backfill**, e com o buraco de 2023
 
 Em qualquer caso, **qual dos dois é o ativo operado** é uma decisão do Comitê; converter o ZC para R$/saca
 (paridade) é um fator, que também passa por ele.
+
+</details>
+
+<details>
+<summary>Pergunta 9 em detalhe — contra o que comparar o backtest (para levar à reunião)</summary>
+
+**A decisão:** o resultado do backtest vai ser comparado **com o quê**? O FEL 1 (§12.2) pede um "Sharpe mínimo", mas
+não diz a referência.
+
+**Por que precisa de comparação:** um número sozinho não diz se é bom. Se o backtest mostrar que o sistema ganharia
+12% ao ano (número ilustrativo):
+
+- e o milho subiu 15% ao ano no período, **só comprar e segurar** teria sido melhor: o sistema não acrescentou nada;
+- e o CDI rendeu 11%, deixar o dinheiro aplicado daria quase o mesmo **sem risco nenhum**.
+
+**O que é o Sharpe:** o retorno **por unidade de risco**. Um sistema que ganha 12% com pouca oscilação é melhor que um
+que ganha 12% com altos e baixos violentos.
+
+**As referências mais comuns:**
+
+| Referência | A pergunta que ela responde |
+|---|---|
+| **Comprar e segurar o milho** | O sistema é melhor do que ficar comprado o tempo todo? |
+| **CDI** | Vale o risco, ou era melhor deixar o dinheiro aplicado? |
+| **Ficar de fora** | O sistema ganha alguma coisa, ou perde dinheiro? |
+| **Decisão aleatória** | O sistema acerta mais do que uma moeda jogada para cima? |
+
+**Nossa leitura:** usar **duas réguas ao mesmo tempo**, comprar e segurar o milho **e** o CDI. A regra só é aprovada
+se superar as duas. A análise crítica do FEL 1 já apontava o "comprar e segurar" como o mínimo; o CDI entra porque, no
+Brasil, é o custo de oportunidade de qualquer dinheiro parado.
+
+**O Sharpe fica no backtest; o CDI também vai para o prompt.** São dois usos diferentes:
+
+- **No backtest,** o Sharpe e a referência servem para o Comitê **aprovar ou reprovar uma regra**, olhando o passado
+  inteiro. Não vão para o prompt: não dizem nada sobre a decisão de hoje.
+- **No prompt,** a Selic de hoje entra como **custo de oportunidade** (§5, exemplo do prompt): a IA só recomenda
+  comprar se o ganho que os fatores sugerem compensar o risco frente ao dinheiro parado. Com a Selic alta, o milho
+  precisa entregar mais para valer a pena, e a recomendação plausível passa a ser "ficar de fora".
+
+**Como apresentar:** "O FEL 1 pede um Sharpe mínimo, mas não diz comparado com quê. Propomos duas réguas: a regra
+precisa ser melhor do que só comprar e segurar o milho e melhor do que deixar o dinheiro no CDI. Concordam?"
+
+</details>
+
+<details>
+<summary>Pergunta 4 em detalhe — COTAHIST e o histórico do CCM (para levar à reunião)</summary>
+
+**Mais informe do que pergunta.** Já verificamos e já temos a alternativa: ao Comitê só cabe confirmar.
+
+**De onde vem:** o relatório FEL 1 (§6.5.2) diz que o **COTAHIST**, o arquivo gratuito de histórico de cotações da
+B3, "atende ICF e CCM" (futuros de café arábica e de milho). Se fosse verdade, teríamos de graça o histórico completo
+do preço futuro do milho.
+
+**O que verificamos:** **não atende** (ADR 0009). O COTAHIST é o histórico do **mercado à vista** (ações, fundos
+etc.); os futuros ficam em outra área da B3 ("Derivativos → Ajustes do pregão"). A afirmação do relatório está
+errada.
+
+**A alternativa que encontramos:** o histórico do CCM foi montado com duas fontes da própria B3, ambas gratuitas:
+
+- **Up2Data** (CSV): a coleta diária, com uma janela de ~15 meses.
+- **Boletim Diário** (PDF, ADR 0020): de **21/03/2022 a 11/12/2025**, com abertura e contratos em aberto.
+
+Resultado: **o CCM está coberto desde mar/2022, por vencimento.** Antes de 2022 não encontramos fonte gratuita.
+
+**O que resta ao Comitê:**
+
+1. **Confirmar** que o COTAHIST não atende, para corrigir o §6.5.2 do FEL 1 e ninguém mais contar com ele.
+2. **ICF (café):** o caminho do Boletim Diário deve servir também para o café, mas não foi testado (o café está fora
+   do escopo por enquanto).
+3. **A consequência importante está na pergunta 2, não aqui:** a alternativa tem ~4 anos e meio de histórico. Se isso
+   basta ou se é preciso pagar pelo ZC da CME é o que a pergunta 2 decide.
+
+**Como apresentar:** "O relatório indicava o COTAHIST para o CCM; ele não atende. Encontramos o Boletim Diário da B3 e
+cobrimos o CCM desde 2022. O que falta decidir, se 4 anos bastam, é a pergunta 2."
+
+</details>
+
+<details>
+<summary>Pergunta 5 em detalhe — vintage do agro (informe, para levar à reunião)</summary>
+
+**Não é uma decisão, é um informe:** o Comitê precisa estar ciente de um limite do backtest e de como ele está sendo
+resolvido.
+
+**O que é "vintage":** o número **como ele era conhecido em cada data**. O dado do agro é uma estimativa que a fonte
+revisa. Exemplo real do banco, a Safrinha 2024/25 da Conab:
+
+| Publicado em | Estimativa da 2ª safra 2024/25 |
+|---|---|
+| 13/02/2025 | 96.048 mil t |
+| 10/07/2025 | 104.538 mil t |
+| 14/08/2025 | 109.567 mil t |
+| 11/09/2025 | 112.033 mil t |
+| 11/12/2025 | **113.228 mil t** (final) |
+
+De fevereiro ao fim, a estimativa subiu 18%.
+
+**Por que isso importa no backtest:** o backtest testa uma regra no passado: roda o motor numa data antiga, só com o
+que se sabia naquela data, e compara com o que o preço fez depois. Em fev/2025, o mercado conhecia 96 milhões de t.
+Se o teste usar o número final (113), o motor "sabe" algo que ninguém sabia, e o resultado sai melhor do que seria na
+vida real (viés de olhar o futuro). Quando a fonte só publica o número atual, as estimativas antigas **não existem mais
+em lugar nenhum**: não é uma escolha nossa.
+
+**Onde estamos (milho):**
+
+| Situação | Fontes |
+|---|---|
+| ✅ Todas as revisões, histórico longo | **WASDE** (desde 2011): balanço do milho dos EUA e de ~20 países, **incluindo o Brasil** (total, sem separar as safras). **IMEA oferta e demanda** (desde 2014, só MT) |
+| ⚠️ Revisões só desde fev/2025 | **Conab** |
+| ⚠️ Revisões começando agora | **IMEA** safra e custo; **NOAA** (a fonte reprocessa o histórico) |
+| — Quase não revisam | Dólar PTAX, COT, preços da B3 |
+
+**O impacto é localizado:**
+
+- **Importa muito** nas regras baseadas em revisão ou surpresa: sem vintage, elas nem podem ser calculadas no
+  passado. É o caso da Safrinha antes de fev/2025.
+- **Importa pouco** nos dados que quase não revisam (dólar, COT, preços da B3).
+- **O limite maior é outro:** o preço do CCM só existe desde 2022 (pergunta 2), então o backtest do milho já fica na
+  janela de 2022 a 2026. Nessa janela, o WASDE (peso Alto) tem vintage completo; a Conab tem desde fev/2025.
+- **Há uma aproximação para a Safrinha:** o WASDE traz a produção de milho do **Brasil** com todas as revisões desde
+  2011 (ex.: safra 2024/25, de 127 milhões de t em mai/2024 a 136 em nov/2025). Não é a 2ª safra nem o número da
+  Conab, mas é o melhor substituto para testar no passado uma regra da Safrinha antes de fev/2025, se o Comitê
+  aceitar.
+- **O viés pode ser medido:** com o WASDE, dá para rodar o mesmo teste com o número da época e com o final e saber de
+  quanto é a diferença.
+- **O FEL 1 já define a regra (§12.3):** "vedado o uso de série de preços revisada ou de dado fundamentalista sem data
+  de publicação". Então o backtest **não usa o número final no lugar do da época**, nem com o viés declarado. O motor
+  já cumpre isso sozinho: ele só enxerga o que estava publicado em cada data (point-in-time). Na prática, antes de
+  fev/2025 a Safrinha da Conab fica **sem dado** no backtest, e a saída é a aproximação pelo WASDE (que tem as datas de
+  publicação), se o Comitê aceitar.
+
+**A partir de agora, o problema acaba:** a coleta guarda cada revisão de todas as fontes e nunca apaga (camada
+point-in-time, ADR 0008). Cada mês que passa aumenta o histórico honesto.
+
+**A IA é avaliada daqui para frente.** No passado, o modelo de IA **conhece** o que aconteceu (aprendeu com textos da
+época), e nenhum dado corrige isso. A recomendação da IA será avaliada registrando cada recomendação e comparando
+depois com o que o preço fez (§5, "Memória com avaliação").
+
+**Como apresentar:** "Dado do agro muda depois de publicado, e parte do passado só existe na versão final. Isso
+limita o teste de algumas regras no passado, sobretudo a Safrinha antes de 2025. O WASDE tem o histórico completo do
+milho, inclusive do Brasil, e daqui para frente guardamos todas as revisões. A IA será avaliada daqui para frente de qualquer jeito."
+
+</details>
+
+<details>
+<summary>Pergunta 6 em detalhe — licença e redistribuição (informe, para levar à reunião)</summary>
+
+**Não é uma decisão, é um informe.** Hoje o FinMind usa os dados **só internamente**, e isso não exige nada (decisão
+de 2026-09-21). Mas "gratuito" não quer dizer "pode redistribuir": **antes de exibir, redistribuir ou comercializar
+dados ou análises para terceiros** (clientes, relatórios, um produto), algumas fontes exigem licença ou autorização
+específica.
+
+**O que dizem as fontes** (termos lidos a partir das páginas oficiais; é um resumo, não um parecer jurídico):
+
+| Situação | Fonte | O que os termos dizem |
+|---|---|---|
+| 🔴 Exige licença ou autorização | **LBMA** (preço do ouro) | O preço é administrado pela IBA (ICE), que exige licença "para obter, usar ou redistribuir" o dado atual ou histórico. Tabela de taxas não lida (ADR 0009) |
+| 🔴 | **CEPEA/ESALQ** (Indicador do Milho, via B3) | CC BY-NC 4.0: **sem uso comercial** e sem retransmitir séries de preço sem autorização (ADR 0021) |
+| 🔴 | **B3** (CCM, Indicador, Boletim Diário) | Os Termos de Uso da B3 pedem autorização para reprodução ou distribuição comercial (ADRs 0020 e 0021) |
+| 🟡 Permite, com condição | **Conab** | A página de preços cita CC BY-ND 3.0 (**sem derivações**), e a Conab se declara fora da Política de Dados Abertos. Não verificado nos arquivos da safra (ADR 0016) |
+| 🟡 | **BCB** (Focus, reservas) | ODbL: redistribuir exige atribuição, e uma base derivada precisa sair com a mesma licença (ADRs 0022 e 0023) |
+| 🟡 | **FRED** (juros e dólar dos EUA) | 3 das 4 séries são domínio público, com citação; a `T10YIE` não foi confirmada. Ao exibir a terceiros, aviso de que o Fed não endossa (ADR 0009) |
+| 🟢 Domínio público, com citação | **EIA** (etanol) e **NOAA** (saúde da vegetação) | Dado do governo dos EUA, livre para usar e distribuir (ADRs 0024 e 0025) |
+| ⚪ Não verificado | **USDA** (WASDE, Crop Progress), **CFTC** (COT), **IMEA**, **Comex Stat** | Os dos EUA são de governo e provavelmente livres, mas os termos não foram lidos. IMEA e Comex Stat não publicam termo explícito |
+
+**O ponto mais sensível é o preço.** Justamente as fontes de preço (LBMA no ouro; CEPEA/ESALQ e B3 no milho) são as
+mais restritas, e o preço é o dado principal da recomendação da IA (§5). No caso da LBMA, a IBA fala em licença até
+para *usar* o dado, e não esclarece se o uso interno está coberto.
+
+**Como apresentar:** "Hoje o uso é interno e está tudo certo. Se um dia os dados ou as recomendações saírem para
+terceiros, precisamos antes de licença da LBMA, da CEPEA e da B3, e rever os termos da Conab e do BCB. As fontes do
+governo americano são livres."
+
+</details>
+
+<details>
+<summary>Pergunta 12 em detalhe — como abastecer o fator 8, política comercial (para levar à reunião)</summary>
+
+**O problema:** o fator 8 do milho ("Política comercial e exportações — China, tarifas", peso Médio) é o único dos 8
+**sem dado nenhum** hoje. A planilha indica Comex Stat e USDA como fontes e "exportações, tarifas" como indicadores.
+
+**O fator tem duas partes, e só uma precisa de IA:**
+
+| Parte | O que é | Como abastecer |
+|---|---|---|
+| **Exportação por destino** (quanto vai para a China) | Número, de fonte oficial. **Hoje não temos:** só coletamos o total exportado | **Estender** o coletor do **Comex Stat** que já existe (não é um coletor novo): a mesma API tem a quebra por país. Sem IA |
+| **Tarifas e decisões de governo** | Evento, não número ("a China anunciou tarifa sobre o milho dos EUA em DD/MM"). **Hoje não temos:** a busca de eventos **ainda não foi desenvolvida** | A IA lê **boletins oficiais** e registra cada evento de forma estruturada |
+
+**A exportação por destino segue o mesmo caminho dos outros fatores.** Não sabemos ainda se ela impacta o preço: está
+no FEL 1 por conhecimento de mercado (a China pode trocar o Brasil pelos EUA como fornecedor), e é o backtest que vai
+confirmar. A sequência proposta:
+
+1. **O Comitê confirma** que a exportação por destino faz sentido e qual medida usar. Opções de medida (A): volume
+   para a China no mês, participação da China no total exportado (%), variação contra o mesmo mês do ano anterior (o
+   milho tem safra: comparar com o mês anterior engana).
+2. **Estendemos o coletor** do Comex Stat (só depois da confirmação: só coletamos o que o motor vai usar).
+3. **Calculamos a medida (A)**, como nos demais fatores.
+4. **O Comitê define B e C**: por exemplo, "a participação da China está acima ou abaixo da média de 5 anos?" (B) e
+   "se a China compra mais do Brasil, isso pesa para alta?" (C). O motor aplica as regras em código.
+5. **A regra passa pelo backtest.** Há histórico do fator desde 2005 (mensal); o limite é o preço (CCM desde 2022).
+
+**Nada disso existe ainda:** a busca de eventos por IA **não foi desenvolvida** nem testada no FinMind. O que segue é
+a proposta, para o Comitê avaliar.
+
+**Como seria o registro de um evento:** tipo (tarifa, cota, embargo, acordo), país que decidiu, país afetado, produto,
+data do anúncio, data em que vale e **link da fonte**, com a página guardada no dia. Boletins oficiais que servem:
+governo dos EUA (USTR, Federal Register), da China (Ministério do Comércio) e do Brasil (Gecex/Camex).
+
+**A IA só extrai; a regra é do Comitê.** A IA faz o papel de coleta: lê o boletim e devolve o evento estruturado. O
+que o evento **significa** para o preço segue o mesmo caminho dos outros fatores: o Comitê define B e C, e o motor as
+aplica em código antes do prompt. O Comitê decide, por exemplo, quais tipos de evento contam, por quanto tempo um
+evento continua valendo, e para que lado ele pesa.
+
+Exemplo (**evento e regra fictícios**, só para mostrar o formato):
+
+| Etapa | Resultado |
+|---|---|
+| **Coleta (IA)** | Boletim do Ministério do Comércio da China → evento: tipo **embargo**, decidido pela **China**, afeta os **EUA**, produto **milho**, anunciado em **10/03**, link da fonte |
+| **A. Medir** | Eventos em vigor: 1 restrição da China ao milho dos EUA, anunciada há 20 dias |
+| **B. Ler** (regra do Comitê) | "Restrição recente (até 90 dias) de um grande comprador a um concorrente do Brasil" |
+| **C. Decidir** (regra do Comitê) | "Restrição da China aos EUA → a demanda tende a migrar para o Brasil → pesa para alta, peso Médio" |
+
+No prompt, entraria assim:
+
+```text
+[2. BASE]
+Fator 8 - Política comercial (peso Médio)
+  - Eventos em vigor (últimos 90 dias):
+    10/03 - China: embargo ao milho dos EUA | Fonte: Ministério do Comércio da China | <link>
+
+[3. LEITURA DO MOTOR]
+  Fator 8 - Política comercial (peso Médio): PESA PARA ALTA
+    Regra: R-POL-01 v0 (fictícia) | motivo: restrição da China aos EUA há 20 dias (limite: 90)
+```
+
+**Os limites, para ficar claro:**
+
+- **A IA nunca produz um número que entre no motor.** Ela transforma um anúncio oficial num registro estruturado,
+  com o link para conferir. Todo número (volume exportado, alíquota) vem da fonte oficial.
+- **Os eventos só valem daqui para frente.** O registro precisa ser feito no dia em que o evento sai. Buscar hoje os
+  eventos de 2023 traz o mesmo problema do vintage (pergunta 5): a IA lê a internet de hoje e já sabe o que aconteceu
+  depois. Por isso os eventos acumulam histórico a partir da captura e **não servem para backtest do passado**.
+- **Eventos são raros:** mesmo com captura, uma regra sobre tarifas terá poucos casos para validar (ver "Backtest em
+  detalhe"). A validação desse fator vai depender mais da experiência de mercado.
+
+**O mesmo caminho serve ao ouro:** o fator "Geopolítica e risco sistêmico" (peso Alto) também é feito de eventos e
+poderia ser abastecido da mesma forma, se o Comitê quiser tratá-lo depois.
+
+**Como apresentar:** "O fator 8 é o único sem dado. A parte da exportação para a China é número oficial: se fizer
+sentido para vocês, estendemos um coletor que já temos, e vocês definem a leitura e a regra, como nos outros fatores. A parte das tarifas são eventos: propomos que a IA leia boletins oficiais e registre
+cada evento com data e link, a partir de agora. A IA nunca vira fonte de número. Concordam?"
+
+</details>
+
+<details>
+<summary>Pergunta 13 em detalhe — ajustes no documento FEL 1 (para levar à reunião)</summary>
+
+**O que é:** ao ler o relatório FEL 1 v1.1 e a planilha `controle_fatores.xlsx`, encontramos trechos que se
+contradizem ou que citam o que não existe. Nenhum trava o FinMind; são correções de documento, para os autores
+fazerem. Reunimos todos aqui para resolver em poucos minutos na reunião.
+
+| # | Onde | O que está escrito | O que ajustar |
+|---|---|---|---|
+| 1 | Página 1 × fim do documento | "Ver **Seção 16** — Registro de Revisão", mas o documento termina na **Seção 14** | Incluir a Seção 16 (o que mudou da v1.0 para a v1.1) ou tirar a referência |
+| 2 | §6.5.2 | O **COTAHIST** "atende ICF e CCM" | Não atende: é só do mercado à vista. Alternativa encontrada: Boletim Diário da B3 (pergunta 4) |
+| 3 | §6.2 × planilha, aba "Calendário de Relatórios" | O texto diz "o WASDE **não cobre café** — ver Coffee: World Markets and Trade, bianual"; o calendário lista o WASDE com "Ativo impactado: Milho, **Café**". Na aba "Controle de Fatores", nenhum fator do café usa o WASDE: ali está coerente | Corrigir só o calendário: na linha do WASDE, "Milho, Café" → "**Milho**"; e incluir uma linha para o **Coffee: World Markets and Trade** (USDA, semestral), que é o relatório do USDA para o café (antiga pergunta 14) |
+| 4 | §7.4 × planilha | Crop Progress: o texto diz "**abr-nov**"; a planilha diz "**mar-nov**" | Unificar o período |
+| 5 | §4 × §12 | Demo: a §4 diz "mínimo de **3 meses**"; a §12 afirma que a §4 previa "**60 dias**" (e propõe 6 meses) | Corrigir a frase da §12 |
+| 6 | §4 × §12.1 | Backtest: **1 a 5 anos** × **10 a 15 anos** | Depende de uma decisão do Comitê: **pergunta 8** |
+
+**Por que a Seção 16 importa mais do que parece:** várias dessas inconsistências (itens 3, 5 e 6) nasceram na revisão
+da v1.0 para a v1.1. Com o registro de revisão, ficaria claro qual versão de cada trecho vale.
+
+**Como apresentar:** "Encontramos seis ajustes no documento do FEL 1. Cinco são correções simples que vocês podem
+fazer; o sexto, os anos de backtest, é a pergunta 8. Nenhum trava o nosso trabalho."
 
 </details>
 
@@ -391,7 +774,7 @@ versionada, que só usa o que já estava publicado na data consultada (point-in-
 
 ### O papel da IA: a recomendação
 
-**A IA é a analista do processo** (decidido em 2026-09-27; era a pergunta 11 da §4). Ela recebe a base do motor, as
+**A IA é a analista do processo** (decidido em 2026-09-27; informe 11 da §4). Ela recebe a base do motor, as
 medidas e a leitura de cada fator, confronta os fatores entre si e **recomenda manter, comprar ou vender, no curto,
 no médio e no longo prazo**. A decisão e a execução são de uma pessoa: nenhuma ordem sai da resposta da IA.
 
@@ -415,13 +798,13 @@ resposta do Comitê) · 🔴 **difícil** (falta a fonte).
 | # | Fator (peso) | Resumo do cálculo | Exemplo com dado real | Dificuldade |
 |---|---|---|---|---|
 | 1 | Clima e safra nos EUA — Crop Progress (Alto) | **% da lavoura em condição boa + excelente** (USDA, semanal, durante a safra). Complemento: **VHI** da NOAA, a saúde da vegetação medida só sobre a área do milho (0 a 100) | Semana até 20/09/2026: 44% boa + 13% excelente = **57%**. VHI dos EUA, semana até 23/09: **48,8** | 🟢 Soma de duas classes que o USDA publica; desde 1980 |
-| 2 | Safrinha brasileira, 2ª safra (Alto) | **Produção estimada da 2ª safra** (Conab, Brasil) e a **revisão** contra o levantamento anterior | Safra 2025/26: 112.130,8 mil t no 12º levantamento (15/09/2026) contra 111.030,9 mil t no 11º (13/08) = **+1.099,9 mil t (+1,0%)** | 🟡 Cálculo simples, mas as revisões só existem desde fev/2025 (pergunta 5) |
+| 2 | Safrinha brasileira, 2ª safra (Alto) | **Produção estimada da 2ª safra** (Conab, Brasil) e a **revisão** contra o levantamento anterior | Safra 2025/26: 112.130,8 mil t no 12º levantamento (15/09/2026) contra 111.030,9 mil t no 11º (13/08) = **+1.099,9 mil t (+1,0%)** | 🟡 Cálculo simples, mas as revisões só existem desde fev/2025 (informe da pergunta 5) |
 | 3 | Estoques globais e balanço — WASDE (Alto) | **Estoque/uso = estoque final ÷ uso total**, dos EUA e do mundo, e a revisão contra a edição anterior. No mundo, o uso é o consumo interno total (exportação e importação se anulam) | Safra 2026/27, WASDE de 11/09/2026: EUA 1.567 ÷ 16.180 M bu = **9,7%** (na edição de 12/08: 1.653 ÷ 16.330 = 10,1%, revisão de −0,4 p.p.). Mundo: 272,1 ÷ 1.320,2 Mt = **20,6%** | 🟢 Indicador citado pelo nome na planilha ("relação estoque/uso"); revisões desde 2011 |
 | 4 | Dólar (USDBRL) e paridade de exportação (Médio) | **Dólar PTAX de venda** (BCB), como publicado. **Paridade:** a já calculada pelo IMEA (MT, R$/saca), se a pergunta 16 aprovar | Dólar em 25/09/2026: **R$ 5,1991**. Paridade: não coletada | 🟡 Dólar pronto; a paridade exige um leitor do boletim semanal do IMEA (PDF) |
 | 5 | Demanda de etanol e biocombustível (Médio) | **Produção semanal e estoques de etanol** dos EUA (EIA), como publicados | Semana até 18/09/2026: **1.028 mil barris/dia**; estoques de **24.683 mil barris** | 🟢 Pronto. Falta a parte do USDA (milho usado para etanol, no WASDE), não extraída |
 | 6 | Custo de insumos — fertilizantes, diesel (Médio) | **Peso dos fertilizantes no custo total** e a variação no mês (IMEA, custo de produção de MT, R$/ha) | Ago/2026, média de MT: R$ 1.404,89 de R$ 6.724,28 por hectare = **20,9%** do custo; **−2,4%** contra julho | 🔴 Só Mato Grosso e custo agregado; sem preço de fertilizante ou diesel isolado |
 | 7 | Especulação e posicionamento de fundos — COT (Médio) | **Posição líquida dos fundos** = managed money comprado − vendido, em contratos e em % dos contratos em aberto (CFTC, milho de Chicago) | Semana até 15/09/2026 (publicada em 18/09): 483.738 − 69.278 = **414.460 contratos**, **22,5%** de 1.843.824 | 🟢 Desde 2006; o mesmo cálculo serve ao ouro |
-| 8 | Política comercial e exportações — China, tarifas (Médio) | **Exportação brasileira por destino** (Comex Stat), com a China em destaque. Tarifas são eventos, não números | Hoje só o total: **4,65 milhões de t** exportadas em ago/2026, sem o destino | 🟡 Destino: a API do Comex Stat já usada tem a quebra por país (falta estender o coletor). 🔴 Tarifas: exigem a camada de evidência (pergunta 12) |
+| 8 | Política comercial e exportações — China, tarifas (Médio) | **Exportação brasileira por destino** (Comex Stat), com a China em destaque. Tarifas são eventos, não números | Hoje só o total: **4,65 milhões de t** exportadas em ago/2026, sem o destino | 🟡 Destino: a API do Comex Stat já usada tem a quebra por país (falta estender o coletor). 🔴 Tarifas: são eventos, a registrar a partir de boletins oficiais (pergunta 12) |
 
 <details open>
 <summary>Exemplo: do fator à recomendação da IA (ilustração, nada implementado)</summary>
@@ -440,7 +823,7 @@ leitura, e ela teria de interpretar tudo sozinha, com confiança baixa.
 
 **Um fator do começo ao fim: a Safrinha (fator 2).** Os números são reais (Conab, banco de dev, 2026-09-26). O método
 de B e a regra de C são **fictícios**, inventados só para mostrar o formato. Não são proposta: quem os define é o
-Comitê (item 4 de "O que queremos confirmar", abaixo, e pergunta 5 da §4).
+Comitê (item 4 de "O que queremos confirmar", abaixo).
 
 | Etapa | O que faz | Resultado na Safrinha |
 |---|---|---|
@@ -450,7 +833,7 @@ Comitê (item 4 de "O que queremos confirmar", abaixo, e pergunta 5 da §4).
 | **C. Decidir** | Aplica a regra do Comitê e dá direção e peso. Regra fictícia "R-SAF-01 v0": 2 ou mais revisões seguidas para cima, com a safra a menos de 2% da anterior, = oferta crescendo, pesa para baixa | **Fator 2: pesa para baixa, peso Alto** (a partir de 3 revisões para cima e −1,0% contra a safra anterior) |
 
 Com só 14 revisões guardadas (desde fev/2025), não dá para dizer se +1,0% é uma revisão grande ou pequena para
-setembro. Por isso o método de B depende da pergunta 5 da §4.
+setembro. É o limite do vintage do agro (pergunta 5 da §4): o histórico de revisões cresce a cada levantamento.
 
 **Como a Safrinha entra no prompt junto com os outros fatores.** Cada fator entra em dois lugares: a medida (A) no
 bloco 2, ao lado dos demais fatores, e a leitura (B e C) no bloco 3. Se a regra fictícia existisse, o bloco 3 seria
@@ -500,6 +883,10 @@ PREÇO DO MILHO (referência de cada horizonte; pregão de 25/09/2026)
     Contratos em aberto: SEM DADO desde dez/2025 (a fonte atual não os publica)
     Fonte: B3 (Up2Data) | publicado: 25/09/2026
 
+CUSTO DE OPORTUNIDADE (o que o dinheiro rende parado, sem risco)
+  - Selic efetiva: 13,65% ao ano | meta: 13,75% ao ano (o CDI acompanha a Selic de perto)
+    Fonte: BCB | referência: 25/09/2026
+
 Fator 1 - Clima e safra nos EUA (peso Alto)
   - Lavoura em condição boa + excelente: 57% (44% + 13%)
     Fonte: USDA Crop Progress | referência: semana até 20/09/2026 | publicado: 21/09/2026
@@ -544,6 +931,8 @@ Hoje nenhuma regra está definida: todos os fatores estão "sem leitura definida
   - Use a variação recente do preço: um preço que já subiu com os mesmos fatores pode já tê-los
     incorporado.
   - Vencimento com poucos negócios não é referência confiável: diga isso e reduza a confiança.
+  - Só recomende COMPRAR se o ganho que os fatores sugerem no horizonte compensar o risco, comparado a
+    deixar o dinheiro rendendo a Selic no mesmo período. Se não compensar, a recomendação é ficar de fora.
   - Seja crítico: diga o argumento mais forte CONTRA a sua recomendação e a condição objetiva que a
     invalidaria. Aponte dado velho, estimado ou ausente que enfraqueça a análise.
   - Seja direto e objetivo: a recomendação vem primeiro; frases curtas; nada de "depende" sem dizer do quê.
@@ -775,7 +1164,7 @@ Registro do que foi fechado na lista "Falta fazer" anterior (detalhe nos documen
 | Comex Stat — exportação de milho | Primeira fonte da lista do David que saiu do reconhecimento: coletor, backfill em blocos de 5 anos e 2 cards. **Cobertura a partir de 2005** (260 meses; a soma mensal bate com o total anual da API), em dev e produção (conferido por consulta ao banco da VM: 260 linhas por série, 5 blocos em `success`). Autorizado pelo usuário em 2026-09-21 | ADR 0013 |
 | Exportação da tabela histórica (CSV) | Botão "Exportar CSV" na tela de detalhe do observável: baixa a série **inteira** da tabela (não só a página), com os mesmos filtros dela (modalidade; campo e vencimentos nos futuros). CSV para Excel pt-BR (`;`, vírgula decimal, BOM), valor sem arredondar, com colunas de publicação nos observáveis point-in-time. Rate limit por usuário; teto de 500 mil linhas | `GET /api/v1/observaveis/:codigo/exportacao.csv` |
 | WASDE por país e período do gráfico | Dois cards, no lugar dos seis por série: "Milho EUA" (13 métricas no seletor, cada uma na unidade do USDA) e "Milho por país" (22 regiões e 7 métricas com checkboxes; padrão Brasil, EUA, Argentina e China; agregados e séries descontinuadas opt-in). O título do gráfico e da tabela mostra a métrica e a unidade em uso; o CSV exportado traz a coluna "Métrica". O mecanismo do CCM foi generalizado de "vencimento" para "item" (parâmetro da API: `itens`). Gráficos ganham a opção **Tudo** e abrem em **10 anos** nas séries anuais | ADR 0015 |
-| Reconhecimento da PSD do USDA (adiada) | Fonte reconhecida (nível 1): API JSON com chave própria `FAS_API_KEY`, milho desde 1960, 125 países + mundo. **Adiada por decisão do usuário**, sem coletor: o WASDE por país já cobre 14 países e os agregados desde 2008, com vintage real. **Ressalvas:** a PSD só acrescentaria os países fora da seleção do WASDE (Índia, Indonésia, Vietnã etc.) e o histórico anterior a 2008; a API só devolve a edição mais recente, **sem vintage**; licença e janela do rate limit não confirmadas; continua listada na §6 e só vira coletor com decisão do David ou autorização registrada em ADR (a pergunta 5 da §4, sobre o vintage do agro, segue aberta, mas não trava mais a PSD) | ADR 0014 |
+| Reconhecimento da PSD do USDA (adiada) | Fonte reconhecida (nível 1): API JSON com chave própria `FAS_API_KEY`, milho desde 1960, 125 países + mundo. **Adiada por decisão do usuário**, sem coletor: o WASDE por país já cobre 14 países e os agregados desde 2008, com vintage real. **Ressalvas:** a PSD só acrescentaria os países fora da seleção do WASDE (Índia, Indonésia, Vietnã etc.) e o histórico anterior a 2008; a API só devolve a edição mais recente, **sem vintage**; licença e janela do rate limit não confirmadas; continua listada na §6 e só vira coletor com decisão do David ou autorização registrada em ADR (a pergunta 5 da §4, sobre o vintage do agro, virou informe em 2026-09-27 e não trava a PSD) | ADR 0014 |
 | Reconhecimento da Conab (nível 1) — base do coletor abaixo | Três caminhos públicos, sem chave e sem captcha, abertos com chamada real: **(A)** planilha XLSX do boletim mensal (1ª/2ª/3ª safra por UF e balanço com estoque, consumo, importação e exportação; um vintage por levantamento), **(B)** séries históricas XLS de 1ª/2ª safra desde 1976/77 (sem vintage) e **(C)** preços em TXT (só ~12 meses, atualizados diariamente). Sem coletor: depende do David. **Ressalvas:** sem API nem dicionário de dados (quebra se o layout mudar); licença não verificada; aba da 3ª safra e arquivos municipais não abertos; o histórico longo de preço segue bloqueado | ADR 0016 |
 | Conab — milho do boletim mensal (coletor + backfill + 2 cards) | Coletor diário `conab-milho`: safra 1ª/2ª/3ª/total por Região/UF (área, produtividade, produção) e balanço nacional (estoque, consumo, importação, exportação), **com `published_at` real** (data e hora da página do levantamento). Backfill dos 15 levantamentos do índice (fev/2025 a set/2026): 397 séries, 3.436 linhas, até 10 revisões por valor, 0 falhas; a coleta diária repetida é idempotente (0 criados, 830 iguais). Cards "Milho por safra e UF (Conab)" (checkboxes de Região/UF) e "Milho - balanço nacional (Conab)" (seletor de métrica). **Autorizado pelo usuário em 2026-09-21**. **Backfill já rodado no servidor (informado pelo usuário; log: 15 levantamentos, 0 falhas, 88 s)**; em um banco novo ele vem antes da coleta diária (a diária recusa enquanto a fonte estiver vazia). **Ressalvas:** só de fev/2025 em diante (lacunas no índice); `published_at` das safras antigas é limite superior; a planilha é a versão atual (pode ter correção posterior à publicação); sem API (quebra se o layout mudar); licença não verificada. **Fora, por decisão do usuário (adiado, não pendente):** as séries históricas de 1ª/2ª safra desde 1976/77 (XLS, sem vintage) e os preços da Conab (TXT, só ~12 meses; o histórico longo segue bloqueado), reconhecidos no ADR 0016, ver §2 e §6. **Conab concluída em 2026-09-21**: o coletor rodou no servidor (backfill e coleta diária, 0 falhas) | ADR 0017 |
 | Padrão das telas de observável | Toda tela de detalhe herda, sem código por card: **exportação da tabela em CSV** (série inteira, mesmos filtros, coluna de métrica), período do gráfico com a opção **Tudo** e **10 anos como padrão nas séries anuais** (`utils/periodo-grafico.js`), título com a métrica em uso e gráfico com até 12 cores distintas. Fixado como convenção no `CLAUDE.md` (um card novo é só uma entrada no catálogo; um teste barra frequência desconhecida). O nginx passou a servir o `index.html` com `Cache-Control: no-cache` (e os arquivos com hash em cache longo): depois de um deploy o navegador não abre mais a tela antiga (achado real: só o refresh forçado mostrava a tela nova) | `CLAUDE.md`, `frontend/nginx.conf` |
