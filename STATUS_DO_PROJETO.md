@@ -23,6 +23,28 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 O desenho já está decidido: o motor prepara a base (fatores e regras do Comitê)
 e a **IA gera a recomendação**, que uma pessoa decide se segue (§5).
 
+## Próximos passos
+
+Caminho até **fechar a arquitetura do milho e do ouro**: a cadeia completa (Coleta → A → B → C → prompt → IA →
+recomendação) rodando em simulação, com regras aprovadas. Só a etapa atual tem detalhe; as seguintes são detalhadas
+quando chegar a vez delas.
+
+| Etapa | O quê | Responsável | Situação |
+|---|---|---|---|
+| **1. Decisões de base** | Critérios de aprovação do backtest, preço e orçamento, instrumento e horizontes, medidas dos fatores do milho (só a camada A) e ajustes no FEL 1 | Comitê | **Atual** |
+| 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | Pode começar em paralelo |
+| 3. Medidas e dados | Implementar as medidas confirmadas e coletar os dados aprovados que faltam | FinMind | Depende da 1 |
+| 4. Regras | O Comitê define a leitura (B) e a regra (C) de cada fator; o FinMind faz o backtest; o Comitê aprova | Comitê + FinMind | Depende da 3 |
+| 5. IA em simulação | Prompt, registro de cada recomendação e simulação por pelo menos 6 meses (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | Depende da 4 |
+
+**Etapa 1 em detalhe**
+
+| Momento | O que acontece | Responsável |
+|---|---|---|
+| 1a. Reunião | Apresentar o processo, os informes e as perguntas (§4 e §5); responder o que der na hora | FinMind apresenta, Comitê responde |
+| 1b. Retorno | Devolver as respostas pendentes, no prazo combinado na reunião | Comitê |
+| 1c. Registro | Anotar cada resposta e a data no Status (§4) e em `docs/pendente-especialista-david.md` | FinMind |
+
 <details>
 <summary>2. Pronto</summary>
 
