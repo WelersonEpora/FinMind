@@ -10,6 +10,7 @@
 //
 // Uso:
 //   node scripts/backfill-noaa-vh.js                       (milho, desde 1981)
+//   node scripts/backfill-noaa-vh.js --cultura=cafe        (café, desde 1981; npm run backfill:noaa-vh-cafe)
 //   node scripts/backfill-noaa-vh.js --cultura=milho --desde=2010
 
 const { sequelize } = require("../src/models");

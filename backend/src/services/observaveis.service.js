@@ -471,7 +471,45 @@ const CATALOGO_OBSERVAVEIS = [
       metodologia:
         "Um valor por semana e região, desde 1982. A semana N vai do dia do ano 7(N-1)+1 ao 7N (guia da NOAA); a data da observação é o último dia da semana. A NOAA disponibiliza a semana no dia seguinte ao fim (regra da própria página): a data de disponibilidade é ESTIMADA como o fim desse dia. Semanas sem dado de satélite (1984-85, 1994-95, 2003-05) ficam em branco. A NOAA reprocessa a série e suaviza os valores recentes: a coleta diária relê o ano corrente e o anterior, e uma mudança vira versão nova. O histórico é a versão reprocessada de hoje (o que se sabia em cada data só existe daqui para frente). A máscara de cultura é fixa (MapSPAM 2010) e não separa a safrinha da 1ª safra: a estação se vê pela semana do ano. Conferido contra secas conhecidas: EUA em 2012 (VHI 33-39 no verão; 64 em 2014) e Mato Grosso em 2021 (VHI 30-39 na safrinha). Licença: dado do governo dos EUA (domínio público).",
       escopo:
-        "só milho, só os três índices (VHI, VCI, TCI), no mundo (55°S a 65°N) e nos hemisférios Norte (0 a 65°N) e Sul (40°S a 0), que são médias ponderadas pela área do milho e diluem choques regionais (na seca de 2012 os EUA foram a 33-35 e o mundo, a ~44), em EUA, Brasil, Argentina, China e Ucrânia, nas 5 maiores UFs de milho (MT, PR, GO, MS, MG) e nos 5 maiores estados de milho dos EUA (Iowa, Illinois, Nebraska, Minnesota, Indiana). A fonte cobre 161 países e outras culturas (café, soja, trigo...), não coletados. Não coletados: o NDVI e a temperatura suavizados (insumos dos índices), a distribuição por faixa de VHI e a versão experimental WF2025. Nenhum fator: como o índice entra no preço é definição do Comitê.",
+        "só milho, só os três índices (VHI, VCI, TCI), no mundo (55°S a 65°N) e nos hemisférios Norte (0 a 65°N) e Sul (40°S a 0), que são médias ponderadas pela área do milho e diluem choques regionais (na seca de 2012 os EUA foram a 33-35 e o mundo, a ~44), em EUA, Brasil, Argentina, China e Ucrânia, nas 5 maiores UFs de milho (MT, PR, GO, MS, MG) e nos 5 maiores estados de milho dos EUA (Iowa, Illinois, Nebraska, Minnesota, Indiana). A fonte cobre 161 países e outras culturas (soja, trigo...), não coletados; o café tem card próprio. Não coletados: o NDVI e a temperatura suavizados (insumos dos índices), a distribuição por faixa de VHI e a versão experimental WF2025. Nenhum fator: como o índice entra no preço é definição do Comitê.",
+      formatoOrigem: "Texto (tabela da página \"VH Time Series by administrative regions for specific crop\" da NOAA STAR, sem chave; endpoint não documentado como API)",
+      urlOficial: "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot"
+    }
+  },
+
+  // --- NOAA STAR - saúde da vegetação sobre a área do café, semanal (fator do café "Clima e eventos meteorológicos", ADR 0030) ---
+  // Séries `NOAA_VH.CAFE.<REGIAO>.<INDICE>`. No Brasil a máscara de arábica e a de robusta cobrem os mesmos pixels: uma
+  // série só, "café"; no mundo e nos hemisférios, arábica e robusta são itens separados.
+  {
+    instrumentCode: "NOAA_VH_CAFE",
+    origem: "observation",
+    nome: "Clima sobre o café - saúde da vegetação (NOAA)",
+    unidade: "índice 0-100",
+    casasDecimais: 2,
+    frequencia: "SEMANAL",
+    toleranciaDias: 9,
+    fonte: "NOAA STAR - Vegetation Health por cultura",
+    fonteCollectorCode: "noaa-vh-cafe",
+    porRegiao: {
+      prefixoSerie: "NOAA_VH.CAFE",
+      campoReferencia: "VHI",
+      itemPrincipal: "BRASIL",
+      itensPadrao: ["BRASIL", "BR_MG", "BR_ES", "MUNDO_ARABICA", "MUNDO_ROBUSTA"],
+      descritor: "noaa-vh"
+    },
+    campoPrincipal: "VHI",
+    campos: [
+      { codigo: "VHI", nome: "VHI - saúde da vegetação", unidade: "índice 0-100", casasDecimais: 2 },
+      { codigo: "VCI", nome: "VCI - condição da vegetação (umidade)", unidade: "índice 0-100", casasDecimais: 2 },
+      { codigo: "TCI", nome: "TCI - condição térmica (calor)", unidade: "índice 0-100", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Efeito do clima sobre o cafezal, medido por satélite só onde há café plantado: o VHI (saúde da vegetação, 0 a 100) é a média do VCI (verdor, ligado à umidade) e do TCI (temperatura, ligado ao calor). Abaixo de 40 a NOAA classifica como estresse. É um indicador pronto da fonte, não o tempo (chuva, temperatura) nem um cálculo do FinMind.",
+      metodologia:
+        "Um valor por semana e região, desde 1982, com as mesmas regras do card do milho: semana N = dias do ano 7(N-1)+1 a 7N, data de disponibilidade ESTIMADA no dia seguinte ao fim da semana, releitura do ano corrente e do anterior, histórico reprocessado (o que se sabia em cada data só existe daqui para frente). A NOAA tem duas máscaras de café (MapSPAM 2010), arábica e robusta, mas no Brasil elas cobrem os mesmos pixels (1982-2026: diferença máxima de 0,7 ponto no Brasil e nas UFs): por isso o Brasil e as UFs têm uma série só, \"café\" (arábica e conilon juntos), e só o mundo e os hemisférios, onde as duas diferem (até 10 pontos, porque o robusta é o do Vietnã e da Indonésia), têm arábica e robusta separados. O índice mostra o dano de uma geada semanas depois: não é alerta de geada. Licença: dado do governo dos EUA (domínio público).",
+      escopo:
+        "só café, só os três índices (VHI, VCI, TCI), no Brasil e nas 5 maiores UFs produtoras segundo a Conab (MG, SP e ES no arábica; ES, BA e RO no conilon), e no mundo (55°S a 65°N) e nos hemisférios Norte e Sul, separados em arábica e robusta. Outros países produtores (Vietnã, Colômbia, Indonésia, Etiópia...) ainda não: entram quando uma fonte de produção por país (USDA FAS ou ICO) for reconhecida. Nenhum fator: como o índice entra no preço é definição do Comitê.",
       formatoOrigem: "Texto (tabela da página \"VH Time Series by administrative regions for specific crop\" da NOAA STAR, sem chave; endpoint não documentado como API)",
       urlOficial: "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot"
     }
@@ -643,6 +681,51 @@ const CATALOGO_OBSERVAVEIS = [
         "só o balanço NACIONAL do milho (não há estoque nem consumo por UF na fonte), por safra, a partir de 2019/20 (a planilha traz as safras mais recentes; os levantamentos anteriores a fev/2025 não estão no índice da Conab). Só milho: os demais produtos da aba Suprimento não são coletados.",
       descricao:
         "Balanço de oferta e demanda do milho no Brasil por safra, conforme o Boletim da Safra de Grãos da Conab: estoque inicial e final, produção, importação, suprimento, consumo, exportação e demanda total, em mil toneladas. Na safra em projeção vale o mês do levantamento."
+    }
+  },
+
+  // --- Conab - café por safra, região e UF (Boletim da Safra de Café, ADR 0029) ---
+  {
+    instrumentCode: "CONAB_CAFE",
+    nome: "Café - safra por região e UF (Conab)",
+    unidade: "mil sacas",
+    casasDecimais: 1,
+    origem: "observation",
+    frequencia: "ANUAL",
+    // O último levantamento de uma safra sai até janeiro do ano seguinte e o 1º da próxima, entre janeiro e fevereiro.
+    toleranciaDias: 430,
+    fonte: "Conab - Boletim da Safra de Café",
+    fonteCollectorCode: "conab-cafe",
+    // Séries `CONAB.CAFE.<REGIAO>.<METRICA>_<TIPO>`: as regiões (e as sub-regiões da Bahia e de Minas) são descobertas
+    // no banco; vêm marcados o Brasil e as maiores UFs produtoras, e o destaque do card é o Brasil.
+    porRegiao: {
+      prefixoSerie: "CONAB.CAFE",
+      campoReferencia: "PRODUCAO_TOTAL",
+      itemPrincipal: "BRASIL",
+      itensPadrao: ["BRASIL", "MG", "ES", "SP", "BA", "RO"],
+      descritor: "conab"
+    },
+    campoPrincipal: "PRODUCAO_TOTAL",
+    campos: [
+      { codigo: "PRODUCAO_TOTAL", nome: "Produção - total (arábica e conilon)", unidade: "mil sacas", casasDecimais: 1 },
+      { codigo: "PRODUCAO_ARABICA", nome: "Produção - arábica", unidade: "mil sacas", casasDecimais: 1 },
+      { codigo: "PRODUCAO_CONILON", nome: "Produção - conilon", unidade: "mil sacas", casasDecimais: 1 },
+      { codigo: "AREA_TOTAL", nome: "Área em produção - total", unidade: "ha", casasDecimais: 0 },
+      { codigo: "AREA_ARABICA", nome: "Área em produção - arábica", unidade: "ha", casasDecimais: 0 },
+      { codigo: "AREA_CONILON", nome: "Área em produção - conilon", unidade: "ha", casasDecimais: 0 },
+      { codigo: "PRODUTIVIDADE_TOTAL", nome: "Produtividade - total", unidade: "sc/ha", casasDecimais: 1 },
+      { codigo: "PRODUTIVIDADE_ARABICA", nome: "Produtividade - arábica", unidade: "sc/ha", casasDecimais: 1 },
+      { codigo: "PRODUTIVIDADE_CONILON", nome: "Produtividade - conilon", unidade: "sc/ha", casasDecimais: 1 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Café por safra (total, arábica e conilon) e por região, UF e sub-região (Bahia e Minas Gerais), conforme o Boletim da Safra de Café da Conab: área em produção, produtividade e produção, em mil sacas de 60 kg beneficiadas. Cada levantamento (cerca de 4 por safra) revisa a estimativa; uma linha por região.",
+      metodologia:
+        "Um valor por safra: a safra do café é o ano da colheita, e o dia da observação é 1º de janeiro desse ano (convenção). A data de publicação é a REAL, da página de cada levantamento, conferida com o mês da nota \"Estimativa em\" da própria planilha; no 1º levantamento de 2024 a página foi republicada em jan/2025, e a data ali é ESTIMADA como o fim do mês da nota (jan/2024). Cada revisão vira uma versão nova. Valores como publicados; a única conversão é a área da planilha de jan/2023, publicada em mil ha e gravada em ha (×1.000), como as demais.",
+      escopo:
+        "vintage desde jan/2023 (15 levantamentos: antes disso a Conab não mantém a página do levantamento). A série histórica da Conab (safras de 2001 em diante, sem as revisões), área em formação, parque cafeeiro e percentual colhido por mês não foram carregados.",
+      formatoOrigem: "XLS (planilha de cada levantamento do Boletim da Safra de Café)",
+      urlOficial: "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/safras/safra-de-cafe"
     }
   },
 

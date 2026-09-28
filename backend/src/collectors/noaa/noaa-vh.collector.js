@@ -9,7 +9,8 @@ const { persistirObservacoes, baixar } = require("../base/persist-observations")
 // NOAA STAR - Vegetation Health (VH) POR CULTURA: índices semanais de saúde da vegetação calculados só sobre a área
 // de UMA cultura (máscara MapSPAM 2010), por país e por estado/província. É o indicador PRONTO do efeito do clima
 // sobre a lavoura (não o tempo em si): VCI (umidade/verdor), TCI (estresse térmico) e VHI (a média dos dois, 0-100;
-// a NOAA trata < 40 como estresse). Fator do milho "Clima e safra" do FEL 1. ADR 0025.
+// a NOAA trata < 40 como estresse). Fator do milho "Clima e safra" do FEL 1 (ADR 0025) e fator do café "Clima e eventos
+// meteorológicos" (ADR 0030).
 //
 // VERIFICADO POR CHAMADA REAL em 2026-09-24:
 //   - Endpoint em texto por trás da página "VH Time Series by administrative regions for specific crop"
@@ -50,6 +51,13 @@ const INDICES = [
 // da cultura e dilui choques regionais (EUA 2012: VHI 33-35; mundo: ~44).
 // Milho: mundo e hemisférios, os países de referência do card do WASDE (maiores produtores/exportadores) + Ucrânia
 // (exportador), as 5 maiores UFs de milho da Conab e os 5 maiores estados de milho dos EUA (Corn Belt).
+//
+// Uma região pode usar outra máscara que a da cultura (`tagCropland` na região). É o caso do café (ADR 0030): a NOAA
+// tem arábica (ACOF) e robusta (RCOF), mas DENTRO DO BRASIL as duas máscaras cobrem os mesmos pixels (1982-2026,
+// diferença máxima de 0,7 ponto no Brasil e nas 5 UFs; no Espírito Santo, 80% das semanas idênticas). Então o
+// Brasil e as UFs têm UMA série, "café" (máscara ACOF, que ali é a do café em geral), e só o mundo e os hemisférios,
+// onde as duas diferem (até 10 pontos: o robusta é o do Vietnã e da Indonésia), têm arábica e robusta separados.
+// UFs: as maiores produtoras da Conab (ADR 0029): MG, SP e ES no arábica; ES, BA e RO no conilon.
 const CULTURAS = {
   milho: {
     codigo: "noaa-vh-milho",
@@ -76,8 +84,33 @@ const CULTURAS = {
       { codigo: "EUA_MN", pais: "USA", provinceId: 24, nome: "Minnesota" },
       { codigo: "EUA_IN", pais: "USA", provinceId: 15, nome: "Indiana" }
     ]
+  },
+  cafe: {
+    codigo: "noaa-vh-cafe",
+    tagCropland: "ACOF",
+    nome: "café",
+    prefixoSerie: "NOAA_VH.CAFE",
+    regioes: [
+      { codigo: "MUNDO_ARABICA", pais: "W65", provinceId: 0, nome: "Global: 55S~65N" },
+      { codigo: "MUNDO_ROBUSTA", pais: "W65", provinceId: 0, nome: "Global: 55S~65N", tagCropland: "RCOF" },
+      { codigo: "HEMISFERIO_NORTE_ARABICA", pais: "WNH", provinceId: 0, nome: "Northern Hemisphere: 0~65N" },
+      { codigo: "HEMISFERIO_NORTE_ROBUSTA", pais: "WNH", provinceId: 0, nome: "Northern Hemisphere: 0~65N", tagCropland: "RCOF" },
+      { codigo: "HEMISFERIO_SUL_ARABICA", pais: "WSH", provinceId: 0, nome: "Southern Hemisphere: 40S~0" },
+      { codigo: "HEMISFERIO_SUL_ROBUSTA", pais: "WSH", provinceId: 0, nome: "Southern Hemisphere: 40S~0", tagCropland: "RCOF" },
+      { codigo: "BRASIL", pais: "BRA", provinceId: 0, nome: "Brazil" },
+      { codigo: "BR_MG", pais: "BRA", provinceId: 13, nome: "Minas Gerais" },
+      { codigo: "BR_SP", pais: "BRA", provinceId: 25, nome: "São Paulo" },
+      { codigo: "BR_ES", pais: "BRA", provinceId: 8, nome: "Espírito Santo" },
+      { codigo: "BR_BA", pais: "BRA", provinceId: 5, nome: "Bahia" },
+      { codigo: "BR_RO", pais: "BRA", provinceId: 22, nome: "Rondônia" }
+    ]
   }
 };
+
+// Máscara de cultura de uma região: a própria, se tiver, ou a da cultura.
+function mascaraDe(cultura, regiao) {
+  return regiao.tagCropland || cultura.tagCropland;
+}
 
 function urlSerie(cultura, regiao, anoInicial, anoFinal) {
   const params = new URLSearchParams({
@@ -86,7 +119,7 @@ function urlSerie(cultura, regiao, anoInicial, anoFinal) {
     adminVHversion: VERSAO_VH,
     yearlyTag: "Weekly",
     type: "Mean",
-    TagCropland: cultura.tagCropland,
+    TagCropland: mascaraDe(cultura, regiao),
     year1: String(anoInicial),
     year2: String(anoFinal)
   });
@@ -108,8 +141,9 @@ function lerResposta(texto, cultura, regiao) {
   if (!cabecalho || cabecalho[1] !== regiao.pais) {
     throw new UpstreamServiceError(`Resposta da NOAA VH sem o cabeçalho esperado para ${regiao.pais} (${regiao.codigo}).`);
   }
-  if (!limpo.includes(`area with '${cultura.tagCropland}'`)) {
-    throw new UpstreamServiceError(`Resposta da NOAA VH não é da cultura ${cultura.tagCropland} (${regiao.codigo}).`);
+  const mascara = mascaraDe(cultura, regiao);
+  if (!limpo.includes(`area with '${mascara}'`)) {
+    throw new UpstreamServiceError(`Resposta da NOAA VH não é da cultura ${mascara} (${regiao.codigo}).`);
   }
   if (regiao.provinceId !== 0 && !new RegExp(`Province= ${regiao.provinceId}:`).test(limpo)) {
     throw new UpstreamServiceError(`Resposta da NOAA VH não é da província ${regiao.provinceId} de ${regiao.pais} (${regiao.codigo}).`);
@@ -185,7 +219,7 @@ function criarColetorVh(chaveCultura) {
         metadata: {
           fonte: "NOAA STAR - Vegetation Health por cultura",
           indice: indice.nome,
-          cultura: cultura.tagCropland,
+          cultura: mascaraDe(cultura, regiao),
           pais: regiao.pais,
           provinceId: regiao.provinceId,
           regiao: regiao.nome,

@@ -98,4 +98,4 @@ serviria a um fator ainda não definido). Ficam descartadas até o Comitê pedir
   Drought" (% da área de milho dos EUA em seca, semanal, desde 2000), FAO ASIS (índice de estresse agrícola por
   estado do Brasil, sem separar cultura, desde 1984) e o ONI da NOAA CPC (El Niño/La Niña, mensal, desde 1950).
 - **Nenhum fator:** como o índice entra no preço do milho (regiões, pesos, fases do ciclo, limiar) é do Comitê.
-- **Café:** próximo passo pedido pelo usuário; mesma fonte e mesmo coletor.
+- **Café:** implementado em 2026-09-28, no mesmo coletor (cultura `cafe`), ADR 0030.

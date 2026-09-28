@@ -23,6 +23,7 @@ const { criarColetorComexExportacao } = require("./comex/comex-exportacao.collec
 const wasdeMilhoCollector = require("./wasde/wasde-milho.collector");
 const usdaAreaPlantadaCollector = require("./usda/usda-area-plantada.collector");
 const conabMilhoCollector = require("./conab/conab-milho.collector");
+const conabCafeCollector = require("./conab/conab-cafe.collector");
 const imeaMilhoSafraCollector = require("./imea/imea-milho-safra.collector");
 const imeaCustoMilhoCollector = require("./imea/imea-custo-milho.collector");
 const imeaOfertaDemandaMilhoCollector = require("./imea/imea-oferta-demanda-milho.collector");
@@ -54,10 +55,12 @@ function bootstrapCollectors() {
     registerCollector(wasdeMilhoCollector);
     registerCollector(usdaAreaPlantadaCollector);
     registerCollector(conabMilhoCollector);
+    registerCollector(conabCafeCollector);
     registerCollector(imeaMilhoSafraCollector);
     registerCollector(imeaCustoMilhoCollector);
     registerCollector(imeaOfertaDemandaMilhoCollector);
     registerCollector(criarColetorVh("milho"));
+    registerCollector(criarColetorVh("cafe"));
 
     if (env.collectors.nassApiKey) {
       registerCollector(usdaCropProgressCollector);

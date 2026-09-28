@@ -8,7 +8,14 @@
 const AGREGADOS = {
   MUNDO: "Mundo",
   HEMISFERIO_NORTE: "Hemisfério Norte",
-  HEMISFERIO_SUL: "Hemisfério Sul"
+  HEMISFERIO_SUL: "Hemisfério Sul",
+  // Café (ADR 0030): fora do Brasil, arábica e robusta são máscaras diferentes.
+  MUNDO_ARABICA: "Mundo - arábica",
+  MUNDO_ROBUSTA: "Mundo - robusta",
+  HEMISFERIO_NORTE_ARABICA: "Hemisfério Norte - arábica",
+  HEMISFERIO_NORTE_ROBUSTA: "Hemisfério Norte - robusta",
+  HEMISFERIO_SUL_ARABICA: "Hemisfério Sul - arábica",
+  HEMISFERIO_SUL_ROBUSTA: "Hemisfério Sul - robusta"
 };
 
 const REGIOES = {
@@ -22,6 +29,10 @@ const REGIOES = {
   BR_GO: "Brasil - Goiás",
   BR_MS: "Brasil - Mato Grosso do Sul",
   BR_MG: "Brasil - Minas Gerais",
+  BR_SP: "Brasil - São Paulo",
+  BR_ES: "Brasil - Espírito Santo",
+  BR_BA: "Brasil - Bahia",
+  BR_RO: "Brasil - Rondônia",
   EUA_IA: "EUA - Iowa",
   EUA_IL: "EUA - Illinois",
   EUA_NE: "EUA - Nebraska",

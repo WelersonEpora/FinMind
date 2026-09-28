@@ -29,8 +29,10 @@
     "backfill:wasde-milho": "node scripts/backfill-wasde-milho.js",
     "backfill:usda-area-plantada": "node scripts/backfill-usda-area-plantada.js",
     "backfill:conab-milho": "node scripts/backfill-conab-milho.js",
+    "backfill:conab-cafe": "node scripts/backfill-conab-cafe.js",
     "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",
-    "backfill:noaa-vh": "node scripts/backfill-noaa-vh.js"
+    "backfill:noaa-vh": "node scripts/backfill-noaa-vh.js",
+    "backfill:noaa-vh-cafe": "node scripts/backfill-noaa-vh.js --cultura=cafe"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

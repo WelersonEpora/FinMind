@@ -91,8 +91,9 @@ café segue sem fonte automatizável (a CEPEA bloqueia automação).
 
 ## Consequências
 
-- **Produção:** rodar na VM, depois do deploy, `backfill:comex-cafe`, `backfill:b3-icf` e `backfill:b3-icf-bdi`, nessa
-  ordem para o ICF.
+- **Produção:** os três backfills rodaram na VM em 2026-09-28, depois do deploy, com os mesmos números de dev:
+  `backfill:comex-cafe` com 6 blocos em `success` (356 meses); `backfill:b3-icf` com 10.379 observações criadas e 1
+  falha (o pregão do dia, "Parcial"); `backfill:b3-icf-bdi` com 24.570 criadas, 3.681 já existentes e 0 falhas.
 - **Custo:** o `b3-ccm-futuro` e o `b3-icf-futuro` baixam o mesmo arquivo do Up2Data (~6 MB por pregão), um download a
   mais por dia útil. Cada um falha e é reexecutado sozinho. Se pesar, os dois podem ler um download só.
 - **Licença:** a mesma do CCM para o preço da B3 (pergunta 6 da §4 do status: uso interno); CFTC e Comex Stat, as mesmas

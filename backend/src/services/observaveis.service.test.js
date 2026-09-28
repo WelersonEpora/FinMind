@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    32,
-    "USD_BRL e SELIC (market_quote) + 30 de observation (Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho da NOAA + 6 fixos (ouro, Treasury, dólar amplo e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF)"
+    34,
+    "USD_BRL e SELIC (market_quote) + 32 de observation (Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho e do café da NOAA + 6 fixos (ouro, Treasury, dólar amplo e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 3 da Conab (milho por UF e balanço, café por UF) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");

@@ -1,7 +1,7 @@
 # Clima — reconhecimento das fontes (FEL 1 §6.5.1) e implementação da NOAA STAR por cultura
 
 **Data:** 2026-09-24. **Situação:** NOAA STAR, saúde da vegetação por cultura, **implementada para o milho** (ADR
-0025); café é o próximo passo. As cinco fontes de clima do FEL 1 são **inadequadas** para o FinMind nesta fase.
+0025) e **para o café** (ADR 0030). As cinco fontes de clima do FEL 1 são **inadequadas** para o FinMind nesta fase.
 Outras três fontes foram reconhecidas como possíveis e **não serão implementadas** por ora.
 
 ## A pergunta certa
@@ -48,7 +48,8 @@ safrinha de 2021 (39 a 30) e café arábica em Minas Gerais em 2021 (de 53 a 35)
 cobre todos os produtores relevantes de milho e de café: não é preciso uma fonte de clima por país.
 
 **Recomendação: adotar.** Implementada para o milho (coletor `noaa-vh-milho`, 18 regiões com mundo e hemisférios, VHI/VCI/TCI, desde 1982 —
-ADR 0025). Café em seguida, pela mesma fonte.
+ADR 0025). Café implementado em 2026-09-28 (coletor `noaa-vh-cafe`, 12 regiões, ADR 0030): no Brasil as máscaras de arábica e
+robusta cobrem os mesmos pixels, então só o mundo e os hemisférios separam os dois tipos.
 
 ## Outras fontes possíveis (reconhecidas, não serão implementadas por ora)
 

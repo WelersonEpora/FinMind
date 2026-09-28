@@ -126,5 +126,44 @@ test("download: uma requisição por região, do ano anterior ao corrente; erro 
 
 test("criarColetorVh: cultura não configurada é erro de programação", () => {
   assert.equal(coletor.codigo, "noaa-vh-milho");
-  assert.throws(() => criarColetorVh("cafe"), /não configurada/);
+  assert.throws(() => criarColetorVh("soja"), /não configurada/);
+});
+
+// --- café (ADR 0030): no Brasil uma série só ("café", máscara ACOF); no mundo e nos hemisférios, arábica e robusta ---
+
+const CAFE = CULTURAS.cafe;
+const regiaoCafe = (codigo) => CAFE.regioes.find((r) => r.codigo === codigo);
+
+test("café: no Brasil só a máscara ACOF (uma série por UF); fora do Brasil, arábica (ACOF) e robusta (RCOF)", () => {
+  const mascaras = Object.fromEntries(CAFE.regioes.map((r) => [r.codigo, new URL(urlSerie(CAFE, r, 1981, 2026)).searchParams.get("TagCropland")]));
+  assert.deepEqual(mascaras, {
+    MUNDO_ARABICA: "ACOF",
+    MUNDO_ROBUSTA: "RCOF",
+    HEMISFERIO_NORTE_ARABICA: "ACOF",
+    HEMISFERIO_NORTE_ROBUSTA: "RCOF",
+    HEMISFERIO_SUL_ARABICA: "ACOF",
+    HEMISFERIO_SUL_ROBUSTA: "RCOF",
+    BRASIL: "ACOF",
+    BR_MG: "ACOF",
+    BR_SP: "ACOF",
+    BR_ES: "ACOF",
+    BR_BA: "ACOF",
+    BR_RO: "ACOF"
+  });
+  assert.equal(criarColetorVh("cafe").codigo, "noaa-vh-cafe");
+});
+
+test("café: a resposta tem de ser da máscara da região (robusta no mundo), e a série registra a máscara usada", () => {
+  const coletorCafe = criarColetorVh("cafe");
+  // Mundo, robusta, semana 26 de 2021: o VHI (43,16) é o real (2026-09-28); SMN, SMT, VCI e TCI são ilustrativos.
+  const robusta =
+    "Mean data for W65 ( Global: 55S~65N),  from 2021 to 2021, weekly; version='GC_Current'for   area with 'RCOF' \n" +
+    "year,week, SMN,SMT,VCI,TCI, VHI\n" +
+    "<tt><pre>2021,26, 0.400,295.00, 45.00, 41.32, 43.16,\n</pre></tt>";
+  assert.throws(() => lerResposta(robusta, CAFE, regiaoCafe("MUNDO_ARABICA")), /cultura ACOF/);
+
+  const { validos } = coletorCafe.normalize(coletorCafe.parse({ respostas: [{ regiao: "MUNDO_ROBUSTA", texto: robusta }] }));
+  const vhi = validos.find((v) => v.series_code === "NOAA_VH.CAFE.MUNDO_ROBUSTA.VHI");
+  assert.equal(vhi.value, 43.16);
+  assert.equal(vhi.metadata.cultura, "RCOF");
 });
