@@ -67,8 +67,8 @@ ano de seca forte, o índice mostra o **dano somado**, semanas depois: não é a
 
 ## Consequências
 
-- **Produção:** rodar `npm run backfill:noaa-vh-cafe` depois do deploy (a coleta diária só relê o ano corrente e o
-  anterior).
+- **Produção:** backfill rodado na VM em 2026-09-28, depois do deploy: 81.936 observações, 0 falhas, em ~20 s (a coleta
+  diária só relê o ano corrente e o anterior).
 - **Risco de geada** (temperatura mínima em MG e SP, de maio a agosto, pedida pelo FEL 1) continua sem fonte: não há
   indicador pronto gratuito, e montar um seria regra do David (ADR 0025).
 - **Riscos da fonte:** os do ADR 0025 (endpoint não documentado, máscara fixa de 2010, histórico reprocessado).

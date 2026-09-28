@@ -66,8 +66,8 @@ revisões). A coleta diária seguinte leu 7 levantamentos (2025 e 2026) e criou 
 
 ## Consequências
 
-- **Produção:** rodar `npm run backfill:conab-cafe` logo depois do deploy (~30 s). Até lá a coleta diária do
-  `conab-cafe` sai "Parcial", pedindo o backfill.
+- **Produção:** backfill rodado na VM em 2026-09-28, logo depois do deploy, com os números de dev: 15 levantamentos,
+  1.106 pontos novos e 1.862 revisões, 0 falhas. Em qualquer banco novo, ele vem antes da coleta diária.
 - **Riscos:** sem API nem dicionário de dados (mudança de layout vira falha explícita); a planilha baixada é a versão
   atual do levantamento (várias páginas foram "atualizadas" depois); a Conab pode tirar do ar as páginas antigas (hoje
   começam em 2023). Licença: a mesma ressalva do milho (pergunta 6 do status).
