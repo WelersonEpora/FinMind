@@ -63,7 +63,9 @@ async function obterExecucao(id, deps = {}) {
     throw new NotFoundError("Execução de coleta não encontrada.");
   }
 
-  return { execucao: paraExecucaoResposta(execucao) };
+  // Só no detalhe: os avisos da fonte (defeitos conhecidos, tratados pelo coletor; não contam como falha).
+  const avisos = (execucao.metadata?.avisos || []).map((a) => ({ item: a.item ?? null, motivo: a.motivo }));
+  return { execucao: { ...paraExecucaoResposta(execucao), avisos } };
 }
 
 // Coleta manual em andamento neste processo: um segundo pedido enquanto ela roda é recusado (409), em vez de

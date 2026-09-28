@@ -141,7 +141,7 @@ function conferirTitulo(titulos, { tipo, tecnologia, codigoLocal }) {
   }
 }
 
-// Uma aba -> { observacoes, invalidos }. Lança Error se o layout não é o esperado.
+// Uma aba -> { observacoes, invalidos, avisos }. Lança Error se o layout não é o esperado.
 function extrairAba(linhas, { tipo, tecnologia, local }) {
   const codigoLocal = codigoDoLocal(local);
   const idxSafra = acharLinha(linhas, "safra");
@@ -153,7 +153,12 @@ function extrairAba(linhas, { tipo, tecnologia, local }) {
   const { colunas, ambiguas } = lerColunas(linhas[idxSafra], linhas[idxAno], linhas[idxMes]);
 
   const observacoes = [];
-  const invalidos = ambiguas.map((a) => ({
+  const invalidos = [];
+  // Rótulo repetido é um defeito CONHECIDO da fonte (2026-09: Tangará da Serra, "Ponderado Média Tecnologia", duas
+  // colunas "2025/26 Consolidado" com valores diferentes, onde as outras 14 abas têm 2024/25 e 2025/26). As colunas
+  // não são gravadas (não há como saber qual é qual, e o FinMind não corrige o rótulo da fonte), mas isso é um AVISO
+  // da fonte, não uma falha da coleta: a execução fica "success" e o aviso aparece no detalhe dela.
+  const avisos = ambiguas.map((a) => ({
     item: { local: codigoLocal, coluna: a.coluna + 1, periodo: a.observedAt },
     motivo: `a coluna "${a.rotulo}" repete um período que aparece em ${a.vezes} colunas da aba (rótulo repetido na fonte): não há como saber qual é qual, nenhuma foi gravada.`
   }));
@@ -236,13 +241,13 @@ function extrairAba(linhas, { tipo, tecnologia, local }) {
   }
 
   if (!unidadeConferida) throw new Error('a linha "Unidade: R$/ha." não foi encontrada (a planilha terminou antes?).');
-  return { observacoes, invalidos };
+  return { observacoes, invalidos, avisos };
 }
 
 // ---------------------------------------------------------------- uma planilha (todos os locais)
 
 /**
- * { indice, abas } -> { observacoes, invalidos, locaisSemAba }. Falha de UMA aba vai para os inválidos e não derruba
+ * { indice, abas } -> { observacoes, invalidos, avisos, locaisSemAba }. Falha de UMA aba vai para os inválidos e não derruba
  * as demais. `locaisSemAba` = locais que o Índice lista mas cuja aba não existe na planilha (lacuna da própria fonte,
  * vista em 3 dos 4 arquivos): informativo, não é falha.
  */
@@ -252,6 +257,7 @@ function extrairCusto({ indice, abas }, { tipo, tecnologia }) {
 
   const observacoes = [];
   const invalidos = [];
+  const avisos = [];
   const locaisSemAba = [];
 
   for (const { aba, local } of locais) {
@@ -263,11 +269,12 @@ function extrairCusto({ indice, abas }, { tipo, tecnologia }) {
       const resultado = extrairAba(abas[aba], { tipo, tecnologia, local });
       observacoes.push(...resultado.observacoes);
       invalidos.push(...resultado.invalidos);
+      avisos.push(...resultado.avisos);
     } catch (err) {
       invalidos.push({ item: { aba, local }, motivo: `Aba não lida: ${err.message}` });
     }
   }
-  return { observacoes, invalidos, locaisSemAba };
+  return { observacoes, invalidos, avisos, locaisSemAba };
 }
 
 module.exports = { lerPlanilha, lerIndice, extrairAba, extrairCusto, codigoDoLocal, MESES };

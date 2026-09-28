@@ -8,7 +8,7 @@ const { NotConfiguredError } = require("../shared/errors");
  * `runAnalysis(preparedData)` deve receber dados já coletados e preparados
  * e devolver um resultado estruturado - a forma exata de `preparedData` e
  * do resultado depende das regras e cálculos que o especialista David
- * ainda vai definir (ver docs/pendente-especialista-david.md).
+ * e o Comitê ainda vão definir (ver STATUS_DO_PROJETO.md, §4).
  *
  * Deliberadamente não gera nenhum sinal de compra/venda nem número de
  * mercado: enquanto as regras não existirem, qualquer chamada falha de

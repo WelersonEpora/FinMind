@@ -54,7 +54,10 @@ function calcularStatus({ registrosPersistidos, registrosFalha }) {
 // fim. Uma falha de comunicação (download/parse) marca a execução inteira
 // como "failed"; um item individual inválido (normalize) ou que falhe ao
 // persistir não aborta o restante do lote - vira "partial_success" com o
-// motivo registrado em metadata.
+// motivo registrado em metadata. `avisos` (opcional no normalize) são defeitos
+// CONHECIDOS da fonte, tratados de propósito pelo coletor (ex.: rótulo repetido
+// na planilha do IMEA, nada gravado): ficam em metadata e no detalhe da
+// execução, mas não contam como falha nem mudam o status.
 async function executarColetor(collector, { triggerType = "manual", triggeredBy = null } = {}, deps = {}) {
   const repo = deps.collectionExecutionRepository || collectionExecutionRepository;
   const log = (deps.logger || logger).child({ coletor: collector.codigo });
@@ -74,7 +77,7 @@ async function executarColetor(collector, { triggerType = "manual", triggeredBy 
   try {
     const rawData = await baixarComTimeout(collector);
     const rawItems = collector.parse(rawData);
-    const { validos, invalidos } = collector.normalize(rawItems);
+    const { validos, invalidos, avisos = [] } = collector.normalize(rawItems);
     const persistResult = await collector.persist(validos, { execucaoId: execucao.id }, deps);
     const falhasPersistencia = persistResult.falhas || [];
 
@@ -92,7 +95,8 @@ async function executarColetor(collector, { triggerType = "manual", triggeredBy 
       records_failed: registrosFalha,
       metadata: {
         invalidos: invalidos.slice(0, 50),
-        falhasPersistencia: falhasPersistencia.slice(0, 50)
+        falhasPersistencia: falhasPersistencia.slice(0, 50),
+        avisos: avisos.slice(0, 50)
       }
     });
 

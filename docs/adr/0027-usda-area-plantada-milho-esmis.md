@@ -107,7 +107,7 @@ Antes do ZIP só há TXT/PDF, fora do escopo (como no WASDE, que também começa
   nunca um valor gravado errado.
 - **Licença:** dado do governo dos EUA; termos do ESMIS não lidos (uso interno), como no ADR 0015.
 - **Rate limit** do ESMIS não documentado: 1 s de pausa entre requisições, sem problema em ~70 requisições.
-- **No servidor:** rodar `npm run backfill:usda-area-plantada` depois do deploy. Até lá, a coleta diária registra a
-  recusa (falha) para este coletor.
+- **No servidor:** backfill rodado em 2026-09-28, com os mesmos números de dev (51 edições; 27 criados, 65 revisões,
+  35 ignorados, 0 falhas, ~76 s). Em banco novo, repetir o backfill antes da coleta diária.
 - Nenhum fator: como a área plantada (ou a diferença entre intenção e área plantada) entra no preço é definição do
   Comitê.

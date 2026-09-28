@@ -13,6 +13,7 @@ import EspacoView from '../views/EspacoView.vue'
 import StatusProjetoView from '../views/StatusProjetoView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 import ServidorIndisponivelView from '../views/ServidorIndisponivelView.vue'
+import { rolagemAoNavegar } from '../utils/rolagem-rota.js'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -38,9 +39,7 @@ const router = createRouter({
     { path: '/usuarios', name: 'usuarios', component: UsuariosView, meta: { requiresAdmin: true } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView, meta: { public: true } }
   ],
-  scrollBehavior() {
-    return { top: 0 }
-  }
+  scrollBehavior: rolagemAoNavegar
 })
 
 router.beforeEach(async (to) => {

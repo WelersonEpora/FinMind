@@ -62,6 +62,24 @@ test("executarColetor marca partial_success quando alguns itens são inválidos 
   assert.equal(execucao.records_failed, 1);
 });
 
+test("executarColetor: avisos da fonte (defeito conhecido, tratado pelo coletor) ficam no metadata sem virar falha - status success", async () => {
+  const repo = criarRepoFake();
+  const aviso = { item: { local: "TANGARA_DA_SERRA", coluna: 5 }, motivo: "rótulo repetido na fonte: nenhuma foi gravada." };
+  const collector = {
+    codigo: "coletor-teste",
+    download: async () => [{ valor: 1 }],
+    parse: (rawData) => rawData,
+    normalize: (rawItems) => ({ validos: rawItems, invalidos: [], avisos: [aviso] }),
+    persist: async (validos) => ({ criados: validos.length, atualizados: 0, ignorados: 0, falhas: [] })
+  };
+
+  const execucao = await executarColetor(collector, {}, { collectionExecutionRepository: repo, logger: logSilencioso });
+
+  assert.equal(execucao.status, "success");
+  assert.equal(execucao.records_failed, 0);
+  assert.deepEqual(execucao.metadata.avisos, [aviso]);
+});
+
 test("executarColetor marca failed quando nenhum item válido persiste", async () => {
   const repo = criarRepoFake();
   const collector = {

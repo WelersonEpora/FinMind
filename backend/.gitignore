@@ -4,3 +4,5 @@ storage/
 
 # Cópia feita pelo deploy.yml (a fonte é a raiz do repositório)
 STATUS_DO_PROJETO.md
+# Cópia dos documentos do projeto feita pelo deploy.yml (a fonte é docs/ e CLAUDE.md na raiz)
+projeto/

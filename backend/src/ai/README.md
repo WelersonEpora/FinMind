@@ -8,6 +8,6 @@ resposta.
 Não há chamada paga a nenhuma IA nesta fase. Antes de integrar um
 provedor real, faltam definições do especialista David: como avaliar a
 saída da IA e em que condições ela pode influenciar um sinal
-operacional (ver `docs/pendente-especialista-david.md`). Uma resposta de
+operacional (ver `STATUS_DO_PROJETO.md`, §4). Uma resposta de
 IA nunca deve gerar ordens automaticamente - essa é uma decisão de
 arquitetura permanente, não um placeholder temporário.

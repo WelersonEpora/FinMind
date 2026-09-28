@@ -9,9 +9,9 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
 > de onde está o detalhe — nunca cópia de conteúdo. Em caso de conflito,
-> vale o documento apontado: `CLAUDE.md` (regras e convenções), os ADRs em
-> `docs/adr/` (decisões e evidências por fonte) e
-> `docs/pendente-especialista-david.md` (o que depende do David).
+> vale o documento apontado: `CLAUDE.md` (regras e convenções) e os ADRs em
+> `docs/adr/` (decisões, evidências e a autorização de cada fonte). O que depende
+> do David e do Comitê está aqui mesmo, na §4.
 
 ## 1. Onde estamos
 
@@ -43,7 +43,7 @@ quando chegar a vez delas.
 |---|---|---|
 | 1a. Reunião | Apresentar o processo, os informes e as perguntas (§4 e §5); responder o que der na hora | FinMind apresenta, Comitê responde |
 | 1b. Retorno | Devolver as respostas pendentes, no prazo combinado na reunião | Comitê |
-| 1c. Registro | Anotar cada resposta e a data no Status (§4) e em `docs/pendente-especialista-david.md` | FinMind |
+| 1c. Registro | Anotar cada resposta e a data no Status (§4) e, se decidir algo estrutural, no ADR correspondente | FinMind |
 
 <details>
 <summary>2. Pronto</summary>
@@ -85,7 +85,7 @@ Evidências e ressalvas de cada fonte: no ADR apontado na coluna Status (o ADR 0
 | B3 — Indicador do Milho CEPEA/ESALQ | TXT de largura fixa em ZIP (arquivo `Indic`, Pesquisa por pregão) | Indicador à vista, em R$ e US$ por saca | Fonte **desde 2018-06-08** (antes, o milho não consta do arquivo). **No servidor, desde 2018-06-08** (backfill concluído, informado pelo usuário em 2026-09-23); em dev, carregado só de 2021-01-04 em diante | Estimado (fim do dia do pregão) | ✅ 66 de 66 datas iguais ao histórico da CEPEA — ADR 0021 |
 | EIA — etanol dos EUA | XLS (planilha histórica de cada série, sem chave; a API exige chave) | Produção semanal de etanol combustível (mil barris/dia) e estoques (mil barris): o fator do milho "Demanda de etanol" | **Desde 2010-06-04** (851 semanas por série, 1.702 observações em dev e no servidor; 1ª coleta no servidor conferida em 2026-09-24) | **Estimado** (quarta; quinta em semana de feriado; data do calendário oficial da EIA quando ele lista a semana) | ✅ Validado em 2026-09-23 em dev: 8 de 8 valores iguais à tabela oficial do WPSR, 0 duplicatas, reexecução idempotente — ADR 0024 |
 | NOAA STAR — clima sobre o milho | Texto (link de dados da página oficial, sem chave; endpoint não documentado) | Saúde da vegetação **medida só sobre a área do milho**: VHI, VCI (umidade) e TCI (calor), 0 a 100, semanal, em 18 regiões (mundo, hemisférios Norte e Sul; EUA, Brasil, Argentina, China, Ucrânia; MT, PR, GO, MS, MG; Iowa, Illinois, Nebraska, Minnesota, Indiana): o fator do milho "Clima e safra" | **Desde 1982** (2.276 semanas por série, 122.904 observações em dev e no servidor; backfill no servidor em 2026-09-24: 122.904 criadas, 0 falhas, ~17 min) | **Estimado** (dia seguinte ao fim da semana, regra da página) | ✅ Validado em 2026-09-24 em dev: valores iguais à página, secas de 2012 (EUA) e 2021 (MT) visíveis, 0 falhas, reexecução idempotente — ADR 0025 |
-| USDA NASS — área plantada de milho dos EUA (Prospective Plantings e Acreage) | HTML (listagem do ESMIS, raspada) + CSV dentro do ZIP de cada edição | Área plantada total dos EUA, em mil acres: a **intenção de plantio** (fim de março) e a **área plantada** (fim de junho), com a revisão dos anos anteriores que cada edição traz. O WASDE só traz esse número semanas depois (em 2026: USDA em 31/03, WASDE em 12/05) | **Desde 2001-06-29** (51 edições, 27 anos, 92 linhas em dev); antes só TXT/PDF | **Real, só a data** (listagem, igual à impressa no CSV nas 51 edições); **vintage real** | ✅ Validado em 2026-09-28 em dev: 51 de 51 edições lidas, valores iguais ao QuickStats (15 de março e 9 de junho), 0 falhas, 0 duplicatas, reexecução idempotente — ADR 0027. **Backfill pendente no servidor** |
+| USDA NASS — área plantada de milho dos EUA (Prospective Plantings e Acreage) | HTML (listagem do ESMIS, raspada) + CSV dentro do ZIP de cada edição | Área plantada total dos EUA, em mil acres: a **intenção de plantio** (fim de março) e a **área plantada** (fim de junho), com a revisão dos anos anteriores que cada edição traz. O WASDE só traz esse número semanas depois (em 2026: USDA em 31/03, WASDE em 12/05) | **Desde 2001-06-29** (51 edições, 27 anos, 92 linhas em dev e no servidor); antes só TXT/PDF | **Real, só a data** (listagem, igual à impressa no CSV nas 51 edições); **vintage real** | ✅ Validado em 2026-09-28 em dev: 51 de 51 edições lidas, valores iguais ao QuickStats (15 de março e 9 de junho), 0 falhas, 0 duplicatas, reexecução idempotente — ADR 0027. **Backfill rodado no servidor em 2026-09-28** (27 criados, 65 revisões, 35 ignorados, 0 falhas, ~76 s: os mesmos números de dev) |
 | IMEA — balanço de oferta e demanda do milho de Mato Grosso | PDF (extração por coordenada) | Estoque inicial/final, importação, produção, demanda, consumo (MT e interestadual), exportação, aquisições públicas: 1 card, extraído por COORDENADA do PDF mensal (x/y de cada texto) | **Vintage real, 77 edições, 2014-04-14 a 2026-08-31** (catálogo inteiro, descartando 1 PDF de metodologia e 1 republicação no mesmo dia) | **Real, só a data** (data do arquivo no catálogo) | ✅ Validado contra as 77 edições reais em 2026-09-22: 3.369 itens válidos no parser, 0 inválidos; **802 linhas gravadas em `observation`** após deduplicação por revisão (o serviço point-in-time só grava quando o valor muda — ver ADR 0008); backfill em blocos de 5 anos — ADR 0019 |
 
 ### Como tratamos as fontes de dados
@@ -186,27 +186,31 @@ Banco Mundial foram reconhecidos em 2026-09-28 e não trazem nada novo para o ou
 
 ### Infraestrutura pendente
 
-| Item | Observação |
-|---|---|
-| `imea-custo-milho` parcial | Toda coleta termina em "Parcial" pelos mesmos 2 registros com problema (anterior à troca de banco) |
+Nenhuma no momento (a última, `imea-custo-milho` sempre "Parcial", foi resolvida em 2026-09-28: o rótulo repetido
+de Tangará da Serra virou aviso da fonte, ADR 0002).
 
 ### Carga histórica pendente no servidor
 
 Backfills já validados em dev que ainda não rodaram na VM. Ao rodar, tirar a linha daqui e marcar "dev e servidor"
 na coluna Status de "Dados coletados" (§2).
 
-| Fonte | Comando | Observação |
-|---|---|---|
-| USDA — área plantada do milho (ADR 0027) | `npm run backfill:usda-area-plantada` | ~1,5 min, uma execução. Até rodar, a coleta diária registra a recusa deste coletor ("rode o backfill antes") |
+Nenhuma no momento (a última, USDA — área plantada do milho, rodou no servidor em 2026-09-28).
 
 </details>
 
 <details open>
 <summary>4. Bloqueado — depende do David / Comitê</summary>
 
-Itens 4 a 8 de `docs/pendente-especialista-david.md` continuam sem definição:
-regras e cálculos do motor, formato de apresentação, avaliação da IA,
-condições de sinal e execução de ordens.
+**O que o David e o Comitê ainda definem** (a lista que ficava num documento à parte, aposentado em 2026-09-28):
+
+| Definição | Situação |
+|---|---|
+| Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro; as fontes e a planilha de fatores), aguardando a aprovação do Comitê. A coleta de milho e ouro foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR (ADRs 0001, 0006, 0008, 0009, 0013, 0015, 0017 a 0025 e 0027) |
+| Regras e cálculos do motor (camadas B e C) | Em aberto: é a etapa 1 dos "Próximos passos" e o §5 (a medida de cada fator, camada A, é proposta pelo FinMind para o Comitê confirmar) |
+| Formato de apresentação dos resultados | Em aberto (dashboard, relatório, alerta...) |
+| Avaliação da saída da IA | Em aberto: o que é acerto (horizonte e métrica), ver §5, "Memória com avaliação". O papel da IA já foi decidido (pergunta 11) |
+| Condições de sinal operacional | Em aberto: nenhum sinal é gerado hoje |
+| Execução automática de ordens | **Não existe nesta fase** (restrição permanente, `CLAUDE.md`): uma pessoa decide e executa. A arquitetura mantém análise e execução em camadas separadas (`docs/architecture.md`) |
 
 Perguntas da análise crítica (`docs/analise-critica-fel1-milho-ouro.md`, §H).
 Preencher a resposta e a data quando o David responder.
@@ -1074,7 +1078,7 @@ e com versão registrada:
 
 | # | Dimensão | Como funciona | Depende de |
 |---|---|---|---|
-| 1 | **Memória com avaliação** | Cada leitura do motor fica registrada e nunca é apagada (data da análise, base, versão das regras, versão do prompt, recomendação da IA). Depois, é comparada com o que o preço fez. É a base das outras duas: sem registro, não há o que avaliar | O Comitê definir o que é acerto (horizonte e métrica): item 6, "Avaliação da saída da IA", de `docs/pendente-especialista-david.md` |
+| 1 | **Memória com avaliação** | Cada leitura do motor fica registrada e nunca é apagada (data da análise, base, versão das regras, versão do prompt, recomendação da IA). Depois, é comparada com o que o preço fez. É a base das outras duas: sem registro, não há o que avaliar | O Comitê definir o que é acerto (horizonte e métrica): "Avaliação da saída da IA", §4 |
 | 2 | **Aprendizado governado** | Com a avaliação, o Comitê revisa as regras das camadas B e C (direção, pesos, limiares): a versão 1 vira a versão 2. A versão nova só entra depois de testada no histórico, e cada leitura guarda a versão que usou | Histórico de preço para testar (perguntas 2 e 3) |
 | 3 | **Calibração estatística** | O sistema **sugere** pesos e limiares a partir do histórico (fatores contra preço), e o Comitê aprova ou não. Uma sugestão aprovada vira uma versão nova, como na dimensão 2 | Histórico longo de preço e de revisões (perguntas 2, 3 e 5) |
 
@@ -1122,7 +1126,10 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 | Entrega | Resultado | Onde |
 |---|---|---|
 | Conferência das fontes do FEL 1 (milho e ouro) | Auditoria de cobertura revisada com os números de hoje; reconhecidas as fontes do FEL 1 que não tinham registro: World Bank Pink Sheet e US Treasury (nada novo para o ouro), Grain Stocks (vintage pelo ESMIS; aguarda o Comitê) | `docs/cobertura-fatores-fel1-milho-ouro.md`, `docs/reconhecimento-fontes/` |
-| Área plantada de milho dos EUA | Coletor novo (Prospective Plantings e Acreage, pelo ESMIS): 51 edições desde 2001, vintage real, 0 falhas; card "Milho EUA - Área plantada (USDA)". Antecipa em ~6 semanas a intenção de plantio que o WASDE só traz em maio | ADR 0027 |
+| Área plantada de milho dos EUA | Coletor novo (Prospective Plantings e Acreage, pelo ESMIS): 51 edições desde 2001, vintage real, 0 falhas; card "Milho EUA - Área plantada (USDA)". Antecipa em ~6 semanas a intenção de plantio que o WASDE só traz em maio. Backfill rodado no servidor no mesmo dia (0 falhas) | ADR 0027 |
+| Documentos abertos no status | As menções a ADRs e documentos no status (119 links, 40 documentos) abrem o documento num modal da mesma tela, com link compartilhável (`?doc=adr-0027`), navegação entre documentos com "voltar" e tela cheia no celular. Um teste barra link quebrado. A tabela de execuções ganhou a coluna "Atualizados" | `CLAUDE.md`, "Status do projeto" |
+| Documento de pendências do David aposentado | `docs/pendente-especialista-david.md` repetia o que já estava no status (o que falta decidir) e nos ADRs (a autorização de cada fonte), desatualizado e com seis "exceções pontuais" que davam a impressão de regra furada. Agora o que falta decidir está só aqui, no §4 ("O que o David e o Comitê ainda definem"); o arquivo virou um aviso apontando para cá. Nenhuma decisão mudou; um teste impede o status de voltar a citá-lo | §4, `CLAUDE.md` |
+| Avisos da fonte nas execuções | Defeito conhecido da fonte, tratado de propósito pelo coletor, deixa de ser falha: vira **aviso**, mostrado no detalhe da execução. Primeiro caso: as duas colunas "2025/26" de Tangará da Serra no custo do IMEA (uma é a 2024/25 com o rótulo errado; nenhuma é gravada). O `imea-custo-milho` sai de "Parcial" para "Sucesso" | ADR 0002, ADR 0018 |
 
 </details>
 

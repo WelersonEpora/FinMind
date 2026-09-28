@@ -21,7 +21,7 @@ Coleta → Preparação → Motor analítico (regras) → IA (síntese/avaliaç�
 
 Hoje só a casca de cada camada existe — nenhuma seta acima tem
 implementação de domínio real, exceto o transporte (rotas HTTP,
-autenticação, banco). Ver `docs/pendente-especialista-david.md` pelo
+autenticação, banco) e a coleta de dados. Ver `STATUS_DO_PROJETO.md` (§4) pelo
 que falta para cada uma.
 
 ## Estrutura de diretórios
@@ -96,7 +96,7 @@ em um espaço. Detalhes e justificativa em `docs/decisoes-tecnicas.md`.
 Os três módulos vivem isolados em seus próprios diretórios, cada um com um
 arquivo de contrato (`*.interface.js`). O motor analítico e a IA continuam
 contratos vazios (`NotConfiguredError`), aguardando as definições do
-especialista David (ver `docs/pendente-especialista-david.md`).
+especialista David e do Comitê (ver `STATUS_DO_PROJETO.md`, §4).
 
 A coleta (`collectors/`) tem, desde a primeira integração real, um pipeline
 completo (`collectors/base/collector-runner.js` + `retry.js`): download com
@@ -104,8 +104,9 @@ timeout+retry, parse, normalize (válido/inválido) e persist, registrando
 cada execução em `collection_execution`. O primeiro coletor concreto é
 `collectors/bcb/bcb-usd-brl.collector.js` (cotação do dólar via API SGS do
 Banco Central — ver `docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md` e
-`docs/adr/0002-arquitetura-coletores.md`). Novos coletores (além do dólar)
-continuam bloqueados por `docs/pendente-especialista-david.md`. Ver o
+`docs/adr/0002-arquitetura-coletores.md`). Um coletor novo precisa de
+autorização explícita registrada no ADR da fonte (`CLAUDE.md`, "Convenções para
+novos coletores"). Ver o
 `README.md` de cada diretório para detalhes.
 
 ## Deploy

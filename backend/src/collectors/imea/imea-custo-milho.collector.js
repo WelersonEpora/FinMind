@@ -146,6 +146,7 @@ function parse(rawData) {
 function normalize(arquivos, agora = new Date()) {
   const validos = [];
   const invalidos = [];
+  const avisos = [];
 
   for (const arquivo of arquivos) {
     const ident = { arquivo: arquivo.nome, id: arquivo.id };
@@ -159,6 +160,7 @@ function normalize(arquivos, agora = new Date()) {
       continue;
     }
     for (const motivo of arquivo.invalidos) invalidos.push({ item: { ...ident, ...motivo.item }, motivo: motivo.motivo });
+    for (const aviso of arquivo.avisos || []) avisos.push({ item: { ...ident, ...aviso.item }, motivo: aviso.motivo });
 
     const publishedAt = publicadoEm(arquivo.data, agora);
     for (const o of arquivo.observacoes) {
@@ -196,7 +198,7 @@ function normalize(arquivos, agora = new Date()) {
 
   // Ordem cronológica de publicação (o serviço compara cada valor com a última versão da série).
   validos.sort((a, b) => a.published_at - b.published_at);
-  return { validos, invalidos };
+  return { validos, invalidos, avisos };
 }
 
 // Uma `source_code` por planilha: a reingestão descarta as edições já lidas POR FONTE, e duas planilhas publicadas no

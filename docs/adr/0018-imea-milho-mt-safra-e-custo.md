@@ -63,7 +63,10 @@ reconhecimento do AgroMind não tinha investigado.
     os dois arquivos, e o IMEA não explica a diferença no arquivo.
   - **Lendo os 4 arquivos reais**: 15.402 valores válidos, 5.073 séries, **2 inválidos reais** (não fixture): a aba
     de Tangará da Serra do "Ponderado Média Tecnologia" tem **duas colunas rotuladas "2025/26 Consolidado"** (uma
-    deveria ser "2024/25") — ambíguo, as duas ficam de fora, sem inventar qual é qual.
+    deveria ser "2024/25") — ambíguo, as duas ficam de fora, sem inventar qual é qual. **Desde 2026-09-28** esse
+    caso é um **aviso da fonte**, não uma falha (ADR 0002): a execução fica `success` e as duas colunas aparecem no
+    detalhe dela. A evidência de que a primeira é a 2024/25 (as outras 14 abas do mesmo arquivo têm 2024/25 e
+    2025/26 nessa posição) foi registrada, mas o rótulo **não** é corrigido pelo FinMind.
   - **O Índice de 2 dos 4 arquivos lista abas que não existem**: "Nova Mutum" no Mensal Alta, "Querência" e
     "Paranatinga" no Mensal Média — lacuna da própria fonte, tratada como informativa (`locaisSemAba`), não erro.
   - **A grafia da preposição varia** entre o Índice e o título da aba ("Campo Novo do Parecis" vs. "CAMPO NOVO DOS

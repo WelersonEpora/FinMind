@@ -6,7 +6,7 @@ e síntese por IA. Esta é a **casca inicial** do projeto — autenticação,
 dashboard e infraestrutura funcionando de ponta a ponta, com os módulos
 de domínio (coleta, motor analítico, IA) preparados como contratos
 vazios até que o especialista de mercado (David) defina ativos, fontes,
-regras e critérios de sinal. Ver `docs/pendente-especialista-david.md`.
+regras e critérios de sinal. Ver `STATUS_DO_PROJETO.md` (§4).
 
 ## Arquitetura
 
@@ -209,11 +209,12 @@ pelo Nginx Proxy Manager da VM. Ver `docs/architecture.md` § "Deploy".
 
 ## O que depende do especialista de mercado (David)
 
-Ver lista completa em `docs/pendente-especialista-david.md`: ativos,
-mercados/fontes de dados, dados a coletar, regras e cálculos, formato
-de apresentação dos resultados, critérios de avaliação da IA,
-condições de sinal operacional e se/como haverá execução automática de
-ordens. Nenhum desses itens foi decidido ou simulado nesta entrega.
+Ver `STATUS_DO_PROJETO.md`, §4: o que o David e o Comitê ainda definem (regras
+e cálculos, formato de apresentação dos resultados, critérios de avaliação da
+IA, condições de sinal operacional) e as perguntas em aberto. Ativos e fontes
+foram propostos pelo relatório FEL 1, que aguarda a aprovação do Comitê; a
+coleta de milho e ouro foi adiantada fonte a fonte, cada uma autorizada no seu
+ADR. Execução automática de ordens não existe nesta fase.
 
 ## O que ainda depende de decisão operacional (não bloqueado pelo
 David)

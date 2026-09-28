@@ -9,12 +9,11 @@ agente precisa saber antes de tocar em código.
 
 Plataforma de inteligência aplicada ao mercado financeiro: coleta de dados
 → preparação → motor analítico (regras do especialista de mercado) → síntese
-por IA → resultado. Hoje é uma **casca inicial** com uma primeira integração
-real de dados (cotação do dólar) — autenticação, dashboard e o pipeline de
-coleta funcionando de ponta a ponta. O motor analítico e a integração com
-IA seguem como contratos vazios até o especialista de mercado ("David")
-definir ativos, fontes, regras e critérios de sinal (ver
-`docs/pendente-especialista-david.md`).
+por IA → resultado. Hoje: autenticação, espaços, dashboard e a **coleta de
+dados de milho e ouro** (as fontes do relatório FEL 1 do especialista de mercado,
+"David"), guardada com data de publicação. O motor analítico e a integração com
+IA seguem como contratos vazios até o David e o Comitê definirem regras,
+cálculos e critérios de sinal (ver `STATUS_DO_PROJETO.md`, §4).
 
 ## Restrições permanentes (não negociáveis nesta fase)
 
@@ -30,7 +29,8 @@ definir ativos, fontes, regras e critérios de sinal (ver
   estruturada oficial confiável (ver ADR 0001) — e uma resposta de IA nunca
   dispara uma ação sozinha (ver `backend/src/ai/README.md`).
 - Antes de implementar qualquer novo coletor/ativo/fonte, confira
-  `docs/pendente-especialista-david.md` — a maioria continua bloqueada.
+  `STATUS_DO_PROJETO.md` (§3 e §4) — fonte nova só se estiver no FEL 1 e com
+  autorização explícita do usuário registrada num ADR.
 
 ## Arquitetura e estrutura do repositório
 
@@ -156,7 +156,9 @@ Detalhe completo e alternativas consideradas:
 
 1. Contrato (`backend/src/collectors/base/collector.interface.js`):
    `{ codigo, timeoutMs, tentativasRetry, download, parse, normalize,
-   persist }` — `normalize` retorna `{ validos, invalidos }`; `persist`
+   persist }` — `normalize` retorna `{ validos, invalidos }` (e, opcional,
+   `avisos`: defeito CONHECIDO da fonte que o coletor trata de propósito, sem
+   gravar nada; fica no detalhe da execução e não conta como falha); `persist`
    retorna `{ criados, atualizados, ignorados, falhas }`.
 2. Um módulo por fonte em `collectors/<fonte>/<nome>.collector.js`,
    registrado (`registerCollector(...)`) em `collectors/index.js`.
@@ -168,9 +170,10 @@ Detalhe completo e alternativas consideradas:
    implementar, ADR 0001), faça o **reconhecimento da fonte** (checklist de 11
    perguntas + nível 0–5, `docs/processo-reconhecimento-fontes.md`; uma linha
    em `docs/reconhecimento-fontes/README.md`) e documente a decisão num ADR novo.
-5. Novo ativo/fonte só depois de resolvido em
-   `docs/pendente-especialista-david.md` (ou autorização pontual explícita
-   do usuário, registrada em ADR, como aconteceu com o dólar).
+5. Novo ativo/fonte só com **autorização explícita do usuário, registrada no
+   "Contexto" do ADR** da fonte (quem autorizou, quando e o limite: em geral,
+   "só aquisição de dados"). Vale para as fontes do FEL 1 enquanto o Comitê não
+   o aprova; fonte fora do FEL 1 precisa da decisão do David/Comitê.
 
 Ver também `backend/src/collectors/base/README.md`.
 
@@ -321,11 +324,19 @@ retomar o trabalho. A tela `/status-projeto` renderiza este arquivo como está
 então ele deve continuar sendo markdown simples (tabelas, listas, negrito). A
 única exceção de HTML aceita pela tela é `<details>`/`<summary>` sem atributos
 (seção recolhível, ex.: "Entregas realizadas"); qualquer outra tag é mostrada
-como texto.
+como texto. As menções a documentos (`ADR 0027`, `ADRs 0022 e 0023`,
+`` `docs/....md` ``, `` `CLAUDE.md` ``) viram links que abrem o documento num
+**modal da mesma tela** (`?doc=<id>` na URL; `GET /api/v1/documentos/:id`,
+`documentos-projeto.service.js`): ADRs, `docs/reconhecimento-fontes/`, `docs/*.md`
+e `CLAUDE.md` — nunca `docs/Docs_David` nem `docs/Docs_Base`. O `deploy.yml` copia
+esses arquivos para a imagem; um teste falha se o status citar um ADR ou documento
+que não existe. Escreva as menções nesses formatos para virarem link.
 **Ao fechar uma entrega, atualize-o no mesmo commit**
 (data de "Última atualização" incluída); ele só aponta para os ADRs/docs, nunca
 copia conteúdo deles. Quando o David responder uma das perguntas da §4,
-registre a resposta e a data ali e reflita em `docs/pendente-especialista-david.md`.
+registre a resposta e a data ali (e num ADR, se a decisão for estrutural). O
+antigo `docs/pendente-especialista-david.md` foi aposentado em 2026-09-28: o
+status é o único lugar do que falta decidir.
 
 ## O que já está implementado
 
@@ -334,11 +345,10 @@ Ver `STATUS_DO_PROJETO.md` (visão atual) e "O que está pronto" em `README.md`
 
 ## O que ainda depende das definições do David
 
-Ver `docs/pendente-especialista-david.md` — qualquer ativo/mercado/fonte
-além de USD/BRL via BCB, qualquer regra/cálculo do motor analítico,
-critérios de avaliação da IA, condições de sinal operacional e execução
-automática de ordens continuam bloqueados até o especialista de mercado
-definir. A exceção pontual do dólar está registrada e datada nesse
-documento e em `docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md` — não é
-precedente para desbloquear outros ativos sem a mesma autorização
-explícita.
+Ver `STATUS_DO_PROJETO.md`, §4 ("O que o David e o Comitê ainda definem" e as
+perguntas). Qualquer regra/cálculo do motor analítico, critérios de avaliação
+da IA, condições de sinal operacional e formato de apresentação continuam
+bloqueados até o David/Comitê definir; execução automática de ordens não existe
+nesta fase. Ativos e fontes: o FEL 1 propôs, o Comitê ainda não aprovou; a coleta
+de milho e ouro foi adiantada fonte a fonte, cada uma autorizada no seu ADR, e
+nenhuma autorização é precedente para outra fonte ou para qualquer regra.

@@ -4,8 +4,8 @@
  * Contrato que todo coletor de dados do FinMind deve implementar. O
  * primeiro coletor real (cotação do dólar via API SGS do Banco Central,
  * ver collectors/bcb/bcb-usd-brl.collector.js) preenche este contrato -
- * novos ativos/fontes além dele continuam dependendo das definições do
- * especialista David (ver docs/pendente-especialista-david.md).
+ * um ativo/fonte novo precisa de autorização explícita registrada no ADR da
+ * fonte (CLAUDE.md, "Convenções para novos coletores").
  *
  * Um coletor concreto é um objeto com o formato:
  *   {
@@ -14,7 +14,8 @@
  *     tentativasRetry: number,                // tentativas de retry (só download)
  *     download: async ({ signal }) => rawData,        // busca os dados brutos na fonte
  *     parse: (rawData) => rawItems[],                  // extrai a lista de itens brutos
- *     normalize: (rawItems) => { validos, invalidos }, // mapeia pro modelo canônico + valida
+ *     normalize: (rawItems) => { validos, invalidos, avisos? }, // mapeia pro modelo canônico + valida
+ *                                              // (avisos: defeito conhecido da fonte, não é falha)
  *     persist: async (validos, { execucaoId }, deps) => { criados, atualizados, ignorados }
  *   }
  *

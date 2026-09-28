@@ -57,6 +57,15 @@ function formatarDuracao(ms) {
   return ms == null ? '-' : `${(ms / 1000).toFixed(1)}s`
 }
 
+// Onde está o aviso ("arquivo: ... · local: ... · coluna: 5"), a partir do item que o coletor registrou.
+function descreverItemAviso(item) {
+  if (!item || typeof item !== 'object') return ''
+  return Object.entries(item)
+    .filter(([, valor]) => valor !== null && valor !== undefined && valor !== '')
+    .map(([campo, valor]) => `${campo}: ${valor}`)
+    .join(' · ')
+}
+
 async function carregar({ silencioso = false } = {}) {
   if (!silencioso) carregando.value = true
   errorMessage.value = ''
@@ -253,6 +262,9 @@ onMounted(carregar)
         <Column header="Novos">
           <template #body="{ data }">{{ data.registros.criados }}</template>
         </Column>
+        <Column header="Atualizados">
+          <template #body="{ data }">{{ data.registros.atualizados }}</template>
+        </Column>
         <Column header="Ignorados">
           <template #body="{ data }">{{ data.registros.ignorados }}</template>
         </Column>
@@ -283,6 +295,18 @@ onMounted(carregar)
         <template v-if="execucaoDetalhe.mensagemErro">
           <dt class="col-12 mt-2">Mensagem de erro</dt>
           <dd class="col-12"><pre class="small text-danger mb-0">{{ execucaoDetalhe.mensagemErro }}</pre></dd>
+        </template>
+        <template v-if="execucaoDetalhe.avisos?.length">
+          <dt class="col-12 mt-2">Avisos da fonte ({{ execucaoDetalhe.avisos.length }})</dt>
+          <dd class="col-12 mb-0">
+            <p class="text-muted mb-1">Defeitos conhecidos da fonte, tratados pelo coletor: não contam como falha.</p>
+            <ul class="ps-3 mb-0">
+              <li v-for="(aviso, i) in execucaoDetalhe.avisos" :key="i">
+                {{ aviso.motivo }}
+                <span v-if="descreverItemAviso(aviso.item)" class="d-block text-muted">{{ descreverItemAviso(aviso.item) }}</span>
+              </li>
+            </ul>
+          </dd>
         </template>
       </dl>
     </Dialog>

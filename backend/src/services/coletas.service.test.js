@@ -81,6 +81,17 @@ test("obterExecucao retorna a execução mapeada quando encontrada", async () =>
   assert.equal(resultado.execucao.status, "success");
 });
 
+test("obterExecucao traz os avisos da fonte do metadata (lista vazia quando não há)", async () => {
+  const aviso = { item: { local: "TANGARA_DA_SERRA" }, motivo: "rótulo repetido na fonte" };
+  const comAviso = await coletasService.obterExecucao("exec-1", {
+    collectionExecutionRepository: { buscarPorId: async () => ({ ...execucaoFake, metadata: { invalidos: [], avisos: [aviso] } }) }
+  });
+  assert.deepEqual(comAviso.execucao.avisos, [aviso]);
+
+  const semAviso = await coletasService.obterExecucao("exec-1", { collectionExecutionRepository: { buscarPorId: async () => execucaoFake } });
+  assert.deepEqual(semAviso.execucao.avisos, []);
+});
+
 function depsDeTeste(execucoesRegistradas, { antesDeTerminar } = {}) {
   return {
     collectionExecutionRepository: {

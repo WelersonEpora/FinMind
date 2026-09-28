@@ -202,7 +202,7 @@ test("extrairAba: valor não numérico numa célula vira inválido, sem abortar 
   assert.match(invalidos[0].motivo, /valor não numérico: "N\/D"/);
 });
 
-test("extrairAba: colunas com o MESMO período (rótulo repetido na fonte) são ambíguas - nenhuma é gravada, o resto da aba segue", () => {
+test("extrairAba: colunas com o MESMO período (rótulo repetido na fonte) - nenhuma é gravada, viram AVISO (não inválido), o resto da aba segue", () => {
   const linhas = linhasAba({
     titulo1: "CUSTO DE PRODUÇÃO",
     tecnologiaTitulo: "MILHO MÉDIA TECNOLOGIA",
@@ -212,10 +212,11 @@ test("extrairAba: colunas com o MESMO período (rótulo repetido na fonte) são 
     colMes: ["Consolidado", "Consolidado", "Consolidado", "Julho"],
     itens: [["A. CUSTEIO (1+2...+6)", 2477.26, 2243.51, 2458.3, 3200.38]]
   });
-  const { observacoes, invalidos } = extrairAba(linhas, { tipo: "PONDERADO", tecnologia: "MEDIA", local: "Tangará da Serra" });
+  const { observacoes, invalidos, avisos } = extrairAba(linhas, { tipo: "PONDERADO", tecnologia: "MEDIA", local: "Tangará da Serra" });
 
-  assert.equal(invalidos.length, 2, "as duas colunas ambíguas, cada uma reportada");
-  assert.match(invalidos[0].motivo, /não há como saber qual é qual/);
+  assert.equal(invalidos.length, 0, "defeito conhecido da fonte não é falha da coleta");
+  assert.equal(avisos.length, 2, "as duas colunas ambíguas, cada uma reportada como aviso");
+  assert.match(avisos[0].motivo, /não há como saber qual é qual/);
   assert.deepEqual(observacoes.map((o) => o.observedAt).sort(), ["2023-09-01", "2026-07-01"]);
 });
 

@@ -35,6 +35,15 @@ jobs:
       - name: Include STATUS_DO_PROJETO.md in the backend image
         run: cp STATUS_DO_PROJETO.md backend/STATUS_DO_PROJETO.md
 
+      # Os documentos que o status cita (ADRs, reconhecimentos de fonte, docs/*.md e CLAUDE.md), abertos num modal
+      # da mesma tela (backend/src/services/documentos-projeto.service.js). Docs_David e Docs_Base ficam de fora.
+      - name: Include project documents in the backend image
+        run: |
+          mkdir -p backend/projeto/docs
+          cp CLAUDE.md backend/projeto/
+          cp docs/*.md backend/projeto/docs/
+          cp -r docs/adr docs/reconhecimento-fontes backend/projeto/docs/
+
       # Só arm64: o FinMind roda apenas na VM Ampere A1. Para voltar a rodar em x86, incluir linux/amd64 em
       # `platforms` (e o docker/setup-qemu-action, ou um job num runner x86).
       - name: Set up Docker Buildx

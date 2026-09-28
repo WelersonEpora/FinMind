@@ -8,6 +8,6 @@ substituído silenciosamente por uma chamada de IA.
 `runAnalysis()` sempre lança `NotConfiguredError` hoje. Não implemente
 nenhuma regra, fórmula ou heurística de mercado aqui até que o
 especialista David forneça as regras e cálculos (ver
-`docs/pendente-especialista-david.md`). Em particular: nenhum sinal de
+`STATUS_DO_PROJETO.md`, §4). Em particular: nenhum sinal de
 compra/venda pode ser gerado por este módulo enquanto ele não existir de
 fato.

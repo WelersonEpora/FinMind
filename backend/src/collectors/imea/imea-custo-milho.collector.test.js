@@ -240,6 +240,16 @@ test("normalize: inválidos do parser (linha ambígua, item repetido...) são re
   assert.equal(invalidos[0].item.local, "MATO_GROSSO");
 });
 
+test("normalize: avisos do parser (rótulo repetido na fonte) são repassados à parte, com o identificador do arquivo, e não viram inválidos", () => {
+  const arquivo = {
+    sourceCode: "X", nome: "arq.xlsx", id: "1", data: "2026-09-15", observacoes: [], invalidos: [],
+    avisos: [{ item: { local: "TANGARA_DA_SERRA", coluna: 5 }, motivo: "rótulo repetido na fonte" }]
+  };
+  const { invalidos, avisos } = coletor.normalize([arquivo]);
+  assert.equal(invalidos.length, 0);
+  assert.deepEqual(avisos, [{ item: { arquivo: "arq.xlsx", id: "1", local: "TANGARA_DA_SERRA", coluna: 5 }, motivo: "rótulo repetido na fonte" }]);
+});
+
 // --- persist ---
 
 test("persist: agrupa por source_code (uma planilha não pode descartar a reingestão de outra publicada no mesmo dia)", async () => {

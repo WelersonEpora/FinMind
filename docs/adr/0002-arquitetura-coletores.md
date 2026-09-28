@@ -23,11 +23,19 @@ Estender (não substituir) o contrato existente para:
   tentativasRetry: number,
   download: async ({ signal }) => rawData,
   parse: (rawData) => rawItems[],
-  normalize: (rawItems) => { validos, invalidos },
+  normalize: (rawItems) => { validos, invalidos, avisos? }, // avisos: desde 2026-09-28, ver abaixo
   persist: async (validos, { execucaoId }, deps) => { criados, atualizados, ignorados, falhas }
 }
 ```
 
+- **`avisos` (acréscimo de 2026-09-28):** defeito CONHECIDO da fonte que o
+  coletor trata de propósito, sem gravar o dado (o primeiro caso: duas
+  colunas com o mesmo rótulo de safra na planilha de custo do IMEA, ADR
+  0018). O runner guarda os avisos em `metadata.avisos` e o detalhe da
+  execução (`GET /api/v1/coletas/:id` e a tela de execuções) os mostra, mas
+  eles **não contam como falha** nem mudam o status. Um defeito novo ou
+  inesperado continua sendo `invalidos` (execução `partial_success`): só vira
+  aviso depois de investigado e documentado.
 - `collector.interface.js` ganhou `registerCollector(collector)` (não
   existia antes — só havia `listCollectors()` sobre um array privado).
 - `collector-runner.js` (novo) orquestra qualquer coletor que siga o

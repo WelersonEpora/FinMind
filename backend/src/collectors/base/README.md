@@ -11,13 +11,16 @@ documentado em `collector.interface.js` (`download`/`parse`/`normalize`/
 download com timeout+retry, parse, normalize (separando itens válidos de
 inválidos) e persist, registrando o resultado em `collection_execution`. Uma
 falha de comunicação com a fonte marca a execução inteira como `failed`; um
-item individual com dado inválido não aborta o restante do lote.
+item individual com dado inválido não aborta o restante do lote. Um defeito
+CONHECIDO da fonte, já investigado e tratado de propósito pelo coletor (sem
+gravar o dado), sai como `avisos` do `normalize`: fica no detalhe da execução,
+mas não conta como falha (ADR 0002).
 
 Além do BCB (dólar e Selic) e das fontes de ouro/milho da camada point-in-time
 (abaixo), **nenhum outro ativo, mercado ou fonte está integrado**. O que falta
 para um próximo coletor depende inteiramente das definições do especialista David: quais ativos, quais mercados, quais fontes
-de dados e quais informações coletar (ver
-`docs/pendente-especialista-david.md`). Não crie um coletor "de exemplo"
+de dados e quais informações coletar (ver `STATUS_DO_PROJETO.md`, §4, e a
+autorização registrada no ADR de cada fonte). Não crie um coletor "de exemplo"
 com dados inventados - isso seria uma estratégia fictícia disfarçada de
 código de infraestrutura.
 
