@@ -186,7 +186,7 @@ esperar a reunião do Comitê (só aquisição de dados, cada fonte autorizada n
 |---|---|---|
 | 1. Reaproveitar coletores do milho | CFTC COT (Coffee C da ICE), Comex Stat (café verde), B3 ICF (Up2Data e Boletim Diário) | **Feito** (ADR 0028). Descartados no caminho: o arquivo `Indic` da B3 (não traz o café à vista) e o conilon CNL (nenhum negócio) |
 | 2. Safra brasileira e clima | Conab (Boletim da Safra de Café), depois NOAA STAR café com as regiões tiradas dela | **Feito**: Conab (ADR 0029) e NOAA café (ADR 0030). No Brasil a NOAA não separa arábica de conilon (as duas máscaras cobrem os mesmos pixels): uma série "café" por UF, e arábica e robusta separados só no mundo e nos hemisférios (decisão do usuário) |
-| 3. Reconhecer as fontes novas | Estoques certificados da ICE, USDA FAS (PSD e *Coffee: World Markets and Trade*), ICO | A fazer |
+| 3. Reconhecer as fontes novas | Estoques certificados da ICE, USDA FAS (PSD e *Coffee: World Markets and Trade*), ICO | **Reconhecido** (`docs/reconhecimento-fontes/cafe-mercado-mundial.md`). Decisão do usuário: implementar a PSD do café (CSV, sem vintage) e, pela produção dela, acrescentar países à NOAA café; coletar a ICE (diária e backfill), com o risco dos termos de uso aceito (excluem robôs); a ICO (PDF mensal, reuso livre com citação) fica para depois; o *World Markets and Trade* não entra (PDF com os números da PSD). Implementação a fazer |
 | 4. Reconhecimento rápido | Cecafé, MAPA, Embrapa (tendem a só republicar dado de outras fontes) | A fazer |
 
 Ficam para o Comitê: o preço do KC (ICE, só pago, a mesma lacuna do ZC da pergunta 2) e o risco de geada (sem
