@@ -67,8 +67,8 @@ test("listarDocumentos: só as pastas permitidas (sem Docs_David, sem arquivo fo
     { id: "claude", titulo: "CLAUDE.md", caminho: "CLAUDE.md", grupo: "projeto" },
     { id: "adr-0027", titulo: "0027 — Área plantada", caminho: "docs/adr/0027-usda-area-plantada-milho-esmis.md", grupo: "adr" },
     { id: "pendente-especialista-david", titulo: "Pendências do David", caminho: "docs/pendente-especialista-david.md", grupo: "projeto" },
-    { id: "reconhecimento-clima", titulo: "Clima", caminho: "docs/reconhecimento-fontes/clima.md", grupo: "reconhecimento" },
-    { id: "reconhecimento-readme", titulo: "Índice", caminho: "docs/reconhecimento-fontes/README.md", grupo: "reconhecimento" }
+    { id: "reconhecimento-readme", titulo: "Índice", caminho: "docs/reconhecimento-fontes/README.md", grupo: "reconhecimento" },
+    { id: "reconhecimento-clima", titulo: "Clima", caminho: "docs/reconhecimento-fontes/clima.md", grupo: "reconhecimento" }
   ]);
 });
 

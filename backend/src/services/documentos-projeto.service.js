@@ -86,7 +86,9 @@ async function listarArquivos(deps = {}) {
       if (err.code !== "ENOENT") throw err;
     }
   }
-  return { raiz, arquivos: arquivos.sort((a, b) => a.caminho.localeCompare(b.caminho)) };
+  // Ordem pelo código dos caracteres, não por `localeCompare`: a ordem do idioma muda com a máquina (no runner Linux
+  // do CI, com LANG=C, maiúscula vem antes de minúscula) e a lista sairia diferente em cada ambiente.
+  return { raiz, arquivos: arquivos.sort((a, b) => (a.caminho < b.caminho ? -1 : a.caminho > b.caminho ? 1 : 0)) };
 }
 
 async function listarDocumentos(deps = {}) {
