@@ -4,28 +4,36 @@ const env = require("../../config/env");
 const { UpstreamServiceError } = require("../../shared/errors");
 const { somarDias, diaDaSemanaIso, paraDate, paraIso } = require("../../shared/utils/date-utils");
 const { zonedParaUtc } = require("../../shared/utils/zoned-time");
-const { decodificarFuturoCcm } = require("../../shared/utils/b3-contrato");
+const { decodificarFuturoB3 } = require("../../shared/utils/b3-contrato");
 const { persistirObservacoes } = require("../base/persist-observations");
+const { produtoB3 } = require("./b3-produtos");
 
-// B3 - futuro de milho com liquidação financeira (CCM), preço diário por
-// VENCIMENTO, via o arquivo público `TradeInformationConsolidatedFile`
-// (Up2Data, sem chave e sem recaptcha - ver docs/adr/0009).
+// B3 - futuros agrícolas por VENCIMENTO, preço diário, via o arquivo público
+// `TradeInformationConsolidatedFile` (Up2Data, sem chave e sem recaptcha - ver
+// docs/adr/0009). Um coletor por produto (`criarColetorFuturoB3`, ver
+// b3-produtos.js): milho (CCM, ADR 0009) e café arábica (ICF, ADR 0028).
 //
-// Um arquivo por pregão, com TODOS os derivativos (~6 MB). O coletor baixa
-// cada dia, guarda só as linhas dos futuros CCM e descarta o resto.
+// Um arquivo por pregão, com TODOS os derivativos (~6 MB). Cada coletor baixa
+// cada dia, guarda só as linhas dos futuros do seu produto e descarta o resto
+// (os dois coletores baixam o mesmo arquivo: cada um falha e é reexecutado
+// sozinho, ao custo de um download a mais por pregão).
 //
 // POR QUE ISTO É URGENTE: o arquivo só existe numa janela rolante de ~15
 // meses. Cada dia sem coletar perde o dia mais antigo; o que o FinMind
 // acumular aqui passa a ser o histórico.
 //
 // Cada vencimento é preservado separadamente (NÃO há série contínua nem
-// rolagem). Cada campo do arquivo vira uma série `B3.CCM.<TICKER>.<CAMPO>`
-// em `observation` (ex.: B3.CCM.CCMF27.SETTLE), pois observation guarda um
-// escalar por linha.
+// rolagem). Cada campo do arquivo vira uma série `<prefixo>.<TICKER>.<CAMPO>`
+// em `observation` (ex.: B3.CCM.CCMF27.SETTLE, B3.ICF.ICFZ26.SETTLE), pois
+// observation guarda um escalar por linha.
 //
-// Filtro: só o futuro (ticker exato CCM<mês><aa>, segmento AGRIBUSINESS). O
-// arquivo também traz `CCME11` (segmento CASH, outro instrumento) e centenas
+// Filtro: só o futuro (ticker exato <símbolo><mês><aa>, segmento AGRIBUSINESS).
+// O arquivo também traz `CCME11` (segmento CASH, outro instrumento) e centenas
 // de opções (CCMF27C006800...), que ficam de fora.
+//
+// Unidades: os preços do CCM são em R$/saca e os do ICF em US$/saca (a cotação
+// do contrato); o volume financeiro (NtlFinVol) é em R$ nos dois - conferido no
+// ICF: 539 contratos x 100 sacas x US$ 338,94 x ~5,19 = R$ 94,8 milhões (2026-09-25).
 //
 // published_at: a B3 não informa quando publicou (o download não traz
 // Last-Modified). Estimado como o FIM do dia do pregão em Brasília - conservador
@@ -45,17 +53,20 @@ const CONCORRENCIA = 3;
 const COLUNAS_ESPERADAS =
   "RptDt;TckrSymb;ISIN;SgmtNm;MinPric;MaxPric;TradAvrgPric;LastPric;OscnPctg;AdjstdQt;AdjstdQtTax;RefPric;TradQty;FinInstrmQty;NtlFinVol";
 
+// Marca dos campos de preço: a unidade é a do produto (`unidadePreco`).
+const PRECO = "PRECO";
+
 // índice da coluna no CSV -> série. Campos vazios (ex.: AdjstdQtTax e RefPric
 // não existem para futuro) simplesmente não geram observação.
 const CAMPOS = [
-  { indice: 4, sufixo: "LOW", campo: "MinPric", unit: "BRL/saca" },
-  { indice: 5, sufixo: "HIGH", campo: "MaxPric", unit: "BRL/saca" },
-  { indice: 6, sufixo: "AVG", campo: "TradAvrgPric", unit: "BRL/saca" },
-  { indice: 7, sufixo: "LAST", campo: "LastPric", unit: "BRL/saca" },
+  { indice: 4, sufixo: "LOW", campo: "MinPric", unit: PRECO },
+  { indice: 5, sufixo: "HIGH", campo: "MaxPric", unit: PRECO },
+  { indice: 6, sufixo: "AVG", campo: "TradAvrgPric", unit: PRECO },
+  { indice: 7, sufixo: "LAST", campo: "LastPric", unit: PRECO },
   { indice: 8, sufixo: "OSCN_PCT", campo: "OscnPctg", unit: "pct" },
-  { indice: 9, sufixo: "SETTLE", campo: "AdjstdQt", unit: "BRL/saca" },
+  { indice: 9, sufixo: "SETTLE", campo: "AdjstdQt", unit: PRECO },
   { indice: 10, sufixo: "ADJ_RATE", campo: "AdjstdQtTax", unit: "pct" },
-  { indice: 11, sufixo: "REF_PRICE", campo: "RefPric", unit: "BRL/saca" },
+  { indice: 11, sufixo: "REF_PRICE", campo: "RefPric", unit: PRECO },
   { indice: 12, sufixo: "TRADES", campo: "TradQty", unit: "negocios" },
   { indice: 13, sufixo: "CONTRACTS", campo: "FinInstrmQty", unit: "contratos" },
   { indice: 14, sufixo: "VOLUME_BRL", campo: "NtlFinVol", unit: "BRL" }
@@ -84,8 +95,8 @@ async function buscar(url, signal) {
 }
 
 // Puro e testável: dado o texto do CSV, devolve { situacao, linhas } com só
-// os futuros CCM. `situacao` = final | nao_final | erro | vazio.
-function extrairFuturosCcm(csv) {
+// os futuros do produto `simbolo`. `situacao` = final | nao_final | erro | vazio.
+function extrairFuturos(csv, simbolo) {
   if (!csv || !csv.trim()) return { situacao: "vazio", linhas: [] };
 
   const linhas = csv.split(/\r?\n/);
@@ -100,18 +111,18 @@ function extrairFuturosCcm(csv) {
     .slice(2)
     .filter((linha) => {
       const c = linha.split(";");
-      return c[3] === "AGRIBUSINESS" && decodificarFuturoCcm(c[1]) !== null;
+      return c[3] === "AGRIBUSINESS" && decodificarFuturoB3(c[1], simbolo) !== null;
     })
     // COPIA a linha. O split() do V8 devolve "sliced strings" que mantêm vivo o
     // texto INTEIRO do arquivo (~7 MB) - guardar 7 linhas por pregão retinha
     // ~7,8 MB por dia (~2,5 GB num backfill de 321 pregões) e derrubou uma VM de
-    // 1 GB. Com a cópia, só as poucas linhas do CCM ficam na memória.
+    // 1 GB. Com a cópia, só as poucas linhas do produto ficam na memória.
     .map((linha) => Buffer.from(linha, "latin1").toString("latin1"));
   return { situacao: "final", linhas: futuros };
 }
 
 // Um pregão: { data, situacao, linhas, motivo? }.
-async function baixarDia(data, signal) {
+async function baixarDia(data, simbolo, signal) {
   try {
     const r1 = await buscar(`${API}download/requestname?fileName=${NOME_ARQUIVO}&date=${data}&recaptchaToken=`, signal);
     if (!r1.ok) return { data, situacao: "indisponivel", linhas: [], motivo: `HTTP ${r1.status}` };
@@ -121,7 +132,7 @@ async function baixarDia(data, signal) {
     if (!r2.ok) return { data, situacao: "indisponivel", linhas: [], motivo: `HTTP ${r2.status}` };
 
     const csv = Buffer.from(await r2.arrayBuffer()).toString("latin1");
-    return { data, ...extrairFuturosCcm(csv) };
+    return { data, ...extrairFuturos(csv, simbolo) };
   } catch (err) {
     if (err.name === "AbortError") throw err;
     return { data, situacao: "erro", linhas: [], motivo: `Falha ao baixar: ${err.message}` };
@@ -137,21 +148,16 @@ function diasUteis(dataInicial, dataFinal) {
 }
 
 // Baixa um intervalo de pregões (usado pela coleta diária e pelo backfill).
-async function downloadIntervalo({ dataInicial, dataFinal, signal }) {
+async function baixarIntervalo(simbolo, { dataInicial, dataFinal, signal }) {
   paraDate(dataInicial);
   paraDate(dataFinal);
   const dias = diasUteis(dataInicial, dataFinal);
   const resultados = [];
 
   for (let i = 0; i < dias.length; i += CONCORRENCIA) {
-    resultados.push(...(await Promise.all(dias.slice(i, i + CONCORRENCIA).map((d) => baixarDia(d, signal)))));
+    resultados.push(...(await Promise.all(dias.slice(i, i + CONCORRENCIA).map((d) => baixarDia(d, simbolo, signal)))));
   }
   return resultados;
-}
-
-function download({ signal }) {
-  const hoje = paraIso(new Date());
-  return downloadIntervalo({ dataInicial: somarDias(hoje, -(DIAS_JANELA_DIARIA - 1)), dataFinal: hoje, signal });
 }
 
 // Dia sem arquivo (feriado, fora da janela) NÃO é erro. Erro de verdade
@@ -186,7 +192,7 @@ function numero(texto) {
   return Number.isFinite(valor) ? valor : NaN;
 }
 
-function normalize(rawItems) {
+function normalizar(produto, rawItems) {
   const validos = [];
   const invalidos = [];
 
@@ -198,7 +204,7 @@ function normalize(rawItems) {
 
     const c = item.linha.split(";");
     const ticker = c[1];
-    const contrato = decodificarFuturoCcm(ticker);
+    const contrato = decodificarFuturoB3(ticker, produto.simbolo);
     if (c[0] !== item.data || !contrato) {
       invalidos.push({ item, motivo: `Linha inconsistente com o pregão ${item.data}: "${item.linha.slice(0, 60)}".` });
       continue;
@@ -215,10 +221,10 @@ function normalize(rawItems) {
         continue;
       }
       validos.push({
-        series_code: `B3.CCM.${ticker}.${sufixo}`,
+        series_code: `${produto.prefixoSerie}.${ticker}.${sufixo}`,
         observed_at: item.data,
         value: valor,
-        unit,
+        unit: unit === PRECO ? produto.unidadePreco : unit,
         source_code: SOURCE_CODE,
         published_at: publicadoEm,
         published_at_is_estimated: true,
@@ -238,18 +244,28 @@ function normalize(rawItems) {
   return { validos, invalidos };
 }
 
-module.exports = {
-  codigo: "b3-ccm-futuro",
-  get timeoutMs() {
-    return Math.max(env.collectors.sourceTimeoutMs, 120000);
-  },
-  get tentativasRetry() {
-    return env.collectors.retryTentativas;
-  },
-  download,
-  downloadIntervalo,
-  parse,
-  normalize,
-  persist: persistirObservacoes,
-  extrairFuturosCcm
-};
+// Coletor de um produto de b3-produtos.js ("ccm", "icf").
+function criarColetorFuturoB3(chave) {
+  const produto = produtoB3(chave);
+  const downloadIntervalo = (opcoes) => baixarIntervalo(produto.simbolo, opcoes);
+
+  return {
+    codigo: produto.codigoColetor,
+    get timeoutMs() {
+      return Math.max(env.collectors.sourceTimeoutMs, 120000);
+    },
+    get tentativasRetry() {
+      return env.collectors.retryTentativas;
+    },
+    download({ signal }) {
+      const hoje = paraIso(new Date());
+      return downloadIntervalo({ dataInicial: somarDias(hoje, -(DIAS_JANELA_DIARIA - 1)), dataFinal: hoje, signal });
+    },
+    downloadIntervalo,
+    parse,
+    normalize: (rawItems) => normalizar(produto, rawItems),
+    persist: persistirObservacoes
+  };
+}
+
+module.exports = { criarColetorFuturoB3, extrairFuturos };

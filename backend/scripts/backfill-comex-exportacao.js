@@ -1,27 +1,27 @@
 "use strict";
 
-// Backfill da exportação de milho do Comex Stat (MDIC) - roda fora da rotina
-// diária (scripts/run-coleta.js). Reaproveita o coletor real
-// (collectors/comex/comex-milho-exportacao.collector.js), o runner e o log de
-// execução; só troca a fase de download para pedir um intervalo de anos.
+// Backfill da exportação de um produto do Comex Stat (MDIC) - milho (ADR 0013) ou
+// café verde (ADR 0028) - que roda fora da rotina diária (scripts/run-coleta.js).
+// Reaproveita o coletor real (collectors/comex/comex-exportacao.collector.js), o
+// runner e o log de execução; só troca a fase de download para pedir um intervalo de anos.
 //
-// Início padrão: 2005, o primeiro ano com dado validado para o NCM 10059010
-// (ADR 0013). Antes disso o código NCM muda e exige mapeamento por período - não
-// está feito. Uma chamada por ano com pausa de 13 s (rate limit da fonte):
-// 2005 até hoje leva ~5 minutos. O intervalo é dividido em BLOCOS de 5 anos, um
+// Início padrão: o primeiro ano com dado validado para o NCM do produto - 2005 no
+// milho (NCM 10059010; antes disso o código muda e exige mapeamento por período, não
+// feito) e 1997 no café (NCM 09011110, o 1º ano do Comex Stat). Uma chamada por ano
+// com pausa de 13 s (rate limit da fonte): 2005 até hoje leva ~5 minutos. O intervalo é dividido em BLOCOS de 5 anos, um
 // por execução (collection_execution): o rate limit da fonte derrubou uma
 // tentativa única em 2021 e perdeu os 16 anos já baixados, porque o download é
 // atômico. Com blocos, uma falha só perde o bloco. Reexecutar é seguro
 // (idempotente por valor, ADR 0008).
 //
-// Uso:
-//   node scripts/backfill-comex-milho.js                              (2005 até o ano corrente)
-//   node scripts/backfill-comex-milho.js --anoInicial=2020
-//   node scripts/backfill-comex-milho.js --anoInicial=2020 --anoFinal=2022
+// Uso (`--produto` obrigatório: milho ou cafe; npm run backfill:comex-milho / backfill:comex-cafe):
+//   node scripts/backfill-comex-exportacao.js --produto=cafe                              (do início validado até o ano corrente)
+//   node scripts/backfill-comex-exportacao.js --produto=cafe --anoInicial=2020
+//   node scripts/backfill-comex-exportacao.js --produto=cafe --anoInicial=2020 --anoFinal=2022
 
 const { sequelize } = require("../src/models");
 const { executarColetor } = require("../src/collectors/base/collector-runner");
-const comexCollector = require("../src/collectors/comex/comex-milho-exportacao.collector");
+const { criarColetorComexExportacao } = require("../src/collectors/comex/comex-exportacao.collector");
 const logger = require("../src/shared/logger");
 
 const TIMEOUT_BACKFILL_MS = 60 * 60 * 1000;
@@ -36,14 +36,14 @@ function parseArgs() {
   return args;
 }
 
-function resolverAnos({ anoInicial, anoFinal }, anoAtual = new Date().getUTCFullYear()) {
-  const inicio = Number(anoInicial || comexCollector.ANO_INICIAL);
+function resolverAnos({ anoInicial, anoFinal }, produto, anoAtual = new Date().getUTCFullYear()) {
+  const inicio = Number(anoInicial || produto.anoInicial);
   const fim = Number(anoFinal || anoAtual);
   if (!Number.isInteger(inicio) || !Number.isInteger(fim) || inicio > fim) {
     throw new Error(`Intervalo de anos inválido: ${anoInicial} a ${anoFinal}.`);
   }
-  if (inicio < comexCollector.ANO_INICIAL) {
-    throw new Error(`Antes de ${comexCollector.ANO_INICIAL} o NCM do milho não está validado (ADR 0013).`);
+  if (inicio < produto.anoInicial) {
+    throw new Error(`Antes de ${produto.anoInicial} o NCM ${produto.ncm} não está validado.`);
   }
   return { anoInicial: inicio, anoFinal: fim };
 }
@@ -58,11 +58,13 @@ function dividirEmBlocos(anoInicial, anoFinal) {
 }
 
 async function main() {
-  const { anoInicial, anoFinal } = resolverAnos(parseArgs());
+  const args = parseArgs();
+  const comexCollector = criarColetorComexExportacao(args.produto);
+  const { anoInicial, anoFinal } = resolverAnos(args, comexCollector.produto);
   const blocos = dividirEmBlocos(anoInicial, anoFinal);
   const falhas = [];
 
-  logger.info({ anoInicial, anoFinal, blocos: blocos.length }, "Iniciando backfill da exportação de milho (Comex Stat)");
+  logger.info({ produto: args.produto, anoInicial, anoFinal, blocos: blocos.length }, `Iniciando backfill da exportação (${comexCollector.codigo})`);
 
   for (const bloco of blocos) {
     const coletorBackfill = {
@@ -95,7 +97,7 @@ async function main() {
   if (falhas.length > 0) {
     logger.error(
       { falhas },
-      "Blocos com falha - repita só eles: npm run backfill:comex-milho -- --anoInicial=<ano> --anoFinal=<ano>"
+      `Blocos com falha - repita só eles: node scripts/backfill-comex-exportacao.js --produto=${args.produto} --anoInicial=<ano> --anoFinal=<ano>`
     );
   }
   return falhas.length === 0;

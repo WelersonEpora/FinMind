@@ -9,7 +9,11 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test, mock, afterEach } = require("node:test");
 const assert = require("node:assert/strict");
-const collector = require("./b3-ccm.collector");
+const { criarColetorFuturoB3, extrairFuturos } = require("./b3-futuro.collector");
+
+const collector = criarColetorFuturoB3("ccm");
+const coletorIcf = criarColetorFuturoB3("icf");
+const extrairFuturosCcm = (texto) => extrairFuturos(texto, "CCM");
 
 afterEach(() => mock.restoreAll());
 
@@ -17,7 +21,8 @@ const COLUNAS = "RptDt;TckrSymb;ISIN;SgmtNm;MinPric;MaxPric;TradAvrgPric;LastPri
 
 // Linhas reais do arquivo de 2026-09-18 (CCMF27 e CCMH27), mais os "falsos
 // positivos" que o arquivo de fato contém: CCME11 (segmento CASH), uma opção e
-// outro derivativo. CCMK27 aqui simula um vencimento sem negócios no dia.
+// outro derivativo. CCMK27 aqui simula um vencimento sem negócios no dia. As linhas do
+// café (ICF e o conilon CNL, sem negócios) são reais do arquivo de 2026-09-25.
 const LINHAS = [
   "2026-09-18;03BK11;BR03BKCTF019;FORWARD;51,59;51,7;51,66;51,59;0;;;;3;250;12917,45",
   "2026-09-18;CCME11;BRCCMECTF007;CASH;8,6;8,89;8,7;8,61;-1,71;;;;547;21878;189223,32",
@@ -25,7 +30,10 @@ const LINHAS = [
   "2026-09-18;CCMF27C006800;BRBMEFFM0BV3;AGRIBUSINESS;;;;;;;;11,7;;;",
   "2026-09-18;CCMH27;BRBMEFCCP361;AGRIBUSINESS;81,67;82,39;82,02;81,95;0,07;81,83;;;398;510;18824085",
   "2026-09-18;CCMK27;BRBMEFCCP338;AGRIBUSINESS;;;;;;80,29;;;;;",
-  "2026-09-18;DOLF27;BRBMEFDOL123;FINANCIAL;5000;5100;5050;5075;0,1;5080;;;10;20;1000"
+  "2026-09-18;DOLF27;BRBMEFDOL123;FINANCIAL;5000;5100;5050;5075;0,1;5080;;;10;20;1000",
+  "2026-09-25;CNLF27;BRBMEFCNL1I8;AGRIBUSINESS;;;;;;962,6;;;;;",
+  "2026-09-25;ICFH28;BRBMEFICF3L3;AGRIBUSINESS;;;;;;316,7;;;;;",
+  "2026-09-25;ICFZ26;BRBMEFICF3E8;AGRIBUSINESS;334;343,65;338,94;336,95;1,11;338,6;;;371;539;94824222,11"
 ];
 // Resposta mínima de fetch (o ESLint do projeto não declara `Response` como global).
 const resposta = (status, { json, texto } = {}) => ({
@@ -40,22 +48,22 @@ const resposta = (status, { json, texto } = {}) => ({
 
 const csv = (status = "Final", colunas = COLUNAS) => [`Status do Arquivo: ${status}`, colunas, ...LINHAS].join("\r\n");
 
-test("extrairFuturosCcm guarda só os futuros CCM: descarta CCME11 (CASH), opções e outros derivativos", () => {
-  const { situacao, linhas } = collector.extrairFuturosCcm(csv());
+test("extrairFuturos guarda só os futuros CCM: descarta CCME11 (CASH), opções e outros derivativos", () => {
+  const { situacao, linhas } = extrairFuturosCcm(csv());
 
   assert.equal(situacao, "final");
   assert.deepEqual(linhas.map((l) => l.split(";")[1]), ["CCMF27", "CCMH27", "CCMK27"]);
 });
 
-test("extrairFuturosCcm: só aceita arquivo Final, com colunas conhecidas; vazio é 'sem arquivo'", () => {
-  assert.equal(collector.extrairFuturosCcm(csv("Preliminar")).situacao, "nao_final");
-  assert.equal(collector.extrairFuturosCcm(csv("Final", COLUNAS.replace("AdjstdQt;", "Ajuste;"))).situacao, "erro");
-  assert.equal(collector.extrairFuturosCcm("Outra coisa\r\nx").situacao, "erro");
-  assert.equal(collector.extrairFuturosCcm("").situacao, "vazio");
+test("extrairFuturos: só aceita arquivo Final, com colunas conhecidas; vazio é 'sem arquivo'", () => {
+  assert.equal(extrairFuturosCcm(csv("Preliminar")).situacao, "nao_final");
+  assert.equal(extrairFuturosCcm(csv("Final", COLUNAS.replace("AdjstdQt;", "Ajuste;"))).situacao, "erro");
+  assert.equal(extrairFuturosCcm("Outra coisa\r\nx").situacao, "erro");
+  assert.equal(extrairFuturosCcm("").situacao, "vazio");
 });
 
 test("normalize interpreta o CCMF27: vírgula decimal, cada campo vira uma série do vencimento", () => {
-  const { linhas } = collector.extrairFuturosCcm(csv());
+  const { linhas } = extrairFuturosCcm(csv());
   const { validos, invalidos } = collector.normalize(collector.parse([{ data: "2026-09-18", situacao: "final", linhas }]));
   assert.equal(invalidos.length, 0);
 
@@ -75,8 +83,29 @@ test("normalize interpreta o CCMF27: vírgula decimal, cada campo vira uma séri
   assert.equal(f27.SETTLE.metadata.isin, "BRBMEFCCP353");
 });
 
+test("café arábica (ICF): só os futuros ICF (sem o conilon CNL), preço em US$/saca e volume em R$", () => {
+  const { linhas } = extrairFuturos(csv(), "ICF");
+  assert.deepEqual(linhas.map((l) => l.split(";")[1]), ["ICFH28", "ICFZ26"]);
+
+  const { validos, invalidos } = coletorIcf.normalize(coletorIcf.parse([{ data: "2026-09-25", situacao: "final", linhas }]));
+  assert.equal(invalidos.length, 0);
+  const z26 = Object.fromEntries(validos.filter((v) => v.series_code.startsWith("B3.ICF.ICFZ26.")).map((v) => [v.series_code.split(".")[3], v]));
+  assert.equal(z26.SETTLE.value, 338.6);
+  assert.equal(z26.SETTLE.unit, "USD/saca");
+  assert.equal(z26.VOLUME_BRL.value, 94824222.11);
+  assert.equal(z26.VOLUME_BRL.unit, "BRL");
+  assert.equal(z26.SETTLE.metadata.vencimento, "2026-12");
+  assert.deepEqual(validos.filter((v) => v.series_code.startsWith("B3.ICF.ICFH28.")).map((v) => v.series_code), ["B3.ICF.ICFH28.SETTLE"]);
+  assert.equal(coletorIcf.codigo, "b3-icf-futuro");
+  assert.equal(collector.codigo, "b3-ccm-futuro");
+});
+
+test("criarColetorFuturoB3 recusa produto desconhecido", () => {
+  assert.throws(() => criarColetorFuturoB3("cnl"), /Produto B3 desconhecido/);
+});
+
 test("cada vencimento é preservado separadamente (sem série contínua)", () => {
-  const { linhas } = collector.extrairFuturosCcm(csv());
+  const { linhas } = extrairFuturosCcm(csv());
   const { validos } = collector.normalize(collector.parse([{ data: "2026-09-18", situacao: "final", linhas }]));
 
   const settle = validos.filter((v) => v.series_code.endsWith(".SETTLE")).map((v) => [v.series_code, v.value, v.metadata.vencimento]);
@@ -88,14 +117,14 @@ test("cada vencimento é preservado separadamente (sem série contínua)", () =>
 });
 
 test("vencimento sem negócios no dia grava só o que existe (o preço de ajuste), sem inventar zeros", () => {
-  const { linhas } = collector.extrairFuturosCcm(csv());
+  const { linhas } = extrairFuturosCcm(csv());
   const { validos } = collector.normalize(collector.parse([{ data: "2026-09-18", situacao: "final", linhas }]));
 
   assert.deepEqual(validos.filter((v) => v.series_code.startsWith("B3.CCM.CCMK27.")).map((v) => v.series_code), ["B3.CCM.CCMK27.SETTLE"]);
 });
 
 test("published_at: fim do dia do pregão em Brasília (UTC-3), estimado", () => {
-  const { linhas } = collector.extrairFuturosCcm(csv());
+  const { linhas } = extrairFuturosCcm(csv());
   const { validos } = collector.normalize(collector.parse([{ data: "2026-09-18", situacao: "final", linhas }]));
 
   assert.equal(validos[0].published_at.toISOString(), "2026-09-19T02:59:59.000Z");
@@ -104,7 +133,7 @@ test("published_at: fim do dia do pregão em Brasília (UTC-3), estimado", () =>
 });
 
 test("parse: feriado (sem arquivo) não é erro; arquivo não final ou com layout novo vira item inválido", () => {
-  const { linhas } = collector.extrairFuturosCcm(csv());
+  const { linhas } = extrairFuturosCcm(csv());
   const itens = collector.parse([
     { data: "2026-09-14", situacao: "indisponivel", linhas: [], motivo: "HTTP 400" },
     { data: "2026-09-15", situacao: "vazio", linhas: [] },

@@ -17,7 +17,8 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 
 A **infraestrutura de dados** para ouro e milho está pronta: coleta,
 armazenamento point-in-time (com data de publicação) e exibição nos
-Observáveis. **Nada interpreta esses dados ainda** — motor analítico, IA,
+Observáveis. O **café** começou (passo 1 da onda do café: posição dos fundos,
+exportação e futuro ICF da B3, ADR 0028). **Nada interpreta esses dados ainda** — motor analítico, IA,
 sinais, backtest e execução de ordens seguem como contratos vazios, à espera
 das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 O desenho já está decidido: o motor prepara a base (fatores e regras do Comitê)
@@ -75,10 +76,11 @@ Evidências e ressalvas de cada fonte: no ADR apontado na coluna Status (o ADR 0
 | BCB SGS — reservas internacionais | API REST (JSON) | Total, diária (série 13621), US$ milhões: a outra metade da linha "Relatório Focus e Reservas" do FEL 1 | **Desde 1998-09-01** (7.046 dias úteis em dev e no servidor) | **Estimado** (o valor de D sai no dia útil seguinte, data tirada da própria série; o ponto mais recente entra com a data da coleta) | ✅ Validado em 2026-09-23 em dev: fim de mês igual à série mensal oficial em 330 de 336 meses, 0 duplicatas, reexecução idempotente — ADR 0023. **Backfill rodado no servidor em 2026-09-23** (7.046 criados, 0 falhas) |
 | FRED | API REST (JSON, com chave); CSV de reserva | DGS10, T10YIE, DFII10, DTWEXBGS | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | Estimado | ✅ Coleta pela API, CSV de reserva — ADR 0012. Vintage real (ALFRED) provado via teste — ADR 0011 |
 | LBMA | Feed JSON público (não documentado) | Ouro PM (USD/oz) | Desde 1968 | Estimado | ✅ Licença da IBA exigida p/ exibir/redistribuir — adiada (uso interno) |
-| CFTC COT | API Socrata (JSON) | Ouro e milho (open interest, MM long/short) | Desde 2006 | Real desde 2022-08; estimado antes | ✅ |
+| CFTC COT | API Socrata (JSON) | Ouro, milho e café (Coffee C da ICE, desde 2026-09-28): open interest, MM long/short | Desde 2006 | Real desde 2022-08; estimado antes | ✅ Café: ADR 0028 |
 | USDA NASS | API QuickStats (JSON, com chave) | Crop Progress do milho (12 séries) | Desde 1980 (piso real da API; cada série começa no seu ano) | Estimado (regra não validada p/ 1980–2005) | ✅ Validado em 2026-09-21 (6.758 linhas); histórico 1980+ já carregado no servidor (informado pelo usuário) |
 | B3 CCM | CSV (Up2Data) + PDF (Boletim Diário, extração por coordenada) | Futuros de milho, por vencimento (preços, liquidez e, até 2025-12-11, contratos em aberto) | **Desde 2022-03-21**, em dev e no servidor (BDI rodado no servidor, informado pelo usuário em 2026-09-23): Boletim Diário (PDF) até 2025-12-11 + Up2Data (CSV, janela de ~15 meses) daí em diante; **buraco de ~9 meses em 2023** na fonte | Estimado | ✅ ADRs 0009, 0020. 10+ anos **não existem de graça** |
-| Comex Stat (MDIC) | API (JSON, sem chave) | Exportação de milho, mensal (volume em kg e valor FOB em US$) | **Desde 2005** (jan/2005 a ago/2026, 260 meses); antes disso o código NCM muda e não foi mapeado — pode ser estendido depois | Estimado (dia 15 do mês seguinte); revisões da fonte não confirmadas | ✅ Validado em 2026-09-21 em dev e produção (260 meses por série) — ADR 0013 |
+| B3 ICF | Os mesmos arquivos e coletores do CCM | Futuros de café arábica, por vencimento (preços em US$/saca, volume em R$, contratos em aberto até 2025-12-11) | **Desde 2022-03-21**, em dev (943 pregões, 30 vencimentos): Boletim Diário até 2025-12-11 (747 boletins, 0 divergências com o CSV) + Up2Data desde 2025-06-10; o mesmo **buraco de 2023** do CCM | Estimado | ✅ ADR 0028. Backfill do servidor pendente (§3) |
+| Comex Stat (MDIC) | API (JSON, sem chave) | Exportação mensal (volume em kg e valor FOB em US$) de milho e de café verde (NCM 09011110, desde 2026-09-28) | Milho **desde 2005** (jan/2005 a ago/2026, 260 meses; antes disso o código NCM muda e não foi mapeado — pode ser estendido depois). Café **desde 1997**, o 1º ano do Comex Stat | Estimado (dia 15 do mês seguinte); revisões da fonte não confirmadas | ✅ Milho validado em 2026-09-21 em dev e produção (260 meses por série) — ADR 0013. Café: ADR 0028 |
 | USDA WASDE (ESMIS) | HTML (listagem, raspada) + XLS de cada edição | Balanço do milho por edição mensal: EUA (13 atributos) e ~20 regiões do mundo (7 atributos), 167 séries | **Desde 2011-01** (188 edições, XLS; antes só PDF/TXT) | **Real, com dia** (data do release); **vintage real**: 24.542 revisões guardadas | ✅ Validado em 2026-09-21 em dev (27.309 linhas) e **backfill já rodado no servidor** (informado pelo usuário) — ADR 0015 |
 | Conab (Boletim da Safra de Grãos) | XLSX de cada levantamento (página HTML) | Milho por safra (1ª, 2ª, 3ª e total) por Região/UF (área, produtividade, produção) e balanço nacional (estoque inicial e final, produção, importação, suprimento, consumo, exportação, demanda total): 397 séries | **Vintage (estimativas mês a mês) só desde fev/2025**: são 15 levantamentos mensais, o máximo que o índice da Conab mantém (com lacunas); antes disso a fonte não oferece. O balanço traz também os valores de safras de 2018/19 a 2025/26, mas sem vintage próprio. As séries históricas desde 1976/77 e os preços **não** foram carregados (adiado por decisão) | **Real, com data e hora** (página do levantamento); **vintage real**: cada levantamento é uma versão (até 10 revisões por valor). Nas safras antigas é um **limite superior**: entra com a data do primeiro levantamento lido, então uma consulta anterior a fev/2025 volta vazia | ✅ Validado em 2026-09-21 em dev (3.436 linhas) e **backfill e coleta diária já rodados no servidor, 0 falhas** (informado pelo usuário) — ADR 0017 |
 | IMEA — milho de MT | API JSON não documentada (safra) + XLSX (custo) | Área/produção/produtividade por safra (Mato Grosso + 7 regiões, 3 indicadores identificados na API por casamento de valor) e custo de produção (Mensal/Ponderado × Alta/Média Tecnologia, ~62 itens por hectare): 3 cards (Mensal e Ponderado convivem no mesmo seletor de custo mensal, como o WASDE faz por unidade — aqui por frequência) | Safras 2022/23 a 2026/27 (API; a 2026/27 apareceu na coleta diária de 2026-09-23) e custo publicado em 15/09/2026 (catálogo). **Sem backfill possível**: nem a API nem o catálogo de arquivos guardam edições anteriores — o vintage começa a partir de agora | **Real, só a data** (data da última atualização na API; data do arquivo no catálogo) | ✅ Validado e gravado no banco de dev em 2026-09-22 (96 observações de safra; 15.402 de custo, 5.073 séries; reexecução idempotente) — ADR 0018 |
@@ -115,9 +117,9 @@ está na coluna "Depende de", não no nível:
 | BCB reservas internacionais | 5 | Data de publicação **estimada** (defasagem de 1 dia útil medida uma vez só); revisão não medida: em **6 meses de 2007–2010** a mensal oficial difere do fim de mês da diária (1 a 67 US$ milhões, causa não determinada). Só o total: conceito liquidez e composição (ouro) não coletados | — |
 | FRED | 5 | Licença lida: 3 de 4 séries domínio público c/ citação; `T10YIE` não confirmada. **Adiada** (uso interno) | Retomar antes de exibir a terceiros |
 | LBMA (ouro) | 5 | **Exige licença da IBA** p/ usar/redistribuir o histórico. **Adiada** (uso interno) | Retomar antes de exibir a terceiros |
-| CFTC COT | 5 | Data de publicação estimada antes de 2022-08 | — |
+| CFTC COT (ouro, milho e café) | 5 | Data de publicação estimada antes de 2022-08 | — |
 | USDA Crop Progress | 5 | Data de publicação estimada, não validada p/ 1980–2005 | — |
-| Comex Stat (MDIC) | 5 | **Histórico só a partir de 2005** (NCM anterior não mapeado); revisões não confirmadas; rate limit rígido (429) | — |
+| Comex Stat (MDIC) (milho e café) | 5 | Milho **só a partir de 2005** (NCM anterior não mapeado); café desde 1997, só o café verde (solúvel, torrado e descafeinado de fora); revisões não confirmadas; rate limit rígido (429) | — |
 | USDA WASDE — arquivo ESMIS (milho) | 5 | **Só de 2011 em diante** (antes só PDF/TXT); só EUA e ~20 regiões; raspa o HTML da listagem (sem API confirmada); republicação no mesmo dia: vale a última na carga, mas se a 1ª já tinha entrado, a do mesmo dia publicada depois é ignorada; licença e limite de uso não confirmados. **Backfill já rodado em produção (informado pelo usuário)**. Em qualquer banco novo ele vem ANTES da coleta diária: a diária se recusa a gravar enquanto a fonte estiver vazia (senão truncaria o vintage) | — |
 | Conab — boletim mensal (milho: 1ª/2ª/3ª safra por UF e balanço) | 5 | **Vintage real por levantamento**, `published_at` real; **só de fev/2025 em diante** (o que o índice mantém, com lacunas). Sem API (quebra se o layout mudar); `published_at` das safras antigas é limite superior; a planilha é a versão atual (pode ter correção posterior); licença não verificada. **Backfill já rodado no servidor (2026-09-21, informado pelo usuário; o log mostra 15 levantamentos, 0 falhas, 88 s: a Conab é acessível de lá)**. Em qualquer banco novo ele vem ANTES da coleta diária | — |
 | IMEA — balanço de oferta e demanda (PDF) | 5 | **Vintage real, 2014-04-14 a 2026-08-31** (77 edições). Extração por coordenada (sem API nem dicionário de dados: quebra se o layout mudar). Só Mato Grosso (sem quebra regional); Produção não reconciliada com o card de safra; licença não investigada. **Repetir o backfill inteiro** (não a coleta diária) **depois de já ter terminado em sucesso pode logar falhas espúrias**, sem corromper dado (achado real, mecanismo compartilhado com WASDE/Conab) — não repetir um backfill já concluído | — |
@@ -126,6 +128,7 @@ está na coluna "Depende de", não no nível:
 | NOAA STAR — saúde da vegetação por cultura (milho) | 5 | **Endpoint não documentado** (link de dados da página oficial). A NOAA reprocessa a série: o histórico é a versão de hoje (vintage real só daqui para frente). Data de publicação **estimada**. Máscara de cultura fixa, sem separar safrinha de 1ª safra. Mede o efeito já ocorrido: não é previsão do tempo nem pega geada a tempo. No servidor, a gravação do backfill levou ~17 min (45 s em dev): o banco da VM é bem mais lento | — |
 | USDA — área plantada do milho (Prospective Plantings e Acreage, pelo ESMIS) | 5 | Listagem em HTML raspada (sem API confirmada) e CSV sem dicionário formal: uma mudança de layout vira falha explícita da edição. Só o total dos EUA, desde 2001-06. **Não pela API do QuickStats** (lá o histórico foi carregado em lote e a estimativa final é sobrescrita). As reestimativas de agosto a janeiro ficam no WASDE. Licença e limite de uso do ESMIS não confirmados — ADR 0027 | — |
 | B3 CCM | 5 (limitado) | **Só ~4,5 anos de histórico grátis** (desde 2022-03-21, com buraco em 2023); contratos em aberto por vencimento só até 2025-12-11 | David/Comitê (pergunta 3, orçamento) |
+| B3 ICF (café arábica) | 5 (limitado) | As mesmas do CCM (desde 2022-03-21, buraco em 2023, contratos em aberto só até 2025-12-11). O preço que forma o mercado é o KC da ICE (FEL 1), que só existe pago | David/Comitê (pergunta 2, preço) |
 | IMEA — milho de MT (safra e custo) | 4 | **Sem backfill possível** (nem a API nem o catálogo guardam edição anterior): vintage começa agora. IDs de indicador sem nome (identificados por casamento de valor); intenção de plantio e andamento de safra existem só em PDF e não foram implementados; licença não investigada | — |
 | Paridade de exportação do milho (IMEA) | 1 | **Dado original com valor, aguardando decisão.** O **Boletim Semanal – Milho** do IMEA (PDF, 572 edições desde 2015-02-02) traz a **paridade de exportação calculada pela própria fonte** (R$/saca, Mato Grosso), com diferencial de base e prêmio portuário: é o dado que o FEL 1 descreve ("preço interno vs. Chicago + frete + câmbio"), e não existe em outra base nossa. Exige leitura da tabela por coordenada (como no ADR 0019). Ressalvas: é a paridade de MT, não a de Campinas; muda de contrato de referência (quebra de série); porto do prêmio incerto. Não implementado | Comitê (pergunta 16) |
 | USDA Grain Stocks (estoques trimestrais do milho) | 1 | **Aguarda o Comitê** (reconhecido em 2026-09-28; citado no FEL 1 e sem registro até então). Estoques de 1º de mar/jun/set/dez, desde 1926, que o WASDE não tem. A API guarda só o valor revisado, mas o **ESMIS guarda cada edição com o número original** (CSV desde 2001-06-29, data real), como no WASDE: não depende da pergunta 5. Próximo: 30/09/2026 — `docs/reconhecimento-fontes/usda-plantings-grain-stocks.md` | Comitê (o fator 3 usa a contagem trimestral de estoques?) |
@@ -138,6 +141,7 @@ está na coluna "Depende de", não no nível:
 | World Bank — Pink Sheet | 1 | **Não implementar por ora** (reconhecida em 2026-09-28). Sem API de preços: planilha mensal desde 1960, sobrescrita a cada mês. **Ouro** = média mensal da LBMA que já temos. **Milho** = preço de exportação FOB Golfo dos EUA, dado novo, mas mensal e sem OHLCV (não resolve as perguntas 2 e 3). Licença não confirmada (cita Bloomberg e outras fontes comerciais) — `docs/reconhecimento-fontes/world-bank-pink-sheet.md` | — |
 | US Treasury (Fiscal Data e curvas de juros) | 1 | **Não implementar** (reconhecida em 2026-09-28). A curva real do Tesouro é a origem do `DFII10` do FRED (4 de 4 datas iguais, um dia antes). O ouro do Tesouro é constante desde 2012 (~261,5 milhões de onças, valor contábil fixo): não mede compra por banco central — `docs/reconhecimento-fontes/us-treasury.md` | — |
 | Frete (rodoviário e marítimo) | 1 | **Sem valor isolado.** Rodoviário: 28 rotas saindo de MT na API do IMEA, em R$/t, **só o valor atual**; sozinho é só componente da paridade (usá-lo seria o FinMind montar a própria fórmula, que é um fator). Marítimo: **nenhuma fonte gratuita encontrada**. Não implementar | — |
+| B3 — café à vista pelo arquivo `Indic` e conilon (CNL) | 1 | **Descartados** (2026-09-28, ADR 0028). O `Indic` não traz o café (só milho, boi, etanol e soja): o à vista do café segue sem fonte automatizável. O CNL tem preço de referência e nenhum negócio | — |
 | CPI, WGC, IMF | 0 | Candidatas, fora do escopo | David |
 
 Processo: `docs/processo-reconhecimento-fontes.md`. Uma linha por fonte, com
@@ -170,8 +174,19 @@ armadilhas), não o código (outro banco, outra arquitetura).
 | 2 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3 e 5 da §4 |
 
 **Café, numa onda completa (decisão do usuário, 2026-09-26):** as fontes do café, inclusive o clima pela NOAA STAR
-(mesmo coletor do milho, ADR 0025: uma entrada nova em `CULTURAS`, com `ACOF`/`RCOF`), entram juntas, com as regiões
-escolhidas a partir das fontes de produção do café, não de conhecimento geral.
+(mesmo coletor do milho, ADR 0025: uma entrada nova em `CULTURAS`, com `ACOF`/`RCOF`), com as regiões
+escolhidas a partir das fontes de produção do café, não de conhecimento geral. A onda começou em 2026-09-28, sem
+esperar a reunião do Comitê (só aquisição de dados, cada fonte autorizada no seu ADR):
+
+| Passo | Fontes | Situação |
+|---|---|---|
+| 1. Reaproveitar coletores do milho | CFTC COT (Coffee C da ICE), Comex Stat (café verde), B3 ICF (Up2Data e Boletim Diário) | **Feito** (ADR 0028). Descartados no caminho: o arquivo `Indic` da B3 (não traz o café à vista) e o conilon CNL (nenhum negócio) |
+| 2. Safra brasileira e clima | Conab (Boletim da Safra de Café), depois NOAA STAR café com as regiões tiradas dela | Próximo |
+| 3. Reconhecer as fontes novas | Estoques certificados da ICE, USDA FAS (PSD e *Coffee: World Markets and Trade*), ICO | A fazer |
+| 4. Reconhecimento rápido | Cecafé, MAPA, Embrapa (tendem a só republicar dado de outras fontes) | A fazer |
+
+Ficam para o Comitê: o preço do KC (ICE, só pago, a mesma lacuna do ZC da pergunta 2) e o risco de geada (sem
+indicador pronto gratuito; montá-lo seria regra do David).
 
 O IMEA foi implementado em **área, produção, produtividade, custo de
 produção** (API e catálogo de arquivos, JSON/XLSX — ADR 0018) e **balanço de
@@ -194,7 +209,12 @@ de Tangará da Serra virou aviso da fonte, ADR 0002).
 Backfills já validados em dev que ainda não rodaram na VM. Ao rodar, tirar a linha daqui e marcar "dev e servidor"
 na coluna Status de "Dados coletados" (§2).
 
-Nenhuma no momento (a última, USDA — área plantada do milho, rodou no servidor em 2026-09-28).
+| Backfill | Comando (em `backend`, na VM) | Observação |
+|---|---|---|
+| Café — exportação (Comex Stat) | `npm run backfill:comex-cafe` | Desde 1997, ~8 min (rate limit da fonte) |
+| Café — futuro ICF da B3 | `npm run backfill:b3-icf` e depois `npm run backfill:b3-icf-bdi` | Nessa ordem: o Boletim Diário só completa o que o Up2Data não tem (ADR 0028) |
+
+O COT do café não precisa: a coleta diária já traz o histórico inteiro (desde 2006).
 
 </details>
 
@@ -205,7 +225,7 @@ Nenhuma no momento (a última, USDA — área plantada do milho, rodou no servid
 
 | Definição | Situação |
 |---|---|
-| Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro; as fontes e a planilha de fatores), aguardando a aprovação do Comitê. A coleta de milho e ouro foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR (ADRs 0001, 0006, 0008, 0009, 0013, 0015, 0017 a 0025 e 0027) |
+| Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro; as fontes e a planilha de fatores), aguardando a aprovação do Comitê. A coleta de milho e ouro foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR (ADRs 0001, 0006, 0008, 0009, 0013, 0015, 0017 a 0025 e 0027); a do café começou do mesmo jeito (passo 1, ADR 0028) |
 | Regras e cálculos do motor (camadas B e C) | Em aberto: é a etapa 1 dos "Próximos passos" e o §5 (a medida de cada fator, camada A, é proposta pelo FinMind para o Comitê confirmar) |
 | Formato de apresentação dos resultados | Em aberto (dashboard, relatório, alerta...) |
 | Avaliação da saída da IA | Em aberto: o que é acerto (horizonte e métrica), ver §5, "Memória com avaliação". O papel da IA já foi decidido (pergunta 11) |
@@ -1103,7 +1123,7 @@ versão e sem auditoria.
 
 Não implementar sem autorização explícita registrada em ADR:
 
-- Café, petróleo e qualquer ativo além de USD/BRL, Selic, ouro e milho (o café, inclusive o clima pela NOAA STAR, fica para uma onda completa do café, decisão do usuário de 2026-09-26).
+- Petróleo e qualquer ativo além de USD/BRL, Selic, ouro, milho e café. Do café, só o que a onda do café (§3) autorizar, fonte a fonte, no ADR de cada uma (passo 1: ADR 0028).
 - CEPEA antes de 2018-06-08 (só por exportação manual do site), Conab (séries históricas e preços), IMEA (intenção de plantio, andamento de semeadura/colheita — só em PDF), WGC, PSD, FAO/AMIS, CPI.
 - Clima além da NOAA STAR por cultura: as fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5), USDA Ag in Drought, FAO ASIS, ONI, previsão do tempo e risco de geada.
 - Focus além das expectativas anuais de IPCA, Selic e câmbio (PIB e demais indicadores, mensais/trimestrais, Selic por reunião, inflação 12/24 meses, Top 5), fatores sobre o Focus (surpresa, variação, dispersão); das reservas do BCB, o conceito liquidez, a série mensal e a composição (ouro).
@@ -1125,6 +1145,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Café, passo 1 | A onda do café começou pelas fontes que reaproveitam coletores do milho: COT do Coffee C (1.059 semanas desde 2006), exportação de café verde pelo Comex Stat (356 meses desde 1997) e futuro ICF da B3 por vencimento (943 pregões desde 2022-03-21, 0 divergências entre as duas fontes da B3). 5 cards novos. Os coletores da B3 e do Comex viraram genéricos por produto, sem mudar nada do milho. Backfills do servidor pendentes (§3) | ADR 0028 |
 | Conferência das fontes do FEL 1 (milho e ouro) | Auditoria de cobertura revisada com os números de hoje; reconhecidas as fontes do FEL 1 que não tinham registro: World Bank Pink Sheet e US Treasury (nada novo para o ouro), Grain Stocks (vintage pelo ESMIS; aguarda o Comitê) | `docs/cobertura-fatores-fel1-milho-ouro.md`, `docs/reconhecimento-fontes/` |
 | Área plantada de milho dos EUA | Coletor novo (Prospective Plantings e Acreage, pelo ESMIS): 51 edições desde 2001, vintage real, 0 falhas; card "Milho EUA - Área plantada (USDA)". Antecipa em ~6 semanas a intenção de plantio que o WASDE só traz em maio. Backfill rodado no servidor no mesmo dia (0 falhas) | ADR 0027 |
 | Documentos abertos no status | As menções a ADRs e documentos no status (119 links, 40 documentos) abrem o documento num modal da mesma tela, com link compartilhável (`?doc=adr-0027`), navegação entre documentos com "voltar" e tela cheia no celular. Um teste barra link quebrado. A tabela de execuções ganhou a coluna "Atualizados" | `CLAUDE.md`, "Status do projeto" |

@@ -97,6 +97,8 @@ cd backend && npm run backfill:dolar -- --dataInicial=01/07/1994
 cd backend && npm run backfill:selic -- --dataInicial=01/07/1994
 # exportação de milho do Comex Stat, desde 2005 (~13 min: rate limit da fonte):
 cd backend && npm run backfill:comex-milho
+# exportação de café verde do Comex Stat, desde 1997 (~15 min):
+cd backend && npm run backfill:comex-cafe
 # balanço do milho do WASDE (USDA/ESMIS), edições de 2011 em diante (~190 downloads, ~5 min):
 cd backend && npm run backfill:wasde-milho
 # área plantada de milho dos EUA (USDA/ESMIS: Prospective Plantings e Acreage), edições com CSV desde 2001-06 (~51 downloads, ~1,5 min); ANTES da coleta diária em banco novo:
@@ -109,6 +111,9 @@ cd backend && npm run backfill:imea-oferta-demanda
 # de 2022-03-21 a 2025-12-11, com abertura e contratos em aberto (~940 PDFs); o 2º só completa o que falta:
 cd backend && npm run backfill:b3-ccm
 cd backend && npm run backfill:b3-ccm-bdi
+# futuros de café arábica da B3 (ICF): as mesmas duas fontes e a mesma ordem (ADR 0028):
+cd backend && npm run backfill:b3-icf
+cd backend && npm run backfill:b3-icf-bdi
 # Indicador do Milho CEPEA/ESALQ pelo arquivo `Indic` da B3, de 2018-06-08 (1º pregão com o milho) em diante (~2.100 downloads):
 cd backend && npm run backfill:b3-milho-esalq
 # expectativas do Focus (BCB) de IPCA, Selic e câmbio por ano, uma observação por boletim, desde 2000 (3 requisições, ~6 s):
@@ -126,7 +131,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FRED, LBMA, CFTC, B3/CCM, B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho), EIA (etanol), NOAA STAR (saúde da vegetação sobre o milho), WASDE (balanço do milho), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FRED, LBMA, CFTC (ouro, milho e café), B3 (futuros CCM e ICF), B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho e de café), EIA (etanol), NOAA STAR (saúde da vegetação sobre o milho), WASDE (balanço do milho), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

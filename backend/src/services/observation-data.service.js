@@ -4,7 +4,7 @@ const observationRepository = require("../repositories/observation.repository");
 const { ValidationError } = require("../shared/errors");
 const { validarPaginacao } = require("../shared/utils/pagination");
 const { validarOrdenacao } = require("../shared/utils/ordenacao");
-const { decodificarFuturoCcm } = require("../shared/utils/b3-contrato");
+const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
 const { descreverRegiaoWasde } = require("../shared/utils/wasde-regiao");
 const { descreverRegiaoConab } = require("../shared/utils/conab-regiao");
 const { descreverRegiaoImea, descreverLocalCustoImea } = require("../shared/utils/imea-regiao");
@@ -46,7 +46,7 @@ const DIMENSAO_VENCIMENTO = {
     nota: "Cada linha é um vencimento; os vencimentos não são encadeados numa série contínua."
   },
   descrever(codigo) {
-    const contrato = decodificarFuturoCcm(codigo);
+    const contrato = decodificarFuturoB3(codigo);
     return contrato && { rotulo: contrato.rotulo, ordem: contrato.vencimento, extras: { vencimento: contrato.vencimento } };
   },
   // ativo = teve pregão no ÚLTIMO pregão coletado (todo vencimento listado aparece todo

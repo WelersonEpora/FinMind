@@ -67,7 +67,8 @@ Nas datas em que as duas fontes existem, preço, contratos e negócios **batem e
 
 ## Decisão
 
-- **Coletor `b3-ccm-bdi`** (`collectors/b3/b3-ccm-bdi.collector.js` + `b3-bdi-ccm.parser.js`), **só
+- **Coletor `b3-ccm-bdi`** (`collectors/b3/b3-futuro-bdi.collector.js` + `b3-bdi-futuro.parser.js`, antes
+  `b3-ccm-bdi.collector.js` + `b3-bdi-ccm.parser.js`: genéricos por produto desde o ICF, ADR 0028), **só
   backfill**: não é registrado na coleta diária (o layout com a tabela acabou em 2025-12-11, não há
   dado novo). Script `npm run backfill:b3-ccm-bdi` (`--desde=`, `--ate=`, limitados ao período com
   tabela), com o runner e o log de execução de sempre (`collection_execution`).

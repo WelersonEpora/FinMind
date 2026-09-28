@@ -9,9 +9,9 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { resolverIntervalo, parseArgs } = require("./backfill-b3-ccm-bdi");
+const { resolverIntervalo, parseArgs } = require("./backfill-b3-futuro-bdi");
 
-test("resolverIntervalo cobre, por padrão, todo o período em que o BDI tem a tabela do CCM", () => {
+test("resolverIntervalo cobre, por padrão, todo o período em que o BDI tem a tabela por vencimento", () => {
   assert.deepEqual(resolverIntervalo({}), { dataInicial: "2022-03-01", dataFinal: "2025-12-11" });
 });
 
@@ -21,6 +21,6 @@ test("resolverIntervalo respeita os argumentos, mas nunca sai do período com ta
   assert.throws(() => resolverIntervalo({ desde: "2026-01-02" }), /Intervalo vazio/);
 });
 
-test("parseArgs lê --desde= e --ate=", () => {
-  assert.deepEqual(parseArgs(["--desde=2023-01-02", "--ate=2023-01-31", "lixo"]), { desde: "2023-01-02", ate: "2023-01-31" });
+test("parseArgs lê --produto=, --desde= e --ate=", () => {
+  assert.deepEqual(parseArgs(["--produto=icf", "--desde=2023-01-02", "--ate=2023-01-31", "lixo"]), { produto: "icf", desde: "2023-01-02", ate: "2023-01-31" });
 });

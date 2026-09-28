@@ -10,7 +10,8 @@ const { persistirObservacoes, baixar } = require("../base/persist-observations")
 // CFTC Commitments of Traders - "Disaggregated Futures Only" via a API
 // pública Socrata da CFTC (publicreporting.cftc.gov, dataset 72hh-3qpy; sem
 // chave). Histórico desde 2006-06-13, semanal (verificado em 2026-09-20:
-// 1.058 semanas para ouro e para milho).
+// 1.058 semanas para ouro e para milho; em 2026-09-28, 1.059 para o café -
+// Coffee C da ICE Futures U.S., código 083731, ADR 0028).
 //
 // Observáveis BRUTOS por contrato (posição líquida é um FATOR, não é guardada):
 //   OPEN_INTEREST, MM_LONG, MM_SHORT (managed money).
@@ -35,7 +36,8 @@ const LIMITE_LINHAS_MESMO_INSTANTE = 10;
 
 const CONTRATOS = {
   gold: { codigoCftc: "088691", prefixo: "CFTC.GOLD", nome: "Ouro (COMEX)" },
-  corn: { codigoCftc: "002602", prefixo: "CFTC.CORN", nome: "Milho (CBOT)" }
+  corn: { codigoCftc: "002602", prefixo: "CFTC.CORN", nome: "Milho (CBOT)" },
+  coffee: { codigoCftc: "083731", prefixo: "CFTC.COFFEE", nome: "Café arábica (ICE Coffee C)" }
 };
 
 const CAMPOS = [

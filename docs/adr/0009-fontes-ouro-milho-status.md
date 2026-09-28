@@ -87,7 +87,7 @@ como **proxy** — é o preço físico, não o do contrato (sem estrutura a term
 Ressalva de liquidez do próprio relatório (§8.4, §13.3): ICF e CCM têm "liquidez modesta" — a profundidade
 útil de anos antigos precisa ser medida nos dados, não presumida.
 
-### Coletor implementado (`collectors/b3/b3-ccm.collector.js`)
+### Coletor implementado (`collectors/b3/b3-futuro.collector.js`, antes `b3-ccm.collector.js`: genérico por produto desde o ICF, ADR 0028)
 
 - **O que grava:** cada vencimento separado (sem série contínua nem rolagem) e cada campo como uma série
   `B3.CCM.<TICKER>.<CAMPO>` (ex.: `B3.CCM.CCMF27.SETTLE`): `SETTLE` (preço de ajuste), `LAST`, `HIGH`, `LOW`,

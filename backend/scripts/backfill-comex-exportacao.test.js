@@ -9,19 +9,21 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { resolverAnos, dividirEmBlocos } = require("./backfill-comex-milho");
+const { resolverAnos, dividirEmBlocos } = require("./backfill-comex-exportacao");
+const { PRODUTOS } = require("../src/collectors/comex/comex-exportacao.collector");
 
-test("resolverAnos usa 2005 até o ano corrente por padrão", () => {
-  assert.deepEqual(resolverAnos({}, 2026), { anoInicial: 2005, anoFinal: 2026 });
+test("resolverAnos usa o início validado do produto até o ano corrente por padrão", () => {
+  assert.deepEqual(resolverAnos({}, PRODUTOS.milho, 2026), { anoInicial: 2005, anoFinal: 2026 });
+  assert.deepEqual(resolverAnos({}, PRODUTOS.cafe, 2026), { anoInicial: 1997, anoFinal: 2026 });
 });
 
 test("resolverAnos respeita os argumentos", () => {
-  assert.deepEqual(resolverAnos({ anoInicial: "2020", anoFinal: "2022" }, 2026), { anoInicial: 2020, anoFinal: 2022 });
+  assert.deepEqual(resolverAnos({ anoInicial: "2020", anoFinal: "2022" }, PRODUTOS.milho, 2026), { anoInicial: 2020, anoFinal: 2022 });
 });
 
-test("resolverAnos recusa início antes de 2005 (NCM não validado) e intervalo invertido", () => {
-  assert.throws(() => resolverAnos({ anoInicial: "2000" }, 2026), /não está validado/);
-  assert.throws(() => resolverAnos({ anoInicial: "2025", anoFinal: "2020" }, 2026), /inválido/);
+test("resolverAnos recusa início antes do validado (2005 no milho) e intervalo invertido", () => {
+  assert.throws(() => resolverAnos({ anoInicial: "2000" }, PRODUTOS.milho, 2026), /não está validado/);
+  assert.throws(() => resolverAnos({ anoInicial: "2025", anoFinal: "2020" }, PRODUTOS.milho, 2026), /inválido/);
 });
 
 test("dividirEmBlocos: 2005 a 2026 vira 5 blocos consecutivos de até 5 anos, sem sobreposição", () => {

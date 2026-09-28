@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    27,
-    "USD_BRL e SELIC (market_quote) + 25 de observation (Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho da NOAA + 5 fixos + 2 do USDA Crop Progress + área plantada do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM)"
+    32,
+    "USD_BRL e SELIC (market_quote) + 30 de observation (Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho da NOAA + 6 fixos (ouro, Treasury, dólar amplo e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -291,6 +291,42 @@ test("CCM: a lista mostra o valor de UM vencimento, dizendo qual (não sugere s�
   assert.equal(precos.casasDecimais, 2);
   assert.equal(liquidez.unidade, "contratos (CCMX26)");
   assert.equal(liquidez.casasDecimais, 0);
+});
+
+test("ICF (café arábica): cards próprios sobre as séries B3.ICF, preço em US$/saca, destaque identificado pelo ticker", async () => {
+  const vencimentosIcf = [
+    { codigo: "ICFU26", primeira_data: "2025-06-10", ultima_data: "2026-09-18", pregoes: "300" },
+    { codigo: "ICFZ26", primeira_data: "2025-06-10", ultima_data: "2026-09-25", pregoes: "305" }
+  ];
+  let prefixoPedido = null;
+  const repo = repoCcm({
+    listarItens: async (config) => {
+      prefixoPedido = config.prefixoSerie;
+      return vencimentosIcf;
+    },
+    listarUltimasDatasItens: async (config) => (config.prefixoSerie === "B3.ICF" ? vencimentosIcf : vencimentosDoBanco)
+  });
+
+  const { observavel } = await observaveisService.obterDetalheObservavel("ICF_PRECOS", {
+    observationRepository: repo,
+    collectionExecutionRepository: { buscarUltimaPorColetor: async () => null }
+  });
+  assert.equal(prefixoPedido, "B3.ICF");
+  assert.deepEqual(observavel.itens.map((v) => [v.codigo, v.rotulo, v.ativo]), [["ICFU26", "ICFU26 (set/2026)", false], ["ICFZ26", "ICFZ26 (dez/2026)", true]]);
+  assert.equal(observavel.campos.find((c) => c.codigo === "SETTLE").unidade, "US$/saca");
+
+  const { observaveis } = await observaveisService.listarObservaveis({ marketQuoteRepository: { buscarMaisRecente: async () => null }, observationRepository: repo });
+  assert.equal(observaveis.find((o) => o.codigo === "ICF_PRECOS").unidade, "US$/saca (ICFZ26)");
+  assert.equal(observaveis.find((o) => o.codigo === "ICF_LIQUIDEZ").unidade, "contratos (ICFZ26)");
+});
+
+test("café: COT da ICE e exportação do Comex Stat em cards próprios, cada um com o seu coletor", async () => {
+  const { observaveis } = await observaveisService.listarObservaveis({ marketQuoteRepository: { buscarMaisRecente: async () => null }, observationRepository: observationRepositoryVazio });
+  const codigos = observaveis.map((o) => o.codigo);
+  for (const codigo of ["COT_CAFE", "COMEX_CAFE_VOLUME", "COMEX_CAFE_VALOR", "ICF_PRECOS", "ICF_LIQUIDEZ"]) assert.ok(codigos.includes(codigo), codigo);
+
+  const cot = await observaveisService.obterDetalheObservavel("COT_CAFE", { observationRepository: observationRepositoryVazio, collectionExecutionRepository: { buscarUltimaPorColetor: async () => null } });
+  assert.equal(cot.observavel.nome, "CFTC COT - Café arábica (ICE Coffee C)");
 });
 
 test("CCM: sem escolha, o histórico traz o SETTLE dos vencimentos ATIVOS, uma linha por vencimento", async () => {

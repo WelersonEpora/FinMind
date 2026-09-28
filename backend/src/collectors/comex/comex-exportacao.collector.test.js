@@ -9,7 +9,9 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const coletor = require("./comex-milho-exportacao.collector");
+const comex = require("./comex-exportacao.collector");
+
+const coletor = comex.criarColetorComexExportacao("milho");
 
 // Fixture real (POST /general, monthDetail: true, NCM 10059010, 2026-09-21), reduzida.
 const LISTA_2026 = [
@@ -101,7 +103,7 @@ test("consultarAno espera e tenta de novo no 429 (rate limit), e depois devolve 
   });
 
   assert.equal(lista.length, 3);
-  assert.deepEqual(esperas, [coletor.ESPERA_429_BASE_MS]);
+  assert.deepEqual(esperas, [comex.ESPERA_429_BASE_MS]);
 });
 
 test("consultarAno desiste depois de 5 respostas 429 seguidas, com espera crescente entre elas", async () => {
@@ -118,7 +120,7 @@ test("consultarAno desiste depois de 5 respostas 429 seguidas, com espera cresce
       }),
     /status 429/
   );
-  assert.equal(chamadas, coletor.MAX_TENTATIVAS_429);
+  assert.equal(chamadas, comex.MAX_TENTATIVAS_429);
   assert.deepEqual(esperas, [20000, 40000, 60000, 80000]);
 });
 
@@ -141,10 +143,34 @@ test("baixarAnos consulta um ano por vez, com a pausa do rate limit entre eles (
   await coletor.baixarAnos([2024, 2025, 2026], { fetchFn, esperar: async (ms) => esperas.push(ms) });
 
   assert.deepEqual(anosPedidos, ["2024", "2025", "2026"]);
-  assert.deepEqual(esperas, [coletor.PAUSA_MS, coletor.PAUSA_MS]);
+  assert.deepEqual(esperas, [comex.PAUSA_MS, comex.PAUSA_MS]);
 });
 
-test("intervaloDeAnos é inclusivo e o início validado é 2005", () => {
-  assert.deepEqual(coletor.intervaloDeAnos(2005, 2007), [2005, 2006, 2007]);
-  assert.equal(coletor.ANO_INICIAL, 2005);
+test("intervaloDeAnos é inclusivo; o início validado é 2005 no milho e 1997 no café", () => {
+  assert.deepEqual(comex.intervaloDeAnos(2005, 2007), [2005, 2006, 2007]);
+  assert.equal(coletor.produto.anoInicial, 2005);
+  assert.equal(comex.criarColetorComexExportacao("cafe").produto.anoInicial, 1997);
+});
+
+test("café: pede o NCM 09011110 e grava COMEX.CAFE.EXPORT.*, num coletor próprio", async () => {
+  const cafe = comex.criarColetorComexExportacao("cafe");
+  let corpoEnviado;
+  await cafe.consultarAno(2024, {
+    fetchFn: async (_url, opcoes) => {
+      corpoEnviado = JSON.parse(opcoes.body);
+      return ok([]);
+    }
+  });
+  assert.deepEqual(corpoEnviado.filters, [{ filter: "ncm", values: ["09011110"] }]);
+
+  // Fixture real (POST /general, NCM 09011110, dez/2024, consultado em 2026-09-28).
+  const { validos } = cafe.normalize([{ year: "2024", monthNumber: "12", metricFOB: "1004088771", metricKG: "201847928" }]);
+  assert.deepEqual(validos.map((v) => [v.series_code, v.value]), [
+    ["COMEX.CAFE.EXPORT.KG", 201847928],
+    ["COMEX.CAFE.EXPORT.FOB_USD", 1004088771]
+  ]);
+  assert.equal(validos[0].metadata.ncm, "09011110");
+  assert.equal(cafe.codigo, "comex-cafe-exportacao");
+  assert.equal(coletor.codigo, "comex-milho-exportacao");
+  assert.throws(() => comex.criarColetorComexExportacao("soja"), /desconhecido/);
 });

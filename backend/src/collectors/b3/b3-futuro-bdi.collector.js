@@ -4,15 +4,18 @@ const { UpstreamServiceError } = require("../../shared/errors");
 const logger = require("../../shared/logger");
 const { somarDias, diaDaSemanaIso, paraDate } = require("../../shared/utils/date-utils");
 const { zonedParaUtc } = require("../../shared/utils/zoned-time");
-const { decodificarFuturoCcm } = require("../../shared/utils/b3-contrato");
+const { decodificarFuturoB3 } = require("../../shared/utils/b3-contrato");
 const observationRepository = require("../../repositories/observation.repository");
 const { persistirObservacoes } = require("../base/persist-observations");
-const { extrairDoPdf, COLUNAS } = require("./b3-bdi-ccm.parser");
+const { extrairDoPdf, COLUNAS, PRECO } = require("./b3-bdi-futuro.parser");
+const { produtoB3 } = require("./b3-produtos");
 
-// B3 - HISTÓRICO do futuro de milho (CCM) por vencimento, a partir do Boletim Diário de Informações
-// (BDI) em PDF. ADR 0020. Complementa o `b3-ccm-futuro` (CSV do Up2Data, janela rolante de ~15
-// meses, ADR 0009): grava nas MESMAS séries `B3.CCM.<TICKER>.<CAMPO>` e acrescenta dois campos que o
-// CSV não tem - OPEN (abertura) e OPEN_INTEREST (contratos em aberto).
+// B3 - HISTÓRICO de um futuro agrícola por vencimento, a partir do Boletim Diário de Informações
+// (BDI) em PDF. Um coletor por produto (`criarColetorFuturoBdi`, ver b3-produtos.js): milho (CCM,
+// `b3-ccm-bdi`, ADR 0020) e café arábica (ICF, `b3-icf-bdi`, ADR 0028). Complementa o coletor do
+// Up2Data do mesmo produto (CSV, janela rolante de ~15 meses, ADR 0009): grava nas MESMAS séries
+// `<prefixo>.<TICKER>.<CAMPO>` e acrescenta dois campos que o CSV não tem - OPEN (abertura) e
+// OPEN_INTEREST (contratos em aberto). Os dois produtos baixam o mesmo PDF (um backfill por produto).
 //
 // SÓ BACKFILL: não é registrado na coleta diária (collectors/index.js). O BDI só tem a tabela por
 // vencimento no layout que vai de 2022-03-21 (1º boletim com o capítulo de derivativos) a 2025-12-11;
@@ -23,7 +26,7 @@ const { extrairDoPdf, COLUNAS } = require("./b3-bdi-ccm.parser");
 // deixar o serviço point-in-time comparar geraria "revisões" falsas. O que já existe é mantido; a
 // divergência entre as duas fontes é só MEDIDA (log), com tolerância de arredondamento no volume.
 //
-// published_at: a MESMA regra do `b3-ccm-futuro` (fim do dia do pregão em Brasília, estimado), para a
+// published_at: a MESMA regra do coletor do Up2Data (fim do dia do pregão em Brasília, estimado), para a
 // série não ter duas regras de publicação conforme o período. O `lastUpdateDate` do BDI NÃO serve:
 // é a hora da ÚLTIMA (re)publicação - achado real: pregões de fev/2025 republicados em 26/03/2025, 42
 // dias depois. Ele fica em `metadata` (rastreabilidade), junto com o status ("Publicado"/"Republicado").
@@ -73,10 +76,10 @@ async function buscar(url, signal) {
 // Um pregão: { data, situacao, ... }. situacao:
 //   sem_boletim - o BDI não tem boletim nessa data (feriado; confirmado: todas as 59 datas assim entre
 //                 2022-03 e 2026-09 são feriados da B3)
-//   sem_tabela  - há boletim, mas sem a tabela de futuros do CCM (capítulo ausente ou layout novo)
+//   sem_tabela  - há boletim, mas sem a tabela de futuros do produto (capítulo ausente ou layout novo)
 //   ok          - tabela lida ({ linhas, invalidos })
 //   erro        - falha real (download, PDF ilegível, data do boletim diferente, layout mudou)
-async function baixarDia(data, signal) {
+async function baixarDia(data, produto, signal) {
   const compacta = data.replace(/-/g, "");
   const arquivo = `BDI_${CAPITULO}_${compacta}.pdf`;
   try {
@@ -96,7 +99,7 @@ async function baixarDia(data, signal) {
     }
     if (!rPdf.ok) return { data, situacao: "erro", publicacao, arquivo, motivo: `Download do ${arquivo}: HTTP ${rPdf.status}` };
 
-    const resultado = await extrairDoPdf(rPdf.corpo);
+    const resultado = await extrairDoPdf(rPdf.corpo, produto);
     if (resultado.dataReferencia && resultado.dataReferencia !== data) {
       return { data, situacao: "erro", publicacao, arquivo, motivo: `O boletim baixado é de ${resultado.dataReferencia}, não de ${data}.` };
     }
@@ -116,18 +119,18 @@ function diasUteis(dataInicial, dataFinal) {
 }
 
 // Baixa e lê um intervalo de pregões (um PDF de ~500 KB por dia). Guarda só o resultado da tabela do
-// CCM, nunca o PDF - um backfill completo (~940 boletins) não cabe na memória de outra forma.
-async function downloadIntervalo({ dataInicial = PRIMEIRA_DATA, dataFinal = ULTIMA_DATA_LAYOUT_ANTIGO, signal, log = logger } = {}) {
+// produto, nunca o PDF - um backfill completo (~940 boletins) não cabe na memória de outra forma.
+async function baixarIntervalo(produto, { dataInicial = PRIMEIRA_DATA, dataFinal = ULTIMA_DATA_LAYOUT_ANTIGO, signal, log = logger } = {}) {
   paraDate(dataInicial);
   paraDate(dataFinal);
   const dias = diasUteis(dataInicial, dataFinal);
   const resultados = [];
 
   for (let i = 0; i < dias.length; i += CONCORRENCIA) {
-    resultados.push(...(await Promise.all(dias.slice(i, i + CONCORRENCIA).map((d) => baixarDia(d, signal)))));
+    resultados.push(...(await Promise.all(dias.slice(i, i + CONCORRENCIA).map((d) => baixarDia(d, produto, signal)))));
     const feitos = Math.min(i + CONCORRENCIA, dias.length);
     if (feitos % 60 < CONCORRENCIA || feitos === dias.length) {
-      log.info({ feitos, total: dias.length, ultimoDia: dias[feitos - 1] }, "Backfill do CCM via BDI: progresso");
+      log.info({ feitos, total: dias.length, ultimoDia: dias[feitos - 1] }, `Backfill do ${produto.simbolo} via BDI: progresso`);
     }
   }
   return resultados;
@@ -152,7 +155,7 @@ function resumirDias(rawData) {
 
 // Dia sem boletim (feriado) e boletim sem tabela NÃO são erro (são lacunas da fonte, relatadas pelo
 // script). Erro de verdade vira item inválido -> execução partial_success.
-function parse(rawData) {
+function analisar(produto, rawData) {
   if (!Array.isArray(rawData)) {
     throw new UpstreamServiceError("Resposta do BDI em formato inesperado (esperava a lista de pregões).");
   }
@@ -163,7 +166,7 @@ function parse(rawData) {
   if (publicados.length >= 4 && !publicados.some((d) => d.situacao === "ok")) {
     const amostra = publicados.at(-1);
     throw new UpstreamServiceError(
-      `Nenhum dos ${publicados.length} boletins do BDI teve a tabela de futuros do CCM lida (último: ${amostra.data}, ${amostra.situacao}${amostra.motivo ? `: ${amostra.motivo}` : ""}). O layout antigo vai até ${ULTIMA_DATA_LAYOUT_ANTIGO}.`
+      `Nenhum dos ${publicados.length} boletins do BDI teve a tabela de futuros do ${produto.simbolo} lida (último: ${amostra.data}, ${amostra.situacao}${amostra.motivo ? `: ${amostra.motivo}` : ""}). O layout antigo vai até ${ULTIMA_DATA_LAYOUT_ANTIGO}.`
     );
   }
 
@@ -180,7 +183,7 @@ function parse(rawData) {
   return itens;
 }
 
-function normalize(rawItems) {
+function normalizar(produto, rawItems) {
   const validos = [];
   const invalidos = [];
 
@@ -190,8 +193,8 @@ function normalize(rawItems) {
       continue;
     }
 
-    const ticker = `CCM${item.linha.vencimento}`;
-    const contrato = decodificarFuturoCcm(ticker);
+    const ticker = `${produto.simbolo}${item.linha.vencimento}`;
+    const contrato = decodificarFuturoB3(ticker, produto.simbolo);
     if (!contrato) {
       invalidos.push({ item, motivo: `BDI ${item.data}: vencimento "${item.linha.vencimento}" não reconhecido.` });
       continue;
@@ -203,10 +206,10 @@ function normalize(rawItems) {
       const valor = item.linha.valores[coluna.sufixo];
       if (valor === null || valor === undefined) continue; // "-" no boletim: sem negócio / sem posição
       validos.push({
-        series_code: `B3.CCM.${ticker}.${coluna.sufixo}`,
+        series_code: `${produto.prefixoSerie}.${ticker}.${coluna.sufixo}`,
         observed_at: item.data,
         value: valor,
-        unit: coluna.unit,
+        unit: coluna.unit === PRECO ? produto.unidadePreco : coluna.unit,
         source_code: SOURCE_CODE,
         published_at: publicadoEm,
         published_at_is_estimated: true,
@@ -235,7 +238,7 @@ function divergem(sufixo, a, b) {
 }
 
 // Persistência COMPLEMENTAR: só o que ainda não existe para (série, pregão) é gravado; o que já existe
-// (em geral vindo do CSV do `b3-ccm-futuro`) fica como está e conta como ignorado. As divergências
+// (em geral vindo do CSV do Up2Data) fica como está e conta como ignorado. As divergências
 // entre os dois valores são medidas e registradas no log (conferência cruzada), sem virar revisão.
 async function persistirComplemento(validos, contexto, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
@@ -280,18 +283,24 @@ async function persistirComplemento(validos, contexto, deps = {}) {
   return { ...resultado, ignorados: resultado.ignorados + jaExistentes, divergencias };
 }
 
-module.exports = {
-  codigo: "b3-ccm-bdi",
-  // Backfill de ~940 boletins: o script define o timeout; este é só um piso para uso avulso.
-  timeoutMs: 60 * 60 * 1000,
-  tentativasRetry: 1,
-  download: ({ signal }) => downloadIntervalo({ signal }),
-  downloadIntervalo,
-  parse,
-  normalize,
-  persist: persistirComplemento,
-  resumirDias,
-  baixarDia,
-  PRIMEIRA_DATA,
-  ULTIMA_DATA_LAYOUT_ANTIGO
-};
+// Coletor de um produto de b3-produtos.js ("ccm", "icf").
+function criarColetorFuturoBdi(chave) {
+  const produto = produtoB3(chave);
+  const downloadIntervalo = (opcoes) => baixarIntervalo(produto, opcoes);
+
+  return {
+    codigo: produto.codigoColetorBdi,
+    produto,
+    // Backfill de ~940 boletins: o script define o timeout; este é só um piso para uso avulso.
+    timeoutMs: 60 * 60 * 1000,
+    tentativasRetry: 1,
+    download: ({ signal }) => downloadIntervalo({ signal }),
+    downloadIntervalo,
+    parse: (rawData) => analisar(produto, rawData),
+    normalize: (rawItems) => normalizar(produto, rawItems),
+    persist: persistirComplemento,
+    baixarDia: (data, signal) => baixarDia(data, produto, signal)
+  };
+}
+
+module.exports = { criarColetorFuturoBdi, resumirDias, persistirComplemento, PRIMEIRA_DATA, ULTIMA_DATA_LAYOUT_ANTIGO };

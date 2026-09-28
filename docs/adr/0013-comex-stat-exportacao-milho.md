@@ -69,3 +69,4 @@ Backfill de 2005 a 2026 em 5 blocos, ~13 min (a espera do 429 pesa): 260 meses �
 - **Revisão não confirmada:** só a coleta repetida ao longo dos meses mostra se o MDIC revisa. Nesse caso
   passa a existir um caso real de vintage (ADR 0011), com `published_at` = `collected_at`.
 - **Fora de escopo aqui:** importação, outros NCMs (`10059090` é milho de semeadura, pequeno) e outros produtos.
+  O café verde entrou depois, no mesmo coletor generalizado por produto (`comex-exportacao.collector.js`, ADR 0028).

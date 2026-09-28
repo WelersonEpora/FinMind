@@ -1,19 +1,23 @@
 "use strict";
 
-// Extrai a tabela "Mercado Futuro" do CCM (futuro de milho com liquidação financeira) do Boletim
-// Diário de Informações (BDI) da B3, capítulo de derivativos em PDF (`BDI_03-1_AAAAMMDD.pdf`).
-// ADR 0020.
+// Extrai a tabela "Mercado Futuro" de um futuro agrícola (CCM - milho, ICF - café arábica; ver
+// b3-produtos.js) do Boletim Diário de Informações (BDI) da B3, capítulo de derivativos em PDF
+// (`BDI_03-1_AAAAMMDD.pdf`). ADRs 0020 (CCM) e 0028 (ICF).
 //
 // Extração por COORDENADA (itens de texto com x/y, via shared/utils/pdf-texto.js), mesmo motivo do
 // IMEA (ADR 0019): o texto corrido (`pdftotext -layout`) embaralha as colunas desta tabela.
 //
 // Layout conferido em boletins REAIS de 2022-03-21 a 2025-12-11 (o "layout antigo"; a partir de
-// 2025-12-12 o capítulo virou um resumo sem vencimentos - ver ADR 0020):
+// 2025-12-12 o capítulo virou um resumo sem vencimentos - ver ADR 0020). O ICF tem a MESMA tabela
+// (conferido em 2022-03-21 e 2024-06-14), só com o preço em US$/60kg:
 //
 //   CCM: Milho com Liquidação Financeira (Contrato = 450 Sacas; Cotação = R$/60kg)
 //   Mercado Futuro
 //   <3 linhas de cabeçalho>
 //   F23 | 9,677 | 360 | 1,020 | 39,894,242 | 87.04 | 86.80 | 87.04 | 86.91 | 86.84 | 86.71 | -0.29↓ | 86.82 | 86.84
+//
+//   ICF: Café Arábica 4/5 (Contrato = 100 Sacas; Cotação = US$/60kg)
+//   U24 | 5.972 | 209 | 303 44.688.015 | 275,50 | 272,10 | 276,70 | 274,20 | 275,75 | 274,05 | -2,60↓ | ...
 //
 // Cada linha de vencimento tem SEMPRE 13 valores, na ordem das colunas; célula vazia é "-". Por isso a
 // leitura é POSICIONAL (e não pela coluna mais próxima em X, como no IMEA): os números são alinhados à
@@ -27,16 +31,20 @@
 //     2024 em diante em padrão brasileiro ("10.653" e "65,26"). O formato é detectado por tabela, pela
 //     coluna de ajuste (preço sempre com casas decimais), e cada número é validado pela regra estrita
 //     daquele formato - "1,020" nunca vira 1,02 por engano: ou casa com o formato da tabela, ou é inválido.
-//   - A mesma página tem outras tabelas do CCM (opções de compra/venda), com o mesmo título: só a que
-//     vem logo depois de "Mercado Futuro" é lida.
+//   - A mesma página tem outras tabelas do produto (opções de compra/venda), com o mesmo título: só a
+//     que vem logo depois de "Mercado Futuro" é lida.
+//   - O volume é em R$ nos dois produtos (ICF: 303 contratos x 100 sacas x US$ 274,20 x ~5,38 =
+//     R$ 44,7 milhões, 2024-06-14); só os preços seguem a cotação do contrato.
 
 const { lerPdf } = require("../../shared/utils/pdf-texto");
 
 const TOLERANCIA_Y = 2;
 const RE_VENCIMENTO = /^[FGHJKMNQUVXZ]\d{2}$/;
-const RE_TITULO_CCM = /^CCM: Milho com Liquida/i;
 const RE_TITULO_PRODUTO = /^[A-Z0-9]{2,5}: /;
 const RE_SETA = /^[↑↓]+$/;
+
+// Marca dos campos de preço: a unidade é a do produto (`unidadePreco`, aplicada pelo coletor).
+const PRECO = "PRECO";
 
 // Posição do valor na linha -> campo. Os 3 últimos (variação em pontos, última oferta de compra e de
 // venda) não são coletados: a variação é derivada do ajuste (seria um fator) e as ofertas não são
@@ -46,12 +54,12 @@ const COLUNAS = [
   { sufixo: "TRADES", campoFonte: "Negócios Realizados", tipo: "inteiro", unit: "negocios" },
   { sufixo: "CONTRACTS", campoFonte: "Contratos Negociados", tipo: "inteiro", unit: "contratos" },
   { sufixo: "VOLUME_BRL", campoFonte: "Volume", tipo: "inteiro", unit: "BRL" },
-  { sufixo: "OPEN", campoFonte: "Preço de Abertura", tipo: "decimal", unit: "BRL/saca" },
-  { sufixo: "LOW", campoFonte: "Preço Mínimo", tipo: "decimal", unit: "BRL/saca" },
-  { sufixo: "HIGH", campoFonte: "Preço Máximo", tipo: "decimal", unit: "BRL/saca" },
-  { sufixo: "AVG", campoFonte: "Preço Médio", tipo: "decimal", unit: "BRL/saca" },
-  { sufixo: "LAST", campoFonte: "Último Preço", tipo: "decimal", unit: "BRL/saca" },
-  { sufixo: "SETTLE", campoFonte: "Ajuste", tipo: "decimal", unit: "BRL/saca" },
+  { sufixo: "OPEN", campoFonte: "Preço de Abertura", tipo: "decimal", unit: PRECO },
+  { sufixo: "LOW", campoFonte: "Preço Mínimo", tipo: "decimal", unit: PRECO },
+  { sufixo: "HIGH", campoFonte: "Preço Máximo", tipo: "decimal", unit: PRECO },
+  { sufixo: "AVG", campoFonte: "Preço Médio", tipo: "decimal", unit: PRECO },
+  { sufixo: "LAST", campoFonte: "Último Preço", tipo: "decimal", unit: PRECO },
+  { sufixo: "SETTLE", campoFonte: "Ajuste", tipo: "decimal", unit: PRECO },
   null, // Variação em Pontos
   null, // Última Oferta de Compra
   null // Última Oferta de Venda
@@ -141,12 +149,12 @@ function ehMoldura(conteudo) {
   return /^BDI$/.test(conteudo) || /REFERENTE A/i.test(conteudo) || /^\d{1,3}$/.test(conteudo);
 }
 
-// Varre as linhas de todas as páginas, em ordem, procurando o título do CCM seguido de
+// Varre as linhas de todas as páginas, em ordem, procurando o título do produto seguido de
 // "Mercado Futuro". Devolve { cabecalho: string, linhas: [{ vencimento, tokens, textoOriginal }] } ou
 // null se a tabela não existir no boletim. O título pode ficar no pé de uma página e "Mercado Futuro"
 // no topo da seguinte (achado real: 2024-03-11, 2022-05-23...), e a tabela pode continuar na página
 // seguinte (o cabeçalho se repete e é pulado): a moldura da página é ignorada em qualquer estado.
-function localizarTabela(paginas) {
+function localizarTabela(paginas, tituloBdi) {
   let estado = "fora";
   let cabecalho = "";
   const linhas = [];
@@ -157,7 +165,7 @@ function localizarTabela(paginas) {
       const conteudo = linha.itens.map((it) => texto(it.str)).join(" ");
 
       if (estado === "fora") {
-        if (RE_TITULO_CCM.test(primeiro)) estado = "titulo";
+        if (tituloBdi.test(primeiro)) estado = "titulo";
         continue;
       }
       if (ehMoldura(conteudo)) continue;
@@ -181,36 +189,38 @@ function localizarTabela(paginas) {
   return estado === "tabela" ? { cabecalho, linhas } : null;
 }
 
-// Função pura principal. `paginas`: [{ itens: [{ str, x, y }] }]. Devolve:
+// Função pura principal. `paginas`: [{ itens: [{ str, x, y }] }]; `produto`: entrada de b3-produtos.js
+// (usa `simbolo`, `tituloBdi` e `resumoBdi`). Devolve:
 //   { situacao: "ok", dataReferencia, formato, linhas: [{ vencimento, valores: { SUFIXO: numero|null } }], invalidos }
 //   { situacao: "sem_tabela", dataReferencia, motivo }
 //   { situacao: "erro", dataReferencia, motivo }
-function extrairFuturosCcm(paginas) {
+function extrairFuturos(paginas, produto) {
+  const { simbolo } = produto;
   const dataReferencia = extrairDataReferencia(paginas);
-  const tabela = localizarTabela(paginas);
+  const tabela = localizarTabela(paginas, produto.tituloBdi);
 
   if (!tabela) {
-    const temResumoNovo = paginas.some((p) => p.itens.some((it) => /^CCM: MILHO$/.test(texto(it.str))));
+    const temResumoNovo = paginas.some((p) => p.itens.some((it) => produto.resumoBdi.test(texto(it.str))));
     return {
       situacao: "sem_tabela",
       dataReferencia,
       motivo: temResumoNovo
         ? "Boletim no layout novo (resumo, sem tabela por vencimento)."
-        : "Boletim sem a tabela de futuros do CCM (capítulo de derivativos ausente ou sem o produto)."
+        : `Boletim sem a tabela de futuros do ${simbolo} (capítulo de derivativos ausente ou sem o produto).`
     };
   }
 
   const faltando = CABECALHO_ESPERADO.filter((palavra) => !tabela.cabecalho.includes(palavra));
   if (faltando.length > 0) {
-    return { situacao: "erro", dataReferencia, motivo: `Cabeçalho da tabela do CCM diferente do esperado (faltando: ${faltando.join(", ")}) - layout mudou?` };
+    return { situacao: "erro", dataReferencia, motivo: `Cabeçalho da tabela do ${simbolo} diferente do esperado (faltando: ${faltando.join(", ")}) - layout mudou?` };
   }
   if (tabela.linhas.length === 0) {
-    return { situacao: "erro", dataReferencia, motivo: "Tabela de futuros do CCM encontrada, mas sem nenhuma linha de vencimento." };
+    return { situacao: "erro", dataReferencia, motivo: `Tabela de futuros do ${simbolo} encontrada, mas sem nenhuma linha de vencimento.` };
   }
 
   const formato = detectarFormato(tabela.linhas.map((l) => l.tokens));
   if (!formato) {
-    return { situacao: "erro", dataReferencia, motivo: "Formato numérico da tabela do CCM não reconhecido (ajuste nem em 87.04 nem em 87,04)." };
+    return { situacao: "erro", dataReferencia, motivo: `Formato numérico da tabela do ${simbolo} não reconhecido (ajuste nem em 87.04 nem em 87,04).` };
   }
 
   const linhas = [];
@@ -256,18 +266,19 @@ function verificarCoerencia(v) {
   return null;
 }
 
-// Impura: Buffer do PDF -> resultado de `extrairFuturosCcm`.
-async function extrairDoPdf(buffer) {
-  return extrairFuturosCcm(await lerPdf(buffer));
+// Impura: Buffer do PDF -> resultado de `extrairFuturos`.
+async function extrairDoPdf(buffer, produto) {
+  return extrairFuturos(await lerPdf(buffer), produto);
 }
 
 module.exports = {
-  extrairFuturosCcm,
+  extrairFuturos,
   extrairDoPdf,
   extrairDataReferencia,
   agruparLinhas,
   detectarFormato,
   lerNumero,
   tokensDaLinha,
-  COLUNAS
+  COLUNAS,
+  PRECO
 };

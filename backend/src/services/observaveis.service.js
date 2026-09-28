@@ -271,10 +271,15 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://fred.stlouisfed.org/series/DTWEXBGS"
     }
   },
-  ...["ouro", "milho"].map((ativo) => ({
-    instrumentCode: ativo === "ouro" ? "COT_OURO" : "COT_MILHO",
+  // Um card por contrato (o café, Coffee C da ICE, desde 2026-09-28 - ADR 0028).
+  ...[
+    { instrumentCode: "COT_OURO", mercado: "Ouro (COMEX)", chave: "gold", prefixo: "GOLD" },
+    { instrumentCode: "COT_MILHO", mercado: "Milho (CBOT)", chave: "corn", prefixo: "CORN" },
+    { instrumentCode: "COT_CAFE", mercado: "Café arábica (ICE Coffee C)", chave: "coffee", prefixo: "COFFEE" }
+  ].map(({ instrumentCode, mercado, chave, prefixo }) => ({
+    instrumentCode,
     origem: "observation",
-    nome: `CFTC COT - ${ativo === "ouro" ? "Ouro (COMEX)" : "Milho (CBOT)"}`,
+    nome: `CFTC COT - ${mercado}`,
     unidade: "contratos",
     casasDecimais: 0,
     frequencia: "SEMANAL",
@@ -282,10 +287,10 @@ const CATALOGO_OBSERVAVEIS = [
     // 11 dias sem sucessor; em semana de feriado a CFTC divulga na segunda (até ~14 dias).
     toleranciaDias: 15,
     fonte: "CFTC - Commitments of Traders",
-    fonteCollectorCode: ativo === "ouro" ? "cftc-cot-gold" : "cftc-cot-corn",
+    fonteCollectorCode: `cftc-cot-${chave}`,
     series: ["open_interest", "mm_long", "mm_short"].map((modalidade) => ({
       modalidade,
-      seriesCode: `CFTC.${ativo === "ouro" ? "GOLD" : "CORN"}.${modalidade === "open_interest" ? "OPEN_INTEREST" : modalidade.toUpperCase()}`
+      seriesCode: `CFTC.${prefixo}.${modalidade === "open_interest" ? "OPEN_INTEREST" : modalidade.toUpperCase()}`
     })),
     modalidadePrincipal: "open_interest",
     fonteDetalhe: {
@@ -351,39 +356,53 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
-  // --- Exportação brasileira de milho, mensal (Comex Stat / MDIC, ADR 0013) ---
-  // Dois cards, um por unidade (kg e US$ não dividem o mesmo eixo). Dado desde
-  // 2005: antes disso o código NCM muda e não foi mapeado. Mensal com divulgação
+  // --- Exportação brasileira mensal (Comex Stat / MDIC): milho (ADR 0013) e café verde (ADR 0028) ---
+  // Dois cards por produto, um por unidade (kg e US$ não dividem o mesmo eixo). Mensal com divulgação
   // ~1 mês depois: a última observação pode ter ~70 dias antes de "atrasar".
   ...[
     {
-      instrumentCode: "COMEX_MILHO_VOLUME",
-      nome: "Milho - Exportação (volume)",
-      unidade: "kg",
-      seriesCode: "COMEX.MILHO.EXPORT.KG",
-      descricao: "Volume mensal de milho em grão exportado pelo Brasil (NCM 10059010), em quilogramas, conforme o Comex Stat do MDIC."
+      produto: "MILHO",
+      mercadoria: "milho em grão",
+      ncm: "10059010",
+      fonteCollectorCode: "comex-milho-exportacao",
+      cobertura: "Cobertura a partir de 2005: antes disso o código NCM muda e o mapeamento não foi feito."
     },
     {
-      instrumentCode: "COMEX_MILHO_VALOR",
-      nome: "Milho - Exportação (valor FOB)",
-      unidade: "US$",
-      seriesCode: "COMEX.MILHO.EXPORT.FOB_USD",
-      descricao: "Valor mensal FOB do milho em grão exportado pelo Brasil (NCM 10059010), em dólares, conforme o Comex Stat do MDIC."
+      produto: "CAFE",
+      mercadoria: "café verde (não torrado, não descafeinado, em grão)",
+      ncm: "09011110",
+      fonteCollectorCode: "comex-cafe-exportacao",
+      cobertura: "Cobertura a partir de 1997, o primeiro ano do Comex Stat. Café solúvel, torrado e descafeinado (outros NCMs) não entram."
     }
-  ].map(({ seriesCode, descricao, ...cartao }) => ({
+  ].flatMap(({ produto, mercadoria, ncm, fonteCollectorCode, cobertura }) =>
+    [
+      {
+        instrumentCode: `COMEX_${produto}_VOLUME`,
+        nome: `${produto === "MILHO" ? "Milho" : "Café"} - Exportação (volume)`,
+        unidade: "kg",
+        seriesCode: `COMEX.${produto}.EXPORT.KG`,
+        descricao: `Volume mensal de ${mercadoria} exportado pelo Brasil (NCM ${ncm}), em quilogramas, conforme o Comex Stat do MDIC.`
+      },
+      {
+        instrumentCode: `COMEX_${produto}_VALOR`,
+        nome: `${produto === "MILHO" ? "Milho" : "Café"} - Exportação (valor FOB)`,
+        unidade: "US$",
+        seriesCode: `COMEX.${produto}.EXPORT.FOB_USD`,
+        descricao: `Valor mensal FOB do ${mercadoria} exportado pelo Brasil (NCM ${ncm}), em dólares, conforme o Comex Stat do MDIC.`
+      }
+    ].map((cartao) => ({ ...cartao, fonteCollectorCode, cobertura }))
+  ).map(({ seriesCode, descricao, cobertura, ...cartao }) => ({
     ...cartao,
     origem: "observation",
     casasDecimais: 0,
     frequencia: "MENSAL",
     toleranciaDias: 75,
     fonte: "Comex Stat (MDIC)",
-    fonteCollectorCode: "comex-milho-exportacao",
     series: [{ modalidade: "export", seriesCode }],
     modalidadePrincipal: "export",
     fonteDetalhe: {
       descricao,
-      metodologia:
-        "Um valor por mês (o dia da observação é o 1º do mês). A fonte não informa quando publicou nem se revisa meses já divulgados: a data de disponibilidade é ESTIMADA em 15 do mês seguinte, e a coleta diária relê o ano corrente e o anterior. Cobertura a partir de 2005: antes disso o código NCM muda e o mapeamento não foi feito. Só exportação.",
+      metodologia: `Um valor por mês (o dia da observação é o 1º do mês). A fonte não informa quando publicou nem se revisa meses já divulgados: a data de disponibilidade é ESTIMADA em 15 do mês seguinte, e a coleta diária relê o ano corrente e o anterior. ${cobertura} Só exportação.`,
       formatoOrigem: "JSON (API de dados do Comex Stat, sem chave)",
       urlOficial: "https://comexstat.mdic.gov.br"
     }
@@ -765,56 +784,75 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
-  // --- Futuro de milho da B3 (CCM), por vencimento (ADR 0009) ---
-  // Dois cards sobre as MESMAS séries `B3.CCM.<TICKER>.<CAMPO>`: os campos têm
+  // --- Futuros agrícolas da B3 por vencimento: milho (CCM, ADR 0009) e café arábica (ICF, ADR 0028) ---
+  // Dois cards por produto sobre as MESMAS séries `B3.<PRODUTO>.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por
   // vencimento (nunca uma série contínua). `porVencimento` faz o serviço descobrir
   // os vencimentos no banco; por padrão só os que ainda negociam.
   ...[
     {
-      instrumentCode: "CCM_PRECOS",
-      nome: "Milho B3 (CCM) — Preços",
-      unidade: "R$/saca",
-      campoPrincipal: "SETTLE",
-      campos: [
-        { codigo: "SETTLE", nome: "Preço de ajuste", unidade: "R$/saca", casasDecimais: 2 },
-        { codigo: "LAST", nome: "Último preço", unidade: "R$/saca", casasDecimais: 2 },
-        { codigo: "HIGH", nome: "Máxima do dia", unidade: "R$/saca", casasDecimais: 2 },
-        { codigo: "LOW", nome: "Mínima do dia", unidade: "R$/saca", casasDecimais: 2 },
-        { codigo: "AVG", nome: "Preço médio", unidade: "R$/saca", casasDecimais: 2 },
-        { codigo: "OPEN", nome: "Preço de abertura", unidade: "R$/saca", casasDecimais: 2 },
-        { codigo: "OSCN_PCT", nome: "Oscilação", unidade: "%", casasDecimais: 2 }
-      ],
-      descricao:
-        "Preços diários de cada vencimento do futuro de milho da B3 (CCM): preço de ajuste, último, máxima, mínima, médio, abertura e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua."
+      simbolo: "CCM",
+      titulo: "Milho B3 (CCM)",
+      mercadoria: "milho",
+      unidadePreco: "R$/saca",
+      fonteCollectorCode: "b3-ccm-futuro",
+      notaLiquidez: " O relatório FEL 1 classifica a liquidez do CCM como modesta (§8.4, §13.3) - esta é a medida real.",
+      historico:
+        "de 2022-03-21 a 2025-12-11, o Boletim Diário de Informações (PDF, carga histórica única, ADR 0020); a partir de 2025-06-10, o arquivo diário do Up2Data (coleta diária, janela de ~15 meses)."
     },
     {
-      instrumentCode: "CCM_LIQUIDEZ",
-      nome: "Milho B3 (CCM) — Liquidez",
-      unidade: "contratos",
-      campoPrincipal: "CONTRACTS",
-      campos: [
-        { codigo: "CONTRACTS", nome: "Contratos negociados", unidade: "contratos", casasDecimais: 0 },
-        { codigo: "TRADES", nome: "Número de negócios", unidade: "negócios", casasDecimais: 0 },
-        { codigo: "VOLUME_BRL", nome: "Volume financeiro", unidade: "R$", casasDecimais: 0 },
-        { codigo: "OPEN_INTEREST", nome: "Contratos em aberto", unidade: "contratos", casasDecimais: 0 }
-      ],
-      descricao:
-        "Liquidez diária de cada vencimento do futuro de milho da B3 (CCM): contratos negociados, número de negócios, volume financeiro e contratos em aberto. O relatório FEL 1 classifica a liquidez do CCM como modesta (§8.4, §13.3) - esta é a medida real."
+      simbolo: "ICF",
+      titulo: "Café arábica B3 (ICF)",
+      mercadoria: "café arábica 4/5",
+      unidadePreco: "US$/saca",
+      fonteCollectorCode: "b3-icf-futuro",
+      notaLiquidez: " O volume financeiro é em reais, mesmo com o contrato cotado em dólares (100 sacas de 60 kg).",
+      historico:
+        "de 2022-03-21 a 2025-12-11, o Boletim Diário de Informações (PDF, carga histórica única, ADR 0028); a partir de 2025-06-10, o arquivo diário do Up2Data (coleta diária, janela de ~15 meses)."
     }
-  ].map((cartao) => ({
+  ].flatMap(({ simbolo, titulo, mercadoria, unidadePreco, fonteCollectorCode, notaLiquidez, historico }) =>
+    [
+      {
+        instrumentCode: `${simbolo}_PRECOS`,
+        nome: `${titulo} — Preços`,
+        unidade: unidadePreco,
+        campoPrincipal: "SETTLE",
+        campos: [
+          { codigo: "SETTLE", nome: "Preço de ajuste", unidade: unidadePreco, casasDecimais: 2 },
+          { codigo: "LAST", nome: "Último preço", unidade: unidadePreco, casasDecimais: 2 },
+          { codigo: "HIGH", nome: "Máxima do dia", unidade: unidadePreco, casasDecimais: 2 },
+          { codigo: "LOW", nome: "Mínima do dia", unidade: unidadePreco, casasDecimais: 2 },
+          { codigo: "AVG", nome: "Preço médio", unidade: unidadePreco, casasDecimais: 2 },
+          { codigo: "OPEN", nome: "Preço de abertura", unidade: unidadePreco, casasDecimais: 2 },
+          { codigo: "OSCN_PCT", nome: "Oscilação", unidade: "%", casasDecimais: 2 }
+        ],
+        descricao: `Preços diários de cada vencimento do futuro de ${mercadoria} da B3 (${simbolo}): preço de ajuste, último, máxima, mínima, médio, abertura e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua.`
+      },
+      {
+        instrumentCode: `${simbolo}_LIQUIDEZ`,
+        nome: `${titulo} — Liquidez`,
+        unidade: "contratos",
+        campoPrincipal: "CONTRACTS",
+        campos: [
+          { codigo: "CONTRACTS", nome: "Contratos negociados", unidade: "contratos", casasDecimais: 0 },
+          { codigo: "TRADES", nome: "Número de negócios", unidade: "negócios", casasDecimais: 0 },
+          { codigo: "VOLUME_BRL", nome: "Volume financeiro", unidade: "R$", casasDecimais: 0 },
+          { codigo: "OPEN_INTEREST", nome: "Contratos em aberto", unidade: "contratos", casasDecimais: 0 }
+        ],
+        descricao: `Liquidez diária de cada vencimento do futuro de ${mercadoria} da B3 (${simbolo}): contratos negociados, número de negócios, volume financeiro e contratos em aberto.${notaLiquidez}`
+      }
+    ].map((cartao) => ({ ...cartao, simbolo, fonteCollectorCode, historico }))
+  ).map(({ simbolo, historico, ...cartao }) => ({
     ...cartao,
     origem: "observation",
-    porVencimento: { prefixoSerie: "B3.CCM", campoReferencia: "SETTLE" },
+    porVencimento: { prefixoSerie: `B3.${simbolo}`, campoReferencia: "SETTLE" },
     casasDecimais: cartao.campos.find((c) => c.codigo === cartao.campoPrincipal).casasDecimais,
     frequencia: "DIARIA",
     toleranciaDias: 4,
     fonte: "B3 - Up2Data (negócios consolidados) e Boletim Diário (BDI)",
-    fonteCollectorCode: "b3-ccm-futuro",
     fonteDetalhe: {
       descricao: cartao.descricao,
-      metodologia:
-        "Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). Histórico em duas fontes da própria B3, nas mesmas séries: de 2022-03-21 a 2025-12-11, o Boletim Diário de Informações (PDF, carga histórica única, ADR 0020); a partir de 2025-06-10, o arquivo diário do Up2Data (coleta diária, janela de ~15 meses). Onde as duas cobrem o mesmo pregão, vale o valor do Up2Data (o BDI arredonda o volume para inteiro). Abertura e contratos em aberto só existem no BDI: vão até 2025-12-11 (o boletim deixou de trazer a tabela por vencimento).",
+      metodologia: `Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). Histórico em duas fontes da própria B3, nas mesmas séries: ${historico} Onde as duas cobrem o mesmo pregão, vale o valor do Up2Data (o BDI arredonda o volume para inteiro). Abertura e contratos em aberto só existem no BDI: vão até 2025-12-11 (o boletim deixou de trazer a tabela por vencimento).`,
       formatoOrigem: "CSV (TradeInformationConsolidatedFile, B3 Up2Data) e PDF (BDI, capítulo de derivativos)",
       urlOficial: "https://arquivos.b3.com.br/tabelas/TradeInformationConsolidatedFile"
     }

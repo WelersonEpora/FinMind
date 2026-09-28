@@ -9,7 +9,9 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test, mock, afterEach } = require("node:test");
 const assert = require("node:assert/strict");
-const collector = require("./b3-ccm-bdi.collector");
+const { criarColetorFuturoBdi, resumirDias } = require("./b3-futuro-bdi.collector");
+
+const collector = criarColetorFuturoBdi("ccm");
 
 afterEach(() => mock.restoreAll());
 
@@ -45,6 +47,29 @@ test("normalize: cada campo do vencimento vira uma série B3.CCM.<TICKER>.<CAMPO
     validos.filter((v) => v.series_code.startsWith("B3.CCM.CCMF24.")).map((v) => v.series_code),
     ["B3.CCM.CCMF24.OPEN_INTEREST", "B3.CCM.CCMF24.SETTLE"]
   );
+});
+
+test("café arábica (ICF): séries B3.ICF.<TICKER>.<CAMPO>, preço em US$/saca e volume em R$", () => {
+  const icf = criarColetorFuturoBdi("icf");
+  const dia = diaOk("2024-06-14", [
+    { vencimento: "U24", valores: { OPEN_INTEREST: 5972, TRADES: 209, CONTRACTS: 303, VOLUME_BRL: 44688015, OPEN: 275.5, LOW: 272.1, HIGH: 276.7, AVG: 274.2, LAST: 275.75, SETTLE: 274.05 } }
+  ]);
+  const { validos, invalidos } = icf.normalize(icf.parse([dia]));
+
+  assert.equal(invalidos.length, 0);
+  assert.equal(icf.codigo, "b3-icf-bdi");
+  const settle = validos.find((v) => v.series_code === "B3.ICF.ICFU24.SETTLE");
+  assert.equal(settle.value, 274.05);
+  assert.equal(settle.unit, "USD/saca");
+  assert.equal(settle.metadata.vencimento, "2024-09");
+  assert.equal(validos.find((v) => v.series_code === "B3.ICF.ICFU24.VOLUME_BRL").unit, "BRL");
+  assert.ok(validos.every((v) => v.series_code.startsWith("B3.ICF.ICFU24.")));
+});
+
+test("parse do ICF falha alto citando o produto quando nenhum boletim tem a tabela", () => {
+  const icf = criarColetorFuturoBdi("icf");
+  const dias = ["2024-06-10", "2024-06-11", "2024-06-12", "2024-06-13"].map((data) => ({ data, situacao: "sem_tabela", motivo: "sem a tabela" }));
+  assert.throws(() => icf.parse(dias), /tabela de futuros do ICF/);
 });
 
 test("normalize: published_at segue a regra do coletor CSV (fim do pregão em Brasília, estimado) e o BDI fica rastreável", () => {
@@ -181,7 +206,7 @@ test("baixarDia: boletim publicado cujo PDF não baixa é erro (com o status do 
 });
 
 test("resumirDias separa feriados, boletins sem tabela e erros, e conta os formatos numéricos", () => {
-  const resumo = collector.resumirDias([
+  const resumo = resumirDias([
     { data: "2023-01-16", situacao: "ok", formato: "en" },
     { data: "2023-02-20", situacao: "sem_boletim" },
     { data: "2023-07-03", situacao: "sem_tabela", motivo: "sem a tabela" },

@@ -2,7 +2,10 @@
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const parser = require("./b3-bdi-ccm.parser");
+const parser = require("./b3-bdi-futuro.parser");
+const { PRODUTOS } = require("./b3-produtos");
+
+const extrairFuturosCcm = (paginas) => parser.extrairFuturos(paginas, PRODUTOS.ccm);
 
 // Fixtures que reproduzem os itens de texto REAIS (str, x, y) extraídos pelo pdfjs dos boletins de
 // 2023-01-16 (padrão numérico americano) e 2024-07-15 (padrão brasileiro). Cada linha é
@@ -54,8 +57,8 @@ function pagina2024() {
   };
 }
 
-test("extrairFuturosCcm lê a tabela de 2023 (padrão americano) com os 10 campos por vencimento", () => {
-  const r = parser.extrairFuturosCcm([pagina2023()]);
+test("extrairFuturos (CCM) lê a tabela de 2023 (padrão americano) com os 10 campos por vencimento", () => {
+  const r = extrairFuturosCcm([pagina2023()]);
 
   assert.equal(r.situacao, "ok");
   assert.equal(r.dataReferencia, "2023-01-16");
@@ -67,22 +70,22 @@ test("extrairFuturosCcm lê a tabela de 2023 (padrão americano) com os 10 campo
   });
 });
 
-test("extrairFuturosCcm: vencimento sem negócio no dia só tem contratos em aberto e ajuste", () => {
-  const f24 = parser.extrairFuturosCcm([pagina2023()]).linhas.find((l) => l.vencimento === "F24");
+test("extrairFuturos (CCM): vencimento sem negócio no dia só tem contratos em aberto e ajuste", () => {
+  const f24 = extrairFuturosCcm([pagina2023()]).linhas.find((l) => l.vencimento === "F24");
 
   assert.deepEqual(f24.valores, { OPEN_INTEREST: 654, TRADES: null, CONTRACTS: null, VOLUME_BRL: null, OPEN: null, LOW: null, HIGH: null, AVG: null, LAST: null, SETTLE: 93.73 });
 });
 
-test("extrairFuturosCcm separa duas células que o PDF colou num item só (contratos + volume)", () => {
-  const h23 = parser.extrairFuturosCcm([pagina2023()]).linhas.find((l) => l.vencimento === "H23");
+test("extrairFuturos (CCM) separa duas células que o PDF colou num item só (contratos + volume)", () => {
+  const h23 = extrairFuturosCcm([pagina2023()]).linhas.find((l) => l.vencimento === "H23");
 
   assert.equal(h23.valores.CONTRACTS, 3512);
   assert.equal(h23.valores.VOLUME_BRL, 145828089);
   assert.equal(h23.valores.OPEN, 92.05);
 });
 
-test("extrairFuturosCcm lê a tabela de 2024 (padrão brasileiro) e ignora a tabela de opções logo abaixo", () => {
-  const r = parser.extrairFuturosCcm([pagina2024()]);
+test("extrairFuturos (CCM) lê a tabela de 2024 (padrão brasileiro) e ignora a tabela de opções logo abaixo", () => {
+  const r = extrairFuturosCcm([pagina2024()]);
 
   assert.equal(r.situacao, "ok");
   assert.equal(r.formato, "pt");
@@ -90,7 +93,7 @@ test("extrairFuturosCcm lê a tabela de 2024 (padrão brasileiro) e ignora a tab
   assert.deepEqual(r.linhas[1].valores, { OPEN_INTEREST: 67769, TRADES: 5102, CONTRACTS: 8437, VOLUME_BRL: 219459834, OPEN: 58.41, LOW: 57.35, HIGH: 58.5, AVG: 57.8, LAST: 57.75, SETTLE: 57.96 });
 });
 
-test("extrairFuturosCcm continua a tabela na página seguinte, pulando o cabeçalho repetido", () => {
+test("extrairFuturos (CCM) continua a tabela na página seguinte, pulando o cabeçalho repetido", () => {
   const primeira = pagina2023();
   // Corta a 1ª página depois do F23 e leva F24/H23 para a próxima, com o cabeçalho repetido.
   const itensPrimeira = primeira.itens.filter((it) => it.y >= 428 || it.y === 14);
@@ -100,80 +103,80 @@ test("extrairFuturosCcm continua a tabela na página seguinte, pulando o cabeça
     ...primeira.itens.filter((it) => it.y < 428 && it.y > 14).map((it) => ({ ...it, y: it.y + 340 }))
   ];
 
-  const r = parser.extrairFuturosCcm([{ itens: itensPrimeira }, { itens: itensSegunda }]);
+  const r = extrairFuturosCcm([{ itens: itensPrimeira }, { itens: itensSegunda }]);
 
   assert.equal(r.situacao, "ok");
   assert.deepEqual(r.linhas.map((l) => l.vencimento), ["F23", "F24", "H23"]);
 });
 
-test("extrairFuturosCcm: título no pé de uma página e 'Mercado Futuro' no topo da seguinte (achado real, 2024-03-11)", () => {
+test("extrairFuturos (CCM): título no pé de uma página e 'Mercado Futuro' no topo da seguinte (achado real, 2024-03-11)", () => {
   const original = pagina2023();
   const primeira = { itens: [...linha(170, ["X24P002200", 28.1]), ...TITULO(138), ...RODAPE("REFERENTE A SEGUNDA-FEIRA - 16 DE JANEIRO DE 2023 - Nº 11")] };
   const segunda = { itens: [...linha(799, ["BDI", 28.1]), ...original.itens.filter((it) => it.y <= 459 && it.y > 14).map((it) => ({ ...it, y: it.y + 300 }))] };
 
-  const r = parser.extrairFuturosCcm([primeira, segunda]);
+  const r = extrairFuturosCcm([primeira, segunda]);
 
   assert.equal(r.situacao, "ok");
   assert.deepEqual(r.linhas.map((l) => l.vencimento), ["F23", "F24", "H23"]);
 });
 
-test("extrairFuturosCcm aceita o cabeçalho quebrado como 'Contratos em' / 'Aberto' (achado real, 2024-08-15)", () => {
+test("extrairFuturos (CCM) aceita o cabeçalho quebrado como 'Contratos em' / 'Aberto' (achado real, 2024-08-15)", () => {
   const pagina = pagina2023();
   pagina.itens.find((it) => it.str === "Contratos" && it.x === 80.1).str = "Contratos em";
   pagina.itens.find((it) => it.str === "em Aberto").str = "Aberto";
 
-  const r = parser.extrairFuturosCcm([pagina]);
+  const r = extrairFuturosCcm([pagina]);
 
   assert.equal(r.situacao, "ok");
   assert.equal(r.linhas.length, 3);
 });
 
-test("extrairFuturosCcm: número fora do formato da tabela é inválido, nunca reinterpretado", () => {
+test("extrairFuturos (CCM): número fora do formato da tabela é inválido, nunca reinterpretado", () => {
   const pagina = pagina2023();
   // "1.020" numa tabela em padrão americano não pode virar 1,02 nem 1020.
   pagina.itens.find((it) => it.str === "1,020").str = "1.020";
 
-  const r = parser.extrairFuturosCcm([pagina]);
+  const r = extrairFuturosCcm([pagina]);
 
   assert.deepEqual(r.linhas.map((l) => l.vencimento), ["F24", "H23"]);
   assert.equal(r.invalidos.length, 1);
   assert.match(r.invalidos[0].motivo, /Contratos Negociados="1\.020"/);
 });
 
-test("extrairFuturosCcm rejeita linha com contagem de valores diferente de 13 (coluna faltando ou sobrando)", () => {
+test("extrairFuturos (CCM) rejeita linha com contagem de valores diferente de 13 (coluna faltando ou sobrando)", () => {
   const pagina = pagina2023();
   pagina.itens = pagina.itens.filter((it) => !(it.y === 428 && it.str === "86.82"));
 
-  const r = parser.extrairFuturosCcm([pagina]);
+  const r = extrairFuturosCcm([pagina]);
 
   assert.equal(r.invalidos.length, 1);
   assert.equal(r.invalidos[0].vencimento, "F23");
   assert.match(r.invalidos[0].motivo, /12 valores em vez de 13/);
 });
 
-test("extrairFuturosCcm rejeita linha incoerente (mínimo acima do máximo = coluna deslocada)", () => {
+test("extrairFuturos (CCM) rejeita linha incoerente (mínimo acima do máximo = coluna deslocada)", () => {
   const pagina = pagina2023();
   pagina.itens.find((it) => it.y === 428 && it.str === "86.80").str = "88.00";
 
-  const r = parser.extrairFuturosCcm([pagina]);
+  const r = extrairFuturosCcm([pagina]);
 
   assert.equal(r.invalidos.length, 1);
   assert.match(r.invalidos[0].motivo, /Mínimo \(88\) maior que o máximo \(87\.04\)/);
 });
 
-test("extrairFuturosCcm: cabeçalho com colunas diferentes é erro de layout, não leitura na ordem errada", () => {
+test("extrairFuturos (CCM): cabeçalho com colunas diferentes é erro de layout, não leitura na ordem errada", () => {
   const pagina = pagina2023();
   pagina.itens.find((it) => it.str === "Ajuste").str = "Preço de Referência";
 
-  const r = parser.extrairFuturosCcm([pagina]);
+  const r = extrairFuturosCcm([pagina]);
 
   assert.equal(r.situacao, "erro");
   assert.match(r.motivo, /faltando: Ajuste/);
 });
 
-test("extrairFuturosCcm: boletim sem a tabela (capítulo ausente) e boletim no layout novo são 'sem_tabela'", () => {
-  const semCapitulo = parser.extrairFuturosCcm([{ itens: linha(700, ["REFERENTE A SEGUNDA-FEIRA - 03 DE JULHO DE 2023 - Nº 125", 100]) }]);
-  const layoutNovo = parser.extrairFuturosCcm([
+test("extrairFuturos (CCM): boletim sem a tabela (capítulo ausente) e boletim no layout novo são 'sem_tabela'", () => {
+  const semCapitulo = extrairFuturosCcm([{ itens: linha(700, ["REFERENTE A SEGUNDA-FEIRA - 03 DE JULHO DE 2023 - Nº 125", 100]) }]);
+  const layoutNovo = extrairFuturosCcm([
     { itens: [...linha(40, ["PREGÃO ELETRÔNICO", 20], ["COMMODITIES", 150], ["CCM: MILHO", 250], ["FUTURO", 500]), ...linha(10, ["REFERENTE A SEXTA-FEIRA - 12 DE DEZEMBRO DE 2025 - Nº 240", 300])] }
   ]);
 
@@ -182,6 +185,50 @@ test("extrairFuturosCcm: boletim sem a tabela (capítulo ausente) e boletim no l
   assert.match(semCapitulo.motivo, /sem a tabela/);
   assert.equal(layoutNovo.situacao, "sem_tabela");
   assert.match(layoutNovo.motivo, /layout novo/);
+});
+
+// 2024-06-14 (real): a tabela do CCM seguida da do ICF, na mesma página. U24 com "contratos + volume"
+// colados; H25 só com ajuste.
+function paginaComIcf() {
+  return {
+    itens: [
+      ...TITULO(700),
+      ...linha(678, ["Mercado Futuro", 28.1]),
+      ...CABECALHO(665),
+      ...linha(647, ["U24", 28.1], ["67.769", 92], ["5.102", 141], ["8.437 219.459.834", 188], ["58,41", 262], ["57,35", 293], ["58,50", 324], ["57,80", 354], ["57,75", 381], ["57,96", 407], ["-0,45↓", 446], ["57,75", 501], ["57,80", 551]),
+      ...linha(500, ["ICF: Café Arábica 4/5 (Contrato = 100 Sacas; Cotação = US$/60kg)", 28.1]),
+      ...linha(478, ["Mercado Futuro", 28.1]),
+      ...CABECALHO(465),
+      ...linha(447, ["H25", 28.1], ["-", 99.9], ["-", 152.4], ["-", 199.3], ["-", 237.2], ["-", 276.4], ["-", 307], ["-", 338.5], ["-", 366.3], ["-", 395.3], ["269,50", 406.8], ["-2,10↓", 446], ["-", 503.4], ["277,00", 551.5]),
+      ...linha(437, ["U24", 28.1], ["5.972", 94], ["209", 145], ["303 44.688.015", 188], ["275,50", 262], ["272,10", 293], ["276,70", 324], ["274,20", 354], ["275,75", 381], ["274,05", 407], ["-2,60↓", 446], ["275,75", 501], ["273,50", 551]),
+      ...linha(400, ["ICF: Café Arábica 4/5 (Contrato = 100 Sacas; Cotação = US$/60kg)", 28.1]),
+      ...linha(378, ["Mercado de Opções Sobre Futuro - Compra", 28.1]),
+      ...RODAPE("REFERENTE A SEXTA-FEIRA - 14 DE JUNHO DE 2024 - Nº 111")
+    ]
+  };
+}
+
+test("extrairFuturos (ICF): lê a tabela do café na página que também tem o CCM, e cada produto só a sua", () => {
+  const icf = parser.extrairFuturos([paginaComIcf()], PRODUTOS.icf);
+  assert.equal(icf.situacao, "ok");
+  assert.equal(icf.dataReferencia, "2024-06-14");
+  assert.equal(icf.formato, "pt");
+  assert.deepEqual(icf.linhas.map((l) => l.vencimento), ["H25", "U24"]);
+  const u24 = icf.linhas.find((l) => l.vencimento === "U24").valores;
+  assert.equal(u24.SETTLE, 274.05);
+  assert.equal(u24.OPEN_INTEREST, 5972);
+  assert.equal(u24.CONTRACTS, 303);
+  assert.equal(u24.VOLUME_BRL, 44688015);
+  assert.equal(icf.linhas.find((l) => l.vencimento === "H25").valores.SETTLE, 269.5);
+
+  const ccm = extrairFuturosCcm([paginaComIcf()]);
+  assert.deepEqual(ccm.linhas.map((l) => [l.vencimento, l.valores.SETTLE]), [["U24", 57.96]]);
+});
+
+test("extrairFuturos (ICF): boletim sem a tabela do café diz qual produto faltou", () => {
+  const r = parser.extrairFuturos([pagina2023()], PRODUTOS.icf);
+  assert.equal(r.situacao, "sem_tabela");
+  assert.match(r.motivo, /futuros do ICF/);
 });
 
 test("extrairDataReferencia lê a data do rodapé, inclusive mês com acento (MARÇO)", () => {
