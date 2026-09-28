@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    34,
-    "USD_BRL e SELIC (market_quote) + 32 de observation (Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho e do café da NOAA + 6 fixos (ouro, Treasury, dólar amplo e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 3 da Conab (milho por UF e balanço, café por UF) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF)"
+    35,
+    "USD_BRL e SELIC (market_quote) + 33 de observation (PSD do café do USDA + Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho e do café da NOAA + 6 fixos (ouro, Treasury, dólar amplo e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 3 da Conab (milho por UF e balanço, café por UF) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -645,6 +645,34 @@ test("Conab por UF: UFs por nome antes dos agregados; rótulos por extenso; dest
   assert.equal(observavel.campos.length, 12);
   assert.match(observavel.selecao.nota, /Conab/);
   assert.equal(observavel.cotacaoAtual.valor, 144009.6);
+});
+
+test("PSD do café: países pelo nome em português, código da PSD na série; destaque é o Brasil; código fora do mapa aparece como veio", async () => {
+  const paises = ["BR", "VM", "CO", "E4", "ZZ"].map((codigo) => ({ codigo, primeira_data: "1960-01-01", ultima_data: "2026-01-01", pregoes: "67" }));
+  const series = [];
+  const { observavel } = await observaveisService.obterDetalheObservavel("USDA_PSD_CAFE", {
+    observationRepository: repoConab({
+      listarItens: async () => paises,
+      listarUltimasDatasItens: async () => paises,
+      buscarMaisRecente: async (seriesCode) => {
+        series.push(seriesCode);
+        return linhaObservation(seriesCode, "2026-01-01", 71900);
+      }
+    }),
+    collectionExecutionRepository: semExecucao
+  });
+
+  assert.deepEqual(
+    observavel.itens.map((i) => [i.codigo, i.rotulo]),
+    [["BR", "Brasil"], ["CO", "Colômbia"], ["E4", "União Europeia"], ["VM", "Vietnã"], ["ZZ", "ZZ"]]
+  );
+  assert.equal(observavel.rotuloModalidade, "País");
+  assert.equal(observavel.itemPrincipal, "Brasil");
+  assert.deepEqual(observavel.itensPadrao, ["BR", "VM", "CO"], "padrão do catálogo, só com o que existe no banco");
+  assert.equal(observavel.campoPrincipal, "PRODUCAO");
+  assert.equal(observavel.campos.length, 7);
+  assert.ok(series.includes("USDA.PSD.CAFE.BR.PRODUCAO"));
+  assert.equal(observavel.cotacaoAtual.valor, 71900);
 });
 
 test("Conab por UF: a lista mostra o valor do Brasil, dizendo qual", async () => {

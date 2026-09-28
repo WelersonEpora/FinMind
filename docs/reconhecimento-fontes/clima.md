@@ -48,7 +48,7 @@ safrinha de 2021 (39 a 30) e café arábica em Minas Gerais em 2021 (de 53 a 35)
 cobre todos os produtores relevantes de milho e de café: não é preciso uma fonte de clima por país.
 
 **Recomendação: adotar.** Implementada para o milho (coletor `noaa-vh-milho`, 18 regiões com mundo e hemisférios, VHI/VCI/TCI, desde 1982 —
-ADR 0025). Café implementado em 2026-09-28 (coletor `noaa-vh-cafe`, 12 regiões, ADR 0030): no Brasil as máscaras de arábica e
+ADR 0025). Café implementado em 2026-09-28 (coletor `noaa-vh-cafe`, 12 regiões, ADR 0030; mais 7 países escolhidos pela PSD do USDA, ADR 0031): no Brasil as máscaras de arábica e
 robusta cobrem os mesmos pixels, então só o mundo e os hemisférios separam os dois tipos.
 
 ## Outras fontes possíveis (reconhecidas, não serão implementadas por ora)

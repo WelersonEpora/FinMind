@@ -37,7 +37,15 @@ const REGIOES = {
   EUA_IL: "EUA - Illinois",
   EUA_NE: "EUA - Nebraska",
   EUA_MN: "EUA - Minnesota",
-  EUA_IN: "EUA - Indiana"
+  EUA_IN: "EUA - Indiana",
+  // Café fora do Brasil (ADR 0031): a máscara do tipo que domina a produção do país; na Índia, "café" (máscaras iguais).
+  VIETNA_ROBUSTA: "Vietnã - robusta",
+  COLOMBIA_ARABICA: "Colômbia - arábica",
+  INDONESIA_ROBUSTA: "Indonésia - robusta",
+  ETIOPIA_ARABICA: "Etiópia - arábica",
+  UGANDA_ROBUSTA: "Uganda - robusta",
+  INDIA: "Índia",
+  HONDURAS_ARABICA: "Honduras - arábica"
 };
 
 function descreverRegiaoNoaaVh(codigo) {

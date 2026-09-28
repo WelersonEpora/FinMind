@@ -494,7 +494,7 @@ const CATALOGO_OBSERVAVEIS = [
       prefixoSerie: "NOAA_VH.CAFE",
       campoReferencia: "VHI",
       itemPrincipal: "BRASIL",
-      itensPadrao: ["BRASIL", "BR_MG", "BR_ES", "MUNDO_ARABICA", "MUNDO_ROBUSTA"],
+      itensPadrao: ["BRASIL", "BR_MG", "BR_ES", "VIETNA_ROBUSTA", "MUNDO_ARABICA", "MUNDO_ROBUSTA"],
       descritor: "noaa-vh"
     },
     campoPrincipal: "VHI",
@@ -507,9 +507,9 @@ const CATALOGO_OBSERVAVEIS = [
       descricao:
         "Efeito do clima sobre o cafezal, medido por satélite só onde há café plantado: o VHI (saúde da vegetação, 0 a 100) é a média do VCI (verdor, ligado à umidade) e do TCI (temperatura, ligado ao calor). Abaixo de 40 a NOAA classifica como estresse. É um indicador pronto da fonte, não o tempo (chuva, temperatura) nem um cálculo do FinMind.",
       metodologia:
-        "Um valor por semana e região, desde 1982, com as mesmas regras do card do milho: semana N = dias do ano 7(N-1)+1 a 7N, data de disponibilidade ESTIMADA no dia seguinte ao fim da semana, releitura do ano corrente e do anterior, histórico reprocessado (o que se sabia em cada data só existe daqui para frente). A NOAA tem duas máscaras de café (MapSPAM 2010), arábica e robusta, mas no Brasil elas cobrem os mesmos pixels (1982-2026: diferença máxima de 0,7 ponto no Brasil e nas UFs): por isso o Brasil e as UFs têm uma série só, \"café\" (arábica e conilon juntos), e só o mundo e os hemisférios, onde as duas diferem (até 10 pontos, porque o robusta é o do Vietnã e da Indonésia), têm arábica e robusta separados. O índice mostra o dano de uma geada semanas depois: não é alerta de geada. Licença: dado do governo dos EUA (domínio público).",
+        "Um valor por semana e região, desde 1982, com as mesmas regras do card do milho: semana N = dias do ano 7(N-1)+1 a 7N, data de disponibilidade ESTIMADA no dia seguinte ao fim da semana, releitura do ano corrente e do anterior, histórico reprocessado (o que se sabia em cada data só existe daqui para frente). A NOAA tem duas máscaras de café (MapSPAM 2010), arábica e robusta, mas no Brasil elas cobrem os mesmos pixels (1982-2026: diferença máxima de 0,7 ponto no Brasil e nas UFs): por isso o Brasil e as UFs têm uma série só, \"café\" (arábica e conilon juntos), e o mundo e os hemisférios, onde as duas diferem (até 10 pontos, porque o robusta é o do Vietnã e da Indonésia), têm arábica e robusta separados. Nos outros países produtores vale a máscara do tipo que domina a produção na PSD do USDA (robusta no Vietnã, na Indonésia e em Uganda; arábica na Colômbia, na Etiópia e em Honduras); na Índia as duas cobrem os mesmos pixels e a série é \"café\". O índice mostra o dano de uma geada semanas depois: não é alerta de geada. Licença: dado do governo dos EUA (domínio público).",
       escopo:
-        "só café, só os três índices (VHI, VCI, TCI), no Brasil e nas 5 maiores UFs produtoras segundo a Conab (MG, SP e ES no arábica; ES, BA e RO no conilon), e no mundo (55°S a 65°N) e nos hemisférios Norte e Sul, separados em arábica e robusta. Outros países produtores (Vietnã, Colômbia, Indonésia, Etiópia...) ainda não: entram quando uma fonte de produção por país (USDA FAS ou ICO) for reconhecida. Nenhum fator: como o índice entra no preço é definição do Comitê.",
+        "só café, só os três índices (VHI, VCI, TCI), no Brasil e nas 5 maiores UFs produtoras segundo a Conab (MG, SP e ES no arábica; ES, BA e RO no conilon), nos 7 maiores produtores depois do Brasil pela PSD do USDA (safra 2025, acima de 5 milhões de sacas: Vietnã, Colômbia, Indonésia, Etiópia, Uganda, Índia e Honduras, um tipo por país), e no mundo (55°S a 65°N) e nos hemisférios Norte e Sul, separados em arábica e robusta. Nenhum fator: como o índice entra no preço é definição do Comitê.",
       formatoOrigem: "Texto (tabela da página \"VH Time Series by administrative regions for specific crop\" da NOAA STAR, sem chave; endpoint não documentado como API)",
       urlOficial: "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot"
     }
@@ -726,6 +726,49 @@ const CATALOGO_OBSERVAVEIS = [
         "vintage desde jan/2023 (15 levantamentos: antes disso a Conab não mantém a página do levantamento). A série histórica da Conab (safras de 2001 em diante, sem as revisões), área em formação, parque cafeeiro e percentual colhido por mês não foram carregados.",
       formatoOrigem: "XLS (planilha de cada levantamento do Boletim da Safra de Café)",
       urlOficial: "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/safras/safra-de-cafe"
+    }
+  },
+
+  // --- USDA FAS PSD - balanço do café verde por país (CSV público, ADR 0031) ---
+  {
+    instrumentCode: "USDA_PSD_CAFE",
+    nome: "Café - balanço por país (USDA PSD)",
+    unidade: "mil sacas",
+    casasDecimais: 0,
+    origem: "observation",
+    frequencia: "ANUAL",
+    // O relatório é semestral (junho e dezembro) e a safra mais nova só é aberta em junho: até ~18 meses sem safra nova.
+    toleranciaDias: 560,
+    fonte: "USDA FAS - PSD Online",
+    fonteCollectorCode: "usda-psd-cafe",
+    // Séries `USDA.PSD.CAFE.<PAIS>.<CAMPO>`, com o código de país da própria PSD (BR, VM, CO...): os países são
+    // descobertos no banco; vêm marcados os maiores produtores da safra 2025 e o destaque do card é o Brasil.
+    porRegiao: {
+      prefixoSerie: "USDA.PSD.CAFE",
+      campoReferencia: "PRODUCAO",
+      itemPrincipal: "BR",
+      itensPadrao: ["BR", "VM", "CO", "ID", "ET"],
+      descritor: "psd"
+    },
+    campoPrincipal: "PRODUCAO",
+    campos: [
+      { codigo: "PRODUCAO", nome: "Produção", unidade: "mil sacas", casasDecimais: 0 },
+      { codigo: "PRODUCAO_ARABICA", nome: "Produção - arábica", unidade: "mil sacas", casasDecimais: 0 },
+      { codigo: "PRODUCAO_ROBUSTA", nome: "Produção - robusta", unidade: "mil sacas", casasDecimais: 0 },
+      { codigo: "ESTOQUE_FINAL", nome: "Estoque final", unidade: "mil sacas", casasDecimais: 0 },
+      { codigo: "CONSUMO", nome: "Consumo interno", unidade: "mil sacas", casasDecimais: 0 },
+      { codigo: "EXPORTACAO", nome: "Exportação", unidade: "mil sacas", casasDecimais: 0 },
+      { codigo: "IMPORTACAO", nome: "Importação", unidade: "mil sacas", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Balanço do café verde por país e por safra, conforme a PSD (Production, Supply and Distribution) do USDA FAS: produção (total, arábica e robusta), estoque final, consumo interno, exportação e importação, em mil sacas de 60 kg (estimativa do USDA, não da Conab). As exportações e importações incluem torrado e solúvel convertidos em equivalente de café verde, como a PSD publica. Uma linha por país.",
+      metodologia:
+        "Um valor por safra (o dia da observação é 1º de janeiro do ano que dá nome à safra; convenção, como na Conab: a safra do café varia por país). O arquivo traz só o valor ATUAL de cada safra, com o mês da última revisão: a data de publicação é o fim desse mês, ESTIMADA (o relatório semestral sai entre os dias 18 e 25 de junho e dezembro). As safras antigas (todas até 1998 e parte de 1999 a 2003) não trazem o mês de revisão e ficam com a data da primeira coleta. Não há histórico de revisões a carregar: o vintage começa agora, e cada revisão vista numa coleta posterior vira uma versão nova. Valores como publicados, sem conversão.",
+      escopo:
+        "os 94 países (e a União Europeia) do arquivo de café verde da PSD, safras de 1960 em diante, 7 dos 19 atributos. Não coletados: estoque inicial, oferta e distribuição totais (identidades do balanço), a quebra do consumo e do comércio por tipo (grão, torrado, solúvel) e a outra produção. A PSD do café não traz o total mundial: a soma dos países não é feita pelo FinMind.",
+      formatoOrigem: "CSV dentro de um ZIP (arquivo de download público da PSD Online, sem chave)",
+      urlOficial: "https://apps.fas.usda.gov/psdonline/app/index.html#/app/downloads"
     }
   },
 

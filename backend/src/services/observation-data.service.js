@@ -9,6 +9,7 @@ const { descreverRegiaoWasde } = require("../shared/utils/wasde-regiao");
 const { descreverRegiaoConab } = require("../shared/utils/conab-regiao");
 const { descreverRegiaoImea, descreverLocalCustoImea } = require("../shared/utils/imea-regiao");
 const { descreverRegiaoNoaaVh } = require("../shared/utils/noaa-vh-regiao");
+const { descreverPaisPsd } = require("../shared/utils/psd-pais");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
 // Leitura, para a tela de Observáveis, dos observáveis que vivem em
@@ -131,6 +132,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos um local.",
       nota:
         "Cada linha é Mato Grosso ou um município, em alta ou média tecnologia, com o custo por hectare (R$/ha) como o IMEA publica. Nem todo município tem planilha nos quatro arquivos: os que não têm não aparecem em todos os cards."
+    }
+  }),
+  psd: criarDimensaoRegiao({
+    rotuloModalidade: "País",
+    descreverRegiao: descreverPaisPsd,
+    textos: {
+      titulo: "Países",
+      inativo: "descontinuado",
+      mostrarInativos: "Mostrar países que a PSD deixou de publicar",
+      semSelecao: "Selecione ao menos um país.",
+      nota:
+        "Cada linha é um país (ou a União Europeia) da PSD do USDA, com o valor atual de cada safra, em mil sacas de 60 kg, como publicado. A PSD do café não traz o total mundial. Países sem produção de café aparecem com produção zero."
     }
   }),
   "noaa-vh": criarDimensaoRegiao({

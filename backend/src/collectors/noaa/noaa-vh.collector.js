@@ -102,7 +102,18 @@ const CULTURAS = {
       { codigo: "BR_SP", pais: "BRA", provinceId: 25, nome: "São Paulo" },
       { codigo: "BR_ES", pais: "BRA", provinceId: 8, nome: "Espírito Santo" },
       { codigo: "BR_BA", pais: "BRA", provinceId: 5, nome: "Bahia" },
-      { codigo: "BR_RO", pais: "BRA", provinceId: 22, nome: "Rondônia" }
+      { codigo: "BR_RO", pais: "BRA", provinceId: 22, nome: "Rondônia" },
+      // Os 7 maiores produtores depois do Brasil na PSD do USDA (safra 2025, acima de 5 milhões de sacas; ADR 0031).
+      // Fora do Brasil as duas máscaras medem lugares diferentes (exceto na Índia): cada país usa a do tipo que domina
+      // a produção dele na PSD. A Etiópia não tem máscara de robusta; na Índia elas cobrem os mesmos pixels, como no
+      // Brasil (diferença máxima de 0,58 ponto em 1982-2026), e a série é "café".
+      { codigo: "VIETNA_ROBUSTA", pais: "VNM", provinceId: 0, nome: "Vietnam", tagCropland: "RCOF" },
+      { codigo: "COLOMBIA_ARABICA", pais: "COL", provinceId: 0, nome: "Colombia" },
+      { codigo: "INDONESIA_ROBUSTA", pais: "IDN", provinceId: 0, nome: "Indonesia", tagCropland: "RCOF" },
+      { codigo: "ETIOPIA_ARABICA", pais: "ETH", provinceId: 0, nome: "Ethiopia" },
+      { codigo: "UGANDA_ROBUSTA", pais: "UGA", provinceId: 0, nome: "Uganda", tagCropland: "RCOF" },
+      { codigo: "INDIA", pais: "IND", provinceId: 0, nome: "India" },
+      { codigo: "HONDURAS_ARABICA", pais: "HND", provinceId: 0, nome: "Honduras" }
     ]
   }
 };

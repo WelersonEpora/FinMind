@@ -39,7 +39,9 @@ que sugerem uma diferença que a fonte não mede.
 - **No mundo e nos hemisférios, arábica e robusta separados** (`ACOF` e `RCOF`): mundo (55°S a 65°N), Hemisfério Norte
   (0 a 65°N) e Hemisfério Sul (40°S a 0), porque ali as duas medem lugares diferentes.
 - **Outros países produtores** (Vietnã, Colômbia, Indonésia, Etiópia, Honduras...) **ainda não**: pela regra de
-  2026-09-26, entram quando uma fonte de produção por país (USDA FAS ou ICO, passo 3 da onda) for reconhecida.
+  2026-09-26, entram quando uma fonte de produção por país (USDA FAS ou ICO, passo 3 da onda) for reconhecida. **Feito em
+  2026-09-28 pelo ADR 0031**: os 7 maiores produtores depois do Brasil pela PSD do USDA, cada um com a máscara do
+  tipo que domina a produção dele (fora do Brasil as máscaras diferem; na Índia, não).
 - **Opção B, descartada:** arábica e conilon separados também no Brasil, com uma nota de que as séries são quase iguais.
 
 ## Implementação

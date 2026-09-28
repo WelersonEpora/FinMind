@@ -148,7 +148,14 @@ test("café: no Brasil só a máscara ACOF (uma série por UF); fora do Brasil, 
     BR_SP: "ACOF",
     BR_ES: "ACOF",
     BR_BA: "ACOF",
-    BR_RO: "ACOF"
+    BR_RO: "ACOF",
+    VIETNA_ROBUSTA: "RCOF",
+    COLOMBIA_ARABICA: "ACOF",
+    INDONESIA_ROBUSTA: "RCOF",
+    ETIOPIA_ARABICA: "ACOF",
+    UGANDA_ROBUSTA: "RCOF",
+    INDIA: "ACOF",
+    HONDURAS_ARABICA: "ACOF"
   });
   assert.equal(criarColetorVh("cafe").codigo, "noaa-vh-cafe");
 });
