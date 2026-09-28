@@ -529,6 +529,35 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- USDA NASS - área plantada de milho dos EUA: Prospective Plantings (março) e Acreage (junho), ADR 0027 ---
+  // Uma série, um ponto por ano de plantio (observed_at = 1º/set, a convenção do WASDE). Cada edição reestima o ano
+  // corrente e até dois anteriores: o histórico mostra a versão mais recente e o vintage fica na camada
+  // point-in-time. `toleranciaDias`: o último ponto (1º/set do ano) só é sucedido pelo Prospective Plantings de
+  // março seguinte, ~7 meses depois.
+  {
+    instrumentCode: "USDA_MILHO_AREA_PLANTADA",
+    origem: "observation",
+    nome: "Milho EUA - Área plantada (USDA)",
+    unidade: "mil acres",
+    casasDecimais: 0,
+    frequencia: "ANUAL",
+    toleranciaDias: 240,
+    fonte: "USDA NASS - Prospective Plantings e Acreage",
+    fonteCollectorCode: "usda-area-plantada-milho",
+    series: [{ modalidade: "area_plantada", seriesCode: "USDA.CORN.AREA_PLANTED" }],
+    modalidadePrincipal: "area_plantada",
+    fonteDetalhe: {
+      descricao:
+        "Área plantada de milho dos Estados Unidos (todas as finalidades), em mil acres, conforme dois relatórios do USDA NASS: o Prospective Plantings (fim de março), que traz a INTENÇÃO de plantio declarada pelos produtores, e o Acreage (fim de junho), que traz a área já plantada. O WASDE só incorpora esses números semanas depois (a intenção de março só aparece no WASDE de maio).",
+      metodologia:
+        "Um valor por ano de plantio (o dia da observação é 1º de setembro do ano, a mesma convenção do WASDE). Cada edição traz o ano corrente e até dois anos anteriores com o valor que o USDA tinha naquele dia, e cada um vira uma versão: a data de publicação é a REAL do release (listagem do ESMIS, conferida com a data impressa no próprio CSV), às 23:59 UTC por não trazer o horário. Valores como publicados, sem conversão de unidade. O detalhe de cada ponto informa o relatório de origem e se é intenção de plantio ou área plantada.",
+      escopo:
+        "só a área plantada de milho, só o total dos EUA, só os dois relatórios (edições de 2001-06 em diante, as que têm CSV; antes só há TXT/PDF). As reestimativas de agosto a janeiro (Crop Production) não estão aqui: saem no mesmo dia do WASDE e estão no card \"Milho EUA (WASDE)\". Não coletados: a quebra por estado, a área colhida (no Acreage), as outras culturas e o Grain Stocks (estoques trimestrais), este reconhecido e aguardando o Comitê.",
+      formatoOrigem: "CSV dentro do ZIP de cada edição no ESMIS (arquivo de publicações do USDA, página HTML, sem chave)",
+      urlOficial: "https://esmis.nal.usda.gov/publication/prospective-plantings"
+    }
+  },
+
   // --- Conab - Boletim da Safra de Grãos, milho (ADR 0017): um levantamento por mês, desde fev/2025 ---
   // Dois cards: o milho por safra (1ª, 2ª, 3ª e total) por Região/UF, com seletor de região e de métrica (como o
   // card por país do WASDE), e o balanço nacional de oferta e demanda (uma série por métrica, como o card dos EUA).

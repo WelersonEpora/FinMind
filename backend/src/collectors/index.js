@@ -21,6 +21,7 @@ const b3CcmCollector = require("./b3/b3-ccm.collector");
 const b3MilhoEsalqCollector = require("./b3/b3-milho-esalq.collector");
 const comexMilhoExportacaoCollector = require("./comex/comex-milho-exportacao.collector");
 const wasdeMilhoCollector = require("./wasde/wasde-milho.collector");
+const usdaAreaPlantadaCollector = require("./usda/usda-area-plantada.collector");
 const conabMilhoCollector = require("./conab/conab-milho.collector");
 const imeaMilhoSafraCollector = require("./imea/imea-milho-safra.collector");
 const imeaCustoMilhoCollector = require("./imea/imea-custo-milho.collector");
@@ -48,6 +49,7 @@ function bootstrapCollectors() {
     registerCollector(comexMilhoExportacaoCollector);
     registerCollector(eiaEtanolCollector);
     registerCollector(wasdeMilhoCollector);
+    registerCollector(usdaAreaPlantadaCollector);
     registerCollector(conabMilhoCollector);
     registerCollector(imeaMilhoSafraCollector);
     registerCollector(imeaCustoMilhoCollector);

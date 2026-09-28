@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-09-27.**
+**Última atualização: 2026-09-28.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -85,6 +85,7 @@ Evidências e ressalvas de cada fonte: no ADR apontado na coluna Status (o ADR 0
 | B3 — Indicador do Milho CEPEA/ESALQ | TXT de largura fixa em ZIP (arquivo `Indic`, Pesquisa por pregão) | Indicador à vista, em R$ e US$ por saca | Fonte **desde 2018-06-08** (antes, o milho não consta do arquivo). **No servidor, desde 2018-06-08** (backfill concluído, informado pelo usuário em 2026-09-23); em dev, carregado só de 2021-01-04 em diante | Estimado (fim do dia do pregão) | ✅ 66 de 66 datas iguais ao histórico da CEPEA — ADR 0021 |
 | EIA — etanol dos EUA | XLS (planilha histórica de cada série, sem chave; a API exige chave) | Produção semanal de etanol combustível (mil barris/dia) e estoques (mil barris): o fator do milho "Demanda de etanol" | **Desde 2010-06-04** (851 semanas por série, 1.702 observações em dev e no servidor; 1ª coleta no servidor conferida em 2026-09-24) | **Estimado** (quarta; quinta em semana de feriado; data do calendário oficial da EIA quando ele lista a semana) | ✅ Validado em 2026-09-23 em dev: 8 de 8 valores iguais à tabela oficial do WPSR, 0 duplicatas, reexecução idempotente — ADR 0024 |
 | NOAA STAR — clima sobre o milho | Texto (link de dados da página oficial, sem chave; endpoint não documentado) | Saúde da vegetação **medida só sobre a área do milho**: VHI, VCI (umidade) e TCI (calor), 0 a 100, semanal, em 18 regiões (mundo, hemisférios Norte e Sul; EUA, Brasil, Argentina, China, Ucrânia; MT, PR, GO, MS, MG; Iowa, Illinois, Nebraska, Minnesota, Indiana): o fator do milho "Clima e safra" | **Desde 1982** (2.276 semanas por série, 122.904 observações em dev e no servidor; backfill no servidor em 2026-09-24: 122.904 criadas, 0 falhas, ~17 min) | **Estimado** (dia seguinte ao fim da semana, regra da página) | ✅ Validado em 2026-09-24 em dev: valores iguais à página, secas de 2012 (EUA) e 2021 (MT) visíveis, 0 falhas, reexecução idempotente — ADR 0025 |
+| USDA NASS — área plantada de milho dos EUA (Prospective Plantings e Acreage) | HTML (listagem do ESMIS, raspada) + CSV dentro do ZIP de cada edição | Área plantada total dos EUA, em mil acres: a **intenção de plantio** (fim de março) e a **área plantada** (fim de junho), com a revisão dos anos anteriores que cada edição traz. O WASDE só traz esse número semanas depois (em 2026: USDA em 31/03, WASDE em 12/05) | **Desde 2001-06-29** (51 edições, 27 anos, 92 linhas em dev); antes só TXT/PDF | **Real, só a data** (listagem, igual à impressa no CSV nas 51 edições); **vintage real** | ✅ Validado em 2026-09-28 em dev: 51 de 51 edições lidas, valores iguais ao QuickStats (15 de março e 9 de junho), 0 falhas, 0 duplicatas, reexecução idempotente — ADR 0027. **Backfill pendente no servidor** |
 | IMEA — balanço de oferta e demanda do milho de Mato Grosso | PDF (extração por coordenada) | Estoque inicial/final, importação, produção, demanda, consumo (MT e interestadual), exportação, aquisições públicas: 1 card, extraído por COORDENADA do PDF mensal (x/y de cada texto) | **Vintage real, 77 edições, 2014-04-14 a 2026-08-31** (catálogo inteiro, descartando 1 PDF de metodologia e 1 republicação no mesmo dia) | **Real, só a data** (data do arquivo no catálogo) | ✅ Validado contra as 77 edições reais em 2026-09-22: 3.369 itens válidos no parser, 0 inválidos; **802 linhas gravadas em `observation`** após deduplicação por revisão (o serviço point-in-time só grava quando o valor muda — ver ADR 0008); backfill em blocos de 5 anos — ADR 0019 |
 
 ### Como tratamos as fontes de dados
@@ -123,24 +124,29 @@ está na coluna "Depende de", não no nível:
 | B3 — Indicador do Milho CEPEA/ESALQ | 5 | **Só desde 2018-06-08** (antes, só pela exportação manual do site da CEPEA, que bloqueia automação). Número da CEPEA, origem B3; US$ difere por centavos; endpoint de download não documentado como API | — |
 | EIA — etanol dos EUA | 5 | Data de publicação **estimada**; fechamentos extraordinários anteriores a 2024-12 (ex.: Natal) podem ter data antecipada no histórico. A planilha só traz o valor atual (revisão não medida). Sem chave da API: usa a planilha do site. Falta a metade "USDA" do fator (milho usado para etanol, no WASDE, não extraído) | — |
 | NOAA STAR — saúde da vegetação por cultura (milho) | 5 | **Endpoint não documentado** (link de dados da página oficial). A NOAA reprocessa a série: o histórico é a versão de hoje (vintage real só daqui para frente). Data de publicação **estimada**. Máscara de cultura fixa, sem separar safrinha de 1ª safra. Mede o efeito já ocorrido: não é previsão do tempo nem pega geada a tempo. No servidor, a gravação do backfill levou ~17 min (45 s em dev): o banco da VM é bem mais lento | — |
+| USDA — área plantada do milho (Prospective Plantings e Acreage, pelo ESMIS) | 5 | Listagem em HTML raspada (sem API confirmada) e CSV sem dicionário formal: uma mudança de layout vira falha explícita da edição. Só o total dos EUA, desde 2001-06. **Não pela API do QuickStats** (lá o histórico foi carregado em lote e a estimativa final é sobrescrita). As reestimativas de agosto a janeiro ficam no WASDE. Licença e limite de uso do ESMIS não confirmados — ADR 0027 | — |
 | B3 CCM | 5 (limitado) | **Só ~4,5 anos de histórico grátis** (desde 2022-03-21, com buraco em 2023); contratos em aberto por vencimento só até 2025-12-11 | David/Comitê (pergunta 3, orçamento) |
 | IMEA — milho de MT (safra e custo) | 4 | **Sem backfill possível** (nem a API nem o catálogo guardam edição anterior): vintage começa agora. IDs de indicador sem nome (identificados por casamento de valor); intenção de plantio e andamento de safra existem só em PDF e não foram implementados; licença não investigada | — |
 | Paridade de exportação do milho (IMEA) | 1 | **Dado original com valor, aguardando decisão.** O **Boletim Semanal – Milho** do IMEA (PDF, 572 edições desde 2015-02-02) traz a **paridade de exportação calculada pela própria fonte** (R$/saca, Mato Grosso), com diferencial de base e prêmio portuário: é o dado que o FEL 1 descreve ("preço interno vs. Chicago + frete + câmbio"), e não existe em outra base nossa. Exige leitura da tabela por coordenada (como no ADR 0019). Ressalvas: é a paridade de MT, não a de Campinas; muda de contrato de referência (quebra de série); porto do prêmio incerto. Não implementado | Comitê (pergunta 16) |
+| USDA Grain Stocks (estoques trimestrais do milho) | 1 | **Aguarda o Comitê** (reconhecido em 2026-09-28; citado no FEL 1 e sem registro até então). Estoques de 1º de mar/jun/set/dez, desde 1926, que o WASDE não tem. A API guarda só o valor revisado, mas o **ESMIS guarda cada edição com o número original** (CSV desde 2001-06-29, data real), como no WASDE: não depende da pergunta 5. Próximo: 30/09/2026 — `docs/reconhecimento-fontes/usda-plantings-grain-stocks.md` | Comitê (o fator 3 usa a contagem trimestral de estoques?) |
 | FAO/AMIS (FAOSTAT e base da AMIS) | 1 | **Adiada (decisão do usuário, 2026-09-23): o WASDE já cobre o balanço mundial do milho com vintage.** FAOSTAT é só produção anual (1961–2024, >1 ano de atraso); a AMIS não tem API oficial (só o PDF do Market Monitor) e mistura números do IGC, de licença não esclarecida | Comitê (pergunta 15) |
 | USDA FAS PSD (milho) | 1 | Reconhecida, **sem coletor; adiada por decisão do usuário (2026-09-21)**: o WASDE por país já cobre o necessário por ora. Sem vintage histórico (API só dá a edição atual); licença e janela do rate limit não confirmadas | Retomar só se o David pedir países fora da seleção do WASDE ou histórico anterior a 2008 |
 | Conab — séries históricas (desde 1976/77) e preços | 1 | Reconhecidas, **sem coletor por decisão do usuário**: as séries históricas não têm vintage; os preços em TXT cobrem só ~12 meses e o histórico longo segue bloqueado | Retomar quando houver uma opção |
 | Outras fontes de clima: USDA Ag in Drought, FAO ASIS, NOAA CPC ONI | 1 | **Possíveis, não serão implementadas por ora** (2026-09-24). Ag in Drought: % da área de milho dos EUA em seca, semanal, desde 2000 (só EUA, só seca). ASIS (FAO): % da área agrícola em estresse por estado, desde 1984, sem separar a cultura. ONI: El Niño/La Niña, mensal, desde 1950 (regime de fundo; ligá-lo ao preço é regra). O VHI da NOAA STAR já cobre o efeito na lavoura — `docs/reconhecimento-fontes/clima.md` | Comitê, se pedir |
 | Abimilho e CNA (estatísticas e panorama do setor) | 1 | **Sem valor para o FinMind: só republicam dado de outras fontes** (reconhecidas em 2026-09-24). Nenhuma tem API. Os números vêm de Comex Stat, Conab, USDA e Cepea (já coletados) ou da Céleres (comercial); o painel da Abimilho está parado desde nov/2024 e o site está com o certificado vencido; a CNA só publica PDFs (Panorama, VBP = Conab × Cepea, custo do Campo Futuro levantado pela Cepea). **Não implementar.** Achado lateral: a API do Comex Stat já usada traz a **exportação por país de destino** (97 países em 2025), a lacuna do fator 8 do milho (China) — `docs/reconhecimento-fontes/abimilho-cna.md` | — |
 | Clima do FEL 1: NASA POWER, INMET, CPTEC/INPE, ECMWF ERA5 (e a "NOAA" genérica do relatório) | 1 | **Inadequadas para o FinMind nesta fase** (2026-09-24). Entregam **tempo** (chuva, temperatura por ponto ou grade), não o **efeito do clima no milho e no café**: transformá-las em algo ligado ao preço exigiria o FinMind escolher regiões, pesos e limiares, ou seja, montar um fator. O indicador pronto veio de outro produto da NOAA (STAR, acima). **Não implementar**; só voltam se o Comitê pedir previsão do tempo ou risco de geada — `docs/reconhecimento-fontes/clima.md` | — |
+| World Bank — Pink Sheet | 1 | **Não implementar por ora** (reconhecida em 2026-09-28). Sem API de preços: planilha mensal desde 1960, sobrescrita a cada mês. **Ouro** = média mensal da LBMA que já temos. **Milho** = preço de exportação FOB Golfo dos EUA, dado novo, mas mensal e sem OHLCV (não resolve as perguntas 2 e 3). Licença não confirmada (cita Bloomberg e outras fontes comerciais) — `docs/reconhecimento-fontes/world-bank-pink-sheet.md` | — |
+| US Treasury (Fiscal Data e curvas de juros) | 1 | **Não implementar** (reconhecida em 2026-09-28). A curva real do Tesouro é a origem do `DFII10` do FRED (4 de 4 datas iguais, um dia antes). O ouro do Tesouro é constante desde 2012 (~261,5 milhões de onças, valor contábil fixo): não mede compra por banco central — `docs/reconhecimento-fontes/us-treasury.md` | — |
 | Frete (rodoviário e marítimo) | 1 | **Sem valor isolado.** Rodoviário: 28 rotas saindo de MT na API do IMEA, em R$/t, **só o valor atual**; sozinho é só componente da paridade (usá-lo seria o FinMind montar a própria fórmula, que é um fator). Marítimo: **nenhuma fonte gratuita encontrada**. Não implementar | — |
 | CPI, WGC, IMF | 0 | Candidatas, fora do escopo | David |
 
 Processo: `docs/processo-reconhecimento-fontes.md`. Uma linha por fonte, com
 evidência: `docs/reconhecimento-fontes/README.md` (checklist completo em arquivo
-próprio para FRED, LBMA, FAO/AMIS, BCB Focus, reservas do BCB, Abimilho e CNA e clima).
+próprio para FRED, LBMA, FAO/AMIS, BCB Focus, reservas do BCB, Abimilho e CNA, clima, USDA
+Prospective Plantings e Grain Stocks, World Bank e US Treasury).
 
 **Cruzamento completo com os 8+8 fatores do `controle_fatores.xlsx` (auditoria de
-2026-09-22):** `docs/cobertura-fatores-fel1-milho-ouro.md` — fator → dado
+2026-09-22, revisada em 2026-09-28):** `docs/cobertura-fatores-fel1-milho-ouro.md` — fator → dado
 necessário → dado disponível → lacuna, sem propor fórmula.
 
 </details>
@@ -150,7 +156,7 @@ necessário → dado disponível → lacuna, sem propor fórmula.
 
 Fontes de **milho** que o relatório do David lista (FEL 1, §6.5, §7 e o plano de
 integração da §9.2) e que ainda **não coletamos**. Já feitas: USDA NASS (Crop
-Progress), CFTC, B3 (CCM), Indicador do Milho CEPEA/ESALQ (pela B3), Comex Stat, WASDE (balanço do milho), Conab (boletim mensal), IMEA (área/produção/produtividade por safra, custo e balanço de oferta e demanda), EIA (etanol), clima do milho (NOAA STAR, saúde da vegetação por cultura), BCB SGS, BCB Focus (IPCA, Selic e câmbio) e reservas internacionais do BCB (ambos ligados ao ouro) e FRED. Aqui se faz o **reconhecimento** de cada
+Progress), CFTC, B3 (CCM), Indicador do Milho CEPEA/ESALQ (pela B3), Comex Stat, WASDE (balanço do milho), área plantada do USDA (Prospective Plantings e Acreage), Conab (boletim mensal), IMEA (área/produção/produtividade por safra, custo e balanço de oferta e demanda), EIA (etanol), clima do milho (NOAA STAR, saúde da vegetação por cultura), BCB SGS, BCB Focus (IPCA, Selic e câmbio) e reservas internacionais do BCB (ambos ligados ao ouro) e FRED. Aqui se faz o **reconhecimento** de cada
 fonte (níveis 0→1, `docs/processo-reconhecimento-fontes.md`) e a **recomendação**,
 para decidir e levar à reunião com o David. **Reconhecer não é implementar:**
 nenhum coletor novo entra sem a decisão do David ou autorização explícita
@@ -175,8 +181,8 @@ item pedia — existem só em PDF e **não** foram implementados.
 
 Fora desta lista: o **preço histórico dos futuros** (B3 com 10+ anos e CME ZC, ambos
 pagos), que está na §4 (perguntas 2 e 3), e as fontes de ouro que ele lista e não
-coletamos (WGC, CME/COMEX, FMI, US Treasury, USGS, Banco Mundial), que estão nas
-ressalvas da §2 e na §6.
+coletamos (WGC, CME/COMEX, FMI, USGS), que estão nas ressalvas da §2 e na §6. US Treasury e
+Banco Mundial foram reconhecidos em 2026-09-28 e não trazem nada novo para o ouro (§2).
 
 ### Infraestrutura pendente
 
@@ -189,7 +195,9 @@ ressalvas da §2 e na §6.
 Backfills já validados em dev que ainda não rodaram na VM. Ao rodar, tirar a linha daqui e marcar "dev e servidor"
 na coluna Status de "Dados coletados" (§2).
 
-Nenhuma no momento (a última, NOAA STAR — clima sobre o milho, rodou no servidor em 2026-09-24).
+| Fonte | Comando | Observação |
+|---|---|---|
+| USDA — área plantada do milho (ADR 0027) | `npm run backfill:usda-area-plantada` | ~1,5 min, uma execução. Até rodar, a coleta diária registra a recusa deste coletor ("rode o backfill antes") |
 
 </details>
 
@@ -1107,6 +1115,16 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>7. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-09-28</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Conferência das fontes do FEL 1 (milho e ouro) | Auditoria de cobertura revisada com os números de hoje; reconhecidas as fontes do FEL 1 que não tinham registro: World Bank Pink Sheet e US Treasury (nada novo para o ouro), Grain Stocks (vintage pelo ESMIS; aguarda o Comitê) | `docs/cobertura-fatores-fel1-milho-ouro.md`, `docs/reconhecimento-fontes/` |
+| Área plantada de milho dos EUA | Coletor novo (Prospective Plantings e Acreage, pelo ESMIS): 51 edições desde 2001, vintage real, 0 falhas; card "Milho EUA - Área plantada (USDA)". Antecipa em ~6 semanas a intenção de plantio que o WASDE só traz em maio | ADR 0027 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-09-26</summary>

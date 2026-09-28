@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    26,
-    "USD_BRL e SELIC (market_quote) + 24 de observation (Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho da NOAA + 5 fixos + 2 do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM)"
+    27,
+    "USD_BRL e SELIC (market_quote) + 25 de observation (Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho da NOAA + 5 fixos + 2 do USDA Crop Progress + área plantada do USDA + 2 do Comex Stat + 2 do WASDE (EUA e por país) + 2 da Conab (por UF e balanço) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM)"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -1005,4 +1005,29 @@ test("NOAA VH milho: país antes dos seus estados, mundo e hemisférios no fim; 
 
   await observaveisService.obterHistoricoObservavel("NOAA_VH_MILHO", { itens: "BR_MT", campo: "TCI" }, { observationRepository: repo });
   assert.deepEqual(pedidos.pop(), ["NOAA_VH.MILHO.BR_MT.TCI"]);
+});
+
+test("USDA área plantada: série anual única, do coletor do ESMIS; o escopo diz que as reestimativas de ago-jan estão no WASDE e que o Grain Stocks não foi coletado", async () => {
+  const pedidos = [];
+  const repo = {
+    buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-09-01", 95343),
+    buscarHistoricoAtual: async (p) => {
+      pedidos.push(p.seriesCodes);
+      return { registros: [], total: 0 };
+    },
+    resumirSeries: async () => []
+  };
+  const { observavel } = await observaveisService.obterDetalheObservavel("USDA_MILHO_AREA_PLANTADA", {
+    observationRepository: repo,
+    collectionExecutionRepository: semExecucao
+  });
+
+  assert.equal(observavel.frequencia, "ANUAL");
+  assert.match(JSON.stringify(observavel), /Prospective Plantings e Acreage/);
+  assert.match(observavel.fonteDetalhe.descricao, /INTENÇÃO de plantio/);
+  assert.match(observavel.fonteDetalhe.escopo, /Crop Production.*WASDE/);
+  assert.match(observavel.fonteDetalhe.escopo, /Grain Stocks/);
+
+  await observaveisService.obterHistoricoObservavel("USDA_MILHO_AREA_PLANTADA", {}, { observationRepository: repo });
+  assert.deepEqual(pedidos.pop(), ["USDA.CORN.AREA_PLANTED"]);
 });

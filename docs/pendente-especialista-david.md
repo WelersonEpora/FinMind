@@ -58,6 +58,14 @@ contratos vazios até que estas definições existam.
 > dado: como o índice entra no preço (regiões, pesos, fases do ciclo, limiar) é
 > do Comitê.
 >
+> **Exceção pontual (2026-09-28):** o usuário do projeto autorizou a coleta da
+> **área plantada de milho dos EUA** do USDA (Prospective Plantings e Acreage,
+> citados na tabela de fontes do milho do FEL 1), pelo arquivo de edições do
+> ESMIS — ver `docs/adr/0027-usda-area-plantada-milho-esmis.md`. O **Grain
+> Stocks** (mesma linha do FEL 1) foi reconhecido e **não** autorizado: aguarda
+> o Comitê dizer se o fator 3 usa a contagem trimestral de estoques. Só
+> aquisição de dado: nenhum fator sobre a área (ex.: intenção × área plantada).
+>
 > **Em aberto para o Comitê (2026-09-23):** preço futuro do milho — seguir só com
 > o CCM (grátis, ~4 anos de histórico) ou contratar o ZC da CME (pago, 16+ anos)?
 > Pergunta 2 de `STATUS_DO_PROJETO.md` §4, com o detalhe para a reunião logo

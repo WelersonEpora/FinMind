@@ -99,6 +99,8 @@ cd backend && npm run backfill:selic -- --dataInicial=01/07/1994
 cd backend && npm run backfill:comex-milho
 # balanço do milho do WASDE (USDA/ESMIS), edições de 2011 em diante (~190 downloads, ~5 min):
 cd backend && npm run backfill:wasde-milho
+# área plantada de milho dos EUA (USDA/ESMIS: Prospective Plantings e Acreage), edições com CSV desde 2001-06 (~51 downloads, ~1,5 min); ANTES da coleta diária em banco novo:
+cd backend && npm run backfill:usda-area-plantada
 # milho da Conab (boletim mensal), os 15 levantamentos do índice, desde fev/2025 (~1 min); ANTES da coleta diária em banco novo:
 cd backend && npm run backfill:conab-milho
 # balanço de oferta e demanda do milho do IMEA (PDF mensal), edições de 2014-04-14 em diante (~77 downloads, ~2 min); ANTES da coleta diária em banco novo:
@@ -124,7 +126,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FRED, LBMA, CFTC, B3/CCM, B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho), EIA (etanol), NOAA STAR (saúde da vegetação sobre o milho), WASDE (balanço do milho), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FRED, LBMA, CFTC, B3/CCM, B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho), EIA (etanol), NOAA STAR (saúde da vegetação sobre o milho), WASDE (balanço do milho), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage), Conab (milho do boletim mensal), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

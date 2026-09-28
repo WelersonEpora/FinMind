@@ -24,6 +24,7 @@
     "backfill:b3-milho-esalq": "node scripts/backfill-b3-milho-esalq.js",
     "backfill:comex-milho": "node scripts/backfill-comex-milho.js",
     "backfill:wasde-milho": "node scripts/backfill-wasde-milho.js",
+    "backfill:usda-area-plantada": "node scripts/backfill-usda-area-plantada.js",
     "backfill:conab-milho": "node scripts/backfill-conab-milho.js",
     "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",
     "backfill:noaa-vh": "node scripts/backfill-noaa-vh.js"
