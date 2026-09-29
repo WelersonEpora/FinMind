@@ -163,13 +163,17 @@ function parse(rawData) {
   return entradas;
 }
 
-// published_at: o `Last-Modified`, se for um instante válido entre o "As of" e 3 dias depois; senão, o "As of".
-function publicacao(asOfUtc, ultimaModificacao) {
+// published_at: o `Last-Modified`, se for um instante válido entre o "As of" e 3 dias depois (uma correção
+// republicada fica com a data da correção: o de 2018-06-06 saiu corrigido em 2018-06-08); senão, o "As of", estimado.
+// Sem horário no "As of", a janela começa às 00:00 de Nova York e a estimativa é o fim do dia de lá (conservador).
+function publicacao(asOf, ultimaModificacao) {
+  const inicio = zonedParaUtc(asOf.data, asOf.horario ?? "00:00:00", FUSO);
+  const estimado = asOf.horario ? inicio : zonedParaUtc(asOf.data, "23:59:59", FUSO);
   const lm = ultimaModificacao ? new Date(ultimaModificacao) : null;
-  const valido = lm && !Number.isNaN(lm.getTime()) && lm >= asOfUtc && lm - asOfUtc <= 3 * 24 * 3600 * 1000;
+  const valido = lm && !Number.isNaN(lm.getTime()) && lm >= inicio && lm - inicio <= 3 * 24 * 3600 * 1000;
   return valido
     ? { published_at: lm, published_at_is_estimated: false, published_at_basis: "source" }
-    : { published_at: asOfUtc, published_at_is_estimated: true, published_at_basis: "lag_rule" };
+    : { published_at: estimado, published_at_is_estimated: true, published_at_basis: "lag_rule" };
 }
 
 function normalize(entradas) {
@@ -190,8 +194,7 @@ function normalize(entradas) {
       invalidos.push({ item: { data }, motivo: `o arquivo do dia ${data} diz "As of" ${relatorio.asOf.data}.` });
       continue;
     }
-    const asOfUtc = zonedParaUtc(relatorio.asOf.data, relatorio.asOf.horario, FUSO);
-    const pub = publicacao(asOfUtc, ultimaModificacao);
+    const pub = publicacao(relatorio.asOf, ultimaModificacao);
     const linhas = [...relatorio.origens, { codigo: "TOTAL", nome: "Total in Bags", sacas: relatorio.total }];
     for (const o of linhas) {
       validos.push({
@@ -205,7 +208,8 @@ function normalize(entradas) {
           fonte: 'ICE Futures U.S. - Coffee "C" Certified Warehouse Stock Report',
           produto: "cafe",
           origem: o.nome,
-          asOf: `${relatorio.asOf.data} ${relatorio.asOf.horario} ${FUSO}`
+          asOf: `${relatorio.asOf.data} ${relatorio.asOf.horario ?? "(sem horário)"} ${FUSO}`,
+          ...(relatorio.asOf.observacao ? { observacaoDaFonte: relatorio.asOf.observacao } : {})
         }
       });
     }

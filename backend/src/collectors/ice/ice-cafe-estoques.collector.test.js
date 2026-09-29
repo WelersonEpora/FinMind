@@ -114,6 +114,27 @@ test("normalize: origens e total do dia; published_at = Last-Modified (real) ou,
   assert.ok(validos.every((v) => v.unit === "sacas" && v.source_code === "ICE_COFFEE_CERT"));
 });
 
+test("normalize: correção republicada fica com a data da correção; sem horário, janela e estimativa pelo dia de Nova York", () => {
+  const arquivo = (data, asOf, ultimaModificacao) => ({ data, ultimaModificacao, buffer: xls(asOf, [["Brazil", 7, 7]], 7) });
+  const { validos, invalidos } = coletor.normalize(
+    coletor.parse({
+      arquivos: [
+        arquivo("2018-06-06", "As of: Jun 6, 2018  2:10:33PM- Total Correction", "Fri, 08 Jun 2018 11:40:23 GMT"),
+        arquivo("2026-06-11", "As of: Jun 11, 2026 ", "Thu, 11 Jun 2026 18:45:43 GMT"),
+        arquivo("2026-06-12", "As of: Jun 12, 2026 ", null)
+      ]
+    })
+  );
+  assert.equal(invalidos.length, 0);
+  const total = (data) => validos.find((v) => v.observed_at === data && v.series_code.endsWith("TOTAL.CERTIFICADO"));
+  assert.equal(total("2018-06-06").published_at.toISOString(), "2018-06-08T11:40:23.000Z");
+  assert.equal(total("2018-06-06").metadata.observacaoDaFonte, "Total Correction");
+  assert.equal(total("2026-06-11").published_at.toISOString(), "2026-06-11T18:45:43.000Z");
+  assert.equal(total("2026-06-11").published_at_is_estimated, false);
+  assert.equal(total("2026-06-12").published_at.toISOString(), "2026-06-13T03:59:59.000Z", "23:59:59 de Nova York (EDT)");
+  assert.equal(total("2026-06-12").published_at_is_estimated, true);
+});
+
 test("parse: arquivo com layout inesperado vira inválido daquele dia, sem derrubar os outros", () => {
   const entradas = coletor.parse({ arquivos: [{ data: "2026-09-25", buffer: Buffer.from("<html>bloqueado</html>") }] });
   const { validos, invalidos } = coletor.normalize(entradas);

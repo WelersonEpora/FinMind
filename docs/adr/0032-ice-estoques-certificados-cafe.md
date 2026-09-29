@@ -62,6 +62,19 @@ arquivo (07/09, Labor Day, feriado nos EUA); 39 pregões de 2026-08-03 a 2026-09
 total entre 217.646 e 260.720 sacas, todas com `published_at` real. O backfill completo não foi rodado em dev (ver
 abaixo).
 
+## Achados do backfill no servidor (2026-09-29)
+
+Dois arquivos recusados pelo parser, os dois pelo cabeçalho "As of" (o bloco de sacas estava correto e a soma fechava):
+
+- **2018-06-06:** `As of: Jun 6, 2018  2:10:33PM- Total Correction`. A ICE **republicou o dia com uma correção**, e o
+  `Last-Modified` é 2018-06-08 11:40 GMT: o arquivo de hoje é o corrigido, conhecido dois dias depois do pregão, e o
+  original não existe mais. Gravado com `published_at` = a data da correção (dentro da janela de 3 dias), o que é o
+  registro honesto; o sufixo fica em `metadata.observacaoDaFonte`.
+- **2026-06-11:** `As of: Jun 11, 2026 ` (sem horário). O `Last-Modified` (18:45 GMT) segue valendo; sem ele, a
+  estimativa seria o fim do dia em Nova York.
+
+O parser passou a aceitar o horário e o sufixo como opcionais (ambos conferidos contra os arquivos reais).
+
 ## Consequências
 
 - **Risco jurídico** aceito pelo usuário: a ICE pode revogar o acesso sem aviso, e o dado não pode ser exibido a

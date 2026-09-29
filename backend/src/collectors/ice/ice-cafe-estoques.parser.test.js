@@ -27,7 +27,7 @@ function xls({ asOf = "As of: Sep 25, 2026  1:18:21PM", portos = ["ANT", "HOU"],
 
 test("lê a data do relatório, as origens e o total (só o 1º bloco, só a coluna Total)", () => {
   const r = lerRelatorio(xls({ linhas: [["Brazil", 52000, 791, 52791], ["Papua New Guinea", 1528, 0, 1528]], total: 54319 }));
-  assert.deepEqual(r.asOf, { data: "2026-09-25", horario: "13:18:21" });
+  assert.deepEqual(r.asOf, { data: "2026-09-25", horario: "13:18:21", observacao: null });
   assert.deepEqual(r.origens, [
     { codigo: "BRAZIL", nome: "Brazil", sacas: 52791 },
     { codigo: "PAPUA_NEW_GUINEA", nome: "Papua New Guinea", sacas: 1528 }
@@ -49,9 +49,15 @@ test("soma das origens diferente do total, título errado ou data ilegível derr
 });
 
 test("lerAsOf converte 12h: meia-noite e meio-dia", () => {
-  assert.deepEqual(lerAsOf("As of: Jan 4, 2016 12:05:00AM"), { data: "2016-01-04", horario: "00:05:00" });
-  assert.deepEqual(lerAsOf("As of: Jan 4, 2016 12:05:00PM"), { data: "2016-01-04", horario: "12:05:00" });
+  assert.deepEqual(lerAsOf("As of: Jan 4, 2016 12:05:00AM"), { data: "2016-01-04", horario: "00:05:00", observacao: null });
+  assert.deepEqual(lerAsOf("As of: Jan 4, 2016 12:05:00PM"), { data: "2016-01-04", horario: "12:05:00", observacao: null });
   assert.equal(lerAsOf("As of: Foo 4, 2016 1:00:00PM"), null);
+  assert.equal(lerAsOf("As of: Jun 6, 2018 25h"), null);
+});
+
+test("lerAsOf aceita os desvios reais da fonte: correção republicada e cabeçalho sem horário", () => {
+  assert.deepEqual(lerAsOf("As of: Jun 6, 2018  2:10:33PM- Total Correction"), { data: "2018-06-06", horario: "14:10:33", observacao: "Total Correction" });
+  assert.deepEqual(lerAsOf("As of: Jun 11, 2026 "), { data: "2026-06-11", horario: null, observacao: null });
 });
 
 test("slugOrigem tira acento e pontuação", () => {

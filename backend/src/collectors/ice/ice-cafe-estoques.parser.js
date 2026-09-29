@@ -20,7 +20,9 @@ const XLSX = require("xlsx");
 const TITULO = 'COFFEE "C" CERTIFIED WAREHOUSE STOCK REPORT';
 const ROTULO_TOTAL = "Total in Bags";
 const MESES = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
-const RE_AS_OF = /^As of:\s*([A-Z][a-z]{2})\s+(\d{1,2}),\s*(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)$/;
+// Horário e sufixo opcionais: casos reais "As of: Jun 11, 2026 " (sem horário) e "As of: Jun 6, 2018  2:10:33PM- Total
+// Correction" (arquivo republicado com correção, 2 dias depois pelo Last-Modified).
+const RE_AS_OF = /^As of:\s*([A-Z][a-z]{2})\s+(\d{1,2}),\s*(\d{4})(?:\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM))?\s*(?:-\s*(.*\S))?$/;
 
 function texto(celula) {
   return celula === null || celula === undefined ? "" : String(celula).trim();
@@ -36,14 +38,18 @@ function slugOrigem(nome) {
     .replace(/^_+|_+$/g, "");
 }
 
-// "As of: Sep 25, 2026  1:18:21PM" -> { data: "2026-09-25", horario: "13:18:21" } (hora de Nova York, presumida).
+// "As of: Sep 25, 2026  1:18:21PM" -> { data: "2026-09-25", horario: "13:18:21", observacao: null } (hora de Nova
+// York, presumida). Sem horário, `horario` = null; o texto depois de "-" vai em `observacao` ("Total Correction").
 function lerAsOf(celula) {
   const m = RE_AS_OF.exec(texto(celula));
   if (!m || !MESES[m[1]]) return null;
-  let hora = Number(m[4]) % 12;
-  if (m[7] === "PM") hora += 12;
   const dois = (n) => String(n).padStart(2, "0");
-  return { data: `${m[3]}-${dois(MESES[m[1]])}-${dois(m[2])}`, horario: `${dois(hora)}:${m[5]}:${m[6]}` };
+  let horario = null;
+  if (m[4] !== undefined) {
+    const hora = (Number(m[4]) % 12) + (m[7] === "PM" ? 12 : 0);
+    horario = `${dois(hora)}:${m[5]}:${m[6]}`;
+  }
+  return { data: `${m[3]}-${dois(MESES[m[1]])}-${dois(m[2])}`, horario, observacao: m[8] ?? null };
 }
 
 // Cabeçalho do 1º bloco: 1ª célula vazia e a última preenchida = "Total".
