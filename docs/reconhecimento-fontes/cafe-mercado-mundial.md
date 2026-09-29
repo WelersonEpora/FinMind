@@ -5,7 +5,8 @@
 Tudo abaixo foi conferido com chamada real nesta data (download dos arquivos, leitura do conteúdo).
 
 **Decisão do usuário (2026-09-28):** implementar a PSD pelo CSV e, com a produção dela, acrescentar países à NOAA
-café; coletar a ICE (diária e backfill), **apesar da cláusula dos termos de uso** (ver abaixo); ICO depois.
+café (feito, ADR 0031); coletar a ICE (diária e backfill), **apesar da cláusula dos termos de uso** (ver abaixo; feito,
+ADR 0032); ICO depois.
 
 ## USDA FAS PSD — café verde (CSV público)
 

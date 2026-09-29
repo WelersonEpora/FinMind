@@ -729,6 +729,40 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- ICE Futures U.S. - estoques certificados do café "C", diário desde 2016-01-04 (ADR 0032) ---
+  {
+    instrumentCode: "ICE_CAFE_ESTOQUES",
+    nome: "Café - estoques certificados da ICE",
+    unidade: "sacas",
+    casasDecimais: 0,
+    origem: "observation",
+    frequencia: "DIARIA",
+    // Sem arquivo no fim de semana e nos feriados dos EUA.
+    toleranciaDias: 5,
+    fonte: "ICE Futures U.S. - Coffee \"C\" Certified Warehouse Stock Report",
+    fonteCollectorCode: "ice-cafe-estoques",
+    // Séries `ICE.CAFE_C.ESTOQUE.<ORIGEM>.CERTIFICADO`: as origens são descobertas no banco; o destaque é o total.
+    porRegiao: {
+      prefixoSerie: "ICE.CAFE_C.ESTOQUE",
+      campoReferencia: "CERTIFICADO",
+      itemPrincipal: "TOTAL",
+      itensPadrao: ["TOTAL"],
+      descritor: "ice-origem"
+    },
+    campoPrincipal: "CERTIFICADO",
+    campos: [{ codigo: "CERTIFICADO", nome: "Sacas certificadas", unidade: "sacas", casasDecimais: 0 }],
+    fonteDetalhe: {
+      descricao:
+        "Estoque de café arábica certificado (aprovado na classificação e apto a ser entregue contra o contrato futuro Coffee \"C\" da ICE), em sacas, por país de origem e no total, conforme o relatório diário da ICE Futures U.S. É o \"estoque certificado ICE\" do fator de estoques do café.",
+      metodologia:
+        "Um valor por pregão e origem, somando todos os portos de entrega. A data de publicação é a REAL, o horário em que o arquivo do dia foi publicado no site da ICE (cabeçalho Last-Modified; o relatório traz o horário de Nova York em que foi gerado, alguns minutos antes); sem ela, vale esse horário, estimado. A série não revisa: é a foto do dia. Valores como publicados; o FinMind confere que a soma das origens fecha com o total do relatório e descarta o arquivo que não fechar.",
+      escopo:
+        "só o bloco de sacas certificadas (por origem e total), desde 2016-01-04, o arquivo mais antigo no site. Não coletados: a quebra por porto (as colunas mudam com os anos), as sacas de transição (sujeitas a desconto a partir de 2027), a classificação do dia, as pendentes de classificação e as marcadas para reensaque. Licença: os termos de uso da ICE limitam o site a uso pessoal e não comercial e excluem a coleta por robôs; a coleta foi decidida pelo usuário, com esse risco registrado (ADR 0032): uso interno, sem redistribuição.",
+      formatoOrigem: "XLS por pregão (arquivo público no site da ICE, sem chave; sem documentação)",
+      urlOficial: "https://www.ice.com/report/41"
+    }
+  },
+
   // --- USDA FAS PSD - balanço do café verde por país (CSV público, ADR 0031) ---
   {
     instrumentCode: "USDA_PSD_CAFE",

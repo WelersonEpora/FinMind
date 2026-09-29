@@ -10,6 +10,7 @@ const { descreverRegiaoConab } = require("../shared/utils/conab-regiao");
 const { descreverRegiaoImea, descreverLocalCustoImea } = require("../shared/utils/imea-regiao");
 const { descreverRegiaoNoaaVh } = require("../shared/utils/noaa-vh-regiao");
 const { descreverPaisPsd } = require("../shared/utils/psd-pais");
+const { descreverOrigemIce } = require("../shared/utils/ice-origem");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
 // Leitura, para a tela de Observáveis, dos observáveis que vivem em
@@ -144,6 +145,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos um país.",
       nota:
         "Cada linha é um país (ou a União Europeia) da PSD do USDA, com o valor atual de cada safra, em mil sacas de 60 kg, como publicado. A PSD do café não traz o total mundial. Países sem produção de café aparecem com produção zero."
+    }
+  }),
+  "ice-origem": criarDimensaoRegiao({
+    rotuloModalidade: "Origem",
+    descreverRegiao: descreverOrigemIce,
+    textos: {
+      titulo: "Origens",
+      inativo: "sem estoque recente",
+      mostrarInativos: "Mostrar origens sem estoque certificado nos últimos anos",
+      semSelecao: "Selecione ao menos uma origem.",
+      nota:
+        "Cada linha é um país de origem do café arábica certificado nos armazéns da ICE (todos os portos somados), em sacas, como publicado, ou o total certificado. Uma origem some do relatório nos dias sem saca certificada: o FinMind não grava zero nesses dias."
     }
   }),
   "noaa-vh": criarDimensaoRegiao({

@@ -32,7 +32,8 @@
     "backfill:conab-cafe": "node scripts/backfill-conab-cafe.js",
     "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",
     "backfill:noaa-vh": "node scripts/backfill-noaa-vh.js",
-    "backfill:noaa-vh-cafe": "node scripts/backfill-noaa-vh.js --cultura=cafe"
+    "backfill:noaa-vh-cafe": "node scripts/backfill-noaa-vh.js --cultura=cafe",
+    "backfill:ice-cafe-estoques": "node scripts/backfill-ice-cafe-estoques.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
