@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-09-28.**
+**Última atualização: 2026-09-30.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -17,8 +17,9 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 
 A **infraestrutura de dados** para ouro e milho está pronta: coleta,
 armazenamento point-in-time (com data de publicação) e exibição nos
-Observáveis. O **café** começou (passo 1 da onda do café: posição dos fundos,
-exportação e futuro ICF da B3, ADR 0028). **Nada interpreta esses dados ainda** — motor analítico, IA,
+Observáveis. O **café** está nos passos 1 a 3 da onda (posição dos fundos, exportação,
+futuro ICF da B3, safra da Conab, clima pela NOAA STAR, balanço por país do USDA e estoques certificados da ICE:
+ADRs 0028 a 0032; falta o passo 4, §3). **Nada interpreta esses dados ainda** — motor analítico, IA,
 sinais, backtest e execução de ordens seguem como contratos vazios, à espera
 das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 O desenho já está decidido: o motor prepara a base (fatores e regras do Comitê)
@@ -88,8 +89,8 @@ Evidências e ressalvas de cada fonte: no ADR apontado na coluna Status (o ADR 0
 | B3 — Indicador do Milho CEPEA/ESALQ | TXT de largura fixa em ZIP (arquivo `Indic`, Pesquisa por pregão) | Indicador à vista, em R$ e US$ por saca | Fonte **desde 2018-06-08** (antes, o milho não consta do arquivo). **No servidor, desde 2018-06-08** (backfill concluído, informado pelo usuário em 2026-09-23); em dev, carregado só de 2021-01-04 em diante | Estimado (fim do dia do pregão) | ✅ 66 de 66 datas iguais ao histórico da CEPEA — ADR 0021 |
 | EIA — etanol dos EUA | XLS (planilha histórica de cada série, sem chave; a API exige chave) | Produção semanal de etanol combustível (mil barris/dia) e estoques (mil barris): o fator do milho "Demanda de etanol" | **Desde 2010-06-04** (851 semanas por série, 1.702 observações em dev e no servidor; 1ª coleta no servidor conferida em 2026-09-24) | **Estimado** (quarta; quinta em semana de feriado; data do calendário oficial da EIA quando ele lista a semana) | ✅ Validado em 2026-09-23 em dev: 8 de 8 valores iguais à tabela oficial do WPSR, 0 duplicatas, reexecução idempotente — ADR 0024 |
 | NOAA STAR — clima sobre o milho | Texto (link de dados da página oficial, sem chave; endpoint não documentado) | Saúde da vegetação **medida só sobre a área do milho**: VHI, VCI (umidade) e TCI (calor), 0 a 100, semanal, em 18 regiões (mundo, hemisférios Norte e Sul; EUA, Brasil, Argentina, China, Ucrânia; MT, PR, GO, MS, MG; Iowa, Illinois, Nebraska, Minnesota, Indiana): o fator do milho "Clima e safra" | **Desde 1982** (2.276 semanas por série, 122.904 observações em dev e no servidor; backfill no servidor em 2026-09-24: 122.904 criadas, 0 falhas, ~17 min) | **Estimado** (dia seguinte ao fim da semana, regra da página) | ✅ Validado em 2026-09-24 em dev: valores iguais à página, secas de 2012 (EUA) e 2021 (MT) visíveis, 0 falhas, reexecução idempotente — ADR 0025 |
-| NOAA STAR — clima sobre o café | O mesmo endpoint do milho | VHI, VCI e TCI **sobre a área do café**, semanal, em 19 regiões: Brasil, MG, SP, ES, BA e RO (uma série "café": no Brasil as máscaras de arábica e robusta cobrem os mesmos pixels); os 7 maiores produtores depois do Brasil pela PSD (Vietnã, Indonésia e Uganda em robusta; Colômbia, Etiópia e Honduras em arábica; Índia, "café"); e mundo e hemisférios Norte e Sul, com arábica e robusta separados: o fator do café "Clima e eventos meteorológicos" | **Desde 1982** (as 12 regiões iniciais, 81.936 observações, em dev e no servidor; os 7 países, 47.796, só em dev) | **Estimado** (a regra do milho) | ✅ Validado em dev em 2026-09-28: 0 falhas; a seca e a geada de 2021 visíveis (SP de 33 para 24), mas o índice não separa geada de seca; a seca de 2016 no Vietnã é o pior VHI de 2013–2019 — ADRs 0030 e 0031 |
-| ICE — estoques certificados do café "C" | XLS por pregão (arquivo público, sem documentação) | Sacas certificadas por origem (16 hoje) e o total: o "estoque certificado ICE" do fator do café de peso Alto | Fonte **desde 2016-01-04**; em dev, só 2026-08-03 a 2026-09-25 (39 pregões, teste do backfill: 36 arquivos sem nenhum 429); **completo a rodar no servidor** | **Real** (`Last-Modified` do arquivo) | ⚠️ Termos de uso da ICE excluem robôs: risco aceito pelo usuário, uso interno — ADR 0032 |
+| NOAA STAR — clima sobre o café | O mesmo endpoint do milho | VHI, VCI e TCI **sobre a área do café**, semanal, em 19 regiões: Brasil, MG, SP, ES, BA e RO (uma série "café": no Brasil as máscaras de arábica e robusta cobrem os mesmos pixels); os 7 maiores produtores depois do Brasil pela PSD (Vietnã, Indonésia e Uganda em robusta; Colômbia, Etiópia e Honduras em arábica; Índia, "café"); e mundo e hemisférios Norte e Sul, com arábica e robusta separados: o fator do café "Clima e eventos meteorológicos" | **Desde 1982** (19 regiões, 129.732 observações, em dev e no servidor; conferido no servidor em 2026-09-30) | **Estimado** (a regra do milho) | ✅ Validado em dev em 2026-09-28: 0 falhas; a seca e a geada de 2021 visíveis (SP de 33 para 24), mas o índice não separa geada de seca; a seca de 2016 no Vietnã é o pior VHI de 2013–2019 — ADRs 0030 e 0031 |
+| ICE — estoques certificados do café "C" | XLS por pregão (arquivo público, sem documentação) | Sacas certificadas por origem (16 hoje) e o total: o "estoque certificado ICE" do fator do café de peso Alto | Fonte **desde 2016-01-04**; **completo no servidor desde 2016-01-04** (backfill concluído em 2026-09-30; o 1º, de 2026-09-29, parou no meio e foi retomado); em dev, só 2026-08-03 a 2026-09-25 (39 pregões, teste do backfill) | **Real** (`Last-Modified` do arquivo) | ⚠️ Termos de uso da ICE excluem robôs: risco aceito pelo usuário, uso interno — ADR 0032 |
 | USDA FAS — PSD do café | CSV dentro de um ZIP (download público, sem chave) | Balanço do café verde por país: produção (total, arábica e robusta), estoque final, consumo interno, exportação e importação, em mil sacas: 658 séries (94 países × 7). Sem total mundial na fonte | Safras **desde 1960**; **sem vintage histórico** (só o valor atual): o vintage começa na 1ª coleta (32.312 valores em dev; no servidor, na 1ª coleta diária depois do deploy) | **Estimado** (fim do mês da última revisão; as safras até 2003 não trazem o mês e ficam com a data da coleta) | ✅ Validado em dev em 2026-09-28: 0 falhas, idempotente — ADR 0031 |
 | USDA NASS — área plantada de milho dos EUA (Prospective Plantings e Acreage) | HTML (listagem do ESMIS, raspada) + CSV dentro do ZIP de cada edição | Área plantada total dos EUA, em mil acres: a **intenção de plantio** (fim de março) e a **área plantada** (fim de junho), com a revisão dos anos anteriores que cada edição traz. O WASDE só traz esse número semanas depois (em 2026: USDA em 31/03, WASDE em 12/05) | **Desde 2001-06-29** (51 edições, 27 anos, 92 linhas em dev e no servidor); antes só TXT/PDF | **Real, só a data** (listagem, igual à impressa no CSV nas 51 edições); **vintage real** | ✅ Validado em 2026-09-28 em dev: 51 de 51 edições lidas, valores iguais ao QuickStats (15 de março e 9 de junho), 0 falhas, 0 duplicatas, reexecução idempotente — ADR 0027. **Backfill rodado no servidor em 2026-09-28** (27 criados, 65 revisões, 35 ignorados, 0 falhas, ~76 s: os mesmos números de dev) |
 | IMEA — balanço de oferta e demanda do milho de Mato Grosso | PDF (extração por coordenada) | Estoque inicial/final, importação, produção, demanda, consumo (MT e interestadual), exportação, aquisições públicas: 1 card, extraído por COORDENADA do PDF mensal (x/y de cada texto) | **Vintage real, 77 edições, 2014-04-14 a 2026-08-31** (catálogo inteiro, descartando 1 PDF de metodologia e 1 republicação no mesmo dia) | **Real, só a data** (data do arquivo no catálogo) | ✅ Validado contra as 77 edições reais em 2026-09-22: 3.369 itens válidos no parser, 0 inválidos; **802 linhas gravadas em `observation`** após deduplicação por revisão (o serviço point-in-time só grava quando o valor muda — ver ADR 0008); backfill em blocos de 5 anos — ADR 0019 |
@@ -188,11 +189,21 @@ esperar a reunião do Comitê (só aquisição de dados, cada fonte autorizada n
 |---|---|---|
 | 1. Reaproveitar coletores do milho | CFTC COT (Coffee C da ICE), Comex Stat (café verde), B3 ICF (Up2Data e Boletim Diário) | **Feito** (ADR 0028). Descartados no caminho: o arquivo `Indic` da B3 (não traz o café à vista) e o conilon CNL (nenhum negócio) |
 | 2. Safra brasileira e clima | Conab (Boletim da Safra de Café), depois NOAA STAR café com as regiões tiradas dela | **Feito**: Conab (ADR 0029) e NOAA café (ADR 0030). No Brasil a NOAA não separa arábica de conilon (as duas máscaras cobrem os mesmos pixels): uma série "café" por UF, e arábica e robusta separados só no mundo e nos hemisférios (decisão do usuário) |
-| 3. Reconhecer as fontes novas | Estoques certificados da ICE, USDA FAS (PSD e *Coffee: World Markets and Trade*), ICO | **Reconhecido** (`docs/reconhecimento-fontes/cafe-mercado-mundial.md`). **PSD do café feita** (ADR 0031) e, pela produção dela, os 7 maiores produtores depois do Brasil na NOAA café (Vietnã, Colômbia, Indonésia, Etiópia, Uganda, Índia e Honduras, um tipo por país). **Estoques certificados da ICE feitos** (ADR 0032), com o risco dos termos de uso aceito pelo usuário (excluem robôs); backfill completo só no servidor; a ICO (PDF mensal, reuso livre com citação) fica para depois; o *World Markets and Trade* não entra (PDF com os números da PSD) |
+| 3. Reconhecer as fontes novas | Estoques certificados da ICE, USDA FAS (PSD e *Coffee: World Markets and Trade*), ICO | **Reconhecido** (`docs/reconhecimento-fontes/cafe-mercado-mundial.md`). **PSD do café feita** (ADR 0031) e, pela produção dela, os 7 maiores produtores depois do Brasil na NOAA café (Vietnã, Colômbia, Indonésia, Etiópia, Uganda, Índia e Honduras, um tipo por país). **Estoques certificados da ICE feitos** (ADR 0032), com o risco dos termos de uso aceito pelo usuário (excluem robôs); backfill completo no servidor, desde 2016-01-04; a ICO (PDF mensal, reuso livre com citação) fica para depois; o *World Markets and Trade* não entra (PDF com os números da PSD) |
 | 4. Reconhecimento rápido | Cecafé, MAPA, Embrapa (tendem a só republicar dado de outras fontes) | A fazer |
 
-Ficam para o Comitê: o preço do KC (ICE, só pago, a mesma lacuna do ZC da pergunta 2) e o risco de geada (sem
-indicador pronto gratuito; montá-lo seria regra do David).
+**Preço do café: a mesma situação do milho.** A saída que usamos no milho (o futuro da B3, pelo Up2Data e pelo Boletim
+Diário) **já está feita para o café**: o **ICF**, futuro de café arábica da B3, por vencimento, desde 2022-03-21, em dev e
+no servidor (passo 1, ADR 0028). E tem **o mesmo problema de backtest do CCM**: só **~4,5 anos** de histórico, com o
+buraco de 2023, abaixo dos 10 a 15 anos da §12.1 do FEL 1 (pergunta 8). O histórico longo e diário só existe no **KC**
+(o futuro de café arábica "C" da ICE, em Nova York, a referência mundial do arábica), que é **pago**: é para o café o
+que o ZC é para o milho (perguntas 2 e 3). Uma saída **grátis, mas mensal**, foi confirmada em 2026-09-30 por chamada
+real: o preço do arábica e do robusta do FMI no FRED (`PCOFFOTMUSDM` e `PCOFFROBUSDM`, US¢/lb, desde 1992), que
+reaproveita o coletor do FRED. Serve para ciclos longos (a geada de 2021), não para regras diárias. **Não
+implementada**: fonte nova, aguarda a autorização do usuário ou do Comitê.
+
+Fica também para o Comitê, **só do café**, o risco de geada (sem indicador pronto gratuito; montá-lo seria regra do
+David).
 
 O IMEA foi implementado em **área, produção, produtividade, custo de
 produção** (API e catálogo de arquivos, JSON/XLSX — ADR 0018) e **balanço de
@@ -215,10 +226,8 @@ de Tangará da Serra virou aviso da fonte, ADR 0002).
 Backfills já validados em dev que ainda não rodaram na VM. Ao rodar, tirar a linha daqui e marcar "dev e servidor"
 na coluna Status de "Dados coletados" (§2).
 
-| Backfill | Comando | Por quê |
-|---|---|---|
-| NOAA STAR café, os 7 países novos | `npm run backfill:noaa-vh-cafe` (19 requisições, ~1 min; as 12 regiões que já existem saem como ignoradas) | A coleta diária só relê o ano corrente e o anterior — ADR 0031 |
-| ICE, estoques certificados do café, desde 2016-01-04 | `nohup npm run backfill:ice-cafe-estoques > /tmp/ice.log 2>&1 &` (~2.700 arquivos, **~15 h ou mais**: 20 s entre eles e pausa de 30 min quando a ICE responde 429; retoma de onde parou) | A coleta diária só pega a última semana. Rodar só no servidor (dev e servidor ao mesmo tempo dobram os pedidos) — ADR 0032 |
+Nenhuma no momento (as últimas, NOAA café com os 7 países e estoques certificados da ICE desde 2016-01-04, rodaram
+no servidor e foram conferidas em 2026-09-30).
 
 A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy é a carga (ADR 0031).
 
@@ -1151,7 +1160,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
-| Café, passo 3: estoques certificados da ICE | Coletor novo do relatório diário da ICE (um XLS por pregão desde 2016-01-04): sacas certificadas por origem e total, com data de publicação real (`Last-Modified`); contido de propósito (20 s entre pedidos, recuo no 429, só os dias que faltam), porque os termos de uso da ICE excluem robôs (risco aceito pelo usuário); card "Café - estoques certificados da ICE". Backfill completo a rodar no servidor | ADR 0032 |
+| Café, passo 3: estoques certificados da ICE | Coletor novo do relatório diário da ICE (um XLS por pregão desde 2016-01-04): sacas certificadas por origem e total, com data de publicação real (`Last-Modified`); contido de propósito (20 s entre pedidos, recuo no 429, só os dias que faltam), porque os termos de uso da ICE excluem robôs (risco aceito pelo usuário); card "Café - estoques certificados da ICE". Backfill completo rodado no servidor (desde 2016-01-04, concluído em 2026-09-30) | ADR 0032 |
 | Café, passo 3: PSD e países na NOAA | Reconhecidas PSD do café, *Coffee: World Markets and Trade*, estoques certificados da ICE e ICO (`docs/reconhecimento-fontes/cafe-mercado-mundial.md`). Coletor novo da PSD do café pelo CSV público: 94 países, safras desde 1960, 7 atributos, sem vintage histórico (achado: as safras até 2003 não trazem o mês de revisão); card "Café - balanço por país (USDA PSD)". Pela produção da PSD, 7 países na NOAA café, um tipo por país (achado: fora do Brasil as máscaras diferem, exceto na Índia; a Etiópia não tem máscara de robusta) | ADR 0031 |
 | Café, passo 2: Conab | Coletor novo do Boletim da Safra de Café: 15 levantamentos desde jan/2023, com revisões e data real de publicação (conferida com a planilha), produção, área e produtividade por região, UF e sub-região, em total, arábica e conilon; card "Café - safra por região e UF (Conab)". Define as regiões do clima do café. Backfill rodado no servidor no mesmo dia (0 falhas) | ADR 0029 |
 | Café, passo 2: clima | NOAA STAR sobre a área do café, desde 1982, em 12 regiões (Brasil e as 5 maiores UFs da Conab; mundo e hemisférios em arábica e robusta). Achado: no Brasil a NOAA não separa arábica de conilon, então as UFs têm uma série só (opção escolhida pelo usuário); card "Clima sobre o café - saúde da vegetação (NOAA)". Backfill rodado no servidor no mesmo dia (0 falhas) | ADR 0030 |
