@@ -15,6 +15,7 @@ const { descreverPaisFmi } = require("../shared/utils/fmi-pais");
 const { descreverRegiaoWgc } = require("../shared/utils/wgc-regiao");
 const { descreverUnidadeCecafe } = require("../shared/utils/cecafe-unidade");
 const { descreverPaisJodi } = require("../shared/utils/jodi-pais");
+const { descreverLocalCustoCafe } = require("../shared/utils/conab-custo-cafe-local");
 const { descreverOrigemIce } = require("../shared/utils/ice-origem");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
@@ -114,6 +115,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos uma região ou UF.",
       nota:
         "Cada linha é uma UF, uma macrorregião ou o Brasil, com a estimativa mais recente de cada levantamento mensal da Conab, como publicado (mil t, mil ha e kg/ha). O Brasil e as macrorregiões somam UFs e têm escala maior."
+    }
+  }),
+  "conab-custo-cafe": criarDimensaoRegiao({
+    rotuloModalidade: "Local",
+    descreverRegiao: descreverLocalCustoCafe,
+    textos: {
+      titulo: "Locais",
+      inativo: "série encerrada",
+      mostrarInativos: "Mostrar locais com série encerrada",
+      semSelecao: "Selecione ao menos um local.",
+      nota:
+        "Cada linha é um município (às vezes com o sistema de cultivo) em que a Conab levanta o custo, com o valor de cada ano como publicado. A Conab troca municípios ao longo do tempo: várias séries terminam quando outra começa na mesma região."
     }
   }),
   "jodi-pais": criarDimensaoRegiao({

@@ -61,3 +61,4 @@ passo 2 no mesmo dia ("Sim, pode seguir"), **só aquisição de dados**.
   Iraque, Emirados...) e da Noruega e dos EUA até jul/2026, mas o Brasil para em 2022, a Rússia em 2023 e a Guiana não
   aparece. É o único dado gratuito de produção da OPEP por país encontrado até agora; o custo é processar o arquivo
   grande a cada coleta.
+- **No servidor em 2026-10-01** (coleta manual, informado pelo usuário): 7.920 lidos, 7.832 criados, 0 falhas, os mesmos números de dev.

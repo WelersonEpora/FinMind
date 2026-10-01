@@ -33,6 +33,7 @@ const usdaPsdCafeCollector = require("./usda/usda-psd-cafe.collector");
 const iceCafeEstoquesCollector = require("./ice/ice-cafe-estoques.collector");
 const conabMilhoCollector = require("./conab/conab-milho.collector");
 const conabCafeCollector = require("./conab/conab-cafe.collector");
+const conabCustoCafeCollector = require("./conab/conab-custo-cafe.collector");
 const cecafeResumoDiarioCollector = require("./cecafe/cecafe-resumo-diario.collector");
 const imeaMilhoSafraCollector = require("./imea/imea-milho-safra.collector");
 const imeaCustoMilhoCollector = require("./imea/imea-custo-milho.collector");
@@ -79,6 +80,7 @@ function bootstrapCollectors() {
     registerCollector(iceCafeEstoquesCollector);
     registerCollector(conabMilhoCollector);
     registerCollector(conabCafeCollector);
+    registerCollector(conabCustoCafeCollector);
     registerCollector(cecafeResumoDiarioCollector);
     registerCollector(imeaMilhoSafraCollector);
     registerCollector(imeaCustoMilhoCollector);

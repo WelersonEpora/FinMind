@@ -1264,6 +1264,48 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/safras/safra-de-cafe"
     }
   },
+  // --- Conab - custo de produção do café por município, série histórica anual (ADR 0043) ---
+  // Séries `CONAB.CAFE_CUSTO.<ARABICA|CONILON>.<LOCAL>.<TOTAL>_<HA|SACA>`: um card por tipo, o local é o item.
+  ...[
+    { tipo: "ARABICA", nome: "arábica", itemPrincipal: "PATROCINIO_MG", itensPadrao: ["PATROCINIO_MG", "MANHUACU_MG", "FRANCA_SP"], desde: "2003" },
+    { tipo: "CONILON", nome: "conilon", itemPrincipal: "NOVA_BRASILANDIA_RO", itensPadrao: ["NOVA_BRASILANDIA_RO", "RIO_BANANAL_ES", "ITABELA_BA"], desde: "2007" }
+  ].map(({ tipo, nome, itemPrincipal, itensPadrao, desde }) => ({
+    instrumentCode: `CAFE_CUSTO_${tipo}_CONAB`,
+    origem: "observation",
+    nome: `Café ${nome} - custo de produção (Conab)`,
+    unidade: "R$/sc 60 kg",
+    casasDecimais: 2,
+    frequencia: "ANUAL",
+    // Um custo por ano, publicado sem data: até ~15 meses sem sucessor.
+    toleranciaDias: 460,
+    fonte: "Conab - custos de produção, série histórica",
+    fonteCollectorCode: "conab-custo-cafe",
+    porRegiao: {
+      prefixoSerie: `CONAB.CAFE_CUSTO.${tipo}`,
+      campoReferencia: "OPERACIONAL_SACA",
+      itemPrincipal,
+      itensPadrao,
+      descritor: "conab-custo-cafe"
+    },
+    campoPrincipal: "TOTAL_SACA",
+    campos: [
+      { codigo: "TOTAL_SACA", nome: "Custo total (R$/saca)", unidade: "R$/sc 60 kg", casasDecimais: 2 },
+      { codigo: "OPERACIONAL_SACA", nome: "Custo operacional (R$/saca)", unidade: "R$/sc 60 kg", casasDecimais: 2 },
+      { codigo: "VARIAVEL_SACA", nome: "Custo variável (R$/saca)", unidade: "R$/sc 60 kg", casasDecimais: 2 },
+      { codigo: "FIXO_SACA", nome: "Custo fixo (R$/saca)", unidade: "R$/sc 60 kg", casasDecimais: 2 },
+      { codigo: "TOTAL_HA", nome: "Custo total (R$/ha)", unidade: "R$/ha", casasDecimais: 2 },
+      { codigo: "OPERACIONAL_HA", nome: "Custo operacional (R$/ha)", unidade: "R$/ha", casasDecimais: 2 },
+      { codigo: "VARIAVEL_HA", nome: "Custo variável (R$/ha)", unidade: "R$/ha", casasDecimais: 2 },
+      { codigo: "FIXO_HA", nome: "Custo fixo (R$/ha)", unidade: "R$/ha", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao: `Custo de produção do café ${nome} estimado pela Conab em cada município levantado, por ano: os 4 totais da planilha (variável, fixo, operacional e total), por hectare e por saca de 60 kg, como publicados. Atende o fator do café "Custo de produção e preço mínimo" do FEL 1, na parte do custo. Os itens (fertilizantes, mão de obra...) não são gravados: a numeração e os nomes mudam ao longo dos anos.`,
+      metodologia: `Um valor por ano (o dia da observação é 1º de janeiro), desde ${desde}. A Conab não informa quando publicou cada custo: a data de disponibilidade é a da coleta (o histórico só vale para leituras a partir da 1ª coleta). O mês dos preços usados no cálculo (ex.: outubro/2025) fica guardado com cada valor. A Conab troca de município ao longo do tempo e às vezes separa o sistema de cultivo (mecanizado ou não). Valores como publicados: o de Patrocínio em 2017 (R$ 1.021/saca, entre 431 e 466) está assim na fonte. O preço mínimo (PGPM) não é coletado: o aplicativo da Conab exige reCAPTCHA. Licença: Creative Commons Atribuição-SemDerivações 3.0 (rodapé do site).`,
+      escopo: "só os 4 totais por município e ano. Não coletados: os itens do custo, a produtividade e o preço mínimo.",
+      formatoOrigem: "XLS (série histórica de custos de produção da Conab, uma aba por município e ano)",
+      urlOficial: "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/custos-de-producao/planilhas-de-custos-de-producao/copy_of_agricolas"
+    }
+  })),
 
   // --- ICE Futures U.S. - estoques certificados do café "C", diário desde 2016-01-04 (ADR 0032) ---
   {

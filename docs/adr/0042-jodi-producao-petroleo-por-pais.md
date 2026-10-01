@@ -52,3 +52,4 @@ Reexecução: 0 criadas, 24.548 ignoradas. EUA em jul/2026: 13.817 mil barris/di
 - Sem versões na fonte: a revisão vira versão nova com o `Last-Modified` do arquivo que a trouxe.
 - Licença não lida (uso pessoal, decisão do usuário de 2026-10-01).
 - O arquivo cresce todo mês; o pico de memória (~600 MB) deve ser acompanhado no servidor.
+- **No servidor em 2026-10-01** (coleta manual, informado pelo usuário): 34.656 lidos, 24.548 criados, 0 falhas, ~7 s, sem problema de memória; os mesmos números de dev.
