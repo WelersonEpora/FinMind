@@ -30,6 +30,12 @@ das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 O desenho já está decidido: o motor prepara a base (fatores e regras do Comitê)
 e a **IA gera a recomendação**, que uma pessoa decide se segue (§5).
 
+**Aquisição de dados encerrada (decisão do usuário, 2026-10-01).** Dos 34 fatores do FEL 1, 20 têm a matéria-prima
+coberta, 12 parcialmente e 2 sem dado (a geopolítica do ouro e a do petróleo, que dependem do desenho de eventos do
+David). O que falta não é fonte: são as regras de cada fator. **Fonte nova só com uma demanda específica** (do David, do
+Comitê ou do usuário), com a autorização registrada no ADR, como antes. A coleta diária continua, e a manutenção das
+fontes já implementadas (mudança de formato, fonte que fecha, como a LBMA) segue normal.
+
 ## Próximos passos
 
 Caminho até **fechar a arquitetura do milho e do ouro**: a cadeia completa (Coleta → A → B → C → prompt → IA →
