@@ -38,8 +38,9 @@ const executandoAgora = ref(false)
 const erroExecucaoManual = ref('')
 const avisoExecucaoManual = ref('')
 
-// Enquanto a coleta manual roda (em segundo plano no servidor), a lista se atualiza sozinha a cada 5 s, até não
-// haver execução "Em andamento" na página (ou 15 min, como teto).
+// Enquanto houver execução "Em andamento" na página, a lista se atualiza sozinha a cada 5 s, até não haver mais (ou
+// 15 min, como teto). Vale para a coleta manual desta tela e para qualquer outra: a do cron, um backfill rodado no
+// console do servidor. Antes, só a manual desta tela ligava o acompanhamento.
 const INTERVALO_ACOMPANHAMENTO_MS = 5000
 const TETO_ACOMPANHAMENTO_MS = 15 * 60_000
 let acompanhamento = null
@@ -82,6 +83,7 @@ async function carregar({ silencioso = false } = {}) {
     })
     execucoes.value = resultado.execucoes
     totalExecucoes.value = resultado.paginacao.total
+    if (!acompanhamento && temExecucaoEmAndamento()) acompanharColeta({ manual: false })
   } catch (_err) {
     errorMessage.value = 'Não foi possível carregar as execuções de coleta.'
   } finally {
@@ -122,15 +124,18 @@ function pararAcompanhamento() {
 }
 onBeforeUnmount(pararAcompanhamento)
 
-function acompanharColeta() {
+function temExecucaoEmAndamento() {
+  return execucoes.value.some((execucao) => execucao.status === 'running')
+}
+
+function acompanharColeta({ manual = true } = {}) {
   pararAcompanhamento()
   const inicio = Date.now()
   acompanhamento = setInterval(async () => {
     await carregar({ silencioso: true })
-    const emAndamento = execucoes.value.some((execucao) => execucao.status === 'running')
-    if (!emAndamento) {
+    if (!temExecucaoEmAndamento()) {
       pararAcompanhamento()
-      avisoExecucaoManual.value = 'Coleta concluída. Confira o status de cada coletor na lista.'
+      if (manual) avisoExecucaoManual.value = 'Coleta concluída. Confira o status de cada coletor na lista.'
     } else if (Date.now() - inicio > TETO_ACOMPANHAMENTO_MS) {
       pararAcompanhamento()
     }
