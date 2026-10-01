@@ -28,9 +28,11 @@ cálculos e critérios de sinal (ver `STATUS_DO_PROJETO.md`, §4).
 - **IA nunca é a fonte de verdade de um dado** quando existe fonte
   estruturada oficial confiável (ver ADR 0001) — e uma resposta de IA nunca
   dispara uma ação sozinha (ver `backend/src/ai/README.md`).
-- Antes de implementar qualquer novo coletor/ativo/fonte, confira
-  `STATUS_DO_PROJETO.md` (§3 e §4) — fonte nova só se estiver no FEL 1 e com
-  autorização explícita do usuário registrada num ADR.
+- **A aquisição de dados está encerrada desde 2026-10-01** (`STATUS_DO_PROJETO.md`, §1):
+  não proponha fonte nova por iniciativa própria. Fonte nova só com uma demanda
+  específica (do David, do Comitê ou do usuário), se estiver no FEL 1 e com
+  autorização explícita do usuário registrada num ADR. As candidatas estão em
+  `docs/reconhecimento-fontes/README.md`; as perguntas ao David, na §4 do status.
 
 ## Arquitetura e estrutura do repositório
 

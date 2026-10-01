@@ -52,6 +52,7 @@ explícita registrada em ADR (`CLAUDE.md`).
 |---|---|---|---|
 | MAPA (Sumário Executivo do café, VBP) e Embrapa (Observatório do Café) | 1 | **Sem valor para o FinMind: só republicam** Conab, Comex Stat, Cecafé e OIC. **Não implementar** | [cafe-cecafe-mapa-embrapa.md](cafe-cecafe-mapa-embrapa.md) |
 | Conab — séries históricas (XLS) e preços (TXT) do milho | 1 | (B) **Séries históricas** de 1ª/2ª/3ª/total por UF, **desde 1976/77**, sem vintage (foto atual): o histórico longo que o boletim mensal não tem. (C) **Preços**, semanais/mensais por UF e município, atualizados diariamente, mas só ~12 meses; o histórico longo de preço segue bloqueado (reCAPTCHA / Pentaho, segundo o AgroMind). **Sem coletor por decisão do usuário** (2026-09-21): fica para quando houver uma opção. Licença não verificada (preços: CC "sem derivações"). `curl` do Git Bash falha em `barramento.conab.gov.br` (o `fetch` do Node funciona) | ADR 0016 |
+| IMEA — paridade de exportação do milho (Boletim Semanal – Milho, PDF) | 1 | **Dado original, aguardando o Comitê (pergunta 16 do `STATUS_DO_PROJETO.md`).** 572 edições desde 2015-02-02, com a **paridade de exportação calculada pela própria fonte** (R$/saca, Mato Grosso), diferencial de base e prêmio portuário: o dado que o FEL 1 descreve (preço interno vs. Chicago + frete + câmbio). Exige leitura da tabela por coordenada (como no ADR 0019). É a paridade de MT, não a de Campinas; muda de contrato de referência (quebra de série); porto do prêmio incerto. Não implementado | [cobertura-fatores-fel1-milho-ouro.md](../cobertura-fatores-fel1-milho-ouro.md) |
 | USDA FAS — PSD Online (milho) | 1 | Exige chave própria `FAS_API_KEY` (a do NASS não serve). Safras 1960–2026, 125 países + mundo, 15 atributos. **A API só expõe a edição mais recente: sem vintage histórico** (parâmetros de release ignorados); `published_at` só com mês, da última revisão do par país × safra (confere com o WASDE em 3 de 4 testes; sem dia). Janela do rate limit (1.000) e licença não confirmadas. Números conferidos contra o WASDE de set/2026 (batem). O vintage vem do WASDE (linha acima) | ADR 0014 |
 | USDA FAS — *Coffee: World Markets and Trade* | 1 | **Não implementar**: PDF semestral com os números da PSD. As datas de publicação do ESMIS (dias 18 a 25 de junho e dezembro) conferem o `published_at` da PSD; o ESMIS para em 2025-06 | [cafe-mercado-mundial.md](cafe-mercado-mundial.md) |
 | ICO — *Coffee Market Report* mensal e I-CIP | 1 | **Adiada (decisão do usuário, 2026-09-28).** Base estatística só para membros; o relatório mensal é PDF público (desde ao menos 2016): preços indicativos diários, balanço mundial, exportações por país e estoques certificados de Nova York e Londres (mensais). **Licença do relatório: reuso livre com citação da ICO** | [cafe-mercado-mundial.md](cafe-mercado-mundial.md) |
@@ -62,10 +63,26 @@ explícita registrada em ADR (`CLAUDE.md`).
 | Clima do FEL 1 — NASA POWER, INMET, CPTEC/INPE, ECMWF ERA5 (e a "NOAA" genérica do relatório) | 1 | **Inadequadas para o FinMind nesta fase.** Entregam tempo (chuva, temperatura por ponto ou grade), não o efeito na lavoura: transformá-las em algo ligado ao preço seria um fator construído pelo FinMind. NASA POWER testada (API sem chave, chuva diária por coordenada). Só voltam se o Comitê pedir previsão do tempo ou risco de geada | [clima.md](clima.md) |
 | USDA Ag in Drought, FAO ASIS, NOAA CPC ONI | 1 | **Possíveis, não serão implementadas por ora.** Ag in Drought: % da área de milho dos EUA em seca, semanal, desde 2000 (JSON não documentado). ASIS: % da área agrícola em estresse por estado do Brasil, desde 1984, sem separar cultura. ONI: El Niño/La Niña, mensal, desde 1950 (regime de fundo; ligá-lo ao preço é regra do Comitê) | [clima.md](clima.md) |
 
+## Candidatas a uma demanda específica
+
+A aquisição de dados foi encerrada em 2026-10-01 (`STATUS_DO_PROJETO.md`, §1): estas fontes só entram com uma demanda
+específica do David, do Comitê ou do usuário, com a autorização num ADR. Foram as que sobraram das ondas de coleta.
+
+| Fonte | Fator que atenderia | Situação |
+|---|---|---|
+| IMEA — paridade de exportação do milho | Milho: dólar e paridade de exportação (Médio) | Nível 1, linha acima. Aguarda o Comitê (pergunta 16) |
+| ICO — *Coffee Market Report* | Café: estoque global (Alto); demanda e consumo (Médio) | Nível 1, linha acima. A PSD do USDA já cobre boa parte |
+| Geada: temperatura mínima diária em MG e SP, de maio a agosto | Café: clima (Alto); o FEL 1 (§6.5.1) a chama de obrigatória | As fontes de tempo (INMET e outras) estão na linha "Clima do FEL 1": montar o risco de geada seria um fator. Comitê |
+| Portarias do MAPA (preço mínimo do café) | Café: custo de produção e preço mínimo (Médio) | Não reconhecida. A Conab exige reCAPTCHA (ADR 0043) |
+| Baker Hughes — contagem de sondas | Petróleo: produção dos EUA e rig count (Médio) | Nível 0: sem resposta daqui nem do servidor (2026-10-01). Tentar de novo — [petroleo.md](petroleo.md) |
+| OPEP — *Monthly Oil Market Report* | Petróleo: decisões da OPEP+ (Alto); demanda global (Alto) | Nível 0: o site monta os links por script; PDF não localizado — [petroleo.md](petroleo.md) |
+| EIA — API (produção internacional) | Petróleo: oferta não-OPEP (Médio), Rússia e Guiana | Não reconhecida. Exige chave gratuita (ADR 0042) |
+| JODI — cada derivado (gasolina, diesel, querosene de aviação...) | Petróleo: demanda global (Alto) | No mesmo arquivo da demanda já coletada (ADR 0046); só o total é gravado |
+
 ## Candidatas (nível 0 — sem coletor, sem autorização)
 
 Todas listadas no relatório do David (FEL 1). Nenhuma tem coletor nem
-reconhecimento no FinMind; a lista de trabalho está em `STATUS_DO_PROJETO.md` §3.
+reconhecimento no FinMind. A aquisição foi encerrada em 2026-10-01: só entram com uma demanda específica (ver acima).
 Entrar em implementação exige a decisão do David ou autorização explícita
 registrada em ADR (`CLAUDE.md`). "AgroMind" indica o nível que a fonte tem lá.
 
