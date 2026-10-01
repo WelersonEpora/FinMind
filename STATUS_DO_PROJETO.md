@@ -38,7 +38,7 @@ quando chegar a vez delas.
 
 | Etapa | O quê | Responsável | Situação |
 |---|---|---|---|
-| **1. Decisões de base** | Critérios de aprovação do backtest, preço e orçamento, instrumento e horizontes, medidas dos fatores do milho (só a camada A) e ajustes no FEL 1 | Comitê | **Atual** |
+| **1. Decisões de base** | Critérios de aprovação do backtest, preço e orçamento, instrumento e horizontes, medidas dos fatores do milho (só a camada A) e ajustes no FEL 1 | Comitê | **Atual**: reunião feita em 2026-10-01 (perguntas 2, 3 e 8: seguir com o histórico disponível); aguarda o documento do David com as demais respostas |
 | 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | **Proposta pronta** (§5b), aguarda o Comitê |
 | 3. Medidas e dados | Implementar as medidas confirmadas e coletar os dados aprovados que faltam | FinMind | Depende da 1 |
 | 4. Regras | O Comitê define a leitura (B) e a regra (C) de cada fator; o FinMind faz o backtest; o Comitê aprova | Comitê + FinMind | Depende da 3 |
@@ -48,8 +48,8 @@ quando chegar a vez delas.
 
 | Momento | O que acontece | Responsável |
 |---|---|---|
-| 1a. Reunião | Apresentar o processo, os informes e as perguntas (§4 e §5); responder o que der na hora | FinMind apresenta, Comitê responde |
-| 1b. Retorno | Devolver as respostas pendentes, no prazo combinado na reunião | Comitê |
+| 1a. Reunião | **Feita em 2026-10-01**: perguntas 2, 3 e 8 respondidas (seguir com o histórico disponível) | FinMind apresenta, Comitê responde |
+| 1b. Retorno | Devolver as respostas pendentes: **o David vai mandar um documento respondendo todas as perguntas** | Comitê |
 | 1c. Registro | Anotar cada resposta e a data no Status (§4) e, se decidir algo estrutural, no ADR correspondente | FinMind |
 
 <details>
@@ -317,6 +317,9 @@ A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy �
 Perguntas da análise crítica (`docs/analise-critica-fel1-milho-ouro.md`, §H).
 Preencher a resposta e a data quando o David responder.
 
+**Reunião do Comitê em 2026-10-01:** perguntas 2, 3 e 8 respondidas (seguir com o histórico disponível). O
+David vai mandar um **documento respondendo todas as perguntas**; ao chegar, registrar cada resposta e a data abaixo.
+
 **Prioridade da próxima reunião (decidido em 2026-09-22, auditoria da camada de
 dados; a 2 somada em 2026-09-23; a 8 e a ordem, em 2026-09-27):** primeiro o
 **"Backtest em detalhe"** (abaixo da tabela: o que é e o que o Comitê define), depois
@@ -329,13 +332,13 @@ ciência do Comitê. Ver `docs/cobertura-fatores-fel1-milho-ouro.md`, §7.
 | # | Pergunta | Trava? | Resposta / data |
 |---|---|---|---|
 | 1 | Milho + Ouro como **prova de arquitetura** (sem mudar a ordem CAFÉ→PETRÓLEO→MILHO→OURO) é aceitável? | | — |
-| 2 | Milho: podemos seguir só com o **CCM (B3)**, que é grátis mas só tem **~4 anos** de histórico, ou precisamos do **ZC (CME)**, que é **pago**? Ouro: **GC** ou preço de referência? (A LBMA fechou o feed em 2026-10-01; o preço diário passou a ser o futuro **GLD da B3**, grátis, desde 2025-07-21, ADR 0044) **Discutir depois da pergunta 8**, que resolve boa parte desta. **Detalhe para a reunião logo abaixo da tabela** | ⛔ | — |
-| 3 | Existe **orçamento para dados de preço**? Sem isso não há backtest. **Para o milho, é respondida junto com a pergunta 2** (escolher o ZC = ter orçamento para ele); segue valendo para o **ouro** (o futuro GC da CME também é pago) | ⛔ | — |
+| 2 | Milho: podemos seguir só com o **CCM (B3)**, que é grátis mas só tem **~4 anos** de histórico, ou precisamos do **ZC (CME)**, que é **pago**? Ouro: **GC** ou preço de referência? (A LBMA fechou o feed em 2026-10-01; o preço diário passou a ser o futuro **GLD da B3**, grátis, desde 2025-07-21, ADR 0044) **Discutir depois da pergunta 8**, que resolve boa parte desta. **Detalhe para a reunião logo abaixo da tabela** | | **Respondida na reunião do Comitê (2026-10-01): seguir com o histórico disponível.** Milho com o CCM (B3), sem o ZC; ouro com o LBMA (até 2026-09-30) e o GLD da B3. Detalhe no documento do David (pendente) |
+| 3 | Existe **orçamento para dados de preço**? Sem isso não há backtest. **Para o milho, é respondida junto com a pergunta 2** (escolher o ZC = ter orçamento para ele); segue valendo para o **ouro** (o futuro GC da CME também é pago) | | **Respondida na reunião do Comitê (2026-10-01): seguir com o histórico disponível**, sem comprar dado de preço (nem ZC, nem GC). Detalhe no documento do David (pendente) |
 | 4 | Confirmam que o **COTAHIST não atende CCM/ICF**? Qual a alternativa? (o ADR 0009 já confirma que não atende; para o CCM, a alternativa encontrada foi o Boletim Diário da B3, ADR 0020 — ver pergunta 2). **Detalhe logo abaixo da tabela** | | — |
 | 5 | **Vintage do agro (para ciência do Comitê):** o dado do agro é revisado depois de publicado, e parte do passado só existe na versão final. Isso limita o **backtest** de algumas regras (sobretudo as da Safrinha antes de fev/2025), mas o impacto é localizado: o WASDE tem as revisões do milho desde 2011 (EUA e ~20 países, incluindo o Brasil), e **a partir de agora o FinMind guarda cada revisão de todas as fontes**. A avaliação da IA será feita daqui para frente. **Detalhe logo abaixo da tabela** | | — |
 | 6 | **Licença e redistribuição (para ciência do Comitê):** hoje todo o uso é interno (decisão de 2026-09-21). **Antes de exibir, redistribuir ou comercializar** dados ou análises para terceiros, algumas fontes exigem licença ou autorização específica: LBMA (ouro), CEPEA/ESALQ e B3 (preços do milho) e Conab. **Detalhe logo abaixo da tabela** | | — |
 | 7 | **CEPEA** está bloqueada para automação. Export manual é aceitável em produção? | | **Não se aplica mais** (decisão do usuário, 2026-09-23): o mesmo indicador vem da B3, automatizado, desde 2018-06-08 — ADR 0021. Só voltaria se o David pedir o histórico anterior a 2018 |
-| 8 | **Contradição do FEL 1:** o backtest precisa de **1 a 5 anos** de histórico (§4) ou de **10 a 15 anos** (§12.1)? Qual vale? **Discutir antes da pergunta 2:** com 1 a 5 anos, o CCM (~4,5 anos, grátis) praticamente atende; com 10 a 15, o milho só fecha com o ZC (pago). **Detalhe logo abaixo da tabela** | | — |
+| 8 | **Contradição do FEL 1:** o backtest precisa de **1 a 5 anos** de histórico (§4) ou de **10 a 15 anos** (§12.1)? Qual vale? **Discutir antes da pergunta 2:** com 1 a 5 anos, o CCM (~4,5 anos, grátis) praticamente atende; com 10 a 15, o milho só fecha com o ZC (pago). **Detalhe logo abaixo da tabela** | | **Respondida na reunião do Comitê (2026-10-01): o backtest usa o histórico disponível** (CCM e ICF desde 2022; no ouro, LBMA e GLD). Detalhe no documento do David (pendente) |
 | 9 | Qual o **benchmark** do Sharpe mínimo, isto é, **contra o que** o resultado do backtest é comparado (ex.: só comprar e segurar)? **Detalhe logo abaixo da tabela** | | — |
 | 10 | **Tarefa do Comitê:** fixar os **limites de aprovação da §12.2 antes do primeiro teste**, a "nota que passa" (Sharpe mínimo, perda máxima tolerada, número mínimo de operações etc.). O FEL 1 já exige que seja antes: definir depois de ver o resultado invalida o teste. **Depende das perguntas 8 e 9.** Ver "Backtest em detalhe", abaixo da tabela | | — |
 | 11 | **O papel da IA (para ciência do Comitê):** a IA é a **analista** do processo e **gera a recomendação** (comprar, vender, manter ou ficar de fora, no curto, médio e longo prazo), sempre com base nos dados e nas regras que o motor envia. Uma pessoa decide e executa; nenhuma ordem sai automaticamente. Ver §5, "O papel da IA" | | — |
