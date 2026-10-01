@@ -18,6 +18,8 @@ export const OPCOES_PERIODO_GRAFICO = [
 export const PERIODO_PADRAO_DIAS = 30
 
 const PERIODO_PADRAO_POR_FREQUENCIA = {
+  // Um ponto por trimestre (Grain Stocks, ADR 0035): 5 anos = 20 pontos.
+  TRIMESTRAL: 1825,
   ANUAL: 3650
 }
 

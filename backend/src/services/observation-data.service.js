@@ -10,6 +10,7 @@ const { descreverRegiaoConab } = require("../shared/utils/conab-regiao");
 const { descreverRegiaoImea, descreverLocalCustoImea } = require("../shared/utils/imea-regiao");
 const { descreverRegiaoNoaaVh } = require("../shared/utils/noaa-vh-regiao");
 const { descreverPaisPsd } = require("../shared/utils/psd-pais");
+const { descreverPaisComex } = require("../shared/utils/comex-pais");
 const { descreverOrigemIce } = require("../shared/utils/ice-origem");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
@@ -145,6 +146,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos um país.",
       nota:
         "Cada linha é um país (ou a União Europeia) da PSD do USDA, com o valor atual de cada safra, em mil sacas de 60 kg, como publicado. A PSD do café não traz o total mundial. Países sem produção de café aparecem com produção zero."
+    }
+  }),
+  "comex-pais": criarDimensaoRegiao({
+    rotuloModalidade: "País de destino",
+    descreverRegiao: descreverPaisComex,
+    textos: {
+      titulo: "Países de destino",
+      inativo: "sem exportação recente",
+      mostrarInativos: "Mostrar países sem exportação no último ano",
+      semSelecao: "Selecione ao menos um país.",
+      nota:
+        "Cada linha é um país de destino da exportação brasileira, por mês, como o Comex Stat publica (kg ou US$ FOB). Um mês sem exportação para o país não tem ponto: o FinMind não grava zero. A soma dos países é o total do card de exportação."
     }
   }),
   "ice-origem": criarDimensaoRegiao({

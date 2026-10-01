@@ -18,9 +18,13 @@
 //     projeção cada região tem duas linhas (mês anterior e atual, esta última com o rótulo em
 //     branco): fica a última. Valores em milhões de t.
 //
+// ETANOL (desde 2026-10-01, ADR 0035): o rótulo mudou uma vez, em abr/2011 ("Ethanol for Fuel" nas 3 edições de
+// jan a mar/2011; "Ethanol & by-products" nas 184 seguintes, conferido em todas as 187 edições de 2011 a 2026).
+// Duas séries separadas, como publicadas, sem emendar: ETHANOL_FUEL e ETHANOL_BYPRODUCTS. A linha é a parcela do
+// "Food, Seed & Industrial" que vai para o etanol.
+//
 // NÃO extraído, de propósito: preço médio ao produtor (projeção vem como faixa, "4,80 - 5,60"),
-// etanol (a definição mudou: "Ethanol for Fuel" × "Ethanol & by-products"), CCC/estoques
-// livres/empréstimos (só nas edições antigas) e o bloco de "FEED GRAINS" (é outro produto).
+// CCC/estoques livres/empréstimos (só nas edições antigas) e o bloco de "FEED GRAINS" (é outro produto).
 
 const XLSX = require("xlsx");
 
@@ -44,6 +48,8 @@ const ATRIBUTOS_EUA = {
   "supply total": { codigo: "SUPPLY_TOTAL", unidade: "M bu" },
   "feed and residual": { codigo: "FEED_RESIDUAL", unidade: "M bu" },
   "food seed industrial": { codigo: "FSI", unidade: "M bu" },
+  "ethanol for fuel": { codigo: "ETHANOL_FUEL", unidade: "M bu" },
+  "ethanol by products": { codigo: "ETHANOL_BYPRODUCTS", unidade: "M bu" },
   "domestic total": { codigo: "DOMESTIC_TOTAL", unidade: "M bu" },
   exports: { codigo: "EXPORTS", unidade: "M bu" },
   "use total": { codigo: "USE_TOTAL", unidade: "M bu" },

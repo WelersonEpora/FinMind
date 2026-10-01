@@ -32,3 +32,8 @@ test("dividirEmBlocos: 2011 a 2026 vira 4 blocos consecutivos de até 5 anos, se
     { anoInicial: 2026, anoFinal: 2026 }
   ]);
 });
+
+test("dividirEmBlocos: --anosPorBloco=99 põe tudo numa execução só (série nova numa fonte já carregada)", () => {
+  assert.deepEqual(dividirEmBlocos(2011, 2026, 99), [{ anoInicial: 2011, anoFinal: 2026 }]);
+  assert.throws(() => dividirEmBlocos(2011, 2026, 0));
+});

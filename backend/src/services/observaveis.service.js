@@ -7,6 +7,10 @@ const collectionExecutionRepository = require("../repositories/collection-execut
 const { NotFoundError } = require("../shared/errors");
 const { ITENS_CUSTO } = require("../collectors/imea/imea-custo-itens");
 
+// Destinos marcados de início no card de exportação de milho por destino (ADR 0034): os 5 maiores de 2025 em volume
+// (Irã, Egito, Vietnã, Arábia Saudita e China, nesta ordem, no banco de dev em 2026-10-01).
+const ITENS_PADRAO_MILHO_DESTINO = ["372", "240", "858", "053", "160"];
+
 // Partes comuns dos cards do WASDE (milho): série anual, uma edição mensal, valores como publicados.
 const BASE_WASDE_MILHO = {
   origem: "observation",
@@ -497,6 +501,72 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
+  // --- Comex Stat - exportação de milho por país de destino, mensal (ADR 0034) ---
+  // Séries `COMEX.MILHO.EXPORT_DESTINO.<CODIGO_PAIS>.<CAMPO>`, com o código de país da tabela do Comex Stat (China = 160):
+  // os países são descobertos no banco; vêm marcados os maiores destinos de 2025 e o destaque do card é a China.
+  {
+    instrumentCode: "EXPORTACAO_MILHO_DESTINO",
+    origem: "observation",
+    nome: "Exportação de milho por destino (Comex Stat)",
+    unidade: "kg",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    toleranciaDias: 75,
+    fonte: "Comex Stat (MDIC)",
+    fonteCollectorCode: "comex-milho-exportacao-destino",
+    porRegiao: {
+      prefixoSerie: "COMEX.MILHO.EXPORT_DESTINO",
+      campoReferencia: "KG",
+      itemPrincipal: "160",
+      itensPadrao: ITENS_PADRAO_MILHO_DESTINO,
+      descritor: "comex-pais"
+    },
+    campoPrincipal: "KG",
+    campos: [
+      { codigo: "KG", nome: "Volume", unidade: "kg", casasDecimais: 0 },
+      { codigo: "FOB_USD", nome: "Valor FOB", unidade: "USD", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Exportação brasileira de milho em grão (NCM 10059010), por país de destino e por mês: volume (kg) e valor FOB (US$), como o Comex Stat publica. É a mesma exportação do card \"Exportação de milho\", aberta por país; a soma dos países é o total (48 de 48 valores conferidos em 2012 e 2025).",
+      metodologia:
+        "Um valor por mês e país (o dia da observação é o 1º do mês). A fonte não informa quando publicou nem se revisa: a data de disponibilidade é ESTIMADA em 15 do mês seguinte, e a coleta diária relê o ano corrente e o anterior. Um mês sem exportação para um país não tem ponto (não é gravado zero). Desde 2005, como o total (antes disso o NCM muda). Cada país é identificado pelo código da tabela de países do Comex Stat, não pelo nome.",
+      escopo: "só exportação de milho em grão, por país de destino. Não coletados: porto, UF de origem e via de transporte.",
+      formatoOrigem: "JSON (API de dados do Comex Stat, sem chave)",
+      urlOficial: "https://comexstat.mdic.gov.br"
+    }
+  },
+
+  // --- USDA NASS Grain Stocks - estoques trimestrais de milho dos EUA (ADR 0035) ---
+  {
+    instrumentCode: "ESTOQUES_MILHO_EUA_TRIMESTRAIS",
+    origem: "observation",
+    nome: "Estoques trimestrais de milho dos EUA (USDA Grain Stocks)",
+    unidade: "mil bushels",
+    casasDecimais: 0,
+    frequencia: "TRIMESTRAL",
+    // Um relatório por trimestre (fim de mar, jun e set; jan para o 1º de dezembro): o último estoque fica até ~4
+    // meses e meio sem sucessor (1º de setembro, publicado no fim de setembro, até o de 1º de dezembro, em janeiro).
+    toleranciaDias: 140,
+    fonte: "USDA NASS - Grain Stocks",
+    fonteCollectorCode: "usda-grain-stocks-milho",
+    series: [
+      { modalidade: "total", seriesCode: "USDA.GRAIN_STOCKS.CORN.TOTAL" },
+      { modalidade: "na_fazenda", seriesCode: "USDA.GRAIN_STOCKS.CORN.ON_FARM" },
+      { modalidade: "fora_da_fazenda", seriesCode: "USDA.GRAIN_STOCKS.CORN.OFF_FARM" }
+    ],
+    modalidadePrincipal: "total",
+    fonteDetalhe: {
+      descricao:
+        "Estoques de milho em grão dos EUA em 1º de março, junho, setembro e dezembro, por posição: na fazenda, fora da fazenda (armazéns, elevadores, processadoras) e o total, em mil bushels, como o USDA NASS publica no relatório Grain Stocks. O WASDE só traz o estoque de fim de ano-safra (1º de setembro); os demais trimestres só existem aqui.",
+      metodologia:
+        "Um valor por trimestre (o dia da observação é a data do estoque). Cada relatório traz os trimestres do ano anterior e do corrente, com o número que o USDA tinha naquele dia: a data de publicação é a REAL do release (listagem do ESMIS, conferida com o CSV), e cada revisão vira uma versão nova (o 1º de setembro de 2025 saiu como 1.531.613 e foi revisado para 1.551.286 em janeiro de 2026). A API do QuickStats não serve para isso: guarda só o valor revisado. Edições com CSV desde 2001-06-29 (antes, só TXT/PDF). Licença: dado do governo dos EUA, não verificado juridicamente.",
+      escopo: "só o milho dos EUA, total nacional. Não coletados: os estoques por estado, os outros grãos e a tabela em unidades métricas.",
+      formatoOrigem: "CSV dentro do ZIP de cada edição (arquivo de publicações do USDA, ESMIS)",
+      urlOficial: "https://esmis.nal.usda.gov/publication/grain-stocks"
+    }
+  },
+
   // --- EIA - etanol combustível dos EUA, semanal (fator do milho "Demanda de etanol", ADR 0024) ---
   // Séries `EIA.ETANOL.<CAMPO>`: produção e estoques têm unidades diferentes, uma por vez no seletor de métrica.
   {
@@ -632,13 +702,15 @@ const CATALOGO_OBSERVAVEIS = [
       { codigo: "SUPPLY_TOTAL", nome: "Oferta total", unidade: "milhões de bushels", casasDecimais: 0 },
       { codigo: "FEED_RESIDUAL", nome: "Ração e resíduo", unidade: "milhões de bushels", casasDecimais: 0 },
       { codigo: "FSI", nome: "Alimentos, sementes e uso industrial", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "ETHANOL_BYPRODUCTS", nome: "Etanol e coprodutos (desde abr/2011)", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "ETHANOL_FUEL", nome: "Etanol combustível (jan a mar/2011)", unidade: "milhões de bushels", casasDecimais: 0 },
       { codigo: "DOMESTIC_TOTAL", nome: "Consumo interno total", unidade: "milhões de bushels", casasDecimais: 0 },
       { codigo: "EXPORTS", nome: "Exportações", unidade: "milhões de bushels", casasDecimais: 0 },
       { codigo: "USE_TOTAL", nome: "Uso total", unidade: "milhões de bushels", casasDecimais: 0 }
     ],
     fonteDetalhe: {
       ...FONTE_DETALHE_WASDE_MILHO,
-      escopo: `só os Estados Unidos, com as 13 métricas que o WASDE traz para o país. Os demais países estão no card "Milho por país", em toneladas. ${FIM_ESCOPO_WASDE_MILHO}`,
+      escopo: `só os Estados Unidos, com as 13 métricas que o WASDE traz para o país e o milho usado para etanol (a parcela do uso industrial; o rótulo mudou em abr/2011, e as duas versões são séries separadas, ADR 0035). Os demais países estão no card "Milho por país", em toneladas. ${FIM_ESCOPO_WASDE_MILHO}`,
       descricao:
         "Balanço de milho dos Estados Unidos por safra (ano comercial set-ago), conforme o WASDE do USDA: estoques, produção, área, produtividade, oferta e uso. Cada métrica na unidade do USDA (bushels, acres, bushels/acre), sem conversão."
     }

@@ -105,13 +105,15 @@ test("EUA (layout de 2011, colunas deslocadas): uma linha por safra, vale a últ
   assert.equal(achar(observacoes, "WASDE.MILHO.EUA.AREA_PLANTED", "2010/11").unidade, "M acres");
 });
 
-test("EUA: rótulos com pontuação/rodapé casam ('Food, Seed & Industrial'); etanol e preço NÃO são extraídos", () => {
+test("EUA: rótulos com pontuação/rodapé casam ('Food, Seed & Industrial', 'Ethanol for Fuel  2/'); o preço NÃO é extraído", () => {
   const { observacoes, invalidos } = parser.extrairEua(EUA_2011);
   const codigos = new Set(observacoes.map((o) => o.atributo));
 
   assert.ok(codigos.has("FSI"));
-  assert.equal(codigos.has("ETHANOL"), false);
-  assert.equal([...codigos].some((c) => /PRICE|ETHANOL/.test(c)), false);
+  // Etanol desde 2026-10-01 (ADR 0035): o rótulo de 2011 vira ETHANOL_FUEL, separado do de abr/2011 em diante.
+  assert.ok(codigos.has("ETHANOL_FUEL"));
+  assert.equal(codigos.has("ETHANOL_BYPRODUCTS"), false);
+  assert.equal([...codigos].some((c) => /PRICE/.test(c)), false);
   // Preço em faixa não gera inválido: simplesmente não é um atributo coletado.
   assert.equal(invalidos.length, 0);
 });
@@ -238,4 +240,13 @@ test("planilha REAL de mai/2025: 'NA' de abril fora e a revisão da safra 2024/2
   assert.equal(achar(e.observacoes, "WASDE.MILHO.EUA.ENDING_STOCKS", "2024/25").valor, 1415); // set/2026: 1551
   assert.equal(achar(e.observacoes, "WASDE.MILHO.EUA.PRODUCTION", "2025/26").valor, 15820);
   assert.equal(achar(e.observacoes, "WASDE.MILHO.MUNDO.WORLD.ENDING_STOCKS", "2025/26").valor, 277.84);
+});
+
+test('EUA: "Ethanol & by-products 3/" (abr/2011 em diante) vira ETHANOL_BYPRODUCTS, uma série separada', () => {
+  const linhas = EUA_2011.map((l) => l.slice());
+  const i = linhas.findIndex((l) => String(l[2]).startsWith("Ethanol"));
+  linhas[i][2] = "Ethanol & by-products 3/";
+  const codigos = new Set(parser.extrairEua(linhas).observacoes.map((o) => o.atributo));
+  assert.ok(codigos.has("ETHANOL_BYPRODUCTS"));
+  assert.equal(codigos.has("ETHANOL_FUEL"), false);
 });

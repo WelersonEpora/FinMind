@@ -277,6 +277,7 @@ module.exports = {
   extrairEdicoesDaPagina,
   escolherUmaPorData,
   listarEdicoes,
+  baixarEdicoes,
   conferirEdicao,
   csvDaEdicao,
   SOURCE_CODE,

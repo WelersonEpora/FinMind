@@ -158,4 +158,4 @@ function extrairAreaPlantada(textoCsv) {
   return { dataLiberacao: dataDeLiberacao(tabelas), titulo: tituloDe(tabela), valores };
 }
 
-module.exports = { lerLinhaCsv, agruparTabelas, extrairAreaPlantada, ehTabelaDaAreaDoMilho, colunasDeAreaPlantada };
+module.exports = { lerLinhaCsv, agruparTabelas, dataDeLiberacao, extrairAreaPlantada, ehTabelaDaAreaDoMilho, colunasDeAreaPlantada };

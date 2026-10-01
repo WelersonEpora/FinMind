@@ -17,6 +17,11 @@
 //   node scripts/backfill-wasde-milho.js                                   (2011 até hoje)
 //   node scripts/backfill-wasde-milho.js --anoInicial=2020
 //   node scripts/backfill-wasde-milho.js --anoInicial=2020 --anoFinal=2022
+//   node scripts/backfill-wasde-milho.js --anosPorBloco=99                 (tudo numa execução só)
+//
+// SÉRIE NOVA NUMA FONTE JÁ CARREGADA (ex.: o etanol, ADR 0035): use `--anosPorBloco=99`. Em blocos, o 1º bloco grava
+// a série nova e os seguintes já a veem como carregada: as edições deles, já ingeridas para as outras séries, seriam
+// descartadas e o vintage da série nova pararia no fim do 1º bloco. Numa execução só, ela recebe todas as edições.
 
 const { sequelize } = require("../src/models");
 const { executarColetor } = require("../src/collectors/base/collector-runner");
@@ -48,18 +53,20 @@ function resolverAnos({ anoInicial, anoFinal }, anoAtual = new Date().getUTCFull
   return { anoInicial: inicio, anoFinal: fim };
 }
 
-// Divide [anoInicial, anoFinal] em blocos consecutivos de até 5 anos.
-function dividirEmBlocos(anoInicial, anoFinal) {
+// Divide [anoInicial, anoFinal] em blocos consecutivos de até `anosPorBloco` anos (padrão: 5).
+function dividirEmBlocos(anoInicial, anoFinal, anosPorBloco = ANOS_POR_BLOCO) {
+  if (!Number.isInteger(anosPorBloco) || anosPorBloco < 1) throw new Error(`--anosPorBloco inválido: ${anosPorBloco}.`);
   const blocos = [];
-  for (let inicio = anoInicial; inicio <= anoFinal; inicio += ANOS_POR_BLOCO) {
-    blocos.push({ anoInicial: inicio, anoFinal: Math.min(inicio + ANOS_POR_BLOCO - 1, anoFinal) });
+  for (let inicio = anoInicial; inicio <= anoFinal; inicio += anosPorBloco) {
+    blocos.push({ anoInicial: inicio, anoFinal: Math.min(inicio + anosPorBloco - 1, anoFinal) });
   }
   return blocos;
 }
 
 async function main() {
-  const { anoInicial, anoFinal } = resolverAnos(parseArgs());
-  const blocos = dividirEmBlocos(anoInicial, anoFinal);
+  const args = parseArgs();
+  const { anoInicial, anoFinal } = resolverAnos(args);
+  const blocos = dividirEmBlocos(anoInicial, anoFinal, args.anosPorBloco ? Number(args.anosPorBloco) : undefined);
   const falhas = [];
 
   logger.info({ anoInicial, anoFinal, blocos: blocos.length }, "Iniciando backfill do balanço do milho (WASDE/ESMIS)");

@@ -1,6 +1,7 @@
 # USDA NASS — Prospective Plantings / Acreage e Grain Stocks (milho) — reconhecimento
 
-**Data:** 2026-09-28. **Situação:** **área plantada implementada** (nível 5, pelo ESMIS, ADR 0027);
+**Data:** 2026-09-28. **Situação:** **área plantada implementada** (nível 5, pelo ESMIS, ADR 0027) e, desde 2026-10-01,
+**Grain Stocks implementado** (nível 5, pelo ESMIS, ADR 0035); a nota abaixo descreve o estado em 2026-09-28:
 **Grain Stocks reconhecido** (nível 1), aguardando o Comitê. As duas estão na API do QuickStats (a mesma chave do
 Crop Progress, ADR 0009), mas **a API não serve para o vintage de nenhuma das duas**: o número de cada edição, com a
 data real, está no **arquivo de edições do ESMIS** (seções no fim).

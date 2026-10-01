@@ -30,11 +30,11 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 |---|---|---|---|---|
 | USDA NASS Crop Progress | ✅ `usda-nass-crop-progress-milho` | ✅ 6.766 linhas, 12 séries | ✅ 1980→hoje | ✅ (condicionado a `NASS_API_KEY`, presente em produção) |
 | USDA NASS Prospective Plantings e Acreage (área plantada) | ✅ `usda-area-plantada-milho`, pelo ESMIS (ADR 0027, 2026-09-28) | ✅ 92 linhas, 1 série (27 anos) | ✅ 2001-06→hoje, vintage real | ✅ |
-| USDA NASS Grain Stocks | ❌ reconhecido em 2026-09-28, aguarda o Comitê ([usda-plantings-grain-stocks.md](reconhecimento-fontes/usda-plantings-grain-stocks.md)) | ❌ | Vintage real pelo ESMIS desde 2001 (CSV) | — |
+| USDA NASS Grain Stocks | ✅ `usda-grain-stocks-milho`, pelo ESMIS (ADR 0035, 2026-10-01) | ✅ 588 linhas, 3 séries (total, na fazenda, fora) | ✅ 2001-06→hoje, vintage real (267 revisões) | ✅ |
 | USDA WASDE (balanço) | ✅ `wasde-milho` | ✅ 27.309 linhas, 167 séries | ✅ 2011→hoje, vintage real (24.542 revisões) | ✅ |
 | USDA FAS PSD | ❌ reconhecida, adiada por decisão do usuário (o WASDE por país já cobre) | ❌ | — | — |
 | Conab (Boletim da Safra) | ✅ `conab-milho` | ✅ 3.436 linhas, 397 séries | ⚠️ só fev/2025→hoje | ✅ |
-| Comex Stat (exportação) | ✅ `comex-milho-exportacao` | ✅ 520 linhas, 2 séries (só o total nacional) | ✅ 2005→hoje | ✅ |
+| Comex Stat (exportação) | ✅ `comex-milho-exportacao` e, por país de destino, `comex-milho-exportacao-destino` (ADR 0034, 2026-10-01) | ✅ 520 linhas do total, 2 séries; e uma série por país e métrica | ✅ 2005→hoje | ✅ |
 | IMEA — safra MT | ✅ `imea-milho-safra` | ✅ 120 linhas, 24 séries | ⚠️ só 2022/23→hoje, sem vintage retroativo possível | ✅ |
 | IMEA — custo de produção | ✅ `imea-custo-milho` | ✅ 15.402 linhas, 5.073 séries | ⚠️ vintage começa em 15/09/2026 | ✅ |
 | IMEA — oferta/demanda (PDF) | ✅ `imea-oferta-demanda-milho` | ✅ 802 linhas gravadas (3.369 itens válidos no parser, dedup por revisão) | ✅ 2014-04→2026-08, vintage real | ✅ |
@@ -79,14 +79,14 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 |---|---|---|---|---|
 | 1 | Clima e safra EUA — Crop Progress (Alto) | % condição/progresso da lavoura EUA; clima (chuva/temperatura) | Crop Progress completo (USDA, 1980→hoje); efeito do clima na lavoura (VHI/VCI/TCI da NOAA STAR sobre a área do milho, EUA e Brasil por estado, 1982→hoje, ADR 0025) | Previsão do tempo (o que o mercado precifica à frente): só em dado bruto, não coletado. A área plantada do Prospective Plantings (31/03) e do Acreage (30/06) é coletada desde 2026-09-28 (ADR 0027), antes de chegar ao WASDE |
 | 2 | Safrinha brasileira, 2ª safra (Alto) | Área/produção/produtividade da 2ª safra | Conab (nacional/UF, vintage fev/2025+) e IMEA (só MT, sem vintage) | Vintage anterior a fev/2025 é irrecuperável; série 1976/77+ não carregada (decisão) |
-| 3 | Estoques globais e balanço — WASDE (Alto) | Estoque final, produção, balanço mundial | WASDE EUA + por país, vintage real 2011+ | Pré-2011 só em PDF, não coletado. Estoques trimestrais dos EUA (Grain Stocks, 1º de dez/mar/jun) não estão no WASDE: reconhecidos, não coletados; a API só guarda o valor revisado, mas o ESMIS tem cada edição com o número original (CSV desde 2001) |
+| 3 | Estoques globais e balanço — WASDE (Alto) | Estoque final, produção, balanço mundial | WASDE EUA + por país, vintage real 2011+ | Pré-2011 só em PDF, não coletado. Estoques trimestrais dos EUA (Grain Stocks, 1º de dez/mar/jun) não estão no WASDE: **coletados desde 2026-10-01** pelo ESMIS, com o número original de cada edição desde 2001 (ADR 0035) |
 | 4 | Dólar/USDBRL e paridade de exportação (Médio) | USD/BRL + paridade (preço interno vs. Chicago + frete + câmbio) | USD/BRL completo (1994+); exportação Comex Stat (2005+) | A **paridade calculada pelo IMEA** (MT, desde 2015) existe e aguarda a pergunta 16. Frete sozinho não serve (seria o FinMind montar a fórmula); frete marítimo sem fonte gratuita |
-| 5 | Demanda de etanol/biocombustível (Médio) | Produção de etanol de milho, estoques (EIA/USDA) | Produção e estoques semanais da EIA desde 2010 (ADR 0024) | Falta a parte USDA (milho usado para etanol): a linha existe no WASDE, mas o leitor a ignora de propósito, porque a definição mudou ao longo das edições (`wasde-milho.parser.js`) |
+| 5 | Demanda de etanol/biocombustível (Médio) | Produção de etanol de milho, estoques (EIA/USDA) | Produção e estoques semanais da EIA desde 2010 (ADR 0024) | Nenhuma desde 2026-10-01: o milho usado para etanol do WASDE é coletado, em 2 séries porque o rótulo mudou em abr/2011 (ADR 0035) |
 | 6 | Custo de insumos — fertilizantes, diesel (Médio) | Preço de fertilizantes e diesel | IMEA custo de produção traz linhas agregadas ("Fertilizantes e corretivos", "Operações mecanizadas — diesel"), só Mato Grosso, em R$/ha (custo composto, não preço isolado) | Sem cobertura fora de MT; sem série de preço de insumo isolada (o Campo Futuro da CNA/Cepea é só PDF anual) |
 | 7 | Especulação — COT (Médio) | Posições CFTC (OI, MM long/short) | Completo, 2006+ | Nenhuma relevante |
-| 8 | Política comercial/exportações — China, tarifas (Médio) | Exportação por destino, eventos de tarifa | Comex Stat só com o total nacional exportado | A **exportação por país de destino está na mesma API** do coletor atual (97 destinos em 2025), aguarda a pergunta 12. Eventos de tarifa dependem da busca de eventos, que não existe |
+| 8 | Política comercial/exportações — China, tarifas (Médio) | Exportação por destino, eventos de tarifa | Comex Stat: o total nacional e, desde 2026-10-01, por país de destino | A exportação por país de destino é **coletada desde 2026-10-01** (ADR 0034). Eventos de tarifa dependem da busca de eventos, que não existe |
 
-**Resumo:** 4/8 com matéria-prima essencialmente completa (clima e safra EUA, WASDE, etanol pela EIA, COT); 3/8 com cobertura parcial real (safrinha, dólar/paridade, custo de insumos); 1/8 sem dado coletado (política comercial), mas com o número oficial à mão no Comex Stat.
+**Resumo:** 4/8 com matéria-prima essencialmente completa (clima e safra EUA, WASDE, etanol pela EIA, COT); 3/8 com cobertura parcial real (safrinha, dólar/paridade, custo de insumos); 1/8 só com metade (política comercial: a exportação por destino desde 2026-10-01; os eventos de tarifa, não). Desde 2026-10-01 também o etanol do USDA (fator 5) e os estoques trimestrais (fator 3).
 
 ## 3. Cobertura dos 8 fatores de Ouro
 
@@ -161,9 +161,9 @@ O FinMind não tem uma entidade de "calendário de relatórios" própria — o q
 
 **B. Parcial:** Conab e IMEA (dado de qualidade, vintage começando agora ou só desde fev/2025); B3 CCM (desde 2022, com buraco em 2023, sem contratos em aberto depois de 2025-12-11, contrato diferente do CME ZC); índice do dólar via proxy FRED (não é o DXY real); custo de insumos do milho só via agregados IMEA/MT; reservas de banco central só o total do Brasil.
 
-**C. Faltante:** preço de futuros de 10+ anos (bloqueador nº1 para qualquer backtest); CPI, compras de ouro por bancos centrais e fluxo de ETFs de ouro (WGC/IMF); previsão do tempo; milho usado para etanol (parte USDA do fator 5).
+**C. Faltante:** preço de futuros de 10+ anos (bloqueador nº1 para qualquer backtest); compras de ouro por bancos centrais e fluxo de ETFs de ouro (WGC/IMF); previsão do tempo. O CPI (ADR 0033) e o milho usado para etanol (ADR 0035) foram coletados em 2026-10-01.
 
-**D. Existe e aguarda decisão:** paridade de exportação do IMEA (pergunta 16); exportação por país de destino no Comex Stat (pergunta 12); estoques trimestrais (Grain Stocks) do USDA, com vintage pelo ESMIS, aguardam o Comitê definir se o fator 3 os usa.
+**D. Existe e aguarda decisão:** paridade de exportação do IMEA (pergunta 16). A exportação por destino (ADR 0034) e os estoques trimestrais do Grain Stocks (ADR 0035) foram coletados em 2026-10-01, só como aquisição: como entram nos fatores é do David.
 
 **E. Reconhecido e sem valor novo:** US Treasury (duplica o FRED), Pink Sheet do Banco Mundial para o ouro (duplica a LBMA), Abimilho e CNA (republicam outras fontes), clima bruto do FEL 1 (NASA POWER, INMET, CPTEC, ERA5).
 

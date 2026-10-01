@@ -5,6 +5,7 @@ const env = require("../../config/env");
 const { UpstreamServiceError } = require("../../shared/errors");
 const { paraIso, somarDias, fimDoDiaUtc } = require("../../shared/utils/date-utils");
 const { persistirObservacoes } = require("../base/persist-observations");
+const { codigoDoPaisComex } = require("../../shared/utils/comex-pais");
 
 // Comex Stat (MDIC) - exportação brasileira mensal de um produto (um NCM), via a API de dados
 // (`POST /general`), pública e sem chave. Um coletor por produto (`criarColetorComexExportacao`):
@@ -32,6 +33,12 @@ const { persistirObservacoes } = require("../base/persist-observations");
 //   COMEX.<PRODUTO>.EXPORT.FOB_USD  (metricFOB, US$)
 // observed_at = primeiro dia do mês (a fonte é mensal); o mês fica em metadata.
 //
+// POR PAÍS DE DESTINO (`porPais`, milho desde 2026-10-01, ADR 0034): a mesma consulta com `details: ["country"]`.
+// Duas séries por (mês, país): COMEX.<PRODUTO>.EXPORT_DESTINO.<CODIGO_PAIS>.KG e .FOB_USD, com o código de 3 dígitos
+// da tabela de países da própria API (a resposta só traz o nome, trocado pelo código em `comex-pais.js`). Mês sem
+// exportação para um país não tem linha: é ausência, não zero. Verificado em 2026-10-01: a soma dos países é igual ao
+// total do mês em 48 de 48 valores (2012 e 2025, kg e US$).
+//
 // published_at: a fonte não informa. ESTIMADO como o dia 15 do mês seguinte
 // (conservador: a divulgação costuma sair antes, então isto nunca antecipa o que
 // se sabia). O serviço point-in-time o limita a collected_at.
@@ -42,7 +49,14 @@ const SOURCE_CODE = "MDIC_COMEXSTAT";
 // Um produto = um NCM. `anoInicial` = o 1º ano com dado validado para o NCM.
 const PRODUTOS = {
   milho: { codigo: "comex-milho-exportacao", ncm: "10059010", prefixoSerie: "COMEX.MILHO", anoInicial: 2005 },
-  cafe: { codigo: "comex-cafe-exportacao", ncm: "09011110", prefixoSerie: "COMEX.CAFE", anoInicial: 1997 }
+  cafe: { codigo: "comex-cafe-exportacao", ncm: "09011110", prefixoSerie: "COMEX.CAFE", anoInicial: 1997 },
+  "milho-destino": {
+    codigo: "comex-milho-exportacao-destino",
+    ncm: "10059010",
+    prefixoSerie: "COMEX.MILHO.EXPORT_DESTINO",
+    anoInicial: 2005,
+    porPais: true
+  }
 };
 const PAUSA_MS = 13_000;
 // Visto no backfill real (2026-09-21): 16 anos seguidos com 13 s de pausa passaram e
@@ -54,28 +68,28 @@ const TIMEOUT_MS = 120_000;
 const DIA_PUBLICACAO_ESTIMADA = 15;
 
 const SERIES = [
-  { campo: "metricKG", sufixo: "EXPORT.KG", unit: "kg" },
-  { campo: "metricFOB", sufixo: "EXPORT.FOB_USD", unit: "USD" }
+  { campo: "metricKG", sufixo: "EXPORT.KG", sufixoPais: "KG", unit: "kg" },
+  { campo: "metricFOB", sufixo: "EXPORT.FOB_USD", sufixoPais: "FOB_USD", unit: "USD" }
 ];
 
 function aguardar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function corpoDaConsulta(ncm, ano) {
+function corpoDaConsulta(ncm, ano, porPais = false) {
   return JSON.stringify({
     flow: "export",
     monthDetail: true,
     period: { from: `${ano}-01`, to: `${ano}-12` },
     filters: [{ filter: "ncm", values: [ncm] }],
-    details: [],
+    details: porPais ? ["country"] : [],
     metrics: ["metricFOB", "metricKG"]
   });
 }
 
 // Um ano. Em 429, espera e tenta de novo (até MAX_TENTATIVAS_429); qualquer outro
 // erro HTTP ou de formato falha a execução inteira.
-async function consultarAno(ncm, ano, { signal, fetchFn = fetch, esperar = aguardar } = {}) {
+async function consultarAno(ncm, ano, { signal, fetchFn = fetch, esperar = aguardar, porPais = false } = {}) {
   for (let tentativa = 1; ; tentativa += 1) {
     let response;
     try {
@@ -83,7 +97,7 @@ async function consultarAno(ncm, ano, { signal, fetchFn = fetch, esperar = aguar
         method: "POST",
         signal,
         headers: { "Content-Type": "application/json", "user-agent": "FinMind/0.1 (coleta de dados de mercado)" },
-        body: corpoDaConsulta(ncm, ano)
+        body: corpoDaConsulta(ncm, ano, porPais)
       });
     } catch (err) {
       throw new UpstreamServiceError(`Falha de rede ao consultar ${new URL(URL_API).host}: ${err.message}`);
@@ -152,6 +166,15 @@ function normalizar(produto, rawItems) {
     const observedAt = `${ano}-${String(mes).padStart(2, "0")}-01`;
     const publishedAt = publicadoEm(ano, mes);
 
+    let codigoPais = null;
+    if (produto.porPais) {
+      codigoPais = codigoDoPaisComex(r?.country);
+      if (!codigoPais) {
+        invalidos.push({ item: r, motivo: `País sem código na tabela do Comex Stat (comex-pais.js): "${r?.country}".` });
+        continue;
+      }
+    }
+
     for (const serie of SERIES) {
       const valor = Number(r[serie.campo]);
       if (r[serie.campo] === undefined || r[serie.campo] === null || !Number.isFinite(valor) || valor < 0) {
@@ -160,7 +183,7 @@ function normalizar(produto, rawItems) {
       }
 
       validos.push({
-        series_code: `${produto.prefixoSerie}.${serie.sufixo}`,
+        series_code: codigoPais ? `${produto.prefixoSerie}.${codigoPais}.${serie.sufixoPais}` : `${produto.prefixoSerie}.${serie.sufixo}`,
         observed_at: observedAt,
         value: valor,
         unit: serie.unit,
@@ -173,6 +196,7 @@ function normalizar(produto, rawItems) {
           ncm: produto.ncm,
           fluxo: "export",
           periodo: `${ano}-${String(mes).padStart(2, "0")}`,
+          ...(codigoPais && { paisDestino: r.country, codigoPais }),
           regraPublicacao: "dia_15_do_mes_seguinte"
         }
       });
@@ -188,7 +212,7 @@ function produtoComex(chave) {
   return produto;
 }
 
-// Coletor de um produto ("milho", "cafe").
+// Coletor de um produto ("milho", "cafe", "milho-destino").
 function criarColetorComexExportacao(chave) {
   const produto = produtoComex(chave);
 
@@ -203,17 +227,17 @@ function criarColetorComexExportacao(chave) {
     // qualquer revisão tardia do ano passado).
     download({ signal }) {
       const anoAtual = new Date().getUTCFullYear();
-      return baixarAnos(produto.ncm, [anoAtual - 1, anoAtual], { signal });
+      return baixarAnos(produto.ncm, [anoAtual - 1, anoAtual], { signal, porPais: produto.porPais });
     },
     // Backfill: de anoInicial (padrão: o início validado do NCM) até anoFinal.
     downloadIntervalo({ anoInicial = produto.anoInicial, anoFinal = new Date().getUTCFullYear(), signal }) {
-      return baixarAnos(produto.ncm, intervaloDeAnos(anoInicial, anoFinal), { signal });
+      return baixarAnos(produto.ncm, intervaloDeAnos(anoInicial, anoFinal), { signal, porPais: produto.porPais });
     },
     parse,
     normalize: (rawItems) => normalizar(produto, rawItems),
     persist: persistirObservacoes,
-    consultarAno: (ano, opcoes) => consultarAno(produto.ncm, ano, opcoes),
-    baixarAnos: (anos, opcoes) => baixarAnos(produto.ncm, anos, opcoes)
+    consultarAno: (ano, opcoes) => consultarAno(produto.ncm, ano, { porPais: produto.porPais, ...opcoes }),
+    baixarAnos: (anos, opcoes) => baixarAnos(produto.ncm, anos, { porPais: produto.porPais, ...opcoes })
   };
 }
 

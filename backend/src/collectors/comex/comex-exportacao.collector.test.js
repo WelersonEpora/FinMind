@@ -174,3 +174,45 @@ test("café: pede o NCM 09011110 e grava COMEX.CAFE.EXPORT.*, num coletor própr
   assert.equal(coletor.codigo, "comex-milho-exportacao");
   assert.throws(() => comex.criarColetorComexExportacao("soja"), /desconhecido/);
 });
+
+// Por país de destino (ADR 0034). Fixture real (details: ["country"], NCM 10059010, 2025, 2026-10-01), reduzida.
+const LISTA_DESTINO_2025 = [
+  { year: "2025", monthNumber: "12", country: "Irã", metricFOB: "368086266", metricKG: "1644538014" },
+  { year: "2025", monthNumber: "12", country: "China", metricFOB: "10", metricKG: "20" },
+  { year: "2025", monthNumber: "12", country: "País Inventado", metricFOB: "1", metricKG: "1" }
+];
+
+test("por destino: o país vira o código da tabela do Comex Stat (Irã = 372, China = 160), duas séries por país", () => {
+  const destino = comex.criarColetorComexExportacao("milho-destino");
+  assert.equal(destino.codigo, "comex-milho-exportacao-destino");
+
+  const { validos, invalidos } = destino.normalize(destino.parse(LISTA_DESTINO_2025));
+  assert.deepEqual(
+    validos.map((v) => [v.series_code, v.value]),
+    [
+      ["COMEX.MILHO.EXPORT_DESTINO.372.KG", 1644538014],
+      ["COMEX.MILHO.EXPORT_DESTINO.372.FOB_USD", 368086266],
+      ["COMEX.MILHO.EXPORT_DESTINO.160.KG", 20],
+      ["COMEX.MILHO.EXPORT_DESTINO.160.FOB_USD", 10]
+    ]
+  );
+  assert.deepEqual(
+    [validos[0].metadata.paisDestino, validos[0].metadata.codigoPais, validos[0].observed_at],
+    ["Irã", "372", "2025-12-01"]
+  );
+  // Nome fora da tabela: inválido (pede atualizar comex-pais.js), nunca uma série com o nome no lugar do código.
+  assert.equal(invalidos.length, 1);
+  assert.match(invalidos[0].motivo, /País Inventado/);
+});
+
+test("por destino: a consulta pede o detalhe por país; o total continua sem detalhe", async () => {
+  const corpos = [];
+  const fetchFn = async (_url, { body }) => {
+    corpos.push(JSON.parse(body));
+    return ok([]);
+  };
+  await comex.criarColetorComexExportacao("milho-destino").consultarAno(2025, { fetchFn });
+  await comex.criarColetorComexExportacao("milho").consultarAno(2025, { fetchFn });
+  assert.deepEqual(corpos[0].details, ["country"]);
+  assert.deepEqual(corpos[1].details, []);
+});
