@@ -59,3 +59,5 @@ petróleo do JODI, **só aquisição de dados**. Não é precedente para outra f
   vendas de derivados: não reconhecida).
 - A qualidade varia por país (código de avaliação); China e Índia são "não avaliado".
 - Sem versões na fonte: a revisão vira versão nova com o `Last-Modified` do arquivo que a trouxe.
+- **No servidor em 2026-10-01** (coleta manual, informado pelo usuário): 34.656 lidos, 24.474 criados, 0 falhas, ~9 s,
+  sem problema de memória; os mesmos números de dev.
