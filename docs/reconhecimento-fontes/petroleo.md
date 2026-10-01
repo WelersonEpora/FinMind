@@ -14,7 +14,7 @@ foi implementado está no ADR 0040.
 | CFTC COT, WTI da NYMEX | Especulação (Médio) | **Implementada** (ADR 0040): o coletor do COT, código 067651, desde 2006 | 4 |
 | ANP, dados abertos | Oferta fora da OPEP (Médio) | **Implementada** (ADR 0041): CSV mensal por UF e terra/mar, desde 1997 | 4 |
 | JODI Oil | Demanda global (Alto); OPEP+ (Alto) | **Produção implementada** (ADR 0042): ZIP com CSV mundial, mensal, desde 2002. **O Brasil para em 2022-12, a Rússia em 2023-03 e a Guiana não aparece** | 4 |
-| Baker Hughes, contagem de sondas | Produção e shale (Médio) | Site sem resposta a acesso automático | 0 (incerteza) |
+| Baker Hughes, contagem de sondas | Produção e shale (Médio) | **Inacessível**: sem resposta daqui nem do servidor (2026-10-01) | 0 |
 | OPEP, Monthly Oil Market Report | Decisões da OPEP+ (Alto); demanda global (Alto) | PDF; links montados por script | 0 (incerteza) |
 | IEA, Oil Market Report | Demanda global (Alto) | 403; assinatura (FEL 1) | Pago |
 | API, Weekly Statistical Bulletin | Estoques (Alto) | A página citada dá 404; assinatura | Pago (a confirmar) |
@@ -69,8 +69,8 @@ foi implementado está no ADR 0040.
 
 ## Fontes com incerteza ou pagas
 
-- **Baker Hughes (sondas):** `rigcount.bakerhughes.com` e o endereço histórico não responderam (conexão sem resposta)
-  em 2026-10-01. Não reconhecida: tentar de novo, de outra rede, antes de decidir.
+- **Baker Hughes (sondas): inacessível.** `rigcount.bakerhughes.com` e o endereço histórico não responderam (conexão sem resposta)
+  em 2026-10-01, nem desta máquina nem do servidor (teste do usuário no container, timeout de 30 s). Não implementar; só volta se o site passar a responder.
 - **OPEP (MOMR):** o site responde, mas a página do relatório monta os links por script; o PDF não foi localizado. A
   produção da OPEP por país também está no JODI (a conferir).
 - **IEA (OMR):** 403 a acesso automático; assinatura, segundo o FEL 1.

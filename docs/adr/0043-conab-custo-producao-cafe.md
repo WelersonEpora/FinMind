@@ -62,3 +62,4 @@ da onda do café (decisão de 2026-09-26), **só aquisição de dados**.
 - A Conab troca de município ao longo do tempo: várias séries terminam quando outra começa na mesma região.
 - O parser depende dos rótulos dos totais; uma mudança vira inválido ou aviso, nunca valor errado.
 - O fator continua pela metade: falta o preço mínimo.
+- **No servidor em 2026-10-01** (coleta manual, informado pelo usuário): 285 abas lidas, 2.276 criados, 0 falhas, os mesmos números de dev.
