@@ -34,6 +34,7 @@ const cecafeResumoDiarioCollector = require("./cecafe/cecafe-resumo-diario.colle
 const imeaMilhoSafraCollector = require("./imea/imea-milho-safra.collector");
 const imeaCustoMilhoCollector = require("./imea/imea-custo-milho.collector");
 const imeaOfertaDemandaMilhoCollector = require("./imea/imea-oferta-demanda-milho.collector");
+const imeaAndamentoMilhoCollector = require("./imea/imea-andamento-milho.collector");
 const { criarColetorVh } = require("./noaa/noaa-vh.collector");
 
 function bootstrapCollectors() {
@@ -75,6 +76,7 @@ function bootstrapCollectors() {
     registerCollector(imeaMilhoSafraCollector);
     registerCollector(imeaCustoMilhoCollector);
     registerCollector(imeaOfertaDemandaMilhoCollector);
+    registerCollector(imeaAndamentoMilhoCollector);
     registerCollector(criarColetorVh("milho"));
     registerCollector(criarColetorVh("cafe"));
 

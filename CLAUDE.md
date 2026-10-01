@@ -115,6 +115,8 @@ cd backend && npm run backfill:conab-milho
 cd backend && npm run backfill:conab-cafe
 # balanço de oferta e demanda do milho do IMEA (PDF mensal), edições de 2014-04-14 em diante (~77 downloads, ~2 min); ANTES da coleta diária em banco novo:
 cd backend && npm run backfill:imea-oferta-demanda
+# andamento da semeadura e da colheita do milho de MT (IMEA, um PDF por safra: 26 informes, < 1 min); em qualquer ordem:
+cd backend && npm run backfill:imea-andamento
 # futuros de milho da B3 (CCM): janela de ~15 meses do Up2Data (CSV) e, antes disso, o Boletim Diário (PDF),
 # de 2022-03-21 a 2025-12-11, com abertura e contratos em aberto (~940 PDFs); o 2º só completa o que falta:
 cd backend && npm run backfill:b3-ccm
@@ -144,7 +146,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FMI (ouro nas reservas dos bancos centrais), World Gold Council (ouro em ETFs e oferta e demanda; uso interno), FRED (juros, índices do dólar, moedas da cesta do DXY, meta do Fed e o CPI pelo ALFRED), LBMA, CFTC (ouro, milho e café), ICE (estoques certificados do café), Cecafé (resumo diário das exportações de café), B3 (futuros CCM e ICF), B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho, de milho por país de destino e de café), EIA (etanol), NOAA STAR (saúde da vegetação sobre o milho e o café), WASDE (balanço do milho, com o milho usado para etanol), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage; e os estoques trimestrais do Grain Stocks), USDA FAS (PSD do café, balanço por país), Conab (milho do boletim mensal e café do Boletim da Safra de Café), IMEA (milho de MT por safra, custo de produção e balanço de oferta e demanda) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FMI (ouro nas reservas dos bancos centrais), World Gold Council (ouro em ETFs e oferta e demanda; uso interno), FRED (juros, índices do dólar, moedas da cesta do DXY, meta do Fed e o CPI pelo ALFRED), LBMA, CFTC (ouro, milho e café), ICE (estoques certificados do café), Cecafé (resumo diário das exportações de café), B3 (futuros CCM e ICF), B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho, de milho por país de destino e de café), EIA (etanol), NOAA STAR (saúde da vegetação sobre o milho e o café), WASDE (balanço do milho, com o milho usado para etanol), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage; e os estoques trimestrais do Grain Stocks), USDA FAS (PSD do café, balanço por país), Conab (milho do boletim mensal e café do Boletim da Safra de Café), IMEA (milho de MT por safra, custo de produção, balanço de oferta e demanda e andamento da semeadura e da colheita) e, com `NASS_API_KEY`, USDA; `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

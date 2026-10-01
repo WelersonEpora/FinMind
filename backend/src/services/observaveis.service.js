@@ -1250,6 +1250,43 @@ const CATALOGO_OBSERVAVEIS = [
   },
 
   // --- IMEA - balanço de oferta e demanda do milho de Mato Grosso, do PDF mensal (ADR 0019) ---
+  // --- IMEA - andamento da semeadura e da colheita do milho de MT, semanal (ADR 0039) ---
+  // Séries `IMEA.MILHO.ANDAMENTO.<REGIAO>.<CAMPO>`: a região é o item, semeadura ou colheita a métrica.
+  {
+    instrumentCode: "IMEA_MILHO_ANDAMENTO",
+    origem: "observation",
+    nome: "Milho de MT - andamento da semeadura e da colheita (IMEA)",
+    unidade: "%",
+    casasDecimais: 2,
+    frequencia: "SEMANAL",
+    // A situação do card olha a métrica principal, a semeadura, que só tem informe de janeiro a março: do último da
+    // safra (começo de abril) ao primeiro da seguinte (começo de janeiro) são ~9 meses sem ponto novo.
+    toleranciaDias: 290,
+    fonte: "IMEA - Informes de Semeadura e de Colheita",
+    fonteCollectorCode: "imea-andamento-milho",
+    porRegiao: {
+      prefixoSerie: "IMEA.MILHO.ANDAMENTO",
+      campoReferencia: "SEMEADURA",
+      itemPrincipal: "MATO_GROSSO",
+      itensPadrao: ["MATO_GROSSO", "MEDIO_NORTE", "OESTE", "SUDESTE"],
+      descritor: "imea"
+    },
+    campoPrincipal: "SEMEADURA",
+    campos: [
+      { codigo: "SEMEADURA", nome: "Área semeada (% acumulado)", unidade: "%", casasDecimais: 2 },
+      { codigo: "COLHEITA", nome: "Área colhida (% acumulado)", unidade: "%", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Percentual acumulado da área de milho já semeada (e já colhida) em Mato Grosso e em cada uma das 7 regiões do IMEA, semana a semana, como o IMEA publica nos Informes de Semeadura e de Colheita. A semeadura do milho de MT (2ª safra) vai de janeiro a março; a colheita, de maio a setembro.",
+      metodologia:
+        "Um valor por semana (a data da semana do informe). O IMEA mantém um arquivo por safra e o substitui a cada semana; a data de disponibilidade é ESTIMADA no próprio dia da semana (a data do arquivo no catálogo é a da última semana). Semeadura desde a safra 2012/13 e colheita desde 2015/16. A colheita 2014/15 não foi carregada: o cabeçalho da tabela na fonte não tem o Médio-Norte, e adivinhar a região de cada coluna seria inventar o dado. Algumas safras terminam abaixo de 100% (o informe parou antes do fim). Lido por coordenada do PDF, como o balanço do IMEA (ADR 0019).",
+      escopo: "só o milho de Mato Grosso, semeadura e colheita. Não coletados: a área e a produtividade parcial que alguns informes trazem, o Informe de Comercialização e o Boletim Semanal.",
+      formatoOrigem: "PDF (Informes de Semeadura e de Colheita do catálogo de arquivos do IMEA, lidos por coordenada)",
+      urlOficial: "https://www.imea.com.br/imea-site/relatorios-mercado"
+    }
+  },
+
   // Card à parte do de safra (`IMEA_MILHO_SAFRA`): o balanço não tem quebra por região (só Mato
   // Grosso, ao contrário do card de safra, que tem as 7 regiões do IMEA) - colocar as duas coisas no
   // mesmo seletor `porRegiao` deixaria a maioria dos itens sem dado. Mesmo critério de
