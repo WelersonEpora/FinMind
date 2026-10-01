@@ -314,6 +314,85 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://data.imf.org"
     }
   },
+  // --- World Gold Council - ouro em ETFs (semanal) e oferta e demanda (trimestral), ADR 0037 (licença: risco aceito) ---
+  // Séries `WGC.ETF.<REGIAO>.<CAMPO>`: uma região por item, toneladas ou US$ milhões no seletor de métrica.
+  {
+    instrumentCode: "OURO_ETFS_WGC",
+    origem: "observation",
+    nome: "Ouro em ETFs por região (World Gold Council)",
+    unidade: "t",
+    casasDecimais: 2,
+    frequencia: "SEMANAL",
+    // Semana encerrada na sexta; o WGC atualiza com alguns dias de atraso: até ~2 semanas sem ponto novo.
+    toleranciaDias: 16,
+    fonte: "World Gold Council (Goldhub) - uso interno, licença não comercial",
+    fonteCollectorCode: "wgc-etf-ouro",
+    porRegiao: {
+      prefixoSerie: "WGC.ETF",
+      campoReferencia: "TONELADAS",
+      itemPrincipal: "AMERICA_DO_NORTE",
+      itensPadrao: ["AMERICA_DO_NORTE", "EUROPA", "ASIA", "OUTROS"],
+      descritor: "wgc-regiao"
+    },
+    campoPrincipal: "TONELADAS",
+    campos: [
+      { codigo: "TONELADAS", nome: "Estoque (toneladas)", unidade: "t", casasDecimais: 2 },
+      { codigo: "MI_USD", nome: "Patrimônio (US$ milhões)", unidade: "mi USD", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Ouro guardado pelos ETFs de ouro físico, por região (América do Norte, Europa, Ásia e outras), semana a semana desde fev/2003: o estoque em toneladas e o patrimônio em US$ milhões, como o World Gold Council compila. É a única fonte gratuita do total mundial dos ETFs; a variação do estoque é o fluxo, que o FinMind não calcula.",
+      metodologia:
+        "Um valor por semana (sexta-feira). A fonte não informa quando publicou e revisa os números (o endpoint se chama \"revised\"): a data de disponibilidade é a da coleta (o histórico só vale para leituras a partir da 1ª coleta), e uma revisão vista depois vira versão nova. O valor em US$ é publicado em unidades e gravado em milhões (só a escala).",
+      escopo: "USO INTERNO, COM RISCO ACEITO (ADR 0037). Os termos do World Gold Council permitem só uso pessoal e não comercial e proíbem redistribuir sem permissão escrita. O FinMind coleta para uso interno, por decisão do usuário em 2026-10-01: antes de qualquer uso comercial ou exibição a terceiros, é preciso pedir permissão ao WGC. A fonte é a API interna dos gráficos do Goldhub, sem documentação nem contrato: pode mudar ou fechar sem aviso.",
+      formatoOrigem: "JSON (API interna dos gráficos do Goldhub, sem login e sem documentação)",
+      urlOficial: "https://www.gold.org/goldhub/data/gold-etfs-holdings-and-flows"
+    }
+  },
+  // Séries `WGC.OFERTA_DEMANDA.<CAMPO>`: uma por linha do balanço, todas em toneladas, uma por vez no seletor.
+  {
+    instrumentCode: "OURO_OFERTA_DEMANDA_WGC",
+    origem: "observation",
+    nome: "Ouro - oferta e demanda trimestral (World Gold Council)",
+    unidade: "t",
+    casasDecimais: 1,
+    frequencia: "TRIMESTRAL",
+    // O trimestre é datado no 1º dia e sai ~1 mês depois do fim (Gold Demand Trends): do 1º dia de um trimestre até a
+    // publicação do seguinte são ~7 meses (2º tri, 01/04, até o 3º, fim de outubro).
+    toleranciaDias: 220,
+    fonte: "World Gold Council (Goldhub), dados da Metals Focus - uso interno, licença não comercial",
+    fonteCollectorCode: "wgc-oferta-demanda-ouro",
+    porCampo: { prefixoSerie: "WGC.OFERTA_DEMANDA" },
+    campoPrincipal: "BANCOS_CENTRAIS",
+    campos: [
+      { codigo: "BANCOS_CENTRAIS", nome: "Demanda - bancos centrais", unidade: "t", casasDecimais: 1 },
+      { codigo: "ETFS", nome: "Demanda - ETFs (fluxo)", unidade: "t", casasDecimais: 1 },
+      { codigo: "BARRAS_E_MOEDAS", nome: "Demanda - barras e moedas", unidade: "t", casasDecimais: 1 },
+      { codigo: "BARRAS", nome: "Demanda - barras", unidade: "t", casasDecimais: 1 },
+      { codigo: "MOEDAS_OFICIAIS", nome: "Demanda - moedas oficiais", unidade: "t", casasDecimais: 1 },
+      { codigo: "MEDALHAS", nome: "Demanda - medalhas", unidade: "t", casasDecimais: 1 },
+      { codigo: "INVESTIMENTO", nome: "Demanda - investimento (barras, moedas e ETFs)", unidade: "t", casasDecimais: 1 },
+      { codigo: "JOALHERIA_CONSUMO", nome: "Demanda - joalheria (consumo)", unidade: "t", casasDecimais: 1 },
+      { codigo: "JOALHERIA_ESTOQUE", nome: "Demanda - joalheria (estoque)", unidade: "t", casasDecimais: 1 },
+      { codigo: "JOALHERIA_FABRICACAO", nome: "Demanda - joalheria (fabricação)", unidade: "t", casasDecimais: 1 },
+      { codigo: "TECNOLOGIA", nome: "Demanda - tecnologia", unidade: "t", casasDecimais: 1 },
+      { codigo: "TECNOLOGIA_ELETRONICA", nome: "Demanda - eletrônica", unidade: "t", casasDecimais: 1 },
+      { codigo: "TECNOLOGIA_OUTROS_INDUSTRIAIS", nome: "Demanda - outros usos industriais", unidade: "t", casasDecimais: 1 },
+      { codigo: "TECNOLOGIA_ODONTOLOGIA", nome: "Demanda - odontologia", unidade: "t", casasDecimais: 1 },
+      { codigo: "PRODUCAO_MINAS", nome: "Oferta - produção das minas", unidade: "t", casasDecimais: 1 },
+      { codigo: "RECICLAGEM", nome: "Oferta - reciclagem", unidade: "t", casasDecimais: 1 },
+      { codigo: "HEDGE_PRODUTORES", nome: "Oferta - hedge líquido dos produtores", unidade: "t", casasDecimais: 1 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Balanço trimestral do ouro desde o 1º tri/2010, em toneladas, como o World Gold Council publica no Gold Demand Trends (dados da Metals Focus): a demanda por setor (bancos centrais, ETFs, barras e moedas, joalheria, tecnologia) e a oferta (produção das minas, reciclagem, hedge). A demanda dos bancos centrais inclui a estimativa do WGC para as compras não declaradas, por isso difere da soma dos países do FMI.",
+      metodologia:
+        "Um valor por trimestre (o dia da observação é o 1º dia do trimestre). A fonte não informa quando publicou e revisa os trimestres nas edições seguintes: a data de disponibilidade é a da coleta (o histórico só vale para leituras a partir da 1ª coleta), e uma revisão vista depois vira versão nova. O preço do ouro que vem junto não é gravado (já coletado da LBMA).",
+      escopo: "USO INTERNO, COM RISCO ACEITO (ADR 0037). Os termos do World Gold Council permitem só uso pessoal e não comercial e proíbem redistribuir sem permissão escrita. O FinMind coleta para uso interno, por decisão do usuário em 2026-10-01: antes de qualquer uso comercial ou exibição a terceiros, é preciso pedir permissão ao WGC. A fonte é a API interna dos gráficos do Goldhub, sem documentação nem contrato: pode mudar ou fechar sem aviso.",
+      formatoOrigem: "JSON (API interna dos gráficos do Goldhub, sem login e sem documentação)",
+      urlOficial: "https://www.gold.org/goldhub/data/gold-supply-and-demand-statistics"
+    }
+  },
   // --- Ouro, fontes do ADR 0033: as moedas da cesta do DXY, a meta do Fed e o CPI ---
   // Séries `FRED.<ID>` (uma por moeda): cada cotação tem a sua unidade, uma por vez no seletor de métrica.
   {

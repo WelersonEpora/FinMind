@@ -65,7 +65,7 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 | CPI EUA (BLS, pelo ALFRED do FRED) | ✅ `fred-cpi` (ADR 0033, 2026-10-01): cheio e núcleo com ajuste, cheio sem ajuste, com todas as versões | ✅ 7.834 linhas, 3 séries | ✅ 1913/1947/1957→hoje, vintage real desde 1949/1972/1996 | ✅ |
 | Meta do Fed (FOMC, pelo FRED) | ✅ `fred-dfedtaru`, `fred-dfedtarl`, `fred-dfedtar` (ADR 0033) | ✅ 22.573 linhas, 3 séries | ✅ 1982→hoje | ✅ |
 | Moedas da cesta do DXY e dólar contra economias avançadas (FRED, H.10) | ✅ `fred-dex*` (6) e `fred-dtwexafegs` (ADR 0033) | ✅ 6 moedas + 5.198 linhas do índice | ✅ 1971/1999/2006→hoje | ✅ |
-| WGC (reservas de BC, ETFs) | ❌ nível 0 | ❌ | — | — |
+| World Gold Council (ETFs; oferta e demanda) | ✅ `wgc-etf-ouro` e `wgc-oferta-demanda-ouro` (ADR 0037, 2026-10-01), **uso interno com risco de licença aceito** | ✅ 10.454 valores | ✅ ETFs 2003→hoje, balanço 2010→hoje (sem vintage antes da 1ª coleta) | ✅ |
 | FMI — IRFCL, ouro nas reservas dos bancos centrais (SDMX) | ✅ `fmi-irfcl-ouro` (ADR 0036, 2026-10-01) | ✅ 43.513 valores, 88 países + 2 agregados | ✅ 1999-12→hoje (sem vintage antes da 1ª coleta) | ✅ |
 | CME GC (futuro) | ❌ pago (pergunta 3) | ❌ | — | — |
 | DXY real (ICE) | ❌ licenciado. As 6 moedas da cesta são coletadas (acima): remontar o índice é um cálculo, a decidir pelo David | ❌ | — | — |
@@ -97,7 +97,7 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 | 3 | Inflação e expectativas (Alto) | CPI observado + breakeven inflation | Breakeven (T10YIE) completo | Nenhuma desde 2026-10-01: o CPI é coletado pelo ALFRED, com todas as versões e a data real de cada uma (ADR 0033) |
 | 4 | Geopolítica e risco sistêmico (Alto) | Eventos qualitativos | — | **Nada.** Não vira "número" sem camada de evidência de IA Search — só proposta em `analise-critica-fel1-milho-ouro.md`/ADR 0010 (desenho futuro), não construída |
 | 5 | Demanda de bancos centrais/reservas (Alto) | Compras de reservas (IMF/WGC/BCB) | Reservas internacionais **totais** do Brasil (BCB, 1998+, ADR 0023) | Desde 2026-10-01, o ouro nas reservas de 88 países pelo FMI (ADR 0036), mensal desde 1999; Brasil, Angola e Chile com o volume em unidade errada na fonte (marcado). Falta o total mundial, que o WGC compila |
-| 6 | Fluxo de ETFs de ouro (Médio) | Holdings/fluxo WGC | — | Nenhuma fonte (WGC Goldhub sem API pública) |
+| 6 | Fluxo de ETFs de ouro (Médio) | Holdings/fluxo WGC | Desde 2026-10-01, o estoque em ETFs por região, semanal desde 2003, e o fluxo trimestral, pelo World Gold Council (ADR 0037) | Licença só pessoal e não comercial: uso interno com risco aceito; pedir permissão ao WGC antes de uso comercial |
 | 7 | Posicionamento de fundos — COT (Médio) | CFTC ouro | Completo, 2006+ | Nenhuma relevante |
 | 8 | Produção/oferta de mineração (Baixo) | USGS | — | Nenhuma fonte — decisão consciente de ignorar no MVP (peso baixo) |
 

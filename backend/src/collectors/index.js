@@ -13,6 +13,7 @@ const bcbSelicRealizadaCollector = require("./bcb/bcb-selic-realizada.collector"
 const bcbFocusCollector = require("./bcb/bcb-focus.collector");
 const bcbReservasCollector = require("./bcb/bcb-reservas.collector");
 const fmiIrfclOuroCollector = require("./fmi/fmi-irfcl-ouro.collector");
+const { criarColetorWgc } = require("./wgc/wgc-ouro.collector");
 const eiaEtanolCollector = require("./eia/eia-etanol.collector");
 const { criarColetorFred, SERIES_COLETADAS: SERIES_FRED } = require("./fred/fred.collector");
 const fredCpiCollector = require("./fred/fred-cpi.collector");
@@ -49,6 +50,9 @@ function bootstrapCollectors() {
     registerCollector(bcbFocusCollector);
     registerCollector(bcbReservasCollector);
     registerCollector(fmiIrfclOuroCollector);
+    // World Gold Council: uso interno, licença só pessoal e não comercial, risco aceito pelo usuário (ADR 0037).
+    registerCollector(criarColetorWgc("etf"));
+    registerCollector(criarColetorWgc("oferta-demanda"));
     registerCollector(criarColetorCot("gold"));
     registerCollector(criarColetorCot("corn"));
     registerCollector(criarColetorCot("coffee"));

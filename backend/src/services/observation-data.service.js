@@ -12,6 +12,7 @@ const { descreverRegiaoNoaaVh } = require("../shared/utils/noaa-vh-regiao");
 const { descreverPaisPsd } = require("../shared/utils/psd-pais");
 const { descreverPaisComex } = require("../shared/utils/comex-pais");
 const { descreverPaisFmi } = require("../shared/utils/fmi-pais");
+const { descreverRegiaoWgc } = require("../shared/utils/wgc-regiao");
 const { descreverOrigemIce } = require("../shared/utils/ice-origem");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
@@ -171,6 +172,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos um país.",
       nota:
         "Cada linha é o ouro nas reservas de um banco central, por mês, como reportado ao FMI (milhões de onças troy ou US$ milhões). Alguns países reportam o volume numa unidade errada (Brasil desde mar/2026, Angola e Chile): o FinMind grava como publicado e marca o mês (conferência de preço implícito). O valor em US$ dos EUA e da Arábia Saudita é contábil. Área do euro e BCE são agregados."
+    }
+  }),
+  "wgc-regiao": criarDimensaoRegiao({
+    rotuloModalidade: "Região",
+    descreverRegiao: descreverRegiaoWgc,
+    textos: {
+      titulo: "Regiões",
+      inativo: "sem dado recente",
+      mostrarInativos: "Mostrar regiões sem dado recente",
+      semSelecao: "Selecione ao menos uma região.",
+      nota:
+        "Cada linha é o ouro guardado pelos ETFs de uma região, semana a semana (toneladas ou US$ milhões), como o World Gold Council publica. O FinMind não soma as regiões. A Ásia só tem ETF de ouro desde 2007."
     }
   }),
   "ice-origem": criarDimensaoRegiao({
