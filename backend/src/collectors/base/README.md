@@ -26,7 +26,7 @@ código de infraestrutura.
 
 ## Coletores point-in-time (`observation`)
 
-Os coletores de `fred/`, `lbma/`, `cftc/` e `usda/` seguem o mesmo contrato, mas
+Os coletores de `fred/`, `cftc/` e `usda/` (e o `lbma/`, fora da coleta desde 2026-10-01, ADR 0044) seguem o mesmo contrato, mas
 persistem em `observation` (append-only, com `published_at`) via
 `persist-observations.js` -> `point-in-time.service.js`, em vez de `market_quote`.
 Baixam a série inteira e só gravam o que é novo ou mudou de valor, então

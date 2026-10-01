@@ -2,7 +2,8 @@
 
 **Data:** 2026-09-22, **revisada em 2026-09-28** (entregas de 23 a 25/09 e reconhecimento das fontes do FEL 1 que
 ainda não tinham registro: USDA Prospective Plantings e Grain Stocks, World Bank e US Treasury; a área plantada do
-USDA foi implementada no mesmo dia, ADR 0027).
+USDA foi implementada no mesmo dia, ADR 0027). **Atualizada em 2026-10-01** só no preço do ouro: o feed da LBMA fechou
+e o futuro GLD da B3 entrou na coleta diária (ADR 0044); e WGC e FMI coletados (ADRs 0036 e 0037).
 **Status:** auditoria técnica do estado atual. **Não decide nada, não propõe fórmula
 nem metodologia de fator.** Responde uma pergunta só: para os 8 fatores de Milho e os
 8 de Ouro do `controle_fatores.xlsx` (aba "Controle de Fatores"), a matéria-prima
@@ -54,14 +55,15 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 
 | Fonte (FEL 1) | Coletor implementado | Coletado de fato | Histórico/backfill | Coleta diária |
 |---|---|---|---|---|
-| LBMA Gold Price PM | ✅ `lbma-gold-pm-usd` | ✅ 14.691 linhas | ✅ 1968→hoje | ✅ |
+| LBMA Gold Price PM | ⛔ `lbma-gold-pm-usd`, **encerrado em 2026-10-01**: o feed público fechou (histórico só no MyLBMA, com licença da IBA; ADR 0044) | ✅ 14.693 linhas | ✅ 1968→2026-09-30 | ❌ fora da coleta diária |
+| B3 GLD — futuro de ouro em dólar (fora do FEL 1; no lugar da LBMA) | ✅ `b3-gld-futuro` (ADR 0044, 2026-10-01) | ✅ 5.409 valores, por vencimento | ✅ 2025-07-21 (1º pregão)→hoje | ✅ |
 | FRED (DGS10/DFII10/T10YIE) | ✅ `fred-dgs10` etc. | ✅ 28.043 linhas (3 séries) | ✅ 1962/2003→hoje | ✅ |
 | FRED DTWEXBGS (proxy DXY) | ✅ `fred-dtwexbgs` | ✅ 5.193 linhas | ✅ 2006→hoje | ✅ |
 | CFTC COT (ouro) | ✅ `cftc-cot-gold` | ✅ 3.177 linhas, 3 séries | ✅ 2006→hoje | ✅ |
 | BCB — reservas internacionais | ✅ `bcb-reservas-internacionais` (ADR 0023) | ✅ 7.048 linhas (só o total, sem a composição em ouro) | ✅ 1998→hoje | ✅ |
 | BCB — Focus (IPCA, Selic, câmbio) | ✅ `bcb-focus` (ADR 0022) | ✅ 20.258 linhas, 93 séries | ✅ 2000→hoje | ✅ |
 | US Treasury (Fiscal Data e curvas de juros) | ❌ reconhecida em 2026-09-28, não implementar: o juro real é o mesmo `DFII10` e o ouro do Tesouro é constante ([us-treasury.md](reconhecimento-fontes/us-treasury.md)) | — (já coberto pelo FRED) | — | — |
-| World Bank Pink Sheet (ouro) | ❌ reconhecida em 2026-09-28: é a média mensal da LBMA | — (já coberto pela LBMA) | — | — |
+| World Bank Pink Sheet (ouro) | ❌ reconhecida em 2026-09-28: é a média mensal da LBMA | — (a LBMA diária já está no banco até 2026-09-30) | — | — |
 | CPI EUA (BLS, pelo ALFRED do FRED) | ✅ `fred-cpi` (ADR 0033, 2026-10-01): cheio e núcleo com ajuste, cheio sem ajuste, com todas as versões | ✅ 7.834 linhas, 3 séries | ✅ 1913/1947/1957→hoje, vintage real desde 1949/1972/1996 | ✅ |
 | Meta do Fed (FOMC, pelo FRED) | ✅ `fred-dfedtaru`, `fred-dfedtarl`, `fred-dfedtar` (ADR 0033) | ✅ 22.573 linhas, 3 séries | ✅ 1982→hoje | ✅ |
 | Moedas da cesta do DXY e dólar contra economias avançadas (FRED, H.10) | ✅ `fred-dex*` (6) e `fred-dtwexafegs` (ADR 0033) | ✅ 6 moedas + 5.198 linhas do índice | ✅ 1971/1999/2006→hoje | ✅ |
@@ -111,11 +113,12 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 |---|---|---|---|---|---|
 | Milho | B3 CCM (R$/saca) — não é o ZC da CME | Diária, por vencimento | Parcial: `SETTLE/LAST/HIGH/LOW/AVG` (e abertura no Boletim Diário) sim, mas cada campo é uma série própria, não um candle único | `CONTRACTS`/`TRADES`/`VOLUME_BRL` sim; **contratos em aberto por vencimento só até 2025-12-11** (Boletim Diário) | Desde 2022-03-21, com buraco de ~9 meses em 2023 (ADR 0020) |
 | Milho | Indicador CEPEA/ESALQ, pela B3 (R$ e US$/saca) | Diária | Não — preço físico único | Não | Desde 2018-06-08 (ADR 0021) |
-| Ouro | LBMA Gold Price PM (fixing) | Diária | Não — preço fixado único, não OHLCV de pregão | Não | 1968→hoje (licença IBA pendente para uso além de pesquisa interna) |
+| Ouro | LBMA Gold Price PM (fixing) | Diária | Não — preço fixado único, não OHLCV de pregão | Não | 1968→2026-09-30: **coleta encerrada**, o feed fechou (ADR 0044) |
+| Ouro | B3 GLD, futuro em dólar (US$/oz), liquidado pelo LBMA | Diária, por vencimento | Parcial, como o CCM (sem abertura) | `CONTRACTS`/`TRADES`/`VOLUME_BRL` sim; contratos em aberto não | Desde 2025-07-21 (o contrato estreou aí); 0,91% em média do LBMA PM (ADR 0044) |
 
 O modelo `observation` (`value DECIMAL(18,6)` escalar) não tem colunas nativas de OHLCV — o coletor B3 contorna isso com uma série por campo. Funciona, mas não é uma tabela de candle nativa.
 
-Nenhuma das séries de preço atende, isoladamente, ao padrão de backtest do FEL 1 (§12.1: 10-15 anos, OHLCV+OI). CME ZC e GC (futuro do ouro) não foram reconhecidos como fonte (pagos). A Pink Sheet do Banco Mundial traz o milho FOB Golfo dos EUA desde 1960, mas é **mensal** e sem OHLCV: não muda esse quadro. Continua sendo o risco nº1 já identificado em `analise-critica-fel1-milho-ouro.md`.
+Nenhuma das séries de preço atende, isoladamente, ao padrão de backtest do FEL 1 (§12.1: 10-15 anos, OHLCV+OI). CME ZC e GC (futuro do ouro) não foram reconhecidos como fonte (pagos). O GLD da B3 tem só 14 meses. A Pink Sheet do Banco Mundial traz o milho FOB Golfo dos EUA desde 1960, mas é **mensal** e sem OHLCV: não muda esse quadro. Continua sendo o risco nº1 já identificado em `analise-critica-fel1-milho-ouro.md`.
 
 ---
 
@@ -129,10 +132,10 @@ Nenhuma das séries de preço atende, isoladamente, ao padrão de backtest do FE
 | Exportações (Comex Stat) | Milho | ✅ | ✅ 2005→hoje |
 | Boletim Mensal (IMEA) | Milho | ✅ (safra, custo, O&D) | ⚠️ misto (O&D tem vintage; safra/custo não) |
 | COT | Ouro, Milho | ✅ | ✅ 2006→hoje |
-| LBMA Gold Price | Ouro | ✅ | ✅ 1968→hoje |
+| LBMA Gold Price | Ouro | ⛔ até 2026-09-30 (feed fechado; o preço diário segue pelo GLD da B3, ADR 0044) | ✅ 1968→2026-09-30 |
 | Reuniões FOMC | Ouro | ✅ a meta vigente em cada dia (ADR 0033); o calendário das reuniões futuras não | ✅ 1982→hoje |
-| Gold Demand Trends (WGC) | Ouro | ❌ | — |
-| Gold Reserve Statistics (IMF) | Ouro | ❌ | — |
+| Gold Demand Trends (WGC) | Ouro | ✅ ETFs e oferta e demanda (ADR 0037) | ✅ ETFs 2003→hoje, balanço 2010→hoje |
+| Gold Reserve Statistics (IMF) | Ouro | ✅ IRFCL pela API SDMX (ADR 0036) | ✅ 1999-12→hoje |
 | Indicadores de Preços (Cepea) | Milho | ✅ pela B3 (ADR 0021) | ⚠️ 2018-06-08→hoje |
 | Relatório Focus e Reservas (BCB) | Ouro | ✅ Focus (IPCA, Selic e câmbio por ano, ADR 0022) e Reservas (total diário, ADR 0023) | ✅ Focus 2000→hoje; Reservas 1998→hoje |
 
@@ -151,17 +154,17 @@ O FinMind não tem uma entidade de "calendário de relatórios" própria — o q
 - **USDA Crop Progress depende de `NASS_API_KEY` para ser registrado** (`collectors/index.js`); sem a chave, o coletor não roda e a coleta geral não falha nem destaca isso — **confirmado em produção que a chave está presente** (2026-09-22). A área plantada (ADR 0027) não usa a chave: vem do ESMIS, porque o histórico da API não tem a data real de publicação.
 - **"3.369 observações" (IMEA O&D) é o número de itens válidos no parser, não linhas gravadas** — o banco tem 802 linhas após a deduplicação por revisão do serviço point-in-time (ADR 0008: só grava quando o valor muda).
 - Vintage do agro (Conab, IMEA) é estruturalmente irrecuperável para o passado — decisão pendente do Comitê (pergunta 5 da §4 de `STATUS_DO_PROJETO.md`).
-- **Fontes do FEL 1 sem nenhum reconhecimento** depois desta revisão: só as do ouro WGC e IMF (nível 0) e o calendário do FOMC. As demais têm uma linha em `docs/reconhecimento-fontes/README.md`.
+- **Fontes do FEL 1 sem nenhum reconhecimento** depois desta revisão: só o calendário do FOMC (WGC e FMI foram reconhecidos e coletados em 2026-10-01, ADRs 0036 e 0037). As demais têm uma linha em `docs/reconhecimento-fontes/README.md`.
 
 ---
 
 ## 7. Conclusão
 
-**A. Pronto:** pipeline de coleta + log de execução; camada `observation` point-in-time comprovada com dado real; juro real 10a (ouro, fator versionado validado); COT ouro e milho; WASDE; Crop Progress; área plantada do USDA (Prospective Plantings e Acreage); clima sobre o milho (NOAA STAR); etanol (EIA); Indicador CEPEA/ESALQ (desde 2018); Focus e reservas do BCB; USD/BRL e Selic.
+**A. Pronto:** pipeline de coleta + log de execução; camada `observation` point-in-time comprovada com dado real; juro real 10a (ouro, fator versionado validado); COT ouro e milho; WASDE; Crop Progress; área plantada do USDA (Prospective Plantings e Acreage); clima sobre o milho (NOAA STAR); etanol (EIA); Indicador CEPEA/ESALQ (desde 2018); Focus e reservas do BCB; USD/BRL e Selic; o preço diário do ouro (LBMA até 2026-09-30; daí em diante o futuro GLD da B3, ADR 0044); ouro dos bancos centrais (FMI) e em ETFs (WGC).
 
 **B. Parcial:** Conab e IMEA (dado de qualidade, vintage começando agora ou só desde fev/2025); B3 CCM (desde 2022, com buraco em 2023, sem contratos em aberto depois de 2025-12-11, contrato diferente do CME ZC); índice do dólar via proxy FRED (não é o DXY real); custo de insumos do milho só via agregados IMEA/MT; reservas de banco central só o total do Brasil.
 
-**C. Faltante:** preço de futuros de 10+ anos (bloqueador nº1 para qualquer backtest); compras de ouro por bancos centrais e fluxo de ETFs de ouro (WGC/IMF); previsão do tempo. O CPI (ADR 0033) e o milho usado para etanol (ADR 0035) foram coletados em 2026-10-01.
+**C. Faltante:** preço de futuros de 10+ anos (bloqueador nº1 para qualquer backtest); previsão do tempo. Compras de ouro por bancos centrais e ETFs de ouro foram coletados em 2026-10-01 (ADRs 0036 e 0037). O CPI (ADR 0033) e o milho usado para etanol (ADR 0035) foram coletados em 2026-10-01.
 
 **D. Existe e aguarda decisão:** paridade de exportação do IMEA (pergunta 16). A exportação por destino (ADR 0034) e os estoques trimestrais do Grain Stocks (ADR 0035) foram coletados em 2026-10-01, só como aquisição: como entram nos fatores é do David.
 

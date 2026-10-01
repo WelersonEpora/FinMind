@@ -50,7 +50,7 @@ pendentes — isso fica na coluna de incertezas do índice.
 - `docs/reconhecimento-fontes/README.md` — uma linha por fonte: nível, principais
   incertezas e onde está a evidência.
 - `docs/reconhecimento-fontes/<fonte>.md` — checklist completo, **só quando há
-  lacuna relevante** (hoje: FRED e LBMA, por licença). Para as demais, a
+  lacuna relevante** (hoje: FRED, por licença; a LBMA foi encerrada em 2026-10-01, ADR 0044). Para as demais, a
   evidência já está nos ADRs apontados no índice; não se copia conteúdo.
 
 ## Retroativo

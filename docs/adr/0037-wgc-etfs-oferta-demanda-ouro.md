@@ -32,7 +32,9 @@ Como nas demais fontes, é **só aquisição de dados**: quais números entram n
      `value` (10¹²), o mesmo estouro que o FMI teve (ADR 0036).
    - `wgc-oferta-demanda-ouro` (fonte `WGC_OFERTA_DEMANDA`): séries `WGC.OFERTA_DEMANDA.<CAMPO>`, em toneladas,
      trimestrais, com o trimestre no 1º dia. Os 17 nomes da fonte são mapeados um a um; um nome novo vira item inválido.
-     **O preço LBMA que vem junto não é gravado** (já coletado da LBMA, com a licença da IBA).
+     **O preço LBMA que vem junto não é gravado** (já coletado da LBMA, com a licença da IBA). Atualização de
+     2026-10-01: a coleta da LBMA foi encerrada (ADR 0044); o preço que vem aqui continua sem ser gravado (é o mesmo
+     preço licenciado, em média trimestral).
 2. **Sem `published_at`**: vale o instante da coleta (ADR 0008), como na PSD e no FMI. O vintage começa na 1ª coleta;
    cada revisão vista depois vira versão nova.
 3. **Dois cards**, com o risco da licença no escopo de cada um e no nome da fonte ("uso interno, licença não

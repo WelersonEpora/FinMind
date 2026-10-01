@@ -2,8 +2,8 @@
   Agenda a coleta diária do FinMind no Agendador de Tarefas do Windows
   (máquina de desenvolvimento). Segue o ADR 0004: o agendamento é EXTERNO ao
   backend (sem node-cron); a tarefa só chama `node scripts/run-coleta.js`, o
-  mesmo que `npm run collect` - roda todos os coletores (BCB, FRED, LBMA,
-  CFTC, B3/CCM), todos idempotentes.
+  mesmo que `npm run collect` - roda todos os coletores registrados em
+  collectors/index.js, todos idempotentes.
 
   Por que existe: a B3 só oferece uma janela rolante de ~15 meses do CCM
   (docs/adr/0009); cada dia sem coletar perde o dia mais antigo.

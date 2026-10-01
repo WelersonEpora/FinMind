@@ -49,7 +49,8 @@ algum fator, decide o David.
 ## Resultado (2026-10-01, banco de dev)
 
 Backfill: 294 pregões (2025-07-21 a 2026-09-30), 601 linhas, **5.409 valores**, 0 falhas, em ~2 min. Reexecução:
-0 criados, 5.409 ignorados. Contra o LBMA PM, em 286 pregões em comum (o vencimento mais negociado do dia), o ajuste do
+0 criados, 5.409 ignorados. **Servidor (2026-10-01, informado pelo usuário):** os mesmos 601 lidos, 5.409 criados,
+0 falhas. Contra o LBMA PM, em 286 pregões em comum (o vencimento mais negociado do dia), o ajuste do
 GLD fica a 0,91% em média, 0,81% acima (custo de carregamento e horário do ajuste), no máximo 3,41%.
 
 ## Consequências e limitações
