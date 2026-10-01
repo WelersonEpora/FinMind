@@ -326,7 +326,7 @@ ciência do Comitê. Ver `docs/cobertura-fatores-fel1-milho-ouro.md`, §7.
 | # | Pergunta | Trava? | Resposta / data |
 |---|---|---|---|
 | 1 | Milho + Ouro como **prova de arquitetura** (sem mudar a ordem CAFÉ→PETRÓLEO→MILHO→OURO) é aceitável? | | — |
-| 2 | Milho: podemos seguir só com o **CCM (B3)**, que é grátis mas só tem **~4 anos** de histórico, ou precisamos do **ZC (CME)**, que é **pago**? Ouro: **GC** ou preço de referência? **Discutir depois da pergunta 8**, que resolve boa parte desta. **Detalhe para a reunião logo abaixo da tabela** | ⛔ | — |
+| 2 | Milho: podemos seguir só com o **CCM (B3)**, que é grátis mas só tem **~4 anos** de histórico, ou precisamos do **ZC (CME)**, que é **pago**? Ouro: **GC** ou preço de referência? (A LBMA fechou o feed em 2026-10-01; o preço diário passou a ser o futuro **GLD da B3**, grátis, desde 2025-07-21, ADR 0044) **Discutir depois da pergunta 8**, que resolve boa parte desta. **Detalhe para a reunião logo abaixo da tabela** | ⛔ | — |
 | 3 | Existe **orçamento para dados de preço**? Sem isso não há backtest. **Para o milho, é respondida junto com a pergunta 2** (escolher o ZC = ter orçamento para ele); segue valendo para o **ouro** (o futuro GC da CME também é pago) | ⛔ | — |
 | 4 | Confirmam que o **COTAHIST não atende CCM/ICF**? Qual a alternativa? (o ADR 0009 já confirma que não atende; para o CCM, a alternativa encontrada foi o Boletim Diário da B3, ADR 0020 — ver pergunta 2). **Detalhe logo abaixo da tabela** | | — |
 | 5 | **Vintage do agro (para ciência do Comitê):** o dado do agro é revisado depois de publicado, e parte do passado só existe na versão final. Isso limita o **backtest** de algumas regras (sobretudo as da Safrinha antes de fev/2025), mas o impacto é localizado: o WASDE tem as revisões do milho desde 2011 (EUA e ~20 países, incluindo o Brasil), e **a partir de agora o FinMind guarda cada revisão de todas as fontes**. A avaliação da IA será feita daqui para frente. **Detalhe logo abaixo da tabela** | | — |
@@ -427,8 +427,8 @@ sugere **no mínimo 100 operações por ativo** no backtest.
 
 | Se valer | Milho | Ouro |
 |---|---|---|
-| **1 a 5 anos** (§4) | O **CCM** (grátis, desde mar/2022, ~4,5 anos) praticamente atende, com o buraco de ~9 meses em 2023. Nada a comprar | O **LBMA** (desde 1968) atende com folga |
-| **10 a 15 anos** (§12.1) | Só o **ZC** (Chicago, pago) tem histórico para isso. O CCM só chega lá por volta de 2032-2037 | O LBMA atende; a licença da IBA é o ponto de atenção (pergunta 6) |
+| **1 a 5 anos** (§4) | O **CCM** (grátis, desde mar/2022, ~4,5 anos) praticamente atende, com o buraco de ~9 meses em 2023. Nada a comprar | O **LBMA** (1968 a 2026-09-30) atende com folga no passado; daí em diante, o **GLD da B3** (futuro, desde 2025-07-21). Emendar os dois é decisão do David (ADR 0044) |
+| **10 a 15 anos** (§12.1) | Só o **ZC** (Chicago, pago) tem histórico para isso. O CCM só chega lá por volta de 2032-2037 | O LBMA atende até 2026-09-30; para continuar a série, o GLD emendado ou a licença da IBA (o feed público fechou em 2026-10-01; pergunta 6) |
 
 **E os fatores?** O preço não é o único limite. Com 10 a 15 anos, o **WASDE** atende (revisões desde 2011, ~15 anos),
 mas a **Conab** (revisões só desde fev/2025) não; ela entraria com o número revisado ou pela aproximação do WASDE
@@ -652,18 +652,18 @@ específica.
 
 | Situação | Fonte | O que os termos dizem |
 |---|---|---|
-| 🔴 Exige licença ou autorização | **LBMA** (preço do ouro) | O preço é administrado pela IBA (ICE), que exige licença "para obter, usar ou redistribuir" o dado atual ou histórico. Tabela de taxas não lida (ADR 0009) |
+| 🔴 Exige licença ou autorização | **LBMA** (preço do ouro) | O preço é administrado pela IBA (ICE), que exige licença "para obter, usar ou redistribuir" o dado atual ou histórico. Tabela de taxas não lida (ADR 0009). **Desde 2026-10-01 o feed público fechou**: dado novo só com licença; a coleta foi encerrada (ADR 0044) |
 | 🔴 | **CEPEA/ESALQ** (Indicador do Milho, via B3) | CC BY-NC 4.0: **sem uso comercial** e sem retransmitir séries de preço sem autorização (ADR 0021) |
-| 🔴 | **B3** (CCM, Indicador, Boletim Diário) | Os Termos de Uso da B3 pedem autorização para reprodução ou distribuição comercial (ADRs 0020 e 0021) |
+| 🔴 | **B3** (CCM, ICF, GLD, Indicador, Boletim Diário) | Os Termos de Uso da B3 pedem autorização para reprodução ou distribuição comercial (ADRs 0020 e 0021) |
 | 🟡 Permite, com condição | **Conab** | A página de preços cita CC BY-ND 3.0 (**sem derivações**), e a Conab se declara fora da Política de Dados Abertos. Não verificado nos arquivos da safra (ADR 0016) |
 | 🟡 | **BCB** (Focus, reservas) | ODbL: redistribuir exige atribuição, e uma base derivada precisa sair com a mesma licença (ADRs 0022 e 0023) |
 | 🟡 | **FRED** (juros e dólar dos EUA) | 3 das 4 séries são domínio público, com citação; a `T10YIE` não foi confirmada. Ao exibir a terceiros, aviso de que o Fed não endossa (ADR 0009) |
 | 🟢 Domínio público, com citação | **EIA** (etanol) e **NOAA** (saúde da vegetação) | Dado do governo dos EUA, livre para usar e distribuir (ADRs 0024 e 0025) |
 | ⚪ Não verificado | **USDA** (WASDE, Crop Progress), **CFTC** (COT), **IMEA**, **Comex Stat** | Os dos EUA são de governo e provavelmente livres, mas os termos não foram lidos. IMEA e Comex Stat não publicam termo explícito |
 
-**O ponto mais sensível é o preço.** Justamente as fontes de preço (LBMA no ouro; CEPEA/ESALQ e B3 no milho) são as
+**O ponto mais sensível é o preço.** Justamente as fontes de preço (LBMA e B3 no ouro; CEPEA/ESALQ e B3 no milho) são as
 mais restritas, e o preço é o dado principal da recomendação da IA (§5). No caso da LBMA, a IBA fala em licença até
-para *usar* o dado, e não esclarece se o uso interno está coberto.
+para *usar* o dado, e não esclarece se o uso interno está coberto; em 2026-10-01 fechou o acesso público, e o ouro diário passou a vir da B3 (GLD, ADR 0044).
 
 **Como apresentar:** "Hoje o uso é interno e está tudo certo. Se um dia os dados ou as recomendações saírem para
 terceiros, precisamos antes de licença da LBMA, da CEPEA e da B3, e rever os termos da Conab e do BCB. As fontes do
@@ -1130,7 +1130,7 @@ Hoje nenhuma regra está definida: todos os fatores estão "sem leitura definida
 - **O CCM não substitui Chicago como explicação.** WASDE, COT e Crop Progress movem primeiro o preço de Chicago (ZC,
   pago): sem ele, a IA vê a causa, mas não quanto Chicago já reagiu (pergunta 2 da §4).
 - **No ouro, a curva não entra.** O futuro do ouro é o preço à vista mais os juros e não traz expectativa de
-  mercado. O prompt do ouro levaria o LBMA (já coletado), em US$ e em R$ (com a PTAX), e o histórico recente.
+  mercado. O prompt do ouro levaria o preço do ouro, em US$ e em R$ (com a PTAX), e o histórico recente: o LBMA até 2026-09-30 e, desde então, o futuro GLD da B3 (ADR 0044; qual referência vale é do David).
 - **É uma ilustração, não uma estratégia.** O que se propõe é a estrutura em 6 blocos, não a redação das frases, e
   os horizontes são do Comitê. **Nenhuma resposta de IA foi gerada**, de propósito: seria uma recomendação sem regra
   validada.
@@ -1149,7 +1149,7 @@ Hoje nenhuma regra está definida: todos os fatores estão "sem leitura definida
    fonte?
 7. **Preço e instrumento da recomendação.** "Comprar, vender ou manter" *o quê*, e para quem?
    - **Instrumento:** o que se opera de fato? No milho, o CCM na B3 (com margem e rolagem)? No ouro, um ETF, o ouro
-     físico ou o GC? O preço de referência é o do instrumento operado.
+     físico, o GC ou o GLD da B3 (coletado desde 2026-10-01)? O preço de referência é o do instrumento operado.
    - **Preço por horizonte:** quais vencimentos do CCM correspondem a curto, médio e longo prazo, e qual a liquidez
      mínima para um vencimento valer como referência?
    - **Medidas de preço:** além do preço, o que entra (variação em 1, 3 e 12 meses? outra medida)?
@@ -1227,10 +1227,12 @@ nova numa fonte que já usamos) · 🔴 **difícil** (falta a fonte, ou o fator 
 | 7 | Posicionamento de fundos, COT (Médio) | **Posição líquida dos fundos** = managed money comprado − vendido, em contratos e em % dos contratos em aberto (CFTC, ouro da COMEX): **o mesmo cálculo do milho** | Semana até 22/09/2026 (publicada em 25/09): 135.699 − 8.310 = **127.389 contratos**, **30,9%** de 412.800 (na semana anterior: 133.116, 32,5%) | 🟢 Desde 2006; uma função para milho, ouro e café |
 | 8 | Produção e oferta de mineração (Baixo) | **Produção mundial de ouro das minas**, em toneladas por ano, e a variação contra o ano anterior (USGS) | Nenhum dado | 🔴 Fonte não reconhecida; anual e com mais de um ano de atraso. **Ignorada no MVP** (peso Baixo, decisão da auditoria de 2026-09-22) |
 
-**Preço do ouro (a referência da recomendação).** O LBMA Gold Price PM (já coletado, desde 1968), em US$ e em R$ (com a
+**Preço do ouro (a referência da recomendação).** O LBMA Gold Price PM (coletado de 1968 a 2026-09-30), em US$ e em R$ (com a
 PTAX do mesmo dia). Em 28/09/2026: **US$ 4.144,55 a onça** (−9,2% em 1 mês; +1,8% em 3 meses; +9,9% em 12 meses) e
 **R$ 21.606** (PTAX 5,2132; +7,2% em 12 meses). Sem curva de vencimentos: o futuro do ouro é o preço à vista mais os
-juros (§5, "O que o exemplo mostra"). A licença da IBA ainda vale antes de exibir a terceiros (informe 6 da §4).
+juros (§5, "O que o exemplo mostra"). A licença da IBA ainda vale antes de exibir a terceiros (informe 6 da §4). **Desde 2026-10-01** a LBMA fechou o feed
+público e o preço diário coletado é o futuro **GLD da B3** (US$/oz, liquidado pelo LBMA, desde 2025-07-21), em média
+0,9% acima do LBMA PM: se ele passa a ser a referência, e como emendar com o LBMA, é decisão do David (ADR 0044).
 
 **Resumo:** 2 fatores com medida pronta (juros reais e COT), 2 com substituto ou série a acrescentar numa fonte que já
 usamos (dólar e inflação) e 4 sem dado (geopolítica, bancos centrais, ETFs e mineração). Somando os pesos: dos **5
@@ -1249,7 +1251,8 @@ completa da matéria-prima: `docs/cobertura-fatores-fel1-milho-ouro.md`, §3.
 6. **Bancos centrais:** a compra de ouro do mundo inteiro (FMI ou World Gold Council) ou só a do Brasil?
 7. **ETFs:** o estoque de um grande ETF serve de medida, ou é preciso o total do World Gold Council (sem API)?
 8. **Preço e instrumento:** as mesmas perguntas do item 7 da §5 do milho, para o ouro. Em especial: o ouro em **US$ ou
-   em R$**? E o que se opera de fato (ETF de ouro na B3, ouro físico ou o futuro GC, que é pago, pergunta 3)?
+   em R$**? E o que se opera de fato (ETF de ouro na B3, ouro físico, o futuro GC, que é pago, pergunta 3, ou o futuro GLD da B3,
+   grátis e coletado desde 2026-10-01, ADR 0044)? E, com a LBMA fechada, o GLD serve de preço de referência?
 
 ### Por onde começamos (se o Comitê confirmar)
 
