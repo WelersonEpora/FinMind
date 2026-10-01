@@ -576,11 +576,12 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://www.bls.gov/cpi/"
     }
   },
-  // Um card por contrato (o café, Coffee C da ICE, desde 2026-09-28 - ADR 0028).
+  // Um card por contrato (o café, Coffee C da ICE, desde 2026-09-28 - ADR 0028; o petróleo WTI, desde 2026-10-01 - ADR 0040).
   ...[
     { instrumentCode: "COT_OURO", mercado: "Ouro (COMEX)", chave: "gold", prefixo: "GOLD" },
     { instrumentCode: "COT_MILHO", mercado: "Milho (CBOT)", chave: "corn", prefixo: "CORN" },
-    { instrumentCode: "COT_CAFE", mercado: "Café arábica (ICE Coffee C)", chave: "coffee", prefixo: "COFFEE" }
+    { instrumentCode: "COT_CAFE", mercado: "Café arábica (ICE Coffee C)", chave: "coffee", prefixo: "COFFEE" },
+    { instrumentCode: "COT_PETROLEO_WTI", mercado: "Petróleo WTI (NYMEX)", chave: "crude", prefixo: "CRUDE_WTI" }
   ].map(({ instrumentCode, mercado, chave, prefixo }) => ({
     instrumentCode,
     origem: "observation",
@@ -807,6 +808,99 @@ const CATALOGO_OBSERVAVEIS = [
         "só produção e estoques de etanol combustível dos EUA, semanais. Não coletados: consumo, importação e exportação de etanol, os dados mensais da EIA e o milho usado para etanol (este está no WASDE do USDA, não extraído).",
       formatoOrigem: "XLS (planilha histórica de cada série no site da EIA, sem chave; a API v2 exige chave)",
       urlOficial: "https://www.eia.gov/dnav/pet/pet_pnp_wprode_s1_w.htm"
+    }
+  },
+
+  // --- EIA - petróleo dos EUA pelo WPSR: estoques e fluxos semanais, preços à vista diários (ADR 0040) ---
+  // Séries `EIA.PETROLEO_<GRUPO>.<CAMPO>`: um card por grupo, cada série no seletor de métrica (unidades diferentes).
+  {
+    instrumentCode: "PETROLEO_ESTOQUES_EIA",
+    origem: "observation",
+    nome: "Petróleo EUA - estoques (EIA)",
+    unidade: "mil barris",
+    casasDecimais: 0,
+    frequencia: "SEMANAL",
+    toleranciaDias: 13,
+    fonte: "EIA - Weekly Petroleum Status Report",
+    fonteCollectorCode: "eia-petroleo",
+    porCampo: { prefixoSerie: "EIA.PETROLEO_ESTOQUES" },
+    campoPrincipal: "PETROLEO_SEM_SPR",
+    campos: [
+      { codigo: "PETROLEO_SEM_SPR", nome: "Petróleo, sem a reserva estratégica", unidade: "mil barris", casasDecimais: 0 },
+      { codigo: "PETROLEO_SPR", nome: "Petróleo na reserva estratégica (SPR)", unidade: "mil barris", casasDecimais: 0 },
+      { codigo: "PETROLEO_CUSHING", nome: "Petróleo em Cushing (Oklahoma)", unidade: "mil barris", casasDecimais: 0 },
+      { codigo: "GASOLINA", nome: "Gasolina (total)", unidade: "mil barris", casasDecimais: 0 },
+      { codigo: "DESTILADOS", nome: "Destilados (diesel e óleo de aquecimento)", unidade: "mil barris", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Estoques de petróleo e derivados dos EUA no fim de cada semana, do Weekly Petroleum Status Report da EIA: o petróleo fora da reserva estratégica (o número que o mercado acompanha), o da reserva estratégica (SPR), o de Cushing (ponto de entrega do contrato WTI) e os de gasolina e destilados. É o fator do petróleo \"Estoques de petróleo dos EUA (EIA)\" do FEL 1.",
+      metodologia:
+        "Um valor por semana, encerrada na sexta: desde 1982 (petróleo e destilados), 1990 (gasolina) e 2004 (Cushing). A EIA divulga na quarta depois das 10:30 ET (quinta em semana de feriado). A data de disponibilidade é ESTIMADA, pela mesma regra do etanol: o calendário oficial de feriados da EIA quando ele lista a semana; fora disso, quarta, ou quinta com feriado federal de segunda a quarta; sempre o fim do dia. A planilha traz só o valor atual: se a EIA revisar uma semana, a revisão entra como versão nova. Licença: dado do governo dos EUA.",
+      escopo:
+        "só os totais dos EUA. Não coletados: estoques por região (PADD), de outros derivados e os dados mensais da EIA. O boletim semanal do American Petroleum Institute (API), que sai um dia antes, não é coletado.",
+      formatoOrigem: "XLS (planilha histórica de cada série no site da EIA, sem chave; a API v2 exige chave)",
+      urlOficial: "https://www.eia.gov/petroleum/supply/weekly/"
+    }
+  },
+  {
+    instrumentCode: "PETROLEO_FLUXOS_EIA",
+    origem: "observation",
+    nome: "Petróleo EUA - produção, refino e comércio (EIA)",
+    unidade: "mil barris/dia",
+    casasDecimais: 0,
+    frequencia: "SEMANAL",
+    toleranciaDias: 13,
+    fonte: "EIA - Weekly Petroleum Status Report",
+    fonteCollectorCode: "eia-petroleo",
+    porCampo: { prefixoSerie: "EIA.PETROLEO_FLUXOS" },
+    campoPrincipal: "PRODUCAO",
+    campos: [
+      { codigo: "PRODUCAO", nome: "Produção de petróleo", unidade: "mil barris/dia", casasDecimais: 0 },
+      { codigo: "ENTRADA_REFINARIAS", nome: "Petróleo processado nas refinarias", unidade: "mil barris/dia", casasDecimais: 0 },
+      { codigo: "UTILIZACAO_REFINARIAS", nome: "Utilização das refinarias", unidade: "%", casasDecimais: 1 },
+      { codigo: "IMPORTACAO", nome: "Importação de petróleo", unidade: "mil barris/dia", casasDecimais: 0 },
+      { codigo: "EXPORTACAO", nome: "Exportação de petróleo", unidade: "mil barris/dia", casasDecimais: 0 },
+      { codigo: "DERIVADOS_FORNECIDOS", nome: "Derivados fornecidos (consumo)", unidade: "mil barris/dia", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Produção de petróleo dos EUA, petróleo processado nas refinarias e a utilização delas, importação e exportação de petróleo e o total de derivados fornecidos ao mercado (a medida de consumo do relatório), por semana, do Weekly Petroleum Status Report da EIA. Atende os fatores do petróleo \"Produção dos EUA (shale)\" e \"Refino e margens\" do FEL 1.",
+      metodologia:
+        "Médias diárias de cada semana, encerrada na sexta: desde 1982-1983 (produção e refino) e 1990-1991 (utilização, comércio e derivados). Mesma regra de data de disponibilidade dos estoques (ESTIMADA: quarta, quinta com feriado, ou o calendário oficial de feriados; fim do dia). A produção semanal é uma estimativa da EIA, depois substituída pelos números mensais (não coletados). Licença: dado do governo dos EUA.",
+      escopo:
+        "só os totais dos EUA. A contagem de sondas (Baker Hughes) e a margem de refino (crack spread, um cálculo sobre os preços) não estão aqui.",
+      formatoOrigem: "XLS (planilha histórica de cada série no site da EIA, sem chave; a API v2 exige chave)",
+      urlOficial: "https://www.eia.gov/petroleum/supply/weekly/"
+    }
+  },
+  {
+    instrumentCode: "PETROLEO_PRECOS_EIA",
+    origem: "observation",
+    nome: "Petróleo e derivados - preço à vista (EIA)",
+    unidade: "US$/barril",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    // Os preços diários saem uma vez por semana (quarta), com os dias até a terça: até ~9 dias sem ponto novo.
+    toleranciaDias: 11,
+    fonte: "EIA - preços à vista (spot)",
+    fonteCollectorCode: "eia-petroleo",
+    porCampo: { prefixoSerie: "EIA.PETROLEO_PRECOS" },
+    campoPrincipal: "WTI",
+    campos: [
+      { codigo: "WTI", nome: "WTI (Cushing)", unidade: "US$/barril", casasDecimais: 2 },
+      { codigo: "BRENT", nome: "Brent (Europa)", unidade: "US$/barril", casasDecimais: 2 },
+      { codigo: "GASOLINA_NY", nome: "Gasolina convencional (porto de Nova York)", unidade: "US$/galão", casasDecimais: 3 },
+      { codigo: "DIESEL_NY", nome: "Diesel S10 (porto de Nova York)", unidade: "US$/galão", casasDecimais: 3 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Preço à vista (spot, FOB) do petróleo WTI em Cushing e do Brent, e da gasolina e do diesel no porto de Nova York, por dia útil, publicados pela EIA. Não é o preço do contrato futuro (CL da NYMEX, BZ da ICE), que é pago: é a referência física do mesmo petróleo. A margem de refino (crack spread) é um cálculo sobre estes preços, a definir pelo especialista.",
+      metodologia:
+        "Um valor por dia útil: WTI desde 02/01/1986, Brent desde 20/05/1987, gasolina desde 1986 e diesel S10 desde 2006. Os preços diários saem UMA VEZ POR SEMANA, junto com o Weekly Petroleum Status Report (quarta, 10:30 ET), com os dias até a terça anterior (medido na divulgação de 30/09/2026). A data de disponibilidade é ESTIMADA por essa regra, com o fim do dia. Os preços podem ser negativos (o WTI fechou a -36,98 em 20/04/2020). A EIA obtém estes preços de um fornecedor comercial (Refinitiv/LSEG): licença não verificada, uso pessoal. A série de futuros da NYMEX que a EIA publicava parou em 05/04/2024 e não é coletada.",
+      escopo: "só 4 preços à vista. Não coletados: outros petróleos e derivados, outros portos e os futuros.",
+      formatoOrigem: "XLS (planilha histórica de cada série no site da EIA, sem chave)",
+      urlOficial: "https://www.eia.gov/dnav/pet/pet_pri_spt_s1_d.htm"
     }
   },
 

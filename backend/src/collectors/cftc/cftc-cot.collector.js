@@ -37,7 +37,9 @@ const LIMITE_LINHAS_MESMO_INSTANTE = 10;
 const CONTRATOS = {
   gold: { codigoCftc: "088691", prefixo: "CFTC.GOLD", nome: "Ouro (COMEX)" },
   corn: { codigoCftc: "002602", prefixo: "CFTC.CORN", nome: "Milho (CBOT)" },
-  coffee: { codigoCftc: "083731", prefixo: "CFTC.COFFEE", nome: "Café arábica (ICE Coffee C)" }
+  coffee: { codigoCftc: "083731", prefixo: "CFTC.COFFEE", nome: "Café arábica (ICE Coffee C)" },
+  // Petróleo WTI da NYMEX (CL), desde 2026-10-01 (ADR 0040). O WTI da ICE Europe (067411) é outro contrato.
+  crude: { codigoCftc: "067651", prefixo: "CFTC.CRUDE_WTI", nome: "Petróleo WTI (NYMEX)" }
 };
 
 const CAMPOS = [

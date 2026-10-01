@@ -66,3 +66,6 @@ ADRs 0001, 0013, 0015 e 0017–0023: vale **só para aquisição de dados**, sem
   fator, o milho usado para etanol. Este está no WASDE, cujo coletor não extrai a linha de etanol (a definição mudou
   ao longo das edições, ADR 0015).
 - Nenhum fator: a relação entre etanol e o preço do milho é do Comitê.
+- **Desde 2026-10-01 (ADR 0035):** o milho usado para etanol do WASDE é coletado. **Desde 2026-10-01 (ADR 0040):** o
+  download, os feriados, o calendário oficial e a leitura da planilha foram para `collectors/eia/eia-wpsr.js`, comum
+  ao coletor do petróleo; o comportamento do etanol não mudou (mesmos testes).

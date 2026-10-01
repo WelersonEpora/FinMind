@@ -99,9 +99,9 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 | 5 | Demanda de bancos centrais/reservas (Alto) | Compras de reservas (IMF/WGC/BCB) | Reservas internacionais **totais** do Brasil (BCB, 1998+, ADR 0023) | Desde 2026-10-01, o ouro nas reservas de 88 países pelo FMI (ADR 0036), mensal desde 1999; Brasil, Angola e Chile com o volume em unidade errada na fonte (marcado). Falta o total mundial, que o WGC compila |
 | 6 | Fluxo de ETFs de ouro (Médio) | Holdings/fluxo WGC | Desde 2026-10-01, o estoque em ETFs por região, semanal desde 2003, e o fluxo trimestral, pelo World Gold Council (ADR 0037) | Licença só pessoal e não comercial: uso interno com risco aceito; pedir permissão ao WGC antes de uso comercial |
 | 7 | Posicionamento de fundos — COT (Médio) | CFTC ouro | Completo, 2006+ | Nenhuma relevante |
-| 8 | Produção/oferta de mineração (Baixo) | USGS | — | Nenhuma fonte — decisão consciente de ignorar no MVP (peso baixo) |
+| 8 | Produção/oferta de mineração (Baixo) | USGS | Desde 2026-10-01, a produção das minas e a reciclagem, trimestrais desde 2010, no balanço de oferta e demanda do World Gold Council (ADR 0037) | O USGS (produção anual por país, *Mineral Commodity Summaries*) não é coletado: o WGC já traz o total mundial trimestral |
 
-**Resumo:** 2/8 completamente cobertos (juros reais, COT); 1/8 coberto por proxy metodologicamente diferente (DXY); 1/8 com cobertura mínima (reservas totais do Brasil, sem a compra de ouro dos bancos centrais); 4/8 sem nenhum dado (CPI, geopolítica, ETFs, produção mineral — este último de baixa prioridade por decisão).
+**Resumo (revisto em 2026-10-01):** 6/8 com a matéria-prima coberta (juros reais e meta do Fed, CPI, bancos centrais pelo FMI e pelo WGC, ETFs, COT, produção das minas pelo WGC); 1/8 coberto por aproximação (o DXY é licenciado: os índices do Fed e as 6 moedas da cesta, ADR 0033); 1/8 sem nenhum dado (geopolítica, que depende do David). O WGC é de uso interno (licença só pessoal, risco aceito).
 
 ---
 
