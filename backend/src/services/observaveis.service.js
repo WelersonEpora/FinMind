@@ -278,6 +278,42 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://fred.stlouisfed.org/series/DTWEXAFEGS"
     }
   },
+  // --- FMI - ouro nas reservas dos bancos centrais, mensal (fator do ouro "Demanda de bancos centrais", ADR 0036) ---
+  // Séries `IMF.IRFCL.OURO.<PAIS>.<CAMPO>`, com o código de país do FMI (ISO alfa-3): os países são descobertos no banco;
+  // vêm marcados os maiores compradores recentes e o destaque do card é a China.
+  {
+    instrumentCode: "OURO_BANCOS_CENTRAIS_FMI",
+    origem: "observation",
+    nome: "Ouro nas reservas dos bancos centrais (FMI)",
+    unidade: "mi oz troy",
+    casasDecimais: 3,
+    frequencia: "MENSAL",
+    // Cada país reporta no seu ritmo, até ~2 meses depois do mês: o último ponto fica até ~90 dias sem sucessor.
+    toleranciaDias: 95,
+    fonte: "FMI - International Reserves and Foreign Currency Liquidity (IRFCL)",
+    fonteCollectorCode: "fmi-irfcl-ouro",
+    porRegiao: {
+      prefixoSerie: "IMF.IRFCL.OURO",
+      campoReferencia: "VOLUME_MI_OZT",
+      itemPrincipal: "CHN",
+      itensPadrao: ["CHN", "POL", "IND", "TUR", "KAZ"],
+      descritor: "fmi-pais"
+    },
+    campoPrincipal: "VOLUME_MI_OZT",
+    campos: [
+      { codigo: "VOLUME_MI_OZT", nome: "Volume (milhões de onças troy)", unidade: "mi oz troy", casasDecimais: 3 },
+      { codigo: "VALOR_MI_USD", nome: "Valor (US$ milhões)", unidade: "mi USD", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Ouro nas reservas oficiais de cada banco central, por mês, como reportado ao FMI no IRFCL (o \"Reserves Data Template\"): o volume em milhões de onças troy e o valor em US$ milhões (a escala que o FMI declara em cada série). 88 países e 2 agregados (área do euro e BCE), desde dez/1999. É a base de onde o World Gold Council compila as compras de ouro dos bancos centrais. O FinMind não soma países nem calcula compras.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês). A fonte não informa quando publicou nem guarda versões: a data de disponibilidade é a da coleta (o histórico só vale para leituras a partir da 1ª coleta), e uma revisão vista depois vira versão nova. Conferência de unidade: o valor em US$ dividido pelo volume tem de ficar perto do preço implícito mediano dos países no mês; fora de 3 vezes para cima ou para baixo, o mês é gravado como publicado e marcado. Em 2026-10-01 isso pegou o volume em unidade errada do Brasil (1.000× maior desde mar/2026), de Angola (1.000× desde out/2020) e do Chile (aparentemente em quilos desde fev/2026), e o valor contábil (não de mercado) dos EUA, Arábia Saudita, Singapura e Coreia do Sul. Licença: uso livre com a citação \"Source: International Monetary Fund, International Reserves and Foreign Currency Liquidity\", sem alterar o dado (ADR 0036).",
+      escopo: "só o ouro das reservas, setor das autoridades monetárias. Não coletados: as demais linhas do IRFCL (moedas, DES, posição no FMI) e o ouro fora das reservas.",
+      formatoOrigem: "JSON (API SDMX 3.0 do FMI, sem chave)",
+      urlOficial: "https://data.imf.org"
+    }
+  },
   // --- Ouro, fontes do ADR 0033: as moedas da cesta do DXY, a meta do Fed e o CPI ---
   // Séries `FRED.<ID>` (uma por moeda): cada cotação tem a sua unidade, uma por vez no seletor de métrica.
   {

@@ -66,7 +66,7 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 | Meta do Fed (FOMC, pelo FRED) | ✅ `fred-dfedtaru`, `fred-dfedtarl`, `fred-dfedtar` (ADR 0033) | ✅ 22.573 linhas, 3 séries | ✅ 1982→hoje | ✅ |
 | Moedas da cesta do DXY e dólar contra economias avançadas (FRED, H.10) | ✅ `fred-dex*` (6) e `fred-dtwexafegs` (ADR 0033) | ✅ 6 moedas + 5.198 linhas do índice | ✅ 1971/1999/2006→hoje | ✅ |
 | WGC (reservas de BC, ETFs) | ❌ nível 0 | ❌ | — | — |
-| IMF Data (SDMX) | ❌ nível 0 | ❌ | — | — |
+| FMI — IRFCL, ouro nas reservas dos bancos centrais (SDMX) | ✅ `fmi-irfcl-ouro` (ADR 0036, 2026-10-01) | ✅ 43.513 valores, 88 países + 2 agregados | ✅ 1999-12→hoje (sem vintage antes da 1ª coleta) | ✅ |
 | CME GC (futuro) | ❌ pago (pergunta 3) | ❌ | — | — |
 | DXY real (ICE) | ❌ licenciado. As 6 moedas da cesta são coletadas (acima): remontar o índice é um cálculo, a decidir pelo David | ❌ | — | — |
 | USGS (produção mineral) | ❌ (decisão consciente: peso baixo, ignorar no MVP) | ❌ | — | — |
@@ -96,7 +96,7 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 | 2 | Dólar — índice DXY (Alto) | Índice DXY (ICE) | Os índices do Fed DTWEXBGS (amplo) e, desde 2026-10-01, DTWEXAFEGS (economias avançadas, mais próximo da cesta do DXY), e as 6 moedas da cesta do DXY (ADR 0033) | DXY real é licenciado, não coletado; remontá-lo pelas 6 moedas é um cálculo, a decidir pelo David; a planilha do David atribui a fonte errada ("US Treasury, World Bank" — nenhum publica o DXY, achado já no ADR 0009) |
 | 3 | Inflação e expectativas (Alto) | CPI observado + breakeven inflation | Breakeven (T10YIE) completo | Nenhuma desde 2026-10-01: o CPI é coletado pelo ALFRED, com todas as versões e a data real de cada uma (ADR 0033) |
 | 4 | Geopolítica e risco sistêmico (Alto) | Eventos qualitativos | — | **Nada.** Não vira "número" sem camada de evidência de IA Search — só proposta em `analise-critica-fel1-milho-ouro.md`/ADR 0010 (desenho futuro), não construída |
-| 5 | Demanda de bancos centrais/reservas (Alto) | Compras de reservas (IMF/WGC/BCB) | Reservas internacionais **totais** do Brasil (BCB, 1998+, ADR 0023) | Compras de ouro pelos bancos centrais (IMF, WGC): nenhuma fonte reconhecida. O ouro do Tesouro dos EUA é constante desde 2012 e não serve. A composição das reservas do BCB (parte em ouro) não é coletada |
+| 5 | Demanda de bancos centrais/reservas (Alto) | Compras de reservas (IMF/WGC/BCB) | Reservas internacionais **totais** do Brasil (BCB, 1998+, ADR 0023) | Desde 2026-10-01, o ouro nas reservas de 88 países pelo FMI (ADR 0036), mensal desde 1999; Brasil, Angola e Chile com o volume em unidade errada na fonte (marcado). Falta o total mundial, que o WGC compila |
 | 6 | Fluxo de ETFs de ouro (Médio) | Holdings/fluxo WGC | — | Nenhuma fonte (WGC Goldhub sem API pública) |
 | 7 | Posicionamento de fundos — COT (Médio) | CFTC ouro | Completo, 2006+ | Nenhuma relevante |
 | 8 | Produção/oferta de mineração (Baixo) | USGS | — | Nenhuma fonte — decisão consciente de ignorar no MVP (peso baixo) |
