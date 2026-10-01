@@ -115,6 +115,18 @@ const DIMENSOES_REGIAO = {
         "Cada linha é uma UF, uma macrorregião ou o Brasil, com a estimativa mais recente de cada levantamento mensal da Conab, como publicado (mil t, mil ha e kg/ha). O Brasil e as macrorregiões somam UFs e têm escala maior."
     }
   }),
+  "anp-uf": criarDimensaoRegiao({
+    rotuloModalidade: "UF",
+    descreverRegiao: descreverRegiaoConab,
+    textos: {
+      titulo: "UFs produtoras",
+      inativo: "sem dado recente",
+      mostrarInativos: "Mostrar UFs sem dado recente",
+      semSelecao: "Selecione ao menos uma UF.",
+      nota:
+        "Cada linha é uma UF produtora, com a produção do mês em m³ como a ANP publica, em terra ou no mar (seletor de métrica). O FinMind não soma as UFs: o total do Brasil não é gravado."
+    }
+  }),
   imea: criarDimensaoRegiao({
     rotuloModalidade: "Região",
     descreverRegiao: descreverRegiaoImea,

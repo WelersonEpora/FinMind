@@ -12,8 +12,8 @@ foi implementado está no ADR 0040.
 | EIA, planilhas do Weekly Petroleum Status Report | Estoques dos EUA (Alto); produção e shale (Médio); refino (Médio) | **Implementada** (ADR 0040): 11 séries semanais desde 1982 | 4 |
 | EIA, preços à vista (WTI, Brent, gasolina, diesel) | Preço (FEL 1, §6.5.2) | **Implementada** (ADR 0040): diária, WTI desde 1986, Brent desde 1987 | 4 |
 | CFTC COT, WTI da NYMEX | Especulação (Médio) | **Implementada** (ADR 0040): o coletor do COT, código 067651, desde 2006 | 4 |
-| ANP, dados abertos | Oferta fora da OPEP (Médio) | CSV mensal por UF e terra/mar, desde 1997 | 1 |
-| JODI Oil | Demanda global (Alto) | ZIP com CSV mundial, mensal, desde 2002 | 1 |
+| ANP, dados abertos | Oferta fora da OPEP (Médio) | **Implementada** (ADR 0041): CSV mensal por UF e terra/mar, desde 1997 | 4 |
+| JODI Oil | Demanda global (Alto); OPEP+ (Alto) | ZIP com CSV mundial, mensal, desde 2002. **O Brasil para em 2022-12, a Rússia em 2023-03 e a Guiana não aparece** | 1 |
 | Baker Hughes, contagem de sondas | Produção e shale (Médio) | Site sem resposta a acesso automático | 0 (incerteza) |
 | OPEP, Monthly Oil Market Report | Decisões da OPEP+ (Alto); demanda global (Alto) | PDF; links montados por script | 0 (incerteza) |
 | IEA, Oil Market Report | Demanda global (Alto) | 403; assinatura (FEL 1) | Pago |
@@ -78,3 +78,13 @@ foi implementado está no ADR 0040.
   (a confirmar). Os estoques semanais da EIA saem um dia depois e são públicos.
 - **MME:** boletins em PDF; não testado (tende a republicar a ANP).
 - **CME (CL), ICE (Brent), S&P Global Platts:** pagos. O preço à vista da EIA (acima) é a alternativa gratuita.
+
+## Atualização de 2026-10-01 (passo 2)
+
+- **ANP implementada** (ADR 0041). A página informa "atualizado em" por arquivo e a regra "até o último dia do mês
+  subsequente ao mês de referência": a data de publicação do mês mais recente é real. Metadados oficiais: óleo e
+  condensado, sem LGN. A soma anual confere com os totais da ANP (2019: 2,79 milhões de barris por dia).
+- **JODI:** no arquivo de 2026-09-21, a produção de petróleo (`CRUDEOIL`, `INDPROD`, `KBD`) tem 104 países com valor;
+  EUA, Arábia Saudita, Noruega e China até jul/2026; **Brasil até dez/2022, Rússia até mar/2023, Guiana sem dado**.
+  Sem agregado mundial. A linha `CONVBBL` é o fator de conversão (barris por tonelada), não produção. O
+  `ASSESSMENT_CODE` 3 ("não avaliado") é a maioria das linhas. Decisão em aberto: ver ADR 0041.

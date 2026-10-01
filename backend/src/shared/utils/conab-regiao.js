@@ -67,4 +67,4 @@ function descreverRegiaoConab(codigo) {
   return { rotulo: codigo, agregado: false };
 }
 
-module.exports = { descreverRegiaoConab };
+module.exports = { descreverRegiaoConab, UFS };

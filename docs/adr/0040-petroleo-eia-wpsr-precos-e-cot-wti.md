@@ -62,4 +62,4 @@ petróleo sem a SPR de 427.320 mil barris na semana de 2026-09-25.
   a EIA o obtém de um fornecedor comercial: a série pode sair da EIA como saíram os futuros.
 - `published_at` dos preços diários medido numa divulgação só; a regra de feriado é a do etanol (13 de 14 exceções).
 - A planilha só traz o valor atual: o vintage começa na 1ª coleta.
-- No servidor, a 1ª coleta diária depois do deploy faz a carga (~54 mil valores; o banco da VM é mais lento).
+- **No servidor em 2026-10-01** (coleta manual, informado pelo usuário): os mesmos números de dev, `eia-petroleo` com 54.282 criados e 0 falhas (~108 s) e `cftc-cot-crude` com 3.177 criados e 0 falhas.

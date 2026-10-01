@@ -16,6 +16,7 @@ const fmiIrfclOuroCollector = require("./fmi/fmi-irfcl-ouro.collector");
 const { criarColetorWgc } = require("./wgc/wgc-ouro.collector");
 const eiaEtanolCollector = require("./eia/eia-etanol.collector");
 const eiaPetroleoCollector = require("./eia/eia-petroleo.collector");
+const anpProducaoPetroleoCollector = require("./anp/anp-producao-petroleo.collector");
 const { criarColetorFred, SERIES_COLETADAS: SERIES_FRED } = require("./fred/fred.collector");
 const fredCpiCollector = require("./fred/fred-cpi.collector");
 const lbmaGoldPmCollector = require("./lbma/lbma-gold-pm.collector");
@@ -68,6 +69,7 @@ function bootstrapCollectors() {
     registerCollector(criarColetorComexExportacao("milho-destino"));
     registerCollector(eiaEtanolCollector);
     registerCollector(eiaPetroleoCollector);
+    registerCollector(anpProducaoPetroleoCollector);
     registerCollector(wasdeMilhoCollector);
     registerCollector(usdaAreaPlantadaCollector);
     registerCollector(usdaGrainStocksCollector);

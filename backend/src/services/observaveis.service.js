@@ -904,6 +904,42 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- ANP - produção mensal de petróleo do Brasil por UF, em terra e no mar (ADR 0041) ---
+  // Séries `ANP.PETROLEO_PRODUCAO.<UF>.<TERRA|MAR>`: a UF é o item, a localização é a métrica.
+  {
+    instrumentCode: "PETROLEO_PRODUCAO_ANP",
+    origem: "observation",
+    nome: "Petróleo Brasil - produção por UF (ANP)",
+    unidade: "m³",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    // Publicado até o fim do mês seguinte: o último mês fica até ~2 meses sem sucessor.
+    toleranciaDias: 65,
+    fonte: "ANP - dados abertos (Boletim Mensal de Produção)",
+    fonteCollectorCode: "anp-producao-petroleo",
+    porRegiao: {
+      prefixoSerie: "ANP.PETROLEO_PRODUCAO",
+      campoReferencia: "MAR",
+      itemPrincipal: "RJ",
+      itensPadrao: ["RJ", "SP", "ES"],
+      descritor: "anp-uf"
+    },
+    campoPrincipal: "MAR",
+    campos: [
+      { codigo: "MAR", nome: "No mar", unidade: "m³", casasDecimais: 0 },
+      { codigo: "TERRA", nome: "Em terra", unidade: "m³", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Produção de petróleo (óleo e condensado, sem LGN) de cada UF produtora, no mar e em terra, por mês, em metros cúbicos, como a ANP publica nos dados abertos (origem: Boletim Mensal de Produção). Atende o fator do petróleo \"Oferta não-OPEP (Brasil, Guiana, Noruega)\" do FEL 1, na parte do Brasil. O FinMind não soma as UFs.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês), desde jan/1997, nas 11 UFs do arquivo. A ANP atualiza o arquivo até o fim do mês seguinte ao de referência e informa a data na página: o mês mais recente entra com essa data (real); os anteriores, com o fim do mês seguinte ao deles (ESTIMADO, a regra da própria página). O arquivo traz o ano corrente inteiro, com os meses ainda não publicados zerados: esses não são gravados. O arquivo é substituído a cada mês, sem versões: uma revisão vira versão nova. Licença: dados abertos do governo federal (não lida; uso pessoal).",
+      escopo: "só o petróleo, por UF e localização. Não coletados: gás natural, LGN, a produção por campo ou poço e o pré-sal separado.",
+      formatoOrigem: "CSV (dados abertos da ANP, sem chave)",
+      urlOficial: "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/producao-de-petroleo-e-gas-natural-por-estado-e-localizacao"
+    }
+  },
+
   // --- NOAA STAR - saúde da vegetação sobre a área do milho, semanal (fator do milho "Clima e safra", ADR 0025) ---
   // Séries `NOAA_VH.MILHO.<REGIAO>.<INDICE>`: um item por país ou estado, o índice (VHI, VCI, TCI) no seletor de métrica.
   {
