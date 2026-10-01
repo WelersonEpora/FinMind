@@ -940,6 +940,39 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- JODI - produção mensal de petróleo por país (ADR 0042) ---
+  // Séries `JODI.PETROLEO_PRODUCAO.<PAIS>.PRODUCAO`, país em ISO alfa-2: os países são descobertos no banco.
+  {
+    instrumentCode: "PETROLEO_PRODUCAO_JODI",
+    origem: "observation",
+    nome: "Petróleo - produção por país (JODI)",
+    unidade: "mil barris/dia",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    // Cada país reporta no seu ritmo: o arquivo de setembro trazia até julho (~2 meses); até ~3 meses sem sucessor.
+    toleranciaDias: 100,
+    fonte: "JODI Oil - World Database",
+    fonteCollectorCode: "jodi-producao-petroleo",
+    porRegiao: {
+      prefixoSerie: "JODI.PETROLEO_PRODUCAO",
+      campoReferencia: "PRODUCAO",
+      itemPrincipal: "SA",
+      itensPadrao: ["SA", "IQ", "AE", "US", "NO"],
+      descritor: "jodi-pais"
+    },
+    campoPrincipal: "PRODUCAO",
+    campos: [{ codigo: "PRODUCAO", nome: "Produção de petróleo", unidade: "mil barris/dia", casasDecimais: 0 }],
+    fonteDetalhe: {
+      descricao:
+        "Produção mensal de petróleo bruto de cada país, em mil barris por dia, como reportada ao JODI (Joint Organisations Data Initiative, mantido pelo IEF com OPEP, IEA, ONU e outros). É o único dado gratuito encontrado de produção da OPEP por país: atende os fatores do petróleo \"Decisões da OPEP+\" e \"Oferta não-OPEP\" do FEL 1. O FinMind não soma países.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês), desde jan/2002, para os 104 países com valor. A data de disponibilidade é a da última modificação do arquivo (real); para os meses já presentes na 1ª coleta, é um limite superior (o valor saiu antes). O arquivo é substituído sem versões: uma revisão vira versão nova. O JODI marca cada valor com um código de avaliação (1 comparável, 2 consultar metadados, 3 não avaliado), guardado junto. Lacunas da fonte: o Brasil para em dez/2022 (use a ANP), a Rússia em mar/2023, e a Guiana não reporta. Licença: não lida (uso pessoal).",
+      escopo: "só a produção de petróleo bruto. Não coletados: estoques, importação, exportação, refino e a demanda por derivados (outro arquivo do JODI), NGL e gás.",
+      formatoOrigem: "CSV dentro de ZIP (download público do JODI, sem chave)",
+      urlOficial: "https://www.jodidata.org/oil/"
+    }
+  },
+
   // --- NOAA STAR - saúde da vegetação sobre a área do milho, semanal (fator do milho "Clima e safra", ADR 0025) ---
   // Séries `NOAA_VH.MILHO.<REGIAO>.<INDICE>`: um item por país ou estado, o índice (VHI, VCI, TCI) no seletor de métrica.
   {

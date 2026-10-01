@@ -13,7 +13,7 @@ foi implementado está no ADR 0040.
 | EIA, preços à vista (WTI, Brent, gasolina, diesel) | Preço (FEL 1, §6.5.2) | **Implementada** (ADR 0040): diária, WTI desde 1986, Brent desde 1987 | 4 |
 | CFTC COT, WTI da NYMEX | Especulação (Médio) | **Implementada** (ADR 0040): o coletor do COT, código 067651, desde 2006 | 4 |
 | ANP, dados abertos | Oferta fora da OPEP (Médio) | **Implementada** (ADR 0041): CSV mensal por UF e terra/mar, desde 1997 | 4 |
-| JODI Oil | Demanda global (Alto); OPEP+ (Alto) | ZIP com CSV mundial, mensal, desde 2002. **O Brasil para em 2022-12, a Rússia em 2023-03 e a Guiana não aparece** | 1 |
+| JODI Oil | Demanda global (Alto); OPEP+ (Alto) | **Produção implementada** (ADR 0042): ZIP com CSV mundial, mensal, desde 2002. **O Brasil para em 2022-12, a Rússia em 2023-03 e a Guiana não aparece** | 4 |
 | Baker Hughes, contagem de sondas | Produção e shale (Médio) | Site sem resposta a acesso automático | 0 (incerteza) |
 | OPEP, Monthly Oil Market Report | Decisões da OPEP+ (Alto); demanda global (Alto) | PDF; links montados por script | 0 (incerteza) |
 | IEA, Oil Market Report | Demanda global (Alto) | 403; assinatura (FEL 1) | Pago |
@@ -87,4 +87,4 @@ foi implementado está no ADR 0040.
 - **JODI:** no arquivo de 2026-09-21, a produção de petróleo (`CRUDEOIL`, `INDPROD`, `KBD`) tem 104 países com valor;
   EUA, Arábia Saudita, Noruega e China até jul/2026; **Brasil até dez/2022, Rússia até mar/2023, Guiana sem dado**.
   Sem agregado mundial. A linha `CONVBBL` é o fator de conversão (barris por tonelada), não produção. O
-  `ASSESSMENT_CODE` 3 ("não avaliado") é a maioria das linhas. Decisão em aberto: ver ADR 0041.
+  `ASSESSMENT_CODE` 3 ("não avaliado") é a maioria das linhas. Produção implementada, autorizada pelo usuário (ADR 0042).

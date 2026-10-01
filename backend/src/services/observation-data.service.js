@@ -14,6 +14,7 @@ const { descreverPaisComex } = require("../shared/utils/comex-pais");
 const { descreverPaisFmi } = require("../shared/utils/fmi-pais");
 const { descreverRegiaoWgc } = require("../shared/utils/wgc-regiao");
 const { descreverUnidadeCecafe } = require("../shared/utils/cecafe-unidade");
+const { descreverPaisJodi } = require("../shared/utils/jodi-pais");
 const { descreverOrigemIce } = require("../shared/utils/ice-origem");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
@@ -113,6 +114,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos uma região ou UF.",
       nota:
         "Cada linha é uma UF, uma macrorregião ou o Brasil, com a estimativa mais recente de cada levantamento mensal da Conab, como publicado (mil t, mil ha e kg/ha). O Brasil e as macrorregiões somam UFs e têm escala maior."
+    }
+  }),
+  "jodi-pais": criarDimensaoRegiao({
+    rotuloModalidade: "País",
+    descreverRegiao: descreverPaisJodi,
+    textos: {
+      titulo: "Países",
+      inativo: "sem dado recente",
+      mostrarInativos: "Mostrar países sem dado recente",
+      semSelecao: "Selecione ao menos um país.",
+      nota:
+        "Cada linha é um país, com a produção de petróleo em mil barris por dia como o país reporta ao JODI. Há lacunas da fonte: o Brasil para em 2022, a Rússia em 2023, e a Guiana não reporta. Não há total mundial, e o FinMind não soma países."
     }
   }),
   "anp-uf": criarDimensaoRegiao({
