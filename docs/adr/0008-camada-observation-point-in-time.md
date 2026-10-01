@@ -55,7 +55,11 @@ sem versão anterior → insere (`revision_seq` 0); **mesmo valor → não escre
 (por isso recoletar a série inteira é idempotente, mesmo quando `published_at`
 é estimado e mudaria a cada coleta); valor diferente → versão nova
 (`revision_seq` + 1). Valor diferente com `published_at` **não posterior** à
-última versão é um conflito que o modelo não representa e vai para `falhas`.
+última versão é comparado com a versão que **valia naquela data**: se for igual, é
+a releitura de algo já guardado e não escreve nada (`ignorados`); se for diferente,
+ou se não havia versão até ali, é um conflito que o modelo não representa e vai
+para `falhas` (regra refinada em 2026-10-01, ADR 0035: antes toda releitura de uma
+edição antiga numa série revisada depois virava falha).
 `revision_seq` é informativo (ordem de inserção); a ordem que vale é `published_at`.
 
 ### `published_at`: real, estimado e o limite conservador

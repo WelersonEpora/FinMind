@@ -77,13 +77,39 @@ function montarVersao(obs, coletadoEm) {
   };
 }
 
+function adicionarAoHistorico(historico, v) {
+  if (!historico.has(v.observed_at)) historico.set(v.observed_at, []);
+  historico.get(v.observed_at).push({ value: v.value, published_at: v.published_at });
+}
+
+// Versões gravadas da série + as planejadas neste mesmo lote (ainda não estão no banco).
+async function carregarHistorico(repo, seriesCode, opcoes, inseridasNaSerie) {
+  const historico = await repo.buscarVersoes(seriesCode, opcoes);
+  for (const v of inseridasNaSerie) adicionarAoHistorico(historico, v);
+  return historico;
+}
+
+// A versão que valia no instante `em`: a de published_at mais recente que não passa dele.
+function versaoVigenteEm(versoes = [], em) {
+  let vigente = null;
+  for (const versao of versoes) {
+    const publicadaEm = new Date(versao.published_at).getTime();
+    if (publicadaEm <= em.getTime() && (!vigente || publicadaEm > new Date(vigente.published_at).getTime())) vigente = versao;
+  }
+  return vigente;
+}
+
 // Escreve um lote de observações. NUNCA atualiza nem apaga: compara com a
 // versão mais recente já guardada de cada (series_code, observed_at):
 //   sem versão anterior      -> insere revision_seq 0            (criados)
 //   mesmo valor              -> não escreve nada                 (ignorados)
 //   valor diferente          -> insere versão nova, seq + 1      (atualizados = revisões)
-// Valor diferente com published_at NÃO posterior à última versão é um
-// conflito que o modelo append-only não representa - vai para `falhas`.
+// Valor diferente com published_at NÃO posterior à última versão:
+//   igual à versão que valia NAQUELA data -> releitura de algo já guardado (ignorados)
+//   diferente, ou sem versão até ali      -> conflito que o modelo append-only não
+//                                            representa (falhas)
+// Ex.: a republicação do WASDE de 2018-12-14 traz os mesmos números da de 11/12, já
+// gravada, mas várias séries foram revisadas depois (ADR 0035).
 async function registrarObservacoes(observacoes, { execucaoId, coletadoEm = new Date() }, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
   const opcoes = { transaction: deps.transaction };
@@ -108,6 +134,9 @@ async function registrarObservacoes(observacoes, { execucaoId, coletadoEm = new 
 
   for (const [seriesCode, versoes] of porSerie) {
     const ultimas = await repo.buscarUltimasVersoes(seriesCode, opcoes);
+    // Histórico completo da série: só carregado no caso raro de um valor anterior à última versão.
+    let historico = null;
+    const inseridasNaSerie = [];
 
     for (const original of versoes) {
       const ultima = ultimas.get(original.observed_at);
@@ -128,6 +157,8 @@ async function registrarObservacoes(observacoes, { execucaoId, coletadoEm = new 
       if (!ultima) {
         paraInserir.push({ ...v, id: randomUUID(), revision_seq: 0, collection_execution_id: execucaoId });
         ultimas.set(v.observed_at, { value: v.value, published_at: v.published_at, revision_seq: 0 });
+        inseridasNaSerie.push(v);
+        if (historico) adicionarAoHistorico(historico, v);
         criados += 1;
         continue;
       }
@@ -138,6 +169,12 @@ async function registrarObservacoes(observacoes, { execucaoId, coletadoEm = new 
       }
 
       if (v.published_at.getTime() <= new Date(ultima.published_at).getTime()) {
+        if (!historico) historico = await carregarHistorico(repo, seriesCode, opcoes, inseridasNaSerie);
+        const vigente = versaoVigenteEm(historico.get(v.observed_at), v.published_at);
+        if (vigente && mesmoValor(vigente.value, v.value)) {
+          ignorados += 1;
+          continue;
+        }
         falhas.push({
           item: v,
           motivo: `Valor diferente (${ultima.value} → ${v.value}) com published_at (${v.published_at.toISOString()}) não posterior à última versão (${new Date(ultima.published_at).toISOString()}).`
@@ -148,6 +185,8 @@ async function registrarObservacoes(observacoes, { execucaoId, coletadoEm = new 
       const revisionSeq = Number(ultima.revision_seq) + 1;
       paraInserir.push({ ...v, id: randomUUID(), revision_seq: revisionSeq, collection_execution_id: execucaoId });
       ultimas.set(v.observed_at, { value: v.value, published_at: v.published_at, revision_seq: revisionSeq });
+      inseridasNaSerie.push(v);
+      if (historico) adicionarAoHistorico(historico, v);
       atualizados += 1;
     }
   }

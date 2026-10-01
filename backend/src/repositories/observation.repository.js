@@ -96,6 +96,26 @@ async function buscarUltimasVersoes(seriesCode, { transaction } = {}) {
   return new Map(linhas.map((l) => [l.observed_at, l]));
 }
 
+// TODAS as versões de uma série, em ordem de publicação, por observed_at. Só para o caso raro em que chega um valor
+// com published_at anterior à última versão: o serviço precisa saber o que valia NAQUELA data (releitura de uma edição
+// antiga com o mesmo valor não é conflito). Não é chamada na escrita comum.
+async function buscarVersoes(seriesCode, { transaction } = {}) {
+  const linhas = await sequelize.query(
+    `SELECT observed_at, value, published_at
+       FROM observation
+      WHERE series_code = :seriesCode
+      ORDER BY observed_at, published_at`,
+    { replacements: { seriesCode }, type: QueryTypes.SELECT, transaction }
+  );
+
+  const porData = new Map();
+  for (const l of linhas) {
+    if (!porData.has(l.observed_at)) porData.set(l.observed_at, []);
+    porData.get(l.observed_at).push(l);
+  }
+  return porData;
+}
+
 // Pares (série, instante de publicação) já gravados para uma fonte: permite a um coletor de fonte em
 // EDIÇÕES (ex.: WASDE) saber quais séries já têm carga e quais edições já foram ingeridas, sem reler o
 // histórico. Só leitura.
@@ -257,4 +277,4 @@ async function resumirSeries(seriesCodes, { transaction } = {}) {
   );
 }
 
-module.exports = { TAMANHO_MAXIMO, inserirVersoes, buscarUltimasVersoes, listarSeriesEInstantes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, listarUltimasDatasItens, resumirSeries };
+module.exports = { TAMANHO_MAXIMO, inserirVersoes, buscarUltimasVersoes, buscarVersoes, listarSeriesEInstantes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, listarUltimasDatasItens, resumirSeries };

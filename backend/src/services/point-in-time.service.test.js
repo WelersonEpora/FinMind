@@ -29,6 +29,16 @@ function criarRepoFake() {
       }
       return mapa;
     },
+    chamadasBuscarVersoes: 0,
+    async buscarVersoes(seriesCode) {
+      this.chamadasBuscarVersoes += 1;
+      const porData = new Map();
+      for (const l of linhas.filter((x) => x.series_code === seriesCode)) {
+        if (!porData.has(l.observed_at)) porData.set(l.observed_at, []);
+        porData.get(l.observed_at).push(l);
+      }
+      return porData;
+    },
     async inserirVersoes(versoes) {
       let inseridas = 0;
       for (const v of versoes) {
@@ -185,6 +195,71 @@ test("valor diferente com published_at não posterior à última versão vira fa
   assert.equal(repo.linhas.length, 1);
 });
 
+const T_MEIO = new Date("2026-05-20T12:00:00Z");
+const T2 = new Date("2026-09-20T12:00:00Z");
+
+test("reler uma edição antiga com o valor que valia NAQUELA data é ignorado, não falha (ADR 0035)", async () => {
+  const repo = criarRepoFake();
+  await registrarObservacoes([obs({ value: 10, published_at: T0 })], { execucaoId: "e1", coletadoEm: T0 }, { observationRepository: repo });
+  await registrarObservacoes([obs({ value: 12, published_at: T1 })], { execucaoId: "e2", coletadoEm: T1 }, { observationRepository: repo });
+  // republicação entre as duas (ex.: WASDE 2018-12-14): o mesmo número da versão de T0, que valia em T_MEIO
+  const r = await registrarObservacoes([obs({ value: 10, published_at: T_MEIO })], { execucaoId: "e3", coletadoEm: T2 }, { observationRepository: repo });
+
+  assert.deepEqual([r.criados, r.atualizados, r.ignorados, r.falhas.length], [0, 0, 1, 0]);
+  assert.equal(repo.linhas.length, 2);
+});
+
+test("valor antigo DIFERENTE do que valia naquela data continua sendo falha", async () => {
+  const repo = criarRepoFake();
+  await registrarObservacoes([obs({ value: 10, published_at: T0 })], { execucaoId: "e1", coletadoEm: T0 }, { observationRepository: repo });
+  await registrarObservacoes([obs({ value: 12, published_at: T1 })], { execucaoId: "e2", coletadoEm: T1 }, { observationRepository: repo });
+  const r = await registrarObservacoes([obs({ value: 11, published_at: T_MEIO })], { execucaoId: "e3", coletadoEm: T2 }, { observationRepository: repo });
+
+  assert.equal(r.falhas.length, 1);
+  assert.match(r.falhas[0].motivo, /não posterior/);
+  assert.equal(repo.linhas.length, 2);
+});
+
+test("republicação no MESMO instante com outro valor continua sendo falha (não há duas versões no mesmo published_at)", async () => {
+  const repo = criarRepoFake();
+  await registrarObservacoes([obs({ value: 10, published_at: T0 })], { execucaoId: "e1", coletadoEm: T0 }, { observationRepository: repo });
+  const r = await registrarObservacoes([obs({ value: 11, published_at: T0 })], { execucaoId: "e2", coletadoEm: T1 }, { observationRepository: repo });
+
+  assert.equal(r.falhas.length, 1);
+  assert.equal(repo.linhas.length, 1);
+});
+
+test("no mesmo lote, a versão vigente considera também o que acabou de ser planejado (ainda fora do banco)", async () => {
+  const repo = criarRepoFake();
+  const r = await registrarObservacoes(
+    [obs({ value: 10, published_at: T0 }), obs({ value: 12, published_at: T1 }), obs({ value: 10, published_at: T_MEIO })],
+    { execucaoId: "e1", coletadoEm: T2 },
+    { observationRepository: repo }
+  );
+
+  assert.deepEqual([r.criados, r.atualizados, r.ignorados, r.falhas.length], [1, 1, 1, 0]);
+  assert.equal(repo.linhas.length, 2);
+});
+
+test("o histórico da série só é lido no caso raro (valor anterior à última versão), uma vez por série", async () => {
+  const repo = criarRepoFake();
+  await registrarObservacoes(
+    [obs({ value: 10, published_at: T0 }), obs({ observed_at: "2026-04-01", value: 5, published_at: T0 })],
+    { execucaoId: "e1", coletadoEm: T0 },
+    { observationRepository: repo }
+  );
+  await registrarObservacoes([obs({ value: 12, published_at: T1 })], { execucaoId: "e2", coletadoEm: T1 }, { observationRepository: repo });
+  await registrarObservacoes([obs({ value: 12, published_at: T1 })], { execucaoId: "e3", coletadoEm: T2 }, { observationRepository: repo });
+  assert.equal(repo.chamadasBuscarVersoes, 0);
+
+  await registrarObservacoes(
+    [obs({ value: 10, published_at: T_MEIO }), obs({ value: 10, published_at: new Date("2026-06-01T12:00:00Z") })],
+    { execucaoId: "e4", coletadoEm: T2 },
+    { observationRepository: repo }
+  );
+  assert.equal(repo.chamadasBuscarVersoes, 1);
+});
+
 test("item inválido não aborta o lote", async () => {
   const repo = criarRepoFake();
   const r = await registrarObservacoes(
@@ -206,6 +281,7 @@ test("o repository não expõe nenhuma operação de update/delete", () => {
     "buscarHistoricoAtual",
     "buscarMaisRecente",
     "buscarUltimasVersoes",
+    "buscarVersoes",
     "inserirVersoes",
     "listarItens",
     "listarSeriesEInstantes",

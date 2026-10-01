@@ -178,3 +178,21 @@ test("sem published_at: cai em collected_at, estimado, e não duplica ao recolet
   assert.equal(linhas[0].publishedAtIsEstimated, true);
   assert.equal(linhas[0].publishedAt.toISOString(), "2026-07-02T10:00:00.000Z");
 });
+
+test("releitura de edição antiga: igual ao que valia na data → ignorado; diferente → falha (SQL do buscarVersoes)", opcoes, async () => {
+  const SERIE_D = "TESTE.PIT.RELEITURA";
+  const o = (value, publishedAt) => ({ series_code: SERIE_D, observed_at: "2026-02-01", value, unit: "PCT", source_code: "TESTE", published_at: D(publishedAt) });
+  await registrar([o(10, "2026-03-10T16:00:00Z")], D("2026-03-10T16:05:00Z"));
+  await registrar([o(12.5, "2026-08-15T16:00:00Z")], D("2026-08-15T16:05:00Z"));
+
+  const igual = await registrar([o(10, "2026-05-20T16:00:00Z")], D("2026-09-01T00:00:00Z"));
+  assert.deepEqual([igual.criados, igual.atualizados, igual.ignorados, igual.falhas.length], [0, 0, 1, 0]);
+
+  const diferente = await registrar([o(11, "2026-05-20T16:00:00Z")], D("2026-09-01T00:00:00Z"));
+  assert.equal(diferente.falhas.length, 1);
+
+  const linhas = await sequelize.query("SELECT COUNT(*) AS n FROM observation WHERE series_code = :s", {
+    replacements: { s: SERIE_D }, type: sequelize.QueryTypes.SELECT, transaction
+  });
+  assert.equal(Number(linhas[0].n), 2, "nada novo gravado");
+});

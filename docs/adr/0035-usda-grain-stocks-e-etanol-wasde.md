@@ -82,11 +82,40 @@ aquisição de dados**: medir os fatores é trabalho do David (decisão do usuá
 | Etanol (`backfill:wasde-milho -- --anosPorBloco=99`) | `ETHANOL_BYPRODUCTS`: 154 linhas, 19 safras, desde 2011-04-08; `ETHANOL_FUEL`: 4 linhas, 3 safras, jan e fev/2011 |
 
 **Achado na carga do etanol, anterior a ela:** a listagem do ESMIS tem duas edições de dezembro de 2018, a de
-2018-12-11 (já gravada) e a de **2018-12-14**, com cabeçalho de dezembro e valores diferentes (área plantada de 2018:
-89,1 contra 88,9). A carga de 2026-09-21 não gravou a de 14/12. Ao reler, o serviço point-in-time recusou os valores
+2018-12-11 (já gravada) e a de **2018-12-14**, com cabeçalho de dezembro e, à primeira vista, valores diferentes
+(área plantada de 2018: 89,1 contra 88,9; leitura errada, corrigida abaixo). A carga de 2026-09-21 não gravou a de 14/12. Ao reler, o serviço point-in-time recusou os valores
 dela para as séries já carregadas, porque são anteriores a versões já gravadas (o append-only não insere versão no
 meio da sequência): **227 falhas, nada sobrescrito**, e a execução terminou como "parcial". O etanol, série nova,
-recebeu essa edição normalmente. O que é a edição de 14/12 não foi investigado.
+recebeu essa edição normalmente.
+
+**Investigado em 2026-10-01: a edição de 14/12 é uma republicação da 584 que não muda nada do milho, e nada se
+perdeu.** Evidências (os dois XLS baixados do ESMIS e comparados célula a célula):
+
+- O arquivo de 14/12 tem a **mesma data de criação** do de 11/12 (2018-12-11 15:41:53Z) e foi modificado em
+  2018-12-14 16:52:59Z, por outra pessoa da equipe do WASDE: é o mesmo arquivo, editado.
+- Entre os dois, **só 2 células diferem**, as duas na página 33 (balanço do **leite**, base gordura): exportação
+  comercial de 11,0 para 10,0 e uso doméstico de 215,3 para 216,3, na projeção de 2019. Nada do milho.
+- Pelo parser do coletor, os **420 valores do milho são idênticos** nas duas edições. Por isso a carga de
+  2026-09-21 "não gravou" a de 14/12: era o mesmo valor (ignorado), como manda o append-only.
+- O "88,9" citado acima não é da edição de 14/12: é a revisão de **2020-01-10** da área plantada de 2018 (as versões
+  gravadas são 88,0 em 2018-05-10, 89,1 em 2018-07-12 e 88,9 em 2020-01-10).
+- As **227 recusas** são exatamente os valores da edição (iguais aos de 11/12) cuja série recebeu uma versão
+  **posterior** diferente; os outros 193 são iguais à última versão e foram ignorados. Ou seja: são falhas espúrias de
+  releitura, o mesmo mecanismo da ressalva do IMEA (ADR 0019), não um conflito real. `asOf()` em qualquer data de
+  dezembro de 2018 devolve o número certo.
+
+**Correção no serviço point-in-time (2026-10-01, autorizada pelo usuário).** Um valor com `published_at` anterior à
+última versão passou a ser comparado com a versão que **valia naquela data** (`buscarVersoes` no repositório, lido só
+nesse caso e uma vez por série): igual é releitura (ignorado); diferente, ou sem versão até ali, segue sendo falha. O
+append-only não muda e nada novo é gravado: a mudança só reclassifica o que já não era escrito. Validação em dev:
+
+| Execução | Serviço antigo | Serviço novo |
+|---|---|---|
+| `backfill:wasde-milho` repetido | bloco 2016–2020 "parcial", 227 falhas | 4 blocos, 0 criados, 0 revisões, **0 falhas** (o bloco 2011–2015 segue "parcial" pela edição de 2014-01-23 sem XLS, ADR 0015) |
+| `backfill:imea-oferta-demanda` repetido | 3 blocos "parcial", 256 falhas | 3 blocos em `success`, 0 falhas |
+
+Testes: 5 casos novos no serviço e 1 no teste de integração (SQL real, com rollback). Não exige rodar nenhum backfill no
+servidor: o dado gravado não muda.
 
 ## Consequências e limitações
 

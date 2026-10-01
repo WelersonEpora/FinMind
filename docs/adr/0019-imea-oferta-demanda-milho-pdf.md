@@ -153,7 +153,9 @@ por algum motivo, as "falhas" resultantes são ruído de log, não perda de dado
   "mesmo valor" da 1ª rodada, sem linha própria, reenviadas fora de ordem) — sem corromper dado, o
   serviço point-in-time recusa a escrita em vez de gravar errado. Mecanismo compartilhado com
   WASDE/Conab, não corrigido nesta ADR (decisão do usuário: documentar como limitação conhecida). Na
-  prática, não repetir um backfill que já terminou em `success`.
+  prática, não repetir um backfill que já terminou em `success`. **Corrigido em 2026-10-01 (ADR 0035)**:
+  o serviço passou a comparar a releitura com a versão que valia na data dela; repetir o backfill em dev
+  deu 0 falhas e 3 blocos em `success` (com o serviço antigo, na mesma hora: as mesmas 256 falhas).
 - **Sem API nem dicionário de dados** (mesmo risco do resto do IMEA/WASDE/Conab): uma mudança de
   layout do PDF quebra o coletor com falha clara (âncora ou cabeçalho não encontrado vira inválido
   explícito), não grava errado.
