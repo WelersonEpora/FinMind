@@ -11,6 +11,23 @@ const { ITENS_CUSTO } = require("../collectors/imea/imea-custo-itens");
 // (Irã, Egito, Vietnã, Arábia Saudita e China, nesta ordem, no banco de dev em 2026-10-01).
 const ITENS_PADRAO_MILHO_DESTINO = ["372", "240", "858", "053", "160"];
 
+// Partes comuns dos 3 cards do resumo diário do Cecafé (ADR 0038): os tipos de café no seletor de métrica.
+const CAMPOS_CECAFE = [
+  { codigo: "TOTAL", nome: "Total", unidade: "sacas 60 kg", casasDecimais: 0 },
+  { codigo: "ARABICA", nome: "Arábica", unidade: "sacas 60 kg", casasDecimais: 0 },
+  { codigo: "CONILON", nome: "Conilon", unidade: "sacas 60 kg", casasDecimais: 0 },
+  { codigo: "SOLUVEL", nome: "Solúvel", unidade: "sacas 60 kg", casasDecimais: 0 }
+];
+
+const FONTE_DETALHE_CECAFE = {
+  metodologia:
+    "Um valor por mês (o dia da observação é o 1º do mês): o acumulado que o Cecafé informa, com a data \"Informações recebidas até\" da página como data de disponibilidade (fim do dia, horário não informado). Cada dia em que o acumulado muda vira uma versão nova: o histórico de versões guarda a evolução diária. A página mostra só o mês atual e o anterior, então o histórico começa na 1ª coleta (2026-10-01). Não gravados: o movimento do dia (é a diferença entre duas versões) e a coluna \"Mês Anterior\" da página (é um comparativo parcial, diferente do fechamento do mês). Os números do Cecafé não são os do Comex Stat: medem etapas diferentes da exportação.",
+  escopo:
+    "café verde e solúvel, por unidade de despacho ou embarque, desde a 1ª coleta. Não coletados: os relatórios mensais em PDF (o robots.txt do Cecafé os proíbe a robôs) e o IPEP. A página de termos de uso do Cecafé está vazia; citar a fonte.",
+  formatoOrigem: "HTML (tabelas da página do resumo diário, raspadas)",
+  urlOficial: "https://www.cecafe.com.br/dados-estatisticos/exportacoes-brasileiras/resumo-diario/"
+};
+
 // Partes comuns dos cards do WASDE (milho): série anual, uma edição mensal, valores como publicados.
 const BASE_WASDE_MILHO = {
   origem: "observation",
@@ -312,6 +329,86 @@ const CATALOGO_OBSERVAVEIS = [
       escopo: "só o ouro das reservas, setor das autoridades monetárias. Não coletados: as demais linhas do IRFCL (moedas, DES, posição no FMI) e o ouro fora das reservas.",
       formatoOrigem: "JSON (API SDMX 3.0 do FMI, sem chave)",
       urlOficial: "https://data.imf.org"
+    }
+  },
+  // --- Cecafé - resumo diário das exportações de café (ADR 0038): um card por indicador ---
+  // Séries `CECAFE.<INDICADOR>.<UNIDADE>.<TIPO>`: a unidade é o item, o tipo de café é a métrica.
+  {
+    instrumentCode: "CAFE_CECAFE_CERTIFICADOS",
+    origem: "observation",
+    nome: "Café - exportação: certificados de origem (Cecafé)",
+    unidade: "sacas 60 kg",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    // O mês corrente aparece desde os primeiros dias e é atualizado todo dia útil: o último ponto tem no máximo ~1 mês.
+    toleranciaDias: 40,
+    fonte: "Cecafé - resumo diário das exportações",
+    fonteCollectorCode: "cecafe-resumo-diario",
+    porRegiao: {
+      prefixoSerie: "CECAFE.CERTIFICADOS",
+      campoReferencia: "TOTAL",
+      itemPrincipal: "TOTAL",
+      itensPadrao: ["TOTAL", "SANTOS", "VITORIA", "RIO_DE_JANEIRO"],
+      descritor: "cecafe-unidade"
+    },
+    campoPrincipal: "TOTAL",
+    campos: CAMPOS_CECAFE,
+    fonteDetalhe: {
+      descricao:
+        "Emissão de certificados de origem: a intenção de exportar, registrada antes do embarque (o indicador mais antecipado). Acumulado do mês, por unidade e por tipo de café (arábica, conilon e solúvel separados, o que o Comex Stat não faz), em sacas de 60 kg, como o Cecafé publica no resumo diário. O mês corrente é parcial.",
+      ...FONTE_DETALHE_CECAFE
+    }
+  },
+  {
+    instrumentCode: "CAFE_CECAFE_DESPACHOS",
+    origem: "observation",
+    nome: "Café - exportação: despachos aduaneiros (Cecafé)",
+    unidade: "sacas 60 kg",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    // O mês corrente aparece desde os primeiros dias e é atualizado todo dia útil: o último ponto tem no máximo ~1 mês.
+    toleranciaDias: 40,
+    fonte: "Cecafé - resumo diário das exportações",
+    fonteCollectorCode: "cecafe-resumo-diario",
+    porRegiao: {
+      prefixoSerie: "CECAFE.DESPACHOS",
+      campoReferencia: "TOTAL",
+      itemPrincipal: "TOTAL",
+      itensPadrao: ["TOTAL", "SANTOS", "VITORIA", "RIO_DE_JANEIRO"],
+      descritor: "cecafe-unidade"
+    },
+    campoPrincipal: "TOTAL",
+    campos: CAMPOS_CECAFE,
+    fonteDetalhe: {
+      descricao:
+        "Café despachado na aduana, por unidade de despacho. Acumulado do mês, por unidade e por tipo de café (arábica, conilon e solúvel separados, o que o Comex Stat não faz), em sacas de 60 kg, como o Cecafé publica no resumo diário. O mês corrente é parcial.",
+      ...FONTE_DETALHE_CECAFE
+    }
+  },
+  {
+    instrumentCode: "CAFE_CECAFE_EMBARQUES",
+    origem: "observation",
+    nome: "Café - exportação: embarques (Cecafé)",
+    unidade: "sacas 60 kg",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    // O mês corrente aparece desde os primeiros dias e é atualizado todo dia útil: o último ponto tem no máximo ~1 mês.
+    toleranciaDias: 40,
+    fonte: "Cecafé - resumo diário das exportações",
+    fonteCollectorCode: "cecafe-resumo-diario",
+    porRegiao: {
+      prefixoSerie: "CECAFE.EMBARQUES",
+      campoReferencia: "TOTAL",
+      itemPrincipal: "TOTAL",
+      itensPadrao: ["TOTAL", "SANTOS", "VITORIA", "RIO_DE_JANEIRO"],
+      descritor: "cecafe-unidade"
+    },
+    campoPrincipal: "TOTAL",
+    campos: CAMPOS_CECAFE,
+    fonteDetalhe: {
+      descricao:
+        "Café embarcado, por unidade de embarque marítimo ou rodoviário. Acumulado do mês, por unidade e por tipo de café (arábica, conilon e solúvel separados, o que o Comex Stat não faz), em sacas de 60 kg, como o Cecafé publica no resumo diário. O mês corrente é parcial.",
+      ...FONTE_DETALHE_CECAFE
     }
   },
   // --- World Gold Council - ouro em ETFs (semanal) e oferta e demanda (trimestral), ADR 0037 (licença: risco aceito) ---

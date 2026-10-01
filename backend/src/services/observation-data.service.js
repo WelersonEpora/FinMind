@@ -13,6 +13,7 @@ const { descreverPaisPsd } = require("../shared/utils/psd-pais");
 const { descreverPaisComex } = require("../shared/utils/comex-pais");
 const { descreverPaisFmi } = require("../shared/utils/fmi-pais");
 const { descreverRegiaoWgc } = require("../shared/utils/wgc-regiao");
+const { descreverUnidadeCecafe } = require("../shared/utils/cecafe-unidade");
 const { descreverOrigemIce } = require("../shared/utils/ice-origem");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
 
@@ -184,6 +185,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos uma região.",
       nota:
         "Cada linha é o ouro guardado pelos ETFs de uma região, semana a semana (toneladas ou US$ milhões), como o World Gold Council publica. O FinMind não soma as regiões. A Ásia só tem ETF de ouro desde 2007."
+    }
+  }),
+  "cecafe-unidade": criarDimensaoRegiao({
+    rotuloModalidade: "Unidade",
+    descreverRegiao: descreverUnidadeCecafe,
+    textos: {
+      titulo: "Unidades",
+      inativo: "sem dado recente",
+      mostrarInativos: "Mostrar unidades sem dado recente",
+      semSelecao: "Selecione ao menos uma unidade.",
+      nota:
+        "Cada linha é uma unidade (porto ou recinto) ou o total, com o acumulado do mês em sacas de 60 kg, como o Cecafé publica. O mês corrente é parcial: o valor cresce a cada dia, e cada dia fica guardado como uma versão."
     }
   }),
   "ice-origem": criarDimensaoRegiao({
