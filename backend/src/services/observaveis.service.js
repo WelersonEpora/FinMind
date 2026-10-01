@@ -1309,6 +1309,35 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
+  // --- FMI - preço mensal do café (arábica e robusta), pelo ALFRED, com todas as versões (ADR 0045) ---
+  {
+    instrumentCode: "CAFE_PRECO_FMI",
+    origem: "observation",
+    nome: "Café - preço mensal do FMI (arábica e robusta)",
+    unidade: "US¢/lb",
+    casasDecimais: 2,
+    frequencia: "MENSAL",
+    // A 1ª versão de um mês chega ao FRED ~47 dias depois do 1º dia dele (mediana desde 2015) e a do mês seguinte, um
+    // mês depois: o último mês fica até ~80 dias sem sucessor. O FRED já passou meses sem atualizar (192 dias em 2025).
+    toleranciaDias: 100,
+    fonte: "FMI - Primary Commodity Prices (pelo ALFRED)",
+    fonteCollectorCode: "fred-cafe-fmi",
+    porCampo: { prefixoSerie: "FRED" },
+    campoPrincipal: "PCOFFOTMUSDM",
+    campos: [
+      { codigo: "PCOFFOTMUSDM", nome: "Arábica (Other Mild Arabica)", unidade: "US¢/lb", casasDecimais: 2 },
+      { codigo: "PCOFFROBUSDM", nome: "Robusta", unidade: "US¢/lb", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Preço mensal do café do FMI (Primary Commodity Prices): o arábica (\"Other Mild Arabica\") e o robusta, em centavos de dólar por libra-peso, média do mês, o preço de referência do maior exportador de cada tipo. Valores como publicados, sem conversão.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês), desde jan/1992. O preço é revisado (530 de 559 meses do arábica têm mais de uma versão): vem do ALFRED, o arquivo de versões do FRED, cada versão na data em que chegou ao FRED (versões desde 06/11/2015; os meses anteriores entram com a data dessa versão, um limite superior). O FRED atualiza a série de forma irregular (já ficou 706 dias sem atualizar, entre 2017 e 2019): a data é quando o dado ficou disponível pelo FRED, não quando o FMI publicou. Os meses de 1980 a 1991, retirados da série atual, não são gravados. Mensal: serve para ciclos longos, não para regras diárias (o preço diário é o futuro ICF da B3). Licença: \"Copyright © 2016, International Monetary Fund. Reprinted with permission\" (termos do FMI não lidos). Uso atual: pesquisa interna (ADR 0045).",
+      formatoOrigem: "API REST do FRED/ALFRED (com chave; sem reserva)",
+      urlOficial: "https://www.imf.org/en/Research/commodity-prices"
+    }
+  },
+
   // --- ICE Futures U.S. - estoques certificados do café "C", diário desde 2016-01-04 (ADR 0032) ---
   {
     instrumentCode: "ICE_CAFE_ESTOQUES",

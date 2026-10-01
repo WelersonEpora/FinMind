@@ -39,3 +39,16 @@ economias avançadas (`DTWEXAFEGS`). Só o que muda em relação às 11 resposta
 | 8 | `published_at` | CPI: **real**, a data de cada versão do ALFRED (949 de 949 iguais ao calendário do release 10). Moedas e `DTWEXAFEGS`: segunda seguinte (H.10). Meta: o próprio dia | ADR 0033 |
 | 10 | Licença | Mesma origem das séries já lidas (Board of Governors do Fed; o CPI é do BLS, governo dos EUA). A página de cada série nova **não foi lida**: confirmar antes de exibir a terceiros. Uso interno | — |
 | 11 | Riscos técnicos | O CPI só vem pela API (o ALFRED exige chave): sem `FRED_API_KEY`, não é coletado. O CPI mudou de base em fev/1988: as versões anteriores estão em 1967 = 100 | ADR 0033 |
+
+## Preço mensal do café do FMI, acrescentado em 2026-10-01 (ADR 0045)
+
+`PCOFFOTMUSDM` (arábica, "Other Mild Arabica") e `PCOFFROBUSDM` (robusta), do release 365 ("Primary Commodity
+Prices", do FMI), pelo ALFRED, como o CPI. Só o que muda em relação às respostas acima (evidência completa no ADR 0045):
+
+| # | Pergunta | Resposta | Evidência |
+|---|---|---|---|
+| 6 | Histórico | 1992-01 em diante, mensal (US¢/lb, média do mês). Os meses de 1980 a 1991 estavam nas versões antigas e foram retirados da série atual | ADR 0045 |
+| 7 | Revisões (vintage) | **Revisa:** 530 de 559 meses do arábica têm mais de uma versão (91 versões desde 2015-11-06) | ADR 0045 |
+| 8 | `published_at` | A data de cada versão no ALFRED, que é quando chegou ao FRED, não quando o FMI publicou: o FRED já ficou 706 dias sem atualizar a série (2017 a 2019). Mediana de 47 dias depois do 1º do mês, desde 2015 | ADR 0045 |
+| 10 | Licença | "Copyright © 2016, International Monetary Fund. Reprinted with permission" (nota da série); os termos do FMI não foram lidos. Uso interno | ADR 0045 |
+| 11 | Riscos técnicos | Só pela API (o ALFRED exige chave). A data atrasa nos intervalos em que o FRED não atualiza. Fonte própria (`FRED_ALFRED_FMI`), separada da do CPI | ADR 0045 |

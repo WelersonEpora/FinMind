@@ -21,8 +21,8 @@ Observáveis. As fontes fundamentais gratuitas de milho e ouro que faltavam fora
 a 0037 e 0039). No mesmo dia a LBMA fechou o feed público do preço do ouro: o preço diário passou a ser o futuro de
 ouro em dólar da B3 (GLD, desde 2025-07-21), e se ele serve de referência é decisão do David (ADR 0044). O **café** completou os 4 passos da onda (posição dos fundos, exportação,
 futuro ICF da B3, safra da Conab, clima pela NOAA STAR, balanço por país do USDA, estoques certificados da ICE e
-resumo diário do Cecafé: ADRs 0028 a 0032 e 0038, §3) e o custo de produção da Conab (ADR 0043; o preço mínimo exige
-reCAPTCHA). O **petróleo** começou em 2026-10-01: estoques, produção, refino e
+resumo diário do Cecafé: ADRs 0028 a 0032 e 0038, §3), o custo de produção da Conab (ADR 0043; o preço mínimo exige
+reCAPTCHA) e o preço mensal do FMI, desde 1992 (ADR 0045). O **petróleo** começou em 2026-10-01: estoques, produção, refino e
 preço à vista diário da EIA (WTI desde 1986), a posição dos fundos no WTI (ADR 0040), a produção do Brasil por UF da
 ANP (ADR 0041) e a produção por país do JODI (ADR 0042); a Baker Hughes não respondeu (§3). **Nada interpreta esses dados ainda** — motor analítico, IA,
 sinais, backtest e execução de ordens seguem como contratos vazios, à espera
@@ -84,6 +84,7 @@ Evidências e ressalvas de cada fonte: no ADR apontado na coluna Status (o ADR 0
 | World Gold Council (Goldhub) | API JSON interna dos gráficos (sem login, sem documentação) | Ouro em ETFs por região (toneladas e US$ milhões), semanal; e o balanço trimestral de oferta e demanda (17 linhas: bancos centrais com o não declarado, ETFs, barras e moedas, joalheria, tecnologia, produção das minas, reciclagem, hedge), em toneladas: os fatores do ouro de ETFs, bancos centrais e mineração | ETFs **desde 2003-02-28**; balanço **desde o 1º tri/2010** (10.454 valores em dev) | **Não informado**: vale a data da coleta | ⚠️ **Licença só pessoal e não comercial: uso interno, risco aceito pelo usuário** (pedir permissão ao WGC antes de uso comercial). Validado em dev em 2026-10-01: 0 falhas, reexecução idempotente; **no servidor no mesmo dia** (9.332 + 1.122 criados, 0 falhas, informado pelo usuário) — ADR 0037 |
 | FRED | API REST (JSON, com chave); CSV de reserva | DGS10, T10YIE, DFII10, DTWEXBGS; desde 2026-10-01, para o ouro: DTWEXAFEGS (dólar contra as economias avançadas), as 6 moedas da cesta do DXY e a meta do Fed (faixa e alvo único) | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS e DTWEXAFEGS 2006; moedas 1971 (euro 1999); meta desde 1982-09-27 | Estimado (meta: o próprio dia) | ✅ Coleta pela API, CSV de reserva — ADR 0012. Vintage real (ALFRED) provado via teste — ADR 0011. Séries novas validadas em dev em 2026-10-01 (0 falhas, reexecução idempotente) e **coletadas no servidor no mesmo dia** (coleta manual, informado pelo usuário) — ADR 0033 |
 | FRED (ALFRED) — CPI dos EUA | API REST (JSON, com chave; sem reserva) | CPI cheio e núcleo com ajuste sazonal, e cheio sem ajuste (BLS), **com todas as versões** | Cheio desde 1947 (sem ajuste: 1913), núcleo desde 1957; versões desde 1972, 1996 e 1949 | **Real** (data de cada versão: 949 de 949 iguais ao calendário do release do BLS); limite superior antes da 1ª versão | ✅ Validado em dev em 2026-10-01: 7.834 linhas, 4.681 revisões, 0 falhas, reexecução idempotente; **no servidor no mesmo dia** (informado pelo usuário). Mudou de base em fev/1988 — ADR 0033 |
+| FRED (ALFRED) — preço mensal do café do FMI | API REST (JSON, com chave; sem reserva) | Preço do café arábica ("Other Mild Arabica") e robusta do FMI (Primary Commodity Prices), US¢/lb, média do mês, **com todas as versões**: 1 card | **Desde 1992-01** (415 meses); versões desde 2015-11-06. Os meses de 1980 a 1991 foram retirados da série atual (não gravados) | **Real, do FRED** (data de cada versão), não do FMI: o FRED já ficou 706 dias sem atualizar; limite superior antes da 1ª versão e nos atrasos | ✅ Validado em dev em 2026-10-01: 830 criados e 765 revisões, 0 falhas, 2 avisos (meses retirados), reexecução idempotente; o valor atual dos 415 meses igual ao CSV do FRED. No servidor, a 1ª coleta diária depois do deploy é a carga — ADR 0045 |
 | LBMA | Feed JSON público (não documentado) | Ouro PM (USD/oz) | De 1968 a 2026-09-30 | Estimado | ⛔ **Coleta encerrada em 2026-10-01**: o feed fechou (403; histórico só no portal MyLBMA, com licença da IBA). O histórico continua no card, marcado "Encerrada" — ADR 0044 |
 | CFTC COT | API Socrata (JSON) | Ouro, milho, café (Coffee C da ICE, desde 2026-09-28) e petróleo WTI (NYMEX, desde 2026-10-01): open interest, MM long/short | Desde 2006 | Real desde 2022-08; estimado antes | ✅ Café: ADR 0028. Petróleo: 3.177 valores em dev e no servidor (2026-10-01), 0 falhas, reexecução idempotente — ADR 0040 |
 | USDA NASS | API QuickStats (JSON, com chave) | Crop Progress do milho (12 séries) | Desde 1980 (piso real da API; cada série começa no seu ano) | Estimado (regra não validada p/ 1980–2005) | ✅ Validado em 2026-09-21 (6.758 linhas); histórico 1980+ já carregado no servidor (informado pelo usuário) |
@@ -139,6 +140,7 @@ está na coluna "Depende de", não no nível:
 | FMI — ouro nas reservas dos bancos centrais (IRFCL) | 4 | **Sem data de publicação nem versões** (vintage desde a 1ª coleta). **Volume em unidade errada em 3 países** (Brasil desde mar/2026, Angola, Chile), marcado pela conferência de preço implícito; valor em US$ contábil em EUA e Arábia Saudita. Sem total mundial. Licença lida só por trechos; restrição a download em massa automatizado (risco aceito) — ADR 0036 | Só se o uso virar comercial (decisão do usuário, 2026-10-01: uso pessoal, licenças adiadas) |
 | World Gold Council (ETFs, demanda e oferta) | 4 | **Licença só pessoal e não comercial: uso interno, risco aceito pelo usuário (2026-10-01)**. API interna sem documentação nem contrato; sem data de publicação nem versões (vintage desde a 1ª coleta) — ADR 0037 | Pedir permissão ao WGC antes de uso comercial |
 | FRED | 5 | Licença lida: 3 de 4 séries domínio público c/ citação; `T10YIE` não confirmada; as séries de 2026-10-01 (moedas, meta do Fed, CPI) têm a mesma origem, página não lida (a `T10YIE` é calculada pelo próprio St. Louis Fed, pela API). **Adiada** (uso interno). Nenhuma das séries é o DXY (licenciado): remontá-lo pelas 6 moedas é um cálculo, a decidir pelo David. O CPI só vem pela API (ALFRED) — ADR 0033 | Só se o uso virar comercial (decisão do usuário, 2026-10-01: uso pessoal, licenças adiadas) |
+| FRED (ALFRED) — café do FMI | 5 | **Mensal** (ciclos longos, não regras diárias). A data é a de chegada ao FRED, que atualiza a série de forma irregular (706 dias parado entre 2017 e 2019; 192 dias em 2025): 42 de 129 meses chegaram mais de 60 dias depois do mês. Histórico anterior a 1992 retirado pela fonte. Licença do FMI não lida — ADR 0045 | Só se o uso virar comercial |
 | LBMA (ouro) | 5 (encerrada) | **Feed fechado em 2026-10-01**: o histórico só no MyLBMA, com licença da IBA. Coleta encerrada; histórico até 2026-09-30 — ADR 0044 | Licenciar só se o uso virar comercial |
 | CFTC COT (ouro, milho, café e petróleo WTI) | 5 | Data de publicação estimada antes de 2022-08 | — |
 | USDA Crop Progress | 5 | Data de publicação estimada, não validada p/ 1980–2005 | — |
@@ -243,8 +245,9 @@ buraco de 2023, abaixo dos 10 a 15 anos da §12.1 do FEL 1 (pergunta 8). O hist�
 (o futuro de café arábica "C" da ICE, em Nova York, a referência mundial do arábica), que é **pago**: é para o café o
 que o ZC é para o milho (perguntas 2 e 3). Uma saída **grátis, mas mensal**, foi confirmada em 2026-09-30 por chamada
 real: o preço do arábica e do robusta do FMI no FRED (`PCOFFOTMUSDM` e `PCOFFROBUSDM`, US¢/lb, desde 1992), que
-reaproveita o coletor do FRED. Serve para ciclos longos (a geada de 2021), não para regras diárias. **Não
-implementada**: fonte nova, aguarda a autorização do usuário ou do Comitê.
+reaproveita o coletor do FRED. Serve para ciclos longos (a geada de 2021), não para regras diárias. **Implementado
+em 2026-10-01** (autorizado pelo usuário, depois de o Comitê decidir seguir com o histórico disponível), pelo ALFRED,
+com todas as versões (ADR 0045).
 
 Fica também para o Comitê, **só do café**, o risco de geada (sem indicador pronto gratuito; montá-lo seria regra do
 David).
@@ -254,7 +257,7 @@ David).
 | Fonte | Fator (peso) | Situação |
 |---|---|---|
 | Conab: custo de produção e preço mínimo do café | Custo de produção e preço mínimo (Médio) | **Custo feito, dev e servidor** (ADR 0043): 4 totais por município, arábica desde 2003 e conilon desde 2007. **O preço mínimo (PGPM) exige reCAPTCHA**: não coletado (as portarias do MAPA seriam a alternativa, se o David pedir) |
-| Preço mensal do arábica e do robusta (FMI, pelo FRED) | Preço | Confirmado em 2026-09-30, desde 1992; aguarda autorização (ver acima) |
+| Preço mensal do arábica e do robusta (FMI, pelo FRED) | Preço | **Feito, dev** (ADR 0045): desde 1992, pelo ALFRED, com as revisões; no servidor, a 1ª coleta diária depois do deploy é a carga |
 | ICO, *Coffee Market Report* (PDF mensal) | Estoque global (Alto); demanda e consumo (Médio) | Reconhecida, adiada (ADR 0031, `docs/reconhecimento-fontes/cafe-mercado-mundial.md`) |
 | Temperatura mínima diária em MG e SP, de maio a agosto (geada) | Clima (Alto) | O FEL 1 (§6.5.1) a chama de obrigatória; o INMET está como "não implementar" (§2). Comitê |
 | Cepea café; KC (ICE); Somar | Dólar e preço; clima | Sem fonte automatizável (Cepea) ou pagos |
@@ -296,7 +299,7 @@ na coluna Status de "Dados coletados" (§2).
 Nenhuma no momento (as últimas, Grain Stocks, etanol do WASDE, exportação de milho por destino, ouro do FMI, World Gold
 Council, Cecafé e andamento do IMEA, rodaram no servidor em 2026-10-01, com os mesmos números de dev).
 
-A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy é a carga (ADR 0031). O mesmo vale para as séries do ouro no FRED e o CPI (ADR 0033), que baixam a série inteira, com todas as versões, a cada coleta, e para o petróleo (EIA e COT do WTI, ADR 0040; ANP, ADR 0041; JODI, ADR 0042).
+A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy é a carga (ADR 0031). O mesmo vale para as séries do ouro no FRED e o CPI (ADR 0033), que baixam a série inteira, com todas as versões, a cada coleta, e para o petróleo (EIA e COT do WTI, ADR 0040; ANP, ADR 0041; JODI, ADR 0042) e o preço mensal do café do FMI (ADR 0045).
 
 </details>
 
@@ -1300,6 +1303,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Café: preço mensal do FMI (pelo ALFRED) | Depois da decisão do Comitê de seguir com o histórico disponível (sem o KC), o único histórico longo e gratuito de preço do café: arábica e robusta do FMI, mensal, desde 1992, com as revisões (530 de 559 meses revisados) na data de cada versão no FRED. O coletor do CPI virou uma base comum do ALFRED (sem mudar o comportamento); o café tem fonte própria. Os meses de 1980 a 1991, retirados da série atual, não são gravados. Dev: 830 criados, 765 revisões, 0 falhas, idempotente, igual ao CSV do FRED | ADR 0045, `docs/reconhecimento-fontes/fred.md` |
 | Ouro: LBMA encerrada, futuro GLD da B3 | O feed público da LBMA fechou (403 nas três coletas da manhã; o histórico foi para o portal MyLBMA, com licença da IBA). Das alternativas testadas, só o futuro de ouro em dólar da B3 (GLD) é oficial, diário e grátis: está no arquivo do Up2Data já usado no CCM, liquida pelo LBMA Gold Price e tem o histórico inteiro na janela (desde 2025-07-21; 5.409 valores em dev e no servidor, 0 falhas, idempotente). A LBMA saiu da coleta diária; o card mostra o histórico com a situação nova "Encerrada". 2 cards novos (58). Autorizado pelo usuário, só aquisição de dados | ADR 0044, `docs/reconhecimento-fontes/b3-gld-ouro.md` |
 | Café: custo de produção (Conab) | O único fator do café sem dado: o custo de produção da Conab por município (variável, fixo, operacional e total, por hectare e por saca), arábica desde 2003 e conilon desde 2007, 2.276 valores, 0 falhas, idempotente. O preço mínimo, a outra metade do fator, fica num aplicativo com reCAPTCHA: não coletado. 2 cards novos (56) | ADR 0043 |
 | Petróleo: produção por país (JODI) | A produção mensal de petróleo de 104 países desde 2002, do arquivo mundial do JODI (24.548 valores, 0 falhas, idempotente, ~10 s por coleta): a única fonte gratuita encontrada com a produção da OPEP por país. Autorizado pelo usuário depois de ver as lacunas (Brasil até 2022, Rússia até 2023, sem Guiana). Card novo (54) | ADR 0042 |
