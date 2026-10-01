@@ -25,3 +25,17 @@ pontos (diferença máxima 0).
 distribuição nem comercialização prevista. Antes de exibir a terceiros: citar "Board of
 Governors of the Federal Reserve System (US), retrieved from FRED, Federal Reserve Bank of St.
 Louis", confirmar o status da `T10YIE`, incluir o aviso da API. A coleta já usa a API (ADR 0012).
+
+## Séries do ouro acrescentadas em 2026-10-01 (ADR 0033)
+
+CPI (`CPIAUCSL`, `CPILFESL`, `CPIAUCNS`, pelo ALFRED), meta do Fed (`DFEDTARU`, `DFEDTARL`, `DFEDTAR`), as 6 moedas
+da cesta do DXY (`DEXUSEU`, `DEXJPUS`, `DEXUSUK`, `DEXCAUS`, `DEXSDUS`, `DEXSZUS`) e o índice do dólar contra as
+economias avançadas (`DTWEXAFEGS`). Só o que muda em relação às 11 respostas acima (evidência completa no ADR 0033):
+
+| # | Pergunta | Resposta | Evidência |
+|---|---|---|---|
+| 6 | Histórico | CPI cheio com ajuste desde 1947, núcleo desde 1957, sem ajuste desde 1913; meta em faixa desde 2008-12-16 e alvo único de 1982-09-27 a 2008-12-15; moedas desde 1971 (euro desde 1999); `DTWEXAFEGS` desde 2006 | ADR 0033 |
+| 7 | Revisões (vintage) | **CPI revisa** (657 de 955 meses no cheio com ajuste); as moedas quase nunca (1 ou 2 datas); `DTWEXAFEGS` revisa como o `DTWEXBGS`; a meta é o valor vigente | ADR 0033 |
+| 8 | `published_at` | CPI: **real**, a data de cada versão do ALFRED (949 de 949 iguais ao calendário do release 10). Moedas e `DTWEXAFEGS`: segunda seguinte (H.10). Meta: o próprio dia | ADR 0033 |
+| 10 | Licença | Mesma origem das séries já lidas (Board of Governors do Fed; o CPI é do BLS, governo dos EUA). A página de cada série nova **não foi lida**: confirmar antes de exibir a terceiros. Uso interno | — |
+| 11 | Riscos técnicos | O CPI só vem pela API (o ALFRED exige chave): sem `FRED_API_KEY`, não é coletado. O CPI mudou de base em fev/1988: as versões anteriores estão em 1967 = 100 | ADR 0033 |

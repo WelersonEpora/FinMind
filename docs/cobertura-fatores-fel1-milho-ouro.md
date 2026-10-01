@@ -62,11 +62,13 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 | BCB — Focus (IPCA, Selic, câmbio) | ✅ `bcb-focus` (ADR 0022) | ✅ 20.258 linhas, 93 séries | ✅ 2000→hoje | ✅ |
 | US Treasury (Fiscal Data e curvas de juros) | ❌ reconhecida em 2026-09-28, não implementar: o juro real é o mesmo `DFII10` e o ouro do Tesouro é constante ([us-treasury.md](reconhecimento-fontes/us-treasury.md)) | — (já coberto pelo FRED) | — | — |
 | World Bank Pink Sheet (ouro) | ❌ reconhecida em 2026-09-28: é a média mensal da LBMA | — (já coberto pela LBMA) | — | — |
-| CPI EUA (FRED) | ❌ sem coletor (mesma API já em uso p/ DGS10) | ❌ | — | — |
+| CPI EUA (BLS, pelo ALFRED do FRED) | ✅ `fred-cpi` (ADR 0033, 2026-10-01): cheio e núcleo com ajuste, cheio sem ajuste, com todas as versões | ✅ 7.834 linhas, 3 séries | ✅ 1913/1947/1957→hoje, vintage real desde 1949/1972/1996 | ✅ |
+| Meta do Fed (FOMC, pelo FRED) | ✅ `fred-dfedtaru`, `fred-dfedtarl`, `fred-dfedtar` (ADR 0033) | ✅ 22.573 linhas, 3 séries | ✅ 1982→hoje | ✅ |
+| Moedas da cesta do DXY e dólar contra economias avançadas (FRED, H.10) | ✅ `fred-dex*` (6) e `fred-dtwexafegs` (ADR 0033) | ✅ 6 moedas + 5.198 linhas do índice | ✅ 1971/1999/2006→hoje | ✅ |
 | WGC (reservas de BC, ETFs) | ❌ nível 0 | ❌ | — | — |
 | IMF Data (SDMX) | ❌ nível 0 | ❌ | — | — |
 | CME GC (futuro) | ❌ pago (pergunta 3) | ❌ | — | — |
-| DXY real (ICE) | ❌ licenciado, sem substituto gratuito exato | ❌ | — | — |
+| DXY real (ICE) | ❌ licenciado. As 6 moedas da cesta são coletadas (acima): remontar o índice é um cálculo, a decidir pelo David | ❌ | — | — |
 | USGS (produção mineral) | ❌ (decisão consciente: peso baixo, ignorar no MVP) | ❌ | — | — |
 
 ---
@@ -90,9 +92,9 @@ Linhas no banco de dev em 2026-09-28. Todos os coletores implementados rodaram e
 
 | # | Fator (peso, xlsx) | Dados necessários | Já disponível | Lacuna |
 |---|---|---|---|---|
-| 1 | Juros reais (Fed) e yield 10a (Alto) | DGS10, DFII10, T10YIE | Completo + fator versionado já validado (`DGS10−T10YIE = DFII10` em 5.932/5.932 pontos). O `DFII10` é o número do Tesouro dos EUA (4 de 4 datas iguais, reconhecimento de 2026-09-28) | Nenhuma — fator mais maduro do sistema |
-| 2 | Dólar — índice DXY (Alto) | Índice DXY (ICE) | Só o substituto DTWEXBGS (Fed) — metodologia e composição diferentes | DXY real é licenciado, não coletado; a planilha do David atribui a fonte errada ("US Treasury, World Bank" — nenhum publica o DXY, achado já no ADR 0009) |
-| 3 | Inflação e expectativas (Alto) | CPI observado + breakeven inflation | Breakeven (T10YIE) completo | **CPI em si não é coletado** (mesma API do FRED já em uso, falta só o coletor) |
+| 1 | Juros reais (Fed) e yield 10a (Alto) | DGS10, DFII10, T10YIE | Completo + fator versionado já validado (`DGS10−T10YIE = DFII10` em 5.932/5.932 pontos). O `DFII10` é o número do Tesouro dos EUA (4 de 4 datas iguais, reconhecimento de 2026-09-28) | Nenhuma — fator mais maduro do sistema. A meta do Fed (FOMC) é coletada desde 2026-10-01 (ADR 0033) |
+| 2 | Dólar — índice DXY (Alto) | Índice DXY (ICE) | Os índices do Fed DTWEXBGS (amplo) e, desde 2026-10-01, DTWEXAFEGS (economias avançadas, mais próximo da cesta do DXY), e as 6 moedas da cesta do DXY (ADR 0033) | DXY real é licenciado, não coletado; remontá-lo pelas 6 moedas é um cálculo, a decidir pelo David; a planilha do David atribui a fonte errada ("US Treasury, World Bank" — nenhum publica o DXY, achado já no ADR 0009) |
+| 3 | Inflação e expectativas (Alto) | CPI observado + breakeven inflation | Breakeven (T10YIE) completo | Nenhuma desde 2026-10-01: o CPI é coletado pelo ALFRED, com todas as versões e a data real de cada uma (ADR 0033) |
 | 4 | Geopolítica e risco sistêmico (Alto) | Eventos qualitativos | — | **Nada.** Não vira "número" sem camada de evidência de IA Search — só proposta em `analise-critica-fel1-milho-ouro.md`/ADR 0010 (desenho futuro), não construída |
 | 5 | Demanda de bancos centrais/reservas (Alto) | Compras de reservas (IMF/WGC/BCB) | Reservas internacionais **totais** do Brasil (BCB, 1998+, ADR 0023) | Compras de ouro pelos bancos centrais (IMF, WGC): nenhuma fonte reconhecida. O ouro do Tesouro dos EUA é constante desde 2012 e não serve. A composição das reservas do BCB (parte em ouro) não é coletada |
 | 6 | Fluxo de ETFs de ouro (Médio) | Holdings/fluxo WGC | — | Nenhuma fonte (WGC Goldhub sem API pública) |
@@ -128,7 +130,7 @@ Nenhuma das séries de preço atende, isoladamente, ao padrão de backtest do FE
 | Boletim Mensal (IMEA) | Milho | ✅ (safra, custo, O&D) | ⚠️ misto (O&D tem vintage; safra/custo não) |
 | COT | Ouro, Milho | ✅ | ✅ 2006→hoje |
 | LBMA Gold Price | Ouro | ✅ | ✅ 1968→hoje |
-| Reuniões FOMC | Ouro | ❌ | — |
+| Reuniões FOMC | Ouro | ✅ a meta vigente em cada dia (ADR 0033); o calendário das reuniões futuras não | ✅ 1982→hoje |
 | Gold Demand Trends (WGC) | Ouro | ❌ | — |
 | Gold Reserve Statistics (IMF) | Ouro | ❌ | — |
 | Indicadores de Preços (Cepea) | Milho | ✅ pela B3 (ADR 0021) | ⚠️ 2018-06-08→hoje |

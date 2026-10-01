@@ -155,3 +155,26 @@ test("erro HTTP da API não vaza a chave na mensagem", async () => {
     (err) => /429/.test(err.message) && !err.message.includes("CHAVE_SECRETA")
   );
 });
+
+test("ADR 0033: moedas da cesta do DXY e índice das economias avançadas saem na segunda (H.10); a meta do Fed, no mesmo dia", () => {
+  const sexta = "2026-09-25";
+  const publicadoEm = (fredId) => criarColetorFred(fredId).normalize([[sexta, "1.17"]]).validos[0];
+
+  for (const fredId of ["DEXUSEU", "DEXJPUS", "DEXUSUK", "DEXCAUS", "DEXSDUS", "DEXSZUS", "DTWEXAFEGS"]) {
+    const v = publicadoEm(fredId);
+    assert.equal(v.series_code, `FRED.${fredId}`);
+    assert.equal(v.published_at.toISOString(), "2026-09-28T23:59:59.000Z", fredId);
+  }
+  for (const fredId of ["DFEDTARU", "DFEDTARL", "DFEDTAR"]) {
+    const v = publicadoEm(fredId);
+    assert.equal(v.unit, "% a.a.");
+    assert.equal(v.published_at.toISOString(), "2026-09-25T23:59:59.000Z", fredId);
+  }
+});
+
+test("todas as séries do FRED são coletadas, cada uma com o seu código de coletor", () => {
+  const { SERIES, SERIES_COLETADAS } = require("./fred.collector");
+  assert.deepEqual(SERIES_COLETADAS, Object.keys(SERIES));
+  assert.equal(criarColetorFred("DEXUSEU").codigo, "fred-dexuseu");
+  assert.equal(SERIES_COLETADAS.length, 14);
+});

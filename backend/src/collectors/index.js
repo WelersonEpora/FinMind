@@ -13,7 +13,8 @@ const bcbSelicRealizadaCollector = require("./bcb/bcb-selic-realizada.collector"
 const bcbFocusCollector = require("./bcb/bcb-focus.collector");
 const bcbReservasCollector = require("./bcb/bcb-reservas.collector");
 const eiaEtanolCollector = require("./eia/eia-etanol.collector");
-const { criarColetorFred } = require("./fred/fred.collector");
+const { criarColetorFred, SERIES_COLETADAS: SERIES_FRED } = require("./fred/fred.collector");
+const fredCpiCollector = require("./fred/fred-cpi.collector");
 const lbmaGoldPmCollector = require("./lbma/lbma-gold-pm.collector");
 const { criarColetorCot } = require("./cftc/cftc-cot.collector");
 const usdaCropProgressCollector = require("./usda/usda-crop-progress.collector");
@@ -39,7 +40,7 @@ function bootstrapCollectors() {
     registerCollector(bcbSelicRealizadaCollector);
 
     // observation (point-in-time, append-only) - ADR 0008.
-    for (const fredId of ["DGS10", "T10YIE", "DFII10", "DTWEXBGS"]) {
+    for (const fredId of SERIES_FRED) {
       registerCollector(criarColetorFred(fredId));
     }
     registerCollector(lbmaGoldPmCollector);
@@ -65,6 +66,13 @@ function bootstrapCollectors() {
     registerCollector(imeaOfertaDemandaMilhoCollector);
     registerCollector(criarColetorVh("milho"));
     registerCollector(criarColetorVh("cafe"));
+
+    // O CPI vem do ALFRED (versões com a data real), que só existe na API do FRED (ADR 0033).
+    if (env.collectors.fredApiKey) {
+      registerCollector(fredCpiCollector);
+    } else {
+      logger.warn("FRED_API_KEY não definida - coletor do CPI dos EUA (ALFRED) não registrado.");
+    }
 
     if (env.collectors.nassApiKey) {
       registerCollector(usdaCropProgressCollector);

@@ -65,8 +65,46 @@ const SERIES = {
     unit: "INDEX",
     regra: "proxima_segunda_h10_semanal",
     publicadoEm: proximaSegunda
-  }
+  },
+  // Ouro, fator "Dólar (índice DXY)" (ADR 0033): o DXY é da ICE e licenciado; o FRED tem as 6 moedas da cesta
+  // dele (H.10, cotação do meio-dia em Nova York) e o índice do Fed contra as economias avançadas. Só a aquisição:
+  // remontar o DXY a partir das moedas é um cálculo, e não é feito aqui. Divulgação igual à do DTWEXBGS (lote
+  // semanal, segundas). As 6 moedas praticamente não revisam (1 ou 2 datas em 20 anos, no ALFRED); o índice das
+  // economias avançadas revisa como o amplo.
+  DTWEXAFEGS: {
+    seriesCode: "FRED.DTWEXAFEGS",
+    nome: "Índice do dólar contra as economias avançadas (Fed) - NÃO é o DXY",
+    unit: "INDEX",
+    regra: "proxima_segunda_h10_semanal",
+    publicadoEm: proximaSegunda
+  },
+  ...Object.fromEntries(
+    [
+      ["DEXUSEU", "US$ por euro", "US$/EUR"],
+      ["DEXJPUS", "ienes por US$", "JPY/US$"],
+      ["DEXUSUK", "US$ por libra esterlina", "US$/GBP"],
+      ["DEXCAUS", "dólares canadenses por US$", "CAD/US$"],
+      ["DEXSDUS", "coroas suecas por US$", "SEK/US$"],
+      ["DEXSZUS", "francos suíços por US$", "CHF/US$"]
+    ].map(([id, nome, unit]) => [
+      id,
+      { seriesCode: `FRED.${id}`, nome: `Câmbio (Fed H.10): ${nome}`, unit, regra: "proxima_segunda_h10_semanal", publicadoEm: proximaSegunda }
+    ])
+  ),
+  // Ouro, fator "Juros reais (Fed)": a meta do FOMC (ADR 0033). Faixa (limites superior e inferior) desde
+  // 2008-12-16; antes, um alvo único (DFEDTAR, 1982-09-27 a 2008-12-15, série encerrada). É o valor VIGENTE em cada
+  // dia, que o FRED atualiza na manhã do próprio dia (o comunicado sai às 14:00 ET da véspera): vale o mesmo dia.
+  ...Object.fromEntries(
+    [
+      ["DFEDTARU", "Meta do Fed (FOMC) - limite superior da faixa"],
+      ["DFEDTARL", "Meta do Fed (FOMC) - limite inferior da faixa"],
+      ["DFEDTAR", "Meta do Fed (FOMC) - alvo único (até 2008-12-15)"]
+    ].map(([id, nome]) => [id, { seriesCode: `FRED.${id}`, nome, unit: "% a.a.", regra: "mesmo_dia_fomc", publicadoEm: (data) => data }])
+  )
 };
+
+// Séries da coleta diária (registradas em collectors/index.js), uma execução por série.
+const SERIES_COLETADAS = Object.keys(SERIES);
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -164,4 +202,4 @@ function criarColetorFred(fredId) {
   };
 }
 
-module.exports = { criarColetorFred, SERIES, parse };
+module.exports = { criarColetorFred, SERIES, SERIES_COLETADAS, parse };

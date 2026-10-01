@@ -250,7 +250,7 @@ const CATALOGO_OBSERVAVEIS = [
   {
     instrumentCode: "DOLAR_AMPLO_FED",
     origem: "observation",
-    nome: "Índice amplo do dólar (Fed)",
+    nome: "Índices do dólar (Fed)",
     unidade: "índice",
     casasDecimais: 4,
     frequencia: "DIARIA",
@@ -259,16 +259,105 @@ const CATALOGO_OBSERVAVEIS = [
     // semana) chega a ~10,5.
     toleranciaDias: 12,
     fonte: "FRED - Federal Reserve (H.10)",
-    fonteCollectorCode: "fred-dtwexbgs",
-    series: [{ modalidade: "indice", seriesCode: "FRED.DTWEXBGS" }],
-    modalidadePrincipal: "indice",
+    fonteCollectorCode: ["fred-dtwexbgs", "fred-dtwexafegs"],
+    series: [
+      { modalidade: "amplo", seriesCode: "FRED.DTWEXBGS" },
+      { modalidade: "economias_avancadas", seriesCode: "FRED.DTWEXAFEGS" }
+    ],
+    modalidadePrincipal: "amplo",
     fonteDetalhe: {
       descricao:
-        "Índice do dólar contra uma cesta ampla de moedas (DTWEXBGS). Não é o DXY (índice ICE, licenciado): é o substituto gratuito, com metodologia e composição diferentes.",
+        "Dois índices do dólar do Fed, base jan/2006 = 100: contra uma cesta ampla de 26 moedas (DTWEXBGS) e contra as economias avançadas (DTWEXAFEGS: euro, iene, libra, dólar canadense, franco suíço, dólar australiano e coroa sueca), mais próximo da cesta do DXY. Nenhum dos dois é o DXY (índice da ICE, licenciado): as moedas da cesta do DXY estão no card \"Câmbio - moedas da cesta do DXY (Fed)\".",
       metodologia:
-        "Os valores são diários, mas o Fed os divulga em lote semanal (segundas-feiras). A disponibilidade é ESTIMADA como a segunda-feira seguinte à data observada. Licença: série do Board of Governors do Fed (domínio público, citação pedida). Uso atual: pesquisa interna, sem exibir a terceiros (ADR 0009).",
+        "Os valores são diários, mas o Fed os divulga em lote semanal (segundas-feiras). A disponibilidade é ESTIMADA como a segunda-feira seguinte à data observada. Os dois índices são revisados depois da primeira divulgação (ALFRED): a coleta guarda o valor atual, e uma revisão vista depois entra como versão nova. Licença: séries do Board of Governors do Fed (domínio público, citação pedida). Uso atual: pesquisa interna, sem exibir a terceiros (ADRs 0009 e 0033).",
       formatoOrigem: "API REST do FRED (reserva: CSV público)",
-      urlOficial: "https://fred.stlouisfed.org/series/DTWEXBGS"
+      urlOficial: "https://fred.stlouisfed.org/series/DTWEXAFEGS"
+    }
+  },
+  // --- Ouro, fontes do ADR 0033: as moedas da cesta do DXY, a meta do Fed e o CPI ---
+  // Séries `FRED.<ID>` (uma por moeda): cada cotação tem a sua unidade, uma por vez no seletor de métrica.
+  {
+    instrumentCode: "CAMBIO_DXY_FED",
+    origem: "observation",
+    nome: "Câmbio - moedas da cesta do DXY (Fed)",
+    unidade: "US$/EUR",
+    casasDecimais: 4,
+    frequencia: "DIARIA",
+    // Mesma divulgação semanal do H.10 que os índices do dólar.
+    toleranciaDias: 12,
+    fonte: "FRED - Federal Reserve (H.10)",
+    fonteCollectorCode: ["fred-dexuseu", "fred-dexjpus", "fred-dexusuk", "fred-dexcaus", "fred-dexsdus", "fred-dexszus"],
+    porCampo: { prefixoSerie: "FRED" },
+    campoPrincipal: "DEXUSEU",
+    campos: [
+      { codigo: "DEXUSEU", nome: "Euro (US$ por euro)", unidade: "US$/EUR", casasDecimais: 4 },
+      { codigo: "DEXJPUS", nome: "Iene (ienes por US$)", unidade: "JPY/US$", casasDecimais: 2 },
+      { codigo: "DEXUSUK", nome: "Libra esterlina (US$ por libra)", unidade: "US$/GBP", casasDecimais: 4 },
+      { codigo: "DEXCAUS", nome: "Dólar canadense (CAD por US$)", unidade: "CAD/US$", casasDecimais: 4 },
+      { codigo: "DEXSDUS", nome: "Coroa sueca (coroas por US$)", unidade: "SEK/US$", casasDecimais: 4 },
+      { codigo: "DEXSZUS", nome: "Franco suíço (francos por US$)", unidade: "CHF/US$", casasDecimais: 4 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "As 6 moedas da cesta do DXY, cotadas contra o dólar ao meio-dia de Nova York (Fed H.10), como publicadas: cada uma na convenção do Fed (o euro e a libra em US$ por unidade; as demais em unidades por US$). O DXY é um índice da ICE, licenciado e não coletado; estas são as cotações de que ele é feito. Remontar o índice é um cálculo e não é feito aqui.",
+      metodologia:
+        "Um valor por dia útil, divulgado em lote semanal (segundas-feiras): a disponibilidade é ESTIMADA como a segunda-feira seguinte à data observada. As cotações praticamente não são revisadas (1 ou 2 datas em 20 anos, no ALFRED). Licença: séries do Board of Governors do Fed, a mesma origem das já lidas (domínio público, citação pedida); a página destas não foi lida. Uso atual: pesquisa interna (ADR 0033).",
+      formatoOrigem: "API REST do FRED (reserva: CSV público)",
+      urlOficial: "https://www.federalreserve.gov/releases/h10/"
+    }
+  },
+  {
+    instrumentCode: "META_FED",
+    origem: "observation",
+    nome: "Meta de juros do Fed (FOMC)",
+    unidade: "% a.a.",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    // Valor vigente em cada dia, atualizado pelo FRED na manhã do próprio dia; a coleta da madrugada vê a véspera.
+    toleranciaDias: 4,
+    fonte: "FRED - Federal Reserve (FOMC)",
+    fonteCollectorCode: ["fred-dfedtaru", "fred-dfedtarl", "fred-dfedtar"],
+    series: [
+      { modalidade: "limite_superior", seriesCode: "FRED.DFEDTARU" },
+      { modalidade: "limite_inferior", seriesCode: "FRED.DFEDTARL" },
+      { modalidade: "alvo_unico", seriesCode: "FRED.DFEDTAR" }
+    ],
+    modalidadePrincipal: "limite_superior",
+    fonteDetalhe: {
+      descricao:
+        "Meta da taxa de juros básica dos EUA (fed funds), definida pelo FOMC: a faixa (limites superior e inferior) desde 16/12/2008 e, antes, o alvo único (27/09/1982 a 15/12/2008, série encerrada).",
+      metodologia:
+        "Um valor por dia: a meta vigente naquele dia. O FOMC divulga a decisão às 14:00 ET do último dia da reunião, e o FRED atualiza a série na manhã de cada dia: a disponibilidade é ESTIMADA no próprio dia observado. A meta não é revisada. O alvo único anterior a 1994 vem de um estudo do Fed de St. Louis (Thornton, 2005), porque o FOMC não anunciava a meta. Licença: dado do Federal Reserve, a mesma origem das séries já lidas (domínio público, citação pedida); a página desta não foi lida. Uso atual: pesquisa interna (ADR 0033).",
+      formatoOrigem: "API REST do FRED (reserva: CSV público)",
+      urlOficial: "https://fred.stlouisfed.org/series/DFEDTARU"
+    }
+  },
+  // Séries `FRED.<ID>` do CPI, com todas as versões do ALFRED: as três são índices, uma por vez no seletor de métrica.
+  {
+    instrumentCode: "CPI_EUA",
+    origem: "observation",
+    nome: "Inflação ao consumidor dos EUA (CPI)",
+    unidade: "índice",
+    casasDecimais: 3,
+    frequencia: "MENSAL",
+    // O CPI de um mês sai na 2ª ou 3ª semana do mês seguinte: o último mês fica até ~75 dias sem sucessor.
+    toleranciaDias: 75,
+    fonte: "BLS - Consumer Price Index (pelo ALFRED)",
+    fonteCollectorCode: "fred-cpi",
+    porCampo: { prefixoSerie: "FRED" },
+    campoPrincipal: "CPIAUCSL",
+    campos: [
+      { codigo: "CPIAUCSL", nome: "CPI cheio, com ajuste sazonal", unidade: "índice", casasDecimais: 3 },
+      { codigo: "CPILFESL", nome: "CPI núcleo (sem alimentos e energia), com ajuste sazonal", unidade: "índice", casasDecimais: 3 },
+      { codigo: "CPIAUCNS", nome: "CPI cheio, sem ajuste sazonal", unidade: "índice", casasDecimais: 3 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Índice de preços ao consumidor dos EUA (CPI-U, todas as áreas urbanas, base 1982-84 = 100), do Bureau of Labor Statistics: o cheio e o núcleo com ajuste sazonal, e o cheio sem ajuste, de onde sai a inflação de 12 meses que o BLS anuncia. Valores do índice como publicados, sem calcular a variação.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês). O CPI é revisado: o ajuste sazonal é refeito todo ano para os últimos 5 anos, e houve mudanças de arredondamento no histórico. Por isso vem do ALFRED, o arquivo de versões do FRED, com cada versão na data REAL do release do BLS (as 949 datas de versão conferem com o calendário de releases do FRED); o horário não é conhecido (o BLS divulga às 8:30 ET) e vale o fim do dia. Versões desde 1972 (cheio com ajuste), 1996 (núcleo) e 1949 (sem ajuste): os meses anteriores entram com a data da primeira versão guardada, um limite superior. O índice mudou de base em fev/1988: as versões anteriores estão em 1967 = 100. Licença: dado do BLS, governo dos EUA (página não lida). Uso atual: pesquisa interna (ADR 0033).",
+      formatoOrigem: "API REST do FRED/ALFRED (com chave; sem reserva)",
+      urlOficial: "https://www.bls.gov/cpi/"
     }
   },
   // Um card por contrato (o café, Coffee C da ICE, desde 2026-09-28 - ADR 0028).

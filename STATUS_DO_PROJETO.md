@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-09-30.**
+**Última atualização: 2026-10-01.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -34,7 +34,7 @@ quando chegar a vez delas.
 | Etapa | O quê | Responsável | Situação |
 |---|---|---|---|
 | **1. Decisões de base** | Critérios de aprovação do backtest, preço e orçamento, instrumento e horizontes, medidas dos fatores do milho (só a camada A) e ajustes no FEL 1 | Comitê | **Atual** |
-| 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | Pode começar em paralelo |
+| 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | **Proposta pronta** (§5b), aguarda o Comitê |
 | 3. Medidas e dados | Implementar as medidas confirmadas e coletar os dados aprovados que faltam | FinMind | Depende da 1 |
 | 4. Regras | O Comitê define a leitura (B) e a regra (C) de cada fator; o FinMind faz o backtest; o Comitê aprova | Comitê + FinMind | Depende da 3 |
 | 5. IA em simulação | Prompt, registro de cada recomendação e simulação por pelo menos 6 meses (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | Depende da 4 |
@@ -60,7 +60,7 @@ quando chegar a vez delas.
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js`: juro real 10a = `DFII10`, com `DGS10 − T10YIE` como validação cruzada (5.932 de 5.932 datas iguais). Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
-| Telas de dados | `/dados-mercado/observaveis` (26 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Telas de dados | `/dados-mercado/observaveis` (39 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` na `servidor02` (coleta 04:00, 06:00, 08:00 **UTC**; backup 10:00 UTC, **não versionado**) — ADR 0004, ADR 0026 |
@@ -75,7 +75,8 @@ Evidências e ressalvas de cada fonte: no ADR apontado na coluna Status (o ADR 0
 | BCB SGS | API REST (JSON) | Dólar (PTAX venda), Selic meta e realizada | Dólar desde 01/07/1994, Selic realizada desde 04/07/1994, meta desde 05/03/1999 — dev e produção (backfill feito em 2026-09-21) | — (`market_quote`, não revisa) | ✅ ADRs 0001, 0006 |
 | BCB Focus | API OData (JSON) | Expectativas (mediana, base 30 dias) de **IPCA, Selic de fim de ano e câmbio de fim de ano**, por ano-calendário (ano corrente + até 4): 93 séries, uma observação por boletim semanal | **Desde 2000-01-07** (1.394 boletins, 20.258 observações em dev e no servidor) | **Estimado** (1º dia útil depois da semana do boletim, tirado da própria fonte; o boletim mais recente entra com a data da coleta) | ✅ Validado em 2026-09-23 em dev: igual ao PDF do boletim em 6 datas (2005–2026), 0 duplicatas, reexecução idempotente — ADR 0022. **Backfill rodado no servidor em 2026-09-23** (20.258 criados, 0 falhas, os mesmos números de dev). Escopo estrito do FEL 1 |
 | BCB SGS — reservas internacionais | API REST (JSON) | Total, diária (série 13621), US$ milhões: a outra metade da linha "Relatório Focus e Reservas" do FEL 1 | **Desde 1998-09-01** (7.046 dias úteis em dev e no servidor) | **Estimado** (o valor de D sai no dia útil seguinte, data tirada da própria série; o ponto mais recente entra com a data da coleta) | ✅ Validado em 2026-09-23 em dev: fim de mês igual à série mensal oficial em 330 de 336 meses, 0 duplicatas, reexecução idempotente — ADR 0023. **Backfill rodado no servidor em 2026-09-23** (7.046 criados, 0 falhas) |
-| FRED | API REST (JSON, com chave); CSV de reserva | DGS10, T10YIE, DFII10, DTWEXBGS | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | Estimado | ✅ Coleta pela API, CSV de reserva — ADR 0012. Vintage real (ALFRED) provado via teste — ADR 0011 |
+| FRED | API REST (JSON, com chave); CSV de reserva | DGS10, T10YIE, DFII10, DTWEXBGS; desde 2026-10-01, para o ouro: DTWEXAFEGS (dólar contra as economias avançadas), as 6 moedas da cesta do DXY e a meta do Fed (faixa e alvo único) | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS e DTWEXAFEGS 2006; moedas 1971 (euro 1999); meta desde 1982-09-27 | Estimado (meta: o próprio dia) | ✅ Coleta pela API, CSV de reserva — ADR 0012. Vintage real (ALFRED) provado via teste — ADR 0011. Séries novas validadas em dev em 2026-10-01 (0 falhas, reexecução idempotente) — ADR 0033 |
+| FRED (ALFRED) — CPI dos EUA | API REST (JSON, com chave; sem reserva) | CPI cheio e núcleo com ajuste sazonal, e cheio sem ajuste (BLS), **com todas as versões** | Cheio desde 1947 (sem ajuste: 1913), núcleo desde 1957; versões desde 1972, 1996 e 1949 | **Real** (data de cada versão: 949 de 949 iguais ao calendário do release do BLS); limite superior antes da 1ª versão | ✅ Validado em dev em 2026-10-01: 7.834 linhas, 4.681 revisões, 0 falhas, reexecução idempotente. Mudou de base em fev/1988 — ADR 0033 |
 | LBMA | Feed JSON público (não documentado) | Ouro PM (USD/oz) | Desde 1968 | Estimado | ✅ Licença da IBA exigida p/ exibir/redistribuir — adiada (uso interno) |
 | CFTC COT | API Socrata (JSON) | Ouro, milho e café (Coffee C da ICE, desde 2026-09-28): open interest, MM long/short | Desde 2006 | Real desde 2022-08; estimado antes | ✅ Café: ADR 0028 |
 | USDA NASS | API QuickStats (JSON, com chave) | Crop Progress do milho (12 séries) | Desde 1980 (piso real da API; cada série começa no seu ano) | Estimado (regra não validada p/ 1980–2005) | ✅ Validado em 2026-09-21 (6.758 linhas); histórico 1980+ já carregado no servidor (informado pelo usuário) |
@@ -120,7 +121,7 @@ está na coluna "Depende de", não no nível:
 | BCB dólar / Selic | 5 | Meta traz datas futuras (até a próxima reunião do Copom) — é o alvo vigente, não uma previsão | — |
 | BCB Focus (IPCA, Selic, câmbio) | 5 | Data de publicação **estimada** (a fonte só diz "primeiro dia útil da semana", sem hora); o boletim mais recente entra com a data da coleta (~1 dia depois, conservador). Só o endpoint anual: sem Selic por reunião, PIB, Top 5 nem inflação 12/24 meses (fora do FEL 1). Licença ODbL | — |
 | BCB reservas internacionais | 5 | Data de publicação **estimada** (defasagem de 1 dia útil medida uma vez só); revisão não medida: em **6 meses de 2007–2010** a mensal oficial difere do fim de mês da diária (1 a 67 US$ milhões, causa não determinada). Só o total: conceito liquidez e composição (ouro) não coletados | — |
-| FRED | 5 | Licença lida: 3 de 4 séries domínio público c/ citação; `T10YIE` não confirmada. **Adiada** (uso interno) | Retomar antes de exibir a terceiros |
+| FRED | 5 | Licença lida: 3 de 4 séries domínio público c/ citação; `T10YIE` não confirmada; as séries de 2026-10-01 (moedas, meta do Fed, CPI) têm a mesma origem, página não lida. **Adiada** (uso interno). Nenhuma das séries é o DXY (licenciado): remontá-lo pelas 6 moedas é um cálculo, a decidir pelo David. O CPI só vem pela API (ALFRED) — ADR 0033 | Retomar antes de exibir a terceiros |
 | LBMA (ouro) | 5 | **Exige licença da IBA** p/ usar/redistribuir o histórico. **Adiada** (uso interno) | Retomar antes de exibir a terceiros |
 | CFTC COT (ouro, milho e café) | 5 | Data de publicação estimada antes de 2022-08 | — |
 | USDA Crop Progress | 5 | Data de publicação estimada, não validada p/ 1980–2005 | — |
@@ -180,6 +181,26 @@ armadilhas), não o código (outro banco, outra arquitetura).
 | 1 | **Medidas dos fatores do milho** (camada A do motor) | Aguarda o Comitê confirmar o entendimento da §5. Confirmado, a ordem proposta é COT, estoque/uso do WASDE e % boa + excelente do Crop Progress, no molde do juro real 10a |
 | 2 | **Consolidar a recomendação para a reunião** | Uma linha por fonte: adotar, adiar ou descartar, com custo, licença, histórico, risco e o que depende do David. Alimenta as perguntas 2, 3 e 5 da §4 |
 
+**Fontes fundamentais que faltam no milho e no ouro (levantamento de 2026-10-01).** Depois da reunião de 2026-09-30,
+o foco do FinMind é a matéria-prima: medir os fatores é trabalho do David (decisão do usuário, 2026-10-01). Cruzamento
+das fontes do FEL 1 e da planilha com o que já coletamos: `docs/cobertura-fatores-fel1-milho-ouro.md`. Cada fonte entra
+com um ADR e a autorização do usuário, só aquisição de dados.
+
+| Bloco | Fonte | Ativo | Situação |
+|---|---|---|---|
+| 1. Grátis, em fonte que já usamos | CPI dos EUA (pelo ALFRED, com a data real de cada versão) | Ouro | **Feito** em dev (ADR 0033) |
+| 1 | Meta do Fed (FOMC) | Ouro | **Feito** em dev (ADR 0033) |
+| 1 | As 6 moedas da cesta do DXY e o índice do dólar contra as economias avançadas (FRED). O DXY em si é licenciado; remontá-lo é um cálculo, a decidir pelo David | Ouro | **Feito** em dev (ADR 0033) |
+| 1 | Exportação de milho por país de destino (Comex Stat, a API já usada) | Milho | A fazer |
+| 1 | Milho usado para etanol (linha do WASDE, no arquivo já baixado) | Milho | A fazer |
+| 1 | Grain Stocks, estoques trimestrais (USDA, pelo ESMIS, como a área plantada) | Milho | A fazer |
+| 2. Reconhecer | Compras de ouro pelos bancos centrais (FMI, *Gold Reserve Statistics*) | Ouro | A fazer (nível 0) |
+| 2 | ETFs e demanda de ouro (World Gold Council, *Gold Demand Trends*) | Ouro | A fazer (nível 0) |
+| 3. Mais trabalho | Paridade de exportação do IMEA (boletim semanal em PDF) | Milho | A fazer (reconhecida) |
+| 3 | Intenção de plantio e andamento da safra do IMEA (PDF) | Milho | A fazer |
+| Fora do alcance | Futuros com histórico longo (ZC e GC, da CME): só pagos | Milho e ouro | Orçamento (perguntas 2 e 3) |
+| Fora do alcance | Geopolítica: a planilha aponta o World Gold Council, que não publica um índice de risco | Ouro | O David dizer o que espera |
+
 **Café, numa onda completa (decisão do usuário, 2026-09-26):** as fontes do café, inclusive o clima pela NOAA STAR
 (mesmo coletor do milho, ADR 0025: uma entrada nova em `CULTURAS`, com `ACOF`/`RCOF`), com as regiões
 escolhidas a partir das fontes de produção do café, não de conhecimento geral. A onda começou em 2026-09-28, sem
@@ -229,11 +250,11 @@ na coluna Status de "Dados coletados" (§2).
 Nenhuma no momento (as últimas, NOAA café com os 7 países e estoques certificados da ICE desde 2016-01-04, rodaram
 no servidor e foram conferidas em 2026-09-30).
 
-A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy é a carga (ADR 0031).
+A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy é a carga (ADR 0031). O mesmo vale para as séries do ouro no FRED e o CPI (ADR 0033), que baixam a série inteira, com todas as versões, a cada coleta.
 
 </details>
 
-<details open>
+<details>
 <summary>4. Bloqueado — depende do David / Comitê</summary>
 
 **O que o David e o Comitê ainda definem** (a lista que ficava num documento à parte, aposentado em 2026-09-28):
@@ -811,7 +832,7 @@ de arquivos do IMEA (`api1.imea.com.br/api/arquivo?cadeia=3`, "Boletim Semanal -
 
 </details>
 
-<details open>
+<details>
 <summary>5. Confirmar entendimento — Motor do Milho</summary>
 
 **Para a reunião.** Queremos confirmar com o Comitê como entendemos os **8 fatores do milho** da planilha
@@ -875,7 +896,7 @@ resposta do Comitê) · 🔴 **difícil** (falta a fonte).
 | 7 | Especulação e posicionamento de fundos — COT (Médio) | **Posição líquida dos fundos** = managed money comprado − vendido, em contratos e em % dos contratos em aberto (CFTC, milho de Chicago) | Semana até 15/09/2026 (publicada em 18/09): 483.738 − 69.278 = **414.460 contratos**, **22,5%** de 1.843.824 | 🟢 Desde 2006; o mesmo cálculo serve ao ouro |
 | 8 | Política comercial e exportações — China, tarifas (Médio) | **Exportação brasileira por destino** (Comex Stat), com a China em destaque. Tarifas são eventos, não números | Hoje só o total: **4,65 milhões de t** exportadas em ago/2026, sem o destino | 🟡 Destino: a API do Comex Stat já usada tem a quebra por país (falta estender o coletor). 🔴 Tarifas: são eventos, a registrar a partir de boletins oficiais (pergunta 12) |
 
-<details open>
+<details>
 <summary>Exemplo: do fator à recomendação da IA (ilustração, nada implementado)</summary>
 
 **Ilustração** de como o Motor do Milho levaria os números da tabela acima até a recomendação da IA. Nenhuma IA foi
@@ -1134,6 +1155,73 @@ versão e sem auditoria.
 </details>
 
 <details>
+<summary>5b. Confirmar entendimento — Motor do Ouro</summary>
+
+**Para o Comitê confirmar (etapa 2 dos "Próximos passos").** O mesmo exercício da §5 do milho, para os **8 fatores do
+ouro** da planilha `controle_fatores.xlsx` (aba "Controle de Fatores"): nome, peso e fonte vêm da planilha, e propomos
+a coluna "Resumo (cálculo)", que está vazia. O motor é o mesmo (camadas A, B e C, e a IA no fim), descrito na §5; aqui
+só a camada A. Os exemplos usam **números reais do banco** (dev, dados publicados até 2026-09-30). **Nenhum número da
+tabela diz se o preço sobe ou desce:** é só a medida de cada fator.
+
+**A diferença para o milho é a origem das lacunas.** No milho, quase todo fator tem dado oficial com data de
+publicação. No ouro, os fatores macroeconômicos estão prontos (o juro real já é um fator versionado) e os
+fundamentalistas dependem de fontes que **ainda não foram reconhecidas** (FMI, World Gold Council, USGS) ou que não
+existem de graça (o DXY). Nenhuma fonte nova entra sem autorização: a tabela só aponta qual seria a candidata.
+
+### Os 8 fatores do ouro
+
+Dificuldade: 🟢 **fácil** (dado já coletado, cálculo de uma linha) · 🟡 **médio** (dado parcial, substituto ou série
+nova numa fonte que já usamos) · 🔴 **difícil** (falta a fonte, ou o fator não é um número).
+
+| # | Fator (peso) | Resumo do cálculo | Exemplo com dado real | Dificuldade |
+|---|---|---|---|---|
+| 1 | Juros reais (Fed) e rendimento dos títulos (Alto) | **Juro real de 10 anos** dos EUA (`DFII10`, rendimento do título protegido da inflação), como publicado, e a variação em 1 e 12 meses. Complemento: **juro nominal de 10 anos** (`DGS10`). O FOMC (meta do Fed) é série nova na mesma API do FRED, não coletada | 25/09/2026: real **2,83%** (+0,41 p.p. em 1 mês; +1,01 p.p. em 12 meses); nominal **5,17%** | 🟢 Já é o fator versionado `juro-real-10a` (validação cruzada `DGS10 − T10YIE` em 5.932 de 5.932 datas) |
+| 2 | Dólar, índice DXY (Alto) | **Índice amplo do dólar do Fed** (`DTWEXBGS`, 26 moedas) **no lugar do DXY** (ICE, 6 moedas, licenciado), e a variação em 1 e 12 meses | 25/09/2026: **120,33** (+1,3% em 1 mês; −0,1% em 12 meses) | 🟡 Substituto, com outra composição e outro peso por moeda. A fonte da planilha ("US Treasury, World Bank") não publica o DXY (ADR 0009) |
+| 3 | Inflação e expectativas inflacionárias (Alto) | **Inflação implícita de 10 anos** (`T10YIE`, breakeven), como publicada. **CPI dos EUA**: variação em 12 meses, série nova na mesma API do FRED, não coletada | 28/09/2026: breakeven **2,34%** (2,31% um mês antes). CPI: não coletado | 🟡 Breakeven pronto; o CPI é uma série a mais no coletor do FRED, mas é fonte nova (autorização) e revisa (ALFRED, ADR 0011) |
+| 4 | Geopolítica e risco sistêmico (Alto) | **Eventos** (conflitos, sanções, crises), registrados de boletins oficiais com data, como os eventos de tarifa do milho (pergunta 12). Se o Comitê quiser um número: um **índice de risco** pronto, ainda não reconhecido | Nenhum dado | 🔴 Não é um número. A busca de eventos não existe; o "índice de risco" da planilha não diz qual índice |
+| 5 | Demanda de bancos centrais, reservas (Alto) | **Compra líquida de ouro pelos bancos centrais**, em toneladas, por mês (estoque de ouro de cada banco central, mês contra mês). Candidata: estatística de reservas do FMI (SDMX), que a planilha lista no calendário, não reconhecida | Só as **reservas totais do Brasil** (não é ouro): US$ 362.548 milhões em 28/09/2026 (−3,2% em 1 mês) | 🔴 Falta a fonte. As reservas totais do BCB mudam com o câmbio e o preço dos ativos, não medem compra de ouro |
+| 6 | Fluxo de ETFs de ouro (Médio) | **Toneladas de ouro guardadas pelos ETFs** e a variação na semana e no mês (entrada ou saída) | Nenhum dado | 🔴 O World Gold Council não tem API. Candidata a reconhecer: o estoque diário publicado por um grande ETF de ouro |
+| 7 | Posicionamento de fundos, COT (Médio) | **Posição líquida dos fundos** = managed money comprado − vendido, em contratos e em % dos contratos em aberto (CFTC, ouro da COMEX): **o mesmo cálculo do milho** | Semana até 22/09/2026 (publicada em 25/09): 135.699 − 8.310 = **127.389 contratos**, **30,9%** de 412.800 (na semana anterior: 133.116, 32,5%) | 🟢 Desde 2006; uma função para milho, ouro e café |
+| 8 | Produção e oferta de mineração (Baixo) | **Produção mundial de ouro das minas**, em toneladas por ano, e a variação contra o ano anterior (USGS) | Nenhum dado | 🔴 Fonte não reconhecida; anual e com mais de um ano de atraso. **Ignorada no MVP** (peso Baixo, decisão da auditoria de 2026-09-22) |
+
+**Preço do ouro (a referência da recomendação).** O LBMA Gold Price PM (já coletado, desde 1968), em US$ e em R$ (com a
+PTAX do mesmo dia). Em 28/09/2026: **US$ 4.144,55 a onça** (−9,2% em 1 mês; +1,8% em 3 meses; +9,9% em 12 meses) e
+**R$ 21.606** (PTAX 5,2132; +7,2% em 12 meses). Sem curva de vencimentos: o futuro do ouro é o preço à vista mais os
+juros (§5, "O que o exemplo mostra"). A licença da IBA ainda vale antes de exibir a terceiros (informe 6 da §4).
+
+**Resumo:** 2 fatores com medida pronta (juros reais e COT), 2 com substituto ou série a acrescentar numa fonte que já
+usamos (dólar e inflação) e 4 sem dado (geopolítica, bancos centrais, ETFs e mineração). Somando os pesos: dos **5
+fatores de peso Alto**, 1 está pronto, 2 estão parciais e **2 não têm fonte** (geopolítica e bancos centrais). Cobertura
+completa da matéria-prima: `docs/cobertura-fatores-fel1-milho-ouro.md`, §3.
+
+### O que queremos confirmar
+
+1. **As medidas acima** são as que o Comitê tem em mente para cada fator? (linha a linha)
+2. **Juros:** o juro real de 10 anos basta, ou a meta do Fed (FOMC, oito reuniões por ano) entra também?
+3. **Dólar:** o índice amplo do Fed serve no lugar do DXY? O DXY só existe pago (ICE).
+4. **Inflação:** o breakeven basta, ou o CPI observado entra também? O **Focus** (IPCA, Selic e câmbio, já coletado) e
+   as **reservas do BCB**, que a planilha liga ao ouro ("Relatório Focus e Reservas"), entram em qual fator, ou só no
+   ouro em reais?
+5. **Geopolítica:** evento registrado (como as tarifas do milho), um índice de risco pronto (qual?), ou os dois?
+6. **Bancos centrais:** a compra de ouro do mundo inteiro (FMI ou World Gold Council) ou só a do Brasil?
+7. **ETFs:** o estoque de um grande ETF serve de medida, ou é preciso o total do World Gold Council (sem API)?
+8. **Preço e instrumento:** as mesmas perguntas do item 7 da §5 do milho, para o ouro. Em especial: o ouro em **US$ ou
+   em R$**? E o que se opera de fato (ETF de ouro na B3, ouro físico ou o futuro GC, que é pago, pergunta 3)?
+
+### Por onde começamos (se o Comitê confirmar)
+
+1. **COT (fator 7):** a mesma função do milho; fazê-la para os dois de uma vez é o que transforma o molde do juro real
+   num padrão do sistema.
+2. **Juros reais (fator 1):** já pronto; falta só ligá-lo à base do motor.
+3. **Dólar (fator 2), pelo índice amplo do Fed**, se o item 3 for aprovado.
+
+Com esses três, **3 dos 8 fatores do ouro** ficam com medida, 2 deles de peso Alto. Os próximos dependem de
+autorização para uma série nova numa fonte que já usamos (CPI e meta do Fed, no FRED) ou de reconhecer uma fonte nova
+(FMI, ETFs).
+
+</details>
+
+<details>
 <summary>6. Fora do escopo por enquanto</summary>
 
 Não implementar sem autorização explícita registrada em ADR:
@@ -1154,6 +1242,16 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>7. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-01</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Ouro: CPI, meta do Fed e moedas da cesta do DXY | Três fontes do FEL 1 que faltavam ao ouro, todas no FRED (só aquisição de dados, autorizado pelo usuário em 2026-10-01). O CPI vem do ALFRED, com todas as versões e a data real de cada uma (949 de 949 datas iguais ao calendário do BLS; 7.834 linhas, 4.681 revisões, desde 1913). A meta do Fed, desde 1982, e as 6 moedas do DXY mais o índice do dólar contra as economias avançadas entram no coletor do FRED. 0 falhas, reexecução idempotente, em dev. O DXY não é remontado: é um cálculo, a decidir pelo David. Três cards novos; "Índice amplo do dólar" virou "Índices do dólar (Fed)" | ADR 0033 |
+| Fontes fundamentais que faltam | Lista do que falta no milho e no ouro, em 3 blocos, no "Falta fazer" (§3) | §3 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-09-28</summary>
