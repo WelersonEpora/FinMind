@@ -18,10 +18,13 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 A **infraestrutura de dados** para ouro e milho está pronta: coleta,
 armazenamento point-in-time (com data de publicação) e exibição nos
 Observáveis. As fontes fundamentais gratuitas de milho e ouro que faltavam foram fechadas em 2026-10-01 (ADRs 0033
-a 0037 e 0039). O **café** completou os 4 passos da onda (posição dos fundos, exportação,
+a 0037 e 0039). No mesmo dia a LBMA fechou o feed público do preço do ouro: o preço diário passou a ser o futuro de
+ouro em dólar da B3 (GLD, desde 2025-07-21), e se ele serve de referência é decisão do David (ADR 0044). O **café** completou os 4 passos da onda (posição dos fundos, exportação,
 futuro ICF da B3, safra da Conab, clima pela NOAA STAR, balanço por país do USDA, estoques certificados da ICE e
-resumo diário do Cecafé: ADRs 0028 a 0032 e 0038, §3). O **petróleo** começou em 2026-10-01: estoques, produção, refino e
-preço à vista diário da EIA (WTI desde 1986) e a posição dos fundos no WTI (ADR 0040; §3). **Nada interpreta esses dados ainda** — motor analítico, IA,
+resumo diário do Cecafé: ADRs 0028 a 0032 e 0038, §3) e o custo de produção da Conab (ADR 0043; o preço mínimo exige
+reCAPTCHA). O **petróleo** começou em 2026-10-01: estoques, produção, refino e
+preço à vista diário da EIA (WTI desde 1986), a posição dos fundos no WTI (ADR 0040), a produção do Brasil por UF da
+ANP (ADR 0041) e a produção por país do JODI (ADR 0042); a Baker Hughes não respondeu (§3). **Nada interpreta esses dados ainda** — motor analítico, IA,
 sinais, backtest e execução de ordens seguem como contratos vazios, à espera
 das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
 O desenho já está decidido: o motor prepara a base (fatores e regras do Comitê)
@@ -1149,7 +1152,7 @@ Hoje nenhuma regra está definida: todos os fatores estão "sem leitura definida
    fonte?
 7. **Preço e instrumento da recomendação.** "Comprar, vender ou manter" *o quê*, e para quem?
    - **Instrumento:** o que se opera de fato? No milho, o CCM na B3 (com margem e rolagem)? No ouro, um ETF, o ouro
-     físico, o GC ou o GLD da B3 (coletado desde 2026-10-01)? O preço de referência é o do instrumento operado.
+     físico, o GC ou o GLD da B3 (coletado desde 2026-10-01, com histórico desde 2025-07-21)? O preço de referência é o do instrumento operado.
    - **Preço por horizonte:** quais vencimentos do CCM correspondem a curto, médio e longo prazo, e qual a liquidez
      mínima para um vencimento valer como referência?
    - **Medidas de preço:** além do preço, o que entra (variação em 1, 3 e 12 meses? outra medida)?
@@ -1252,7 +1255,7 @@ completa da matéria-prima: `docs/cobertura-fatores-fel1-milho-ouro.md`, §3.
 7. **ETFs:** o estoque de um grande ETF serve de medida, ou é preciso o total do World Gold Council (sem API)?
 8. **Preço e instrumento:** as mesmas perguntas do item 7 da §5 do milho, para o ouro. Em especial: o ouro em **US$ ou
    em R$**? E o que se opera de fato (ETF de ouro na B3, ouro físico, o futuro GC, que é pago, pergunta 3, ou o futuro GLD da B3,
-   grátis e coletado desde 2026-10-01, ADR 0044)? E, com a LBMA fechada, o GLD serve de preço de referência?
+   grátis, com histórico desde 2025-07-21, ADR 0044)? E, com a LBMA fechada, o GLD serve de preço de referência?
 
 ### Por onde começamos (se o Comitê confirmar)
 
