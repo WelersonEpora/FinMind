@@ -13,7 +13,7 @@ foi implementado está no ADR 0040.
 | EIA, preços à vista (WTI, Brent, gasolina, diesel) | Preço (FEL 1, §6.5.2) | **Implementada** (ADR 0040): diária, WTI desde 1986, Brent desde 1987 | 4 |
 | CFTC COT, WTI da NYMEX | Especulação (Médio) | **Implementada** (ADR 0040): o coletor do COT, código 067651, desde 2006 | 4 |
 | ANP, dados abertos | Oferta fora da OPEP (Médio) | **Implementada** (ADR 0041): CSV mensal por UF e terra/mar, desde 1997 | 4 |
-| JODI Oil | Demanda global (Alto); OPEP+ (Alto) | **Produção implementada** (ADR 0042): ZIP com CSV mundial, mensal, desde 2002. **O Brasil para em 2022-12, a Rússia em 2023-03 e a Guiana não aparece** | 4 |
+| JODI Oil | Demanda global (Alto); OPEP+ (Alto) | **Produção implementada** (ADR 0042): ZIP com CSV mundial, mensal, desde 2002. **O Brasil para em 2022-12, a Rússia em 2023-03 e a Guiana não aparece**. **Demanda implementada** (ADR 0046): outro arquivo (derivados), 105 países desde 2002; **sem a Rússia, Brasil até 2022-02** | 4 |
 | Baker Hughes, contagem de sondas | Produção e shale (Médio) | **Inacessível**: sem resposta daqui nem do servidor (2026-10-01) | 0 |
 | OPEP, Monthly Oil Market Report | Decisões da OPEP+ (Alto); demanda global (Alto) | PDF; links montados por script | 0 (incerteza) |
 | IEA, Oil Market Report | Demanda global (Alto) | 403; assinatura (FEL 1) | Pago |
@@ -88,3 +88,8 @@ foi implementado está no ADR 0040.
   EUA, Arábia Saudita, Noruega e China até jul/2026; **Brasil até dez/2022, Rússia até mar/2023, Guiana sem dado**.
   Sem agregado mundial. A linha `CONVBBL` é o fator de conversão (barris por tonelada), não produção. O
   `ASSESSMENT_CODE` 3 ("não avaliado") é a maioria das linhas. Produção implementada, autorizada pelo usuário (ADR 0042).
+- **JODI, demanda (2026-10-01):** fica no arquivo de derivados (`world_secondary_csv.zip`, 58 MB, CSV de 650 MB), não
+  no de petróleo bruto. A demanda total (`TOTPRODS`, `TOTDEMO`, `KBD`) tem 105 países com valor; EUA, China (desde
+  2004), Japão, Coreia e Alemanha até jul/2026, Índia até mar/2026; **Rússia sem dado, Brasil até fev/2022, Irã até
+  jul/2018**. EUA em jul/2026: 21.160 mil barris/dia, contra 21.050 a 21.500 da EIA semanal. Implementada, autorizada
+  pelo usuário (ADR 0046).

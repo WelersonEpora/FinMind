@@ -141,6 +141,18 @@ const DIMENSOES_REGIAO = {
         "Cada linha é um país, com a produção de petróleo em mil barris por dia como o país reporta ao JODI. Há lacunas da fonte: o Brasil para em 2022, a Rússia em 2023, e a Guiana não reporta. Não há total mundial, e o FinMind não soma países."
     }
   }),
+  "jodi-pais-demanda": criarDimensaoRegiao({
+    rotuloModalidade: "País",
+    descreverRegiao: descreverPaisJodi,
+    textos: {
+      titulo: "Países",
+      inativo: "sem dado recente",
+      mostrarInativos: "Mostrar países sem dado recente",
+      semSelecao: "Selecione ao menos um país.",
+      nota:
+        "Cada linha é um país, com a demanda total de derivados de petróleo em mil barris por dia como o país reporta ao JODI. Há lacunas da fonte: a Rússia não reporta, o Brasil para em 2022, o Irã em 2018 e a Índia atrasa alguns meses. Não há total mundial, e o FinMind não soma países."
+    }
+  }),
   "anp-uf": criarDimensaoRegiao({
     rotuloModalidade: "UF",
     descreverRegiao: descreverRegiaoConab,
