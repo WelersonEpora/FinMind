@@ -20,7 +20,6 @@ const anpProducaoPetroleoCollector = require("./anp/anp-producao-petroleo.collec
 const jodiProducaoPetroleoCollector = require("./jodi/jodi-producao-petroleo.collector");
 const { criarColetorFred, SERIES_COLETADAS: SERIES_FRED } = require("./fred/fred.collector");
 const fredCpiCollector = require("./fred/fred-cpi.collector");
-const lbmaGoldPmCollector = require("./lbma/lbma-gold-pm.collector");
 const { criarColetorCot } = require("./cftc/cftc-cot.collector");
 const usdaCropProgressCollector = require("./usda/usda-crop-progress.collector");
 const { criarColetorFuturoB3 } = require("./b3/b3-futuro.collector");
@@ -52,7 +51,6 @@ function bootstrapCollectors() {
     for (const fredId of SERIES_FRED) {
       registerCollector(criarColetorFred(fredId));
     }
-    registerCollector(lbmaGoldPmCollector);
     registerCollector(bcbFocusCollector);
     registerCollector(bcbReservasCollector);
     registerCollector(fmiIrfclOuroCollector);
@@ -65,6 +63,10 @@ function bootstrapCollectors() {
     registerCollector(criarColetorCot("crude"));
     registerCollector(criarColetorFuturoB3("ccm"));
     registerCollector(criarColetorFuturoB3("icf"));
+    // Ouro: o futuro em dólar da B3 (GLD, ADR 0044). O LBMA Gold Price saiu da coleta diária: o feed
+    // público fechou em 2026-10-01 (licença da IBA). O histórico dele continua no banco e o código de
+    // lbma/ fica, sem registro. Se o GLD faz o papel do preço do ouro nos fatores, decide o David.
+    registerCollector(criarColetorFuturoB3("gld"));
     registerCollector(b3MilhoEsalqCollector);
     registerCollector(criarColetorComexExportacao("milho"));
     registerCollector(criarColetorComexExportacao("cafe"));

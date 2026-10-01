@@ -8,14 +8,15 @@ const { decodificarFuturoB3 } = require("../../shared/utils/b3-contrato");
 const { persistirObservacoes } = require("../base/persist-observations");
 const { produtoB3 } = require("./b3-produtos");
 
-// B3 - futuros agrícolas por VENCIMENTO, preço diário, via o arquivo público
+// B3 - futuros por VENCIMENTO, preço diário, via o arquivo público
 // `TradeInformationConsolidatedFile` (Up2Data, sem chave e sem recaptcha - ver
 // docs/adr/0009). Um coletor por produto (`criarColetorFuturoB3`, ver
-// b3-produtos.js): milho (CCM, ADR 0009) e café arábica (ICF, ADR 0028).
+// b3-produtos.js): milho (CCM, ADR 0009), café arábica (ICF, ADR 0028) e ouro
+// em dólar (GLD, ADR 0044).
 //
 // Um arquivo por pregão, com TODOS os derivativos (~6 MB). Cada coletor baixa
 // cada dia, guarda só as linhas dos futuros do seu produto e descarta o resto
-// (os dois coletores baixam o mesmo arquivo: cada um falha e é reexecutado
+// (os coletores baixam o mesmo arquivo: cada um falha e é reexecutado
 // sozinho, ao custo de um download a mais por pregão).
 //
 // POR QUE ISTO É URGENTE: o arquivo só existe numa janela rolante de ~15
@@ -24,16 +25,19 @@ const { produtoB3 } = require("./b3-produtos");
 //
 // Cada vencimento é preservado separadamente (NÃO há série contínua nem
 // rolagem). Cada campo do arquivo vira uma série `<prefixo>.<TICKER>.<CAMPO>`
-// em `observation` (ex.: B3.CCM.CCMF27.SETTLE, B3.ICF.ICFZ26.SETTLE), pois
+// em `observation` (ex.: B3.CCM.CCMF27.SETTLE, B3.GLD.GLDZ26.SETTLE), pois
 // observation guarda um escalar por linha.
 //
-// Filtro: só o futuro (ticker exato <símbolo><mês><aa>, segmento AGRIBUSINESS).
-// O arquivo também traz `CCME11` (segmento CASH, outro instrumento) e centenas
+// Filtro: só o futuro (ticker exato <símbolo><mês><aa>, no segmento do produto:
+// AGRIBUSINESS no CCM e no ICF, FINANCIAL no GLD). O arquivo também traz `CCME11`
+// e os ETFs de ouro GLDI11/GLDX11 (segmento CASH, outros instrumentos) e centenas
 // de opções (CCMF27C006800...), que ficam de fora.
 //
-// Unidades: os preços do CCM são em R$/saca e os do ICF em US$/saca (a cotação
-// do contrato); o volume financeiro (NtlFinVol) é em R$ nos dois - conferido no
-// ICF: 539 contratos x 100 sacas x US$ 338,94 x ~5,19 = R$ 94,8 milhões (2026-09-25).
+// Unidades: os preços do CCM são em R$/saca, os do ICF em US$/saca e os do GLD
+// em US$/onça troy (a cotação do contrato); o volume financeiro (NtlFinVol) é em
+// R$ em todos - conferido no ICF: 539 contratos x 100 sacas x US$ 338,94 x ~5,19 =
+// R$ 94,8 milhões (2026-09-25); no GLD (1 onça): 1.025 x US$ 4.208,86 x ~5,18 =
+// R$ 22,35 milhões (2026-09-30).
 //
 // published_at: a B3 não informa quando publicou (o download não traz
 // Last-Modified). Estimado como o FIM do dia do pregão em Brasília - conservador
@@ -95,8 +99,8 @@ async function buscar(url, signal) {
 }
 
 // Puro e testável: dado o texto do CSV, devolve { situacao, linhas } com só
-// os futuros do produto `simbolo`. `situacao` = final | nao_final | erro | vazio.
-function extrairFuturos(csv, simbolo) {
+// os futuros do `produto` (b3-produtos.js). `situacao` = final | nao_final | erro | vazio.
+function extrairFuturos(csv, { simbolo, segmento }) {
   if (!csv || !csv.trim()) return { situacao: "vazio", linhas: [] };
 
   const linhas = csv.split(/\r?\n/);
@@ -111,7 +115,7 @@ function extrairFuturos(csv, simbolo) {
     .slice(2)
     .filter((linha) => {
       const c = linha.split(";");
-      return c[3] === "AGRIBUSINESS" && decodificarFuturoB3(c[1], simbolo) !== null;
+      return c[3] === segmento && decodificarFuturoB3(c[1], simbolo) !== null;
     })
     // COPIA a linha. O split() do V8 devolve "sliced strings" que mantêm vivo o
     // texto INTEIRO do arquivo (~7 MB) - guardar 7 linhas por pregão retinha
@@ -122,7 +126,7 @@ function extrairFuturos(csv, simbolo) {
 }
 
 // Um pregão: { data, situacao, linhas, motivo? }.
-async function baixarDia(data, simbolo, signal) {
+async function baixarDia(data, produto, signal) {
   try {
     const r1 = await buscar(`${API}download/requestname?fileName=${NOME_ARQUIVO}&date=${data}&recaptchaToken=`, signal);
     if (!r1.ok) return { data, situacao: "indisponivel", linhas: [], motivo: `HTTP ${r1.status}` };
@@ -132,7 +136,7 @@ async function baixarDia(data, simbolo, signal) {
     if (!r2.ok) return { data, situacao: "indisponivel", linhas: [], motivo: `HTTP ${r2.status}` };
 
     const csv = Buffer.from(await r2.arrayBuffer()).toString("latin1");
-    return { data, ...extrairFuturos(csv, simbolo) };
+    return { data, ...extrairFuturos(csv, produto) };
   } catch (err) {
     if (err.name === "AbortError") throw err;
     return { data, situacao: "erro", linhas: [], motivo: `Falha ao baixar: ${err.message}` };
@@ -148,14 +152,14 @@ function diasUteis(dataInicial, dataFinal) {
 }
 
 // Baixa um intervalo de pregões (usado pela coleta diária e pelo backfill).
-async function baixarIntervalo(simbolo, { dataInicial, dataFinal, signal }) {
+async function baixarIntervalo(produto, { dataInicial, dataFinal, signal }) {
   paraDate(dataInicial);
   paraDate(dataFinal);
   const dias = diasUteis(dataInicial, dataFinal);
   const resultados = [];
 
   for (let i = 0; i < dias.length; i += CONCORRENCIA) {
-    resultados.push(...(await Promise.all(dias.slice(i, i + CONCORRENCIA).map((d) => baixarDia(d, simbolo, signal)))));
+    resultados.push(...(await Promise.all(dias.slice(i, i + CONCORRENCIA).map((d) => baixarDia(d, produto, signal)))));
   }
   return resultados;
 }
@@ -244,10 +248,10 @@ function normalizar(produto, rawItems) {
   return { validos, invalidos };
 }
 
-// Coletor de um produto de b3-produtos.js ("ccm", "icf").
+// Coletor de um produto de b3-produtos.js ("ccm", "icf", "gld").
 function criarColetorFuturoB3(chave) {
   const produto = produtoB3(chave);
-  const downloadIntervalo = (opcoes) => baixarIntervalo(produto.simbolo, opcoes);
+  const downloadIntervalo = (opcoes) => baixarIntervalo(produto, opcoes);
 
   return {
     codigo: produto.codigoColetor,

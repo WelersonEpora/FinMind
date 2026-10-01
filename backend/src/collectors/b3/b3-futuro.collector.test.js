@@ -13,7 +13,9 @@ const { criarColetorFuturoB3, extrairFuturos } = require("./b3-futuro.collector"
 
 const collector = criarColetorFuturoB3("ccm");
 const coletorIcf = criarColetorFuturoB3("icf");
-const extrairFuturosCcm = (texto) => extrairFuturos(texto, "CCM");
+const coletorGld = criarColetorFuturoB3("gld");
+const { PRODUTOS } = require("./b3-produtos");
+const extrairFuturosCcm = (texto) => extrairFuturos(texto, PRODUTOS.ccm);
 
 afterEach(() => mock.restoreAll());
 
@@ -22,7 +24,8 @@ const COLUNAS = "RptDt;TckrSymb;ISIN;SgmtNm;MinPric;MaxPric;TradAvrgPric;LastPri
 // Linhas reais do arquivo de 2026-09-18 (CCMF27 e CCMH27), mais os "falsos
 // positivos" que o arquivo de fato contém: CCME11 (segmento CASH), uma opção e
 // outro derivativo. CCMK27 aqui simula um vencimento sem negócios no dia. As linhas do
-// café (ICF e o conilon CNL, sem negócios) são reais do arquivo de 2026-09-25.
+// café (ICF e o conilon CNL, sem negócios) são reais do arquivo de 2026-09-25; as do ouro
+// (o futuro GLD, segmento FINANCIAL, e os ETFs de ouro, CASH) do de 2026-09-30.
 const LINHAS = [
   "2026-09-18;03BK11;BR03BKCTF019;FORWARD;51,59;51,7;51,66;51,59;0;;;;3;250;12917,45",
   "2026-09-18;CCME11;BRCCMECTF007;CASH;8,6;8,89;8,7;8,61;-1,71;;;;547;21878;189223,32",
@@ -33,7 +36,11 @@ const LINHAS = [
   "2026-09-18;DOLF27;BRBMEFDOL123;FINANCIAL;5000;5100;5050;5075;0,1;5080;;;10;20;1000",
   "2026-09-25;CNLF27;BRBMEFCNL1I8;AGRIBUSINESS;;;;;;962,6;;;;;",
   "2026-09-25;ICFH28;BRBMEFICF3L3;AGRIBUSINESS;;;;;;316,7;;;;;",
-  "2026-09-25;ICFZ26;BRBMEFICF3E8;AGRIBUSINESS;334;343,65;338,94;336,95;1,11;338,6;;;371;539;94824222,11"
+  "2026-09-25;ICFZ26;BRBMEFICF3E8;AGRIBUSINESS;334;343,65;338,94;336,95;1,11;338,6;;;371;539;94824222,11",
+  "2026-09-30;GLDI11;BRGLDICTF009;CASH;54,33;56,01;54,96;54,71;-0,41;;;;52;5172;284293",
+  "2026-09-30;GLDX11;BRGLDXCTF016;CASH;100,03;102,06;100,56;100,26;-1,38;;;;54;1521;152963,09",
+  "2026-09-30;GLDZ26;BRBMEFGLD0B3;FINANCIAL;4197,5;4267;4208,86;4205,25;0,2;4203,5;;;889;1025;22350855,92",
+  "2026-09-30;OURO11;BROUROCTF002;CASH;94,2;96,5;94,58;94,41;-0,35;;;;33;1814;171584,4"
 ];
 // Resposta mínima de fetch (o ESLint do projeto não declara `Response` como global).
 const resposta = (status, { json, texto } = {}) => ({
@@ -84,7 +91,7 @@ test("normalize interpreta o CCMF27: vírgula decimal, cada campo vira uma séri
 });
 
 test("café arábica (ICF): só os futuros ICF (sem o conilon CNL), preço em US$/saca e volume em R$", () => {
-  const { linhas } = extrairFuturos(csv(), "ICF");
+  const { linhas } = extrairFuturos(csv(), PRODUTOS.icf);
   assert.deepEqual(linhas.map((l) => l.split(";")[1]), ["ICFH28", "ICFZ26"]);
 
   const { validos, invalidos } = coletorIcf.normalize(coletorIcf.parse([{ data: "2026-09-25", situacao: "final", linhas }]));
@@ -98,6 +105,27 @@ test("café arábica (ICF): só os futuros ICF (sem o conilon CNL), preço em US
   assert.deepEqual(validos.filter((v) => v.series_code.startsWith("B3.ICF.ICFH28.")).map((v) => v.series_code), ["B3.ICF.ICFH28.SETTLE"]);
   assert.equal(coletorIcf.codigo, "b3-icf-futuro");
   assert.equal(collector.codigo, "b3-ccm-futuro");
+});
+
+test("ouro (GLD): só o futuro, no segmento FINANCIAL (sem os ETFs GLDI11/GLDX11), preço em US$/oz e volume em R$", () => {
+  const { linhas } = extrairFuturos(csv(), PRODUTOS.gld);
+  assert.deepEqual(linhas.map((l) => l.split(";")[1]), ["GLDZ26"]);
+
+  const { validos, invalidos } = coletorGld.normalize(coletorGld.parse([{ data: "2026-09-30", situacao: "final", linhas }]));
+  assert.equal(invalidos.length, 0);
+  const z26 = Object.fromEntries(validos.map((v) => [v.series_code.split(".")[3], v]));
+  assert.ok(validos.every((v) => v.series_code.startsWith("B3.GLD.GLDZ26.")));
+  assert.equal(z26.SETTLE.value, 4203.5);
+  assert.equal(z26.SETTLE.unit, "USD/oz");
+  assert.equal(z26.VOLUME_BRL.value, 22350855.92);
+  assert.equal(z26.VOLUME_BRL.unit, "BRL");
+  assert.equal(z26.SETTLE.metadata.vencimento, "2026-12");
+  assert.equal(coletorGld.codigo, "b3-gld-futuro");
+});
+
+test("o segmento do produto filtra: um GLD fora do FINANCIAL não é o futuro", () => {
+  const texto = csv().replace("GLDZ26;BRBMEFGLD0B3;FINANCIAL", "GLDZ26;BRBMEFGLD0B3;AGRIBUSINESS");
+  assert.deepEqual(extrairFuturos(texto, PRODUTOS.gld).linhas, []);
 });
 
 test("criarColetorFuturoB3 recusa produto desconhecido", () => {

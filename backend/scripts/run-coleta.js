@@ -9,7 +9,7 @@
 // Uso: node scripts/run-coleta.js  (ou `npm run collect`)
 //      npm run collect -- --coletor=fred     (só os coletores cujo código contém "fred")
 //
-// Os coletores da camada point-in-time (fred-*, lbma-*, cftc-*, usda-*) baixam
+// Os coletores da camada point-in-time (fred-*, cftc-*, usda-*) baixam
 // a série INTEIRA e só gravam o que é novo ou mudou (ADR 0008) - então este
 // mesmo comando serve de rotina diária e de backfill.
 

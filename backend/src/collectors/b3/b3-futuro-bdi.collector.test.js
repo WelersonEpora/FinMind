@@ -72,6 +72,10 @@ test("parse do ICF falha alto citando o produto quando nenhum boletim tem a tabe
   assert.throws(() => icf.parse(dias), /tabela de futuros do ICF/);
 });
 
+test("produto sem BDI (GLD) não tem coletor do BDI", () => {
+  assert.throws(() => criarColetorFuturoBdi("gld"), /não tem coletor do BDI/);
+});
+
 test("normalize: published_at segue a regra do coletor CSV (fim do pregão em Brasília, estimado) e o BDI fica rastreável", () => {
   const settle = collector.normalize(collector.parse([diaOk()])).validos.find((v) => v.series_code === "B3.CCM.CCMF23.SETTLE");
 

@@ -283,9 +283,10 @@ async function persistirComplemento(validos, contexto, deps = {}) {
   return { ...resultado, ignorados: resultado.ignorados + jaExistentes, divergencias };
 }
 
-// Coletor de um produto de b3-produtos.js ("ccm", "icf").
+// Coletor de um produto de b3-produtos.js com BDI ("ccm", "icf").
 function criarColetorFuturoBdi(chave) {
   const produto = produtoB3(chave);
+  if (!produto.codigoColetorBdi) throw new Error(`O produto B3 ${chave} não tem coletor do BDI (ver b3-produtos.js).`);
   const downloadIntervalo = (opcoes) => baixarIntervalo(produto, opcoes);
 
   return {

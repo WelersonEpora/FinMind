@@ -12,7 +12,7 @@ coletores"). Modelo de dados: ADR 0008.
 | Fonte | Série(s) `observation` | Acesso | Histórico | `published_at` | Status |
 |---|---|---|---|---|---|
 | FRED (API REST com chave; CSV público como reserva — ADR 0012) | `FRED.DGS10`, `FRED.T10YIE`, `FRED.DFII10`, `FRED.DTWEXBGS` | `api.stlouisfed.org/fred/series/observations` (reserva: `fredgraph.csv?id=`) | DGS10 desde 1962; DFII10/T10YIE 2003; DTWEXBGS 2006 | **estimado** (1 dia útil; DTWEXBGS = próxima segunda, divulgada semanalmente) | **Coletado e validado** |
-| LBMA Gold PM | `LBMA.GOLD_PM.USD` | feed JSON `prices.lbma.org.uk/json/gold_pm.json` | 1968-04-01 → hoje (14.686) | **estimado** (15:00 Londres) | **Coletado**; licença: ver ressalva |
+| LBMA Gold PM | `LBMA.GOLD_PM.USD` | feed JSON `prices.lbma.org.uk/json/gold_pm.json` | 1968-04-01 → 2026-09-30 (14.693) | **estimado** (15:00 Londres) | **Coleta encerrada em 2026-10-01**: o feed fechou (403; histórico só no MyLBMA, com licença da IBA). O ouro diário passou a ser o futuro GLD da B3 — ADR 0044 |
 | CFTC COT (Disaggregated Futures Only) | `CFTC.GOLD.*` e `CFTC.CORN.*` × {`OPEN_INTEREST`,`MM_LONG`,`MM_SHORT`} | Socrata `publicreporting.cftc.gov/resource/72hh-3qpy` (sem chave) | 2006-06-13 → hoje (1.058 semanas/contrato) | **real** desde 2022-08 (`:updated_at`); **estimado** (sexta 15:30 ET) antes | **Coletado e validado** |
 | USDA NASS Crop Progress (milho) | `USDA.CORN.CONDITION.*`, `USDA.CORN.PROGRESS.*` | QuickStats API — **exige chave** (gratuita) | 1980-04-13 → hoje (piso real da API, confirmado em 2026-09-21; padrão do coletor, `NASS_ANO_INICIAL`). Cada série começa no seu ano: `PLANTED` 1980, `DOUGH`/`SILKING`/`DENTED`/`MATURE`/`HARVESTED` 1981, `CONDITION.*` 1986, `EMERGED` 1999 | **estimado** (16:00 ET, 1º dia útil da semana, com feriados). Regra não validada para 1980–2005 | **Coletado e validado** (2026-09-20/21): 6.758 linhas, 12 séries, 0 falhas |
 | B3 — futuros CCM por vencimento | `B3.CCM.<TICKER>.<CAMPO>` | `TradeInformationConsolidatedFile` (Up2Data público, sem chave nem recaptcha) | **~15 meses e rolante** (verificado em 2026-09-20) | — | **Coletor implementado e coletado** (`b3-ccm-futuro`): 20.508 linhas, 321 pregões, 15 vencimentos. **10+ anos NÃO existem de graça** |
@@ -144,7 +144,8 @@ Duas frentes, ambas rodando `run-coleta.js` (todos os coletores; ver ADR 0004):
   para o portal MyLBMA. O feed JSON usado é público, mas isso não é licença, e as FAQs não dizem
   se pesquisa interna exige uma. Risco: baixo em uso interno; alto ao exibir, usar em avaliação
   ou basear sinal. Alternativas se um dia for necessário: licenciar com a IBA, manter só interno
-  ou trocar de fonte.
+  ou trocar de fonte. **Atualização de 2026-10-01:** o feed público fechou (403); a coleta foi
+  encerrada e o preço do ouro diário passou a vir do futuro GLD da B3 (ADR 0044).
 - **FRED:** por série, na página do FRED: `DGS10` e `DFII10` (Board of Governors, H.15) e
   `DTWEXBGS` (Board of Governors, H.10) são "Public Domain: Citation Requested"; `T10YIE`
   (calculada pelo FRED) **não teve o status confirmado**. A página legal permite uso comercial

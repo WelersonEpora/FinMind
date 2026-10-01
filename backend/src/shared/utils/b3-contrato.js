@@ -1,12 +1,13 @@
 "use strict";
 
-// Ticker de futuro agrícola da B3: símbolo do produto + letra do mês de
+// Ticker de futuro da B3: símbolo do produto + letra do mês de
 // vencimento + 2 dígitos do ano (ex.: CCMF27 = milho, janeiro/2027; ICFZ26 =
-// café arábica, dezembro/2026). Usado pelos coletores (collectors/b3) e pela
-// leitura da tela de Observáveis. Não conhece a DATA exata de vencimento - só o mês.
+// café arábica, dezembro/2026; GLDZ26 = ouro, dezembro/2026). Usado pelos coletores
+// (collectors/b3) e pela leitura da tela de Observáveis. Não conhece a DATA exata de
+// vencimento - só o mês.
 
-// Produtos coletados: CCM (milho, ADR 0009) e ICF (café arábica, ADR 0028).
-const SIMBOLOS = ["CCM", "ICF"];
+// Produtos coletados: CCM (milho, ADR 0009), ICF (café arábica, ADR 0028) e GLD (ouro, ADR 0044).
+const SIMBOLOS = ["CCM", "ICF", "GLD"];
 const REGEX_FUTURO = new RegExp(`^(${SIMBOLOS.join("|")})([FGHJKMNQUVXZ])(\\d{2})$`);
 const MES_DO_CODIGO = { F: 1, G: 2, H: 3, J: 4, K: 5, M: 6, N: 7, Q: 8, U: 9, V: 10, X: 11, Z: 12 };
 const MESES_ABREVIADOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];

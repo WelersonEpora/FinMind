@@ -12,7 +12,9 @@ const CONFIG = {
   // Frescor de um observável (observaveis.service.js::calcularSituacao)
   EM_DIA: { label: 'Em dia', classe: 'status-badge--sucesso', icone: 'pi-check-circle' },
   ATRASADA: { label: 'Atrasada', classe: 'status-badge--falha', icone: 'pi-exclamation-triangle' },
-  SEM_COLETA: { label: 'Sem coleta', classe: 'status-badge--neutro', icone: 'pi-minus-circle' }
+  SEM_COLETA: { label: 'Sem coleta', classe: 'status-badge--neutro', icone: 'pi-minus-circle' },
+  // A fonte fechou: o histórico continua, sem dado novo (ex.: LBMA, ADR 0044)
+  ENCERRADA: { label: 'Encerrada', classe: 'status-badge--neutro', icone: 'pi-stop-circle' }
 }
 
 function config() {

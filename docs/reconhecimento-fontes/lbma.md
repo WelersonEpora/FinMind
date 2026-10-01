@@ -1,6 +1,6 @@
 # LBMA Gold Price PM — reconhecimento
 
-Nível **5** (coletado, histórico completo), **com ressalva de licença**. Linha do
+**Coleta encerrada em 2026-10-01** (o feed fechou, ver o fim). Era nível **5**, **com ressalva de licença**. Linha do
 índice: `docs/reconhecimento-fontes/README.md`. Evidência: ADR 0009. Série:
 `LBMA.GOLD_PM.USD`. Coletor: `collectors/lbma/lbma-gold-pm.collector.js`.
 
@@ -22,3 +22,10 @@ Nível **5** (coletado, histórico completo), **com ressalva de licença**. Linh
 distribuição nem comercialização prevista. Antes de exibir a terceiros, usar em avaliação ou
 basear sinal: consultar a IBA (tipo de licença e custo) ou trocar de fonte. Risco hoje: baixo
 (pesquisa interna).
+
+**Feed fechado em 2026-10-01 (coleta encerrada, ADR 0044).** As três coletas da manhã de 2026-10-01 receberam 403
+(bloqueio da Cloudflare, "Sorry, you have been blocked"); o mesmo de outra máquina, também com cabeçalhos de navegador; `gold_am.json`
+e `silver.json` também; a raiz `prices.lbma.org.uk/` responde 401. A página de preços da LBMA diz que o histórico
+"has been moved to our MyLBMA Portal" e que é preciso licença da IBA. O coletor saiu da coleta diária; o histórico
+gravado (1968-04-01 a 2026-09-30, 14.693 pontos) continua legível no card, marcado como encerrado. O preço do ouro
+coletado todo dia passou a ser o futuro em dólar da B3 (GLD), reconhecido em [b3-gld-ouro.md](b3-gld-ouro.md).

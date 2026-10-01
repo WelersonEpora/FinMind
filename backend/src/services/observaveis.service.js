@@ -230,12 +230,14 @@ const CATALOGO_OBSERVAVEIS = [
     toleranciaDias: 4,
     fonte: "LBMA (ICE Benchmark Administration)",
     fonteCollectorCode: "lbma-gold-pm-usd",
+    // A LBMA fechou o feed público em 2026-10-01 (ADR 0044): o histórico vai até 2026-09-30.
+    encerradaEm: "2026-10-01",
     series: [{ modalidade: "usd", seriesCode: "LBMA.GOLD_PM.USD" }],
     modalidadePrincipal: "usd",
     fonteDetalhe: {
-      descricao: "Preço de referência do ouro fixado no leilão da tarde (PM) de Londres, em dólares por onça troy. Histórico desde 1968.",
+      descricao: "Preço de referência do ouro fixado no leilão da tarde (PM) de Londres, em dólares por onça troy. Histórico de 1968 a 30/09/2026: a coleta foi encerrada quando a LBMA fechou o feed público (01/10/2026).",
       metodologia:
-        "Um valor por dia útil, fixado às 15:00 de Londres. A fonte não informa quando publicou: a data de disponibilidade é ESTIMADA em 15:00 de Londres do próprio dia. Licença: a IBA exige licença para obter, usar ou redistribuir o histórico do preço - uso atual restrito a pesquisa interna, sem exibir a terceiros (ADR 0009).",
+        "Um valor por dia útil, fixado às 15:00 de Londres. A fonte não informa quando publicou: a data de disponibilidade é ESTIMADA em 15:00 de Londres do próprio dia. Licença: a IBA exige licença para obter, usar ou redistribuir o histórico do preço - uso atual restrito a pesquisa interna, sem exibir a terceiros (ADR 0009). Em 01/10/2026 a LBMA fechou o feed público (o histórico passou ao portal MyLBMA, só com licença da IBA) e a coleta foi encerrada; o preço do ouro coletado todo dia passou a ser o futuro em dólar da B3 (GLD), que liquida pelo LBMA Gold Price (ADR 0044).",
       formatoOrigem: "JSON (feed público da LBMA)",
       urlOficial: "https://prices.lbma.org.uk/json/gold_pm.json"
     }
@@ -1559,7 +1561,7 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
-  // --- Futuros agrícolas da B3 por vencimento: milho (CCM, ADR 0009) e café arábica (ICF, ADR 0028) ---
+  // --- Futuros da B3 por vencimento: milho (CCM, ADR 0009), café arábica (ICF, ADR 0028) e ouro em dólar (GLD, ADR 0044) ---
   // Dois cards por produto sobre as MESMAS séries `B3.<PRODUTO>.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por
   // vencimento (nunca uma série contínua). `porVencimento` faz o serviço descobrir
@@ -1584,8 +1586,17 @@ const CATALOGO_OBSERVAVEIS = [
       notaLiquidez: " O volume financeiro é em reais, mesmo com o contrato cotado em dólares (100 sacas de 60 kg).",
       historico:
         "de 2022-03-21 a 2025-12-11, o Boletim Diário de Informações (PDF, carga histórica única, ADR 0028); a partir de 2025-06-10, o arquivo diário do Up2Data (coleta diária, janela de ~15 meses)."
+    },
+    {
+      simbolo: "GLD",
+      titulo: "Ouro B3 (GLD)",
+      mercadoria: "ouro em dólar",
+      unidadePreco: "US$/oz",
+      fonteCollectorCode: "b3-gld-futuro",
+      semBdi: true,
+      notaLiquidez: " O volume financeiro é em reais, mesmo com o contrato cotado em dólares (1 onça troy)."
     }
-  ].flatMap(({ simbolo, titulo, mercadoria, unidadePreco, fonteCollectorCode, notaLiquidez, historico }) =>
+  ].flatMap(({ simbolo, titulo, mercadoria, unidadePreco, fonteCollectorCode, notaLiquidez, historico, semBdi }) =>
     [
       {
         instrumentCode: `${simbolo}_PRECOS`,
@@ -1601,7 +1612,7 @@ const CATALOGO_OBSERVAVEIS = [
           { codigo: "OPEN", nome: "Preço de abertura", unidade: unidadePreco, casasDecimais: 2 },
           { codigo: "OSCN_PCT", nome: "Oscilação", unidade: "%", casasDecimais: 2 }
         ],
-        descricao: `Preços diários de cada vencimento do futuro de ${mercadoria} da B3 (${simbolo}): preço de ajuste, último, máxima, mínima, médio, abertura e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua.`
+        descricao: `Preços diários de cada vencimento do futuro de ${mercadoria} da B3 (${simbolo}): preço de ajuste, último, máxima, mínima, médio${semBdi ? "" : ", abertura"} e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua.`
       },
       {
         instrumentCode: `${simbolo}_LIQUIDEZ`,
@@ -1614,21 +1625,33 @@ const CATALOGO_OBSERVAVEIS = [
           { codigo: "VOLUME_BRL", nome: "Volume financeiro", unidade: "R$", casasDecimais: 0 },
           { codigo: "OPEN_INTEREST", nome: "Contratos em aberto", unidade: "contratos", casasDecimais: 0 }
         ],
-        descricao: `Liquidez diária de cada vencimento do futuro de ${mercadoria} da B3 (${simbolo}): contratos negociados, número de negócios, volume financeiro e contratos em aberto.${notaLiquidez}`
+        descricao: `Liquidez diária de cada vencimento do futuro de ${mercadoria} da B3 (${simbolo}): contratos negociados, número de negócios${semBdi ? " e volume financeiro" : ", volume financeiro e contratos em aberto"}.${notaLiquidez}`
       }
-    ].map((cartao) => ({ ...cartao, simbolo, fonteCollectorCode, historico }))
-  ).map(({ simbolo, historico, ...cartao }) => ({
+    ].map((cartao) => ({
+      ...cartao,
+      // Abertura e contratos em aberto só existem no BDI.
+      campos: semBdi ? cartao.campos.filter((c) => !["OPEN", "OPEN_INTEREST"].includes(c.codigo)) : cartao.campos,
+      simbolo,
+      fonteCollectorCode,
+      historico,
+      semBdi
+    }))
+  ).map(({ simbolo, historico, semBdi, ...cartao }) => ({
     ...cartao,
     origem: "observation",
     porVencimento: { prefixoSerie: `B3.${simbolo}`, campoReferencia: "SETTLE" },
     casasDecimais: cartao.campos.find((c) => c.codigo === cartao.campoPrincipal).casasDecimais,
     frequencia: "DIARIA",
     toleranciaDias: 4,
-    fonte: "B3 - Up2Data (negócios consolidados) e Boletim Diário (BDI)",
+    fonte: semBdi ? "B3 - Up2Data (negócios consolidados)" : "B3 - Up2Data (negócios consolidados) e Boletim Diário (BDI)",
     fonteDetalhe: {
       descricao: cartao.descricao,
-      metodologia: `Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). Histórico em duas fontes da própria B3, nas mesmas séries: ${historico} Onde as duas cobrem o mesmo pregão, vale o valor do Up2Data (o BDI arredonda o volume para inteiro). Abertura e contratos em aberto só existem no BDI: vão até 2025-12-11 (o boletim deixou de trazer a tabela por vencimento).`,
-      formatoOrigem: "CSV (TradeInformationConsolidatedFile, B3 Up2Data) e PDF (BDI, capítulo de derivativos)",
+      metodologia: `Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). ${
+        semBdi
+          ? "Histórico completo desde o 1º pregão do contrato (2025-07-21), pelo arquivo diário do Up2Data (coleta diária, janela de ~15 meses). Liquidação financeira pelo LBMA Gold Price; o contrato é em US$ por onça troy e o volume é em reais. Sem abertura nem contratos em aberto: só o Boletim Diário os traz, e só de 2025-07-21 a 2025-12-11 (depois o boletim deixou de trazer a tabela por vencimento); esse trecho não foi carregado para o GLD (ADR 0044)."
+          : `Histórico em duas fontes da própria B3, nas mesmas séries: ${historico} Onde as duas cobrem o mesmo pregão, vale o valor do Up2Data (o BDI arredonda o volume para inteiro). Abertura e contratos em aberto só existem no BDI: vão até 2025-12-11 (o boletim deixou de trazer a tabela por vencimento).`
+      }`,
+      formatoOrigem: semBdi ? "CSV (TradeInformationConsolidatedFile, B3 Up2Data)" : "CSV (TradeInformationConsolidatedFile, B3 Up2Data) e PDF (BDI, capítulo de derivativos)",
       urlOficial: "https://arquivos.b3.com.br/tabelas/TradeInformationConsolidatedFile"
     }
   }))
@@ -1642,7 +1665,10 @@ const DIAS_TOLERANCIA_FRESCOR = 4;
 
 // `toleranciaDias` por observável: séries semanais (COT) ou divulgadas em lote
 // semanal (índice do dólar) precisam de uma folga maior que a das diárias.
-function calcularSituacao(dataReferencia, toleranciaDias = DIAS_TOLERANCIA_FRESCOR) {
+// `encerradaEm`: a coleta da série acabou (a fonte fechou) - o histórico continua
+// legível, mas a falta de dado novo não é atraso.
+function calcularSituacao(dataReferencia, toleranciaDias = DIAS_TOLERANCIA_FRESCOR, encerradaEm = null) {
+  if (encerradaEm) return "ENCERRADA";
   if (!dataReferencia) return "SEM_COLETA";
   const diffDias = (Date.now() - new Date(`${dataReferencia}T00:00:00Z`).getTime()) / (1000 * 60 * 60 * 24);
   return diffDias <= toleranciaDias ? "EM_DIA" : "ATRASADA";
@@ -1679,7 +1705,7 @@ async function listarObservaveis(deps = {}) {
         casasDecimais: item.casasDecimais ?? 4,
         dataReferencia: cotacao?.dataReferencia ?? null,
         frequencia: item.frequencia,
-        situacao: calcularSituacao(cotacao?.dataReferencia, item.toleranciaDias)
+        situacao: calcularSituacao(cotacao?.dataReferencia, item.toleranciaDias, item.encerradaEm)
       };
     })
   );
@@ -1709,7 +1735,7 @@ async function obterDetalheObservavel(codigo, deps = {}) {
       unidade: item.unidade,
       casasDecimais: item.casasDecimais ?? 4,
       frequencia: item.frequencia,
-      situacao: calcularSituacao(cotacao?.dataReferencia, item.toleranciaDias),
+      situacao: calcularSituacao(cotacao?.dataReferencia, item.toleranciaDias, item.encerradaEm),
       cotacaoAtual: cotacao,
       mensagem: cotacao ? null : mensagem,
       cobertura: { primeiraData: estatisticas.primeiraData, ultimaData: estatisticas.ultimaData },
