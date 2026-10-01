@@ -13,28 +13,37 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 > `docs/adr/` (decisões, evidências e a autorização de cada fonte). O que depende
 > do David e do Comitê está aqui mesmo, na §4.
 
-## 1. Onde estamos
+<details>
+<summary>1. Onde estamos</summary>
 
-A **infraestrutura de dados** para ouro e milho está pronta: coleta,
-armazenamento point-in-time (com data de publicação) e exibição nos
-Observáveis. As fontes fundamentais gratuitas de milho e ouro que faltavam foram fechadas em 2026-10-01 (ADRs 0033
-a 0037 e 0039). No mesmo dia a LBMA fechou o feed público do preço do ouro: o preço diário passou a ser o futuro de
-ouro em dólar da B3 (GLD, desde 2025-07-21), e se ele serve de referência é decisão do David (ADR 0044). O **café** completou os 4 passos da onda (posição dos fundos, exportação,
-futuro ICF da B3, safra da Conab, clima pela NOAA STAR, balanço por país do USDA, estoques certificados da ICE e
-resumo diário do Cecafé: ADRs 0028 a 0032 e 0038, §3), o custo de produção da Conab (ADR 0043; o preço mínimo exige
-reCAPTCHA) e o preço mensal do FMI, desde 1992 (ADR 0045). O **petróleo** começou em 2026-10-01: estoques, produção, refino e
-preço à vista diário da EIA (WTI desde 1986), a posição dos fundos no WTI (ADR 0040), a produção do Brasil por UF da
-ANP (ADR 0041) e a produção e a demanda por país do JODI (ADRs 0042 e 0046); a Baker Hughes não respondeu (§3). **Nada interpreta esses dados ainda** — motor analítico, IA,
-sinais, backtest e execução de ordens seguem como contratos vazios, à espera
-das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
-O desenho já está decidido: o motor prepara a base (fatores e regras do Comitê)
-e a **IA gera a recomendação**, que uma pessoa decide se segue (§5).
+A **infraestrutura de dados é suficiente** para seguir: dos 34 fatores da planilha de fatores do FEL 1
+(`controle_fatores.xlsx`; o detalhe do milho e do ouro está em `docs/cobertura-fatores-fel1-milho-ouro.md`), só **2 ficaram sem dado**. Levantamento de 2026-10-01, contra o que está coletado em dev e no servidor.
 
-**Aquisição de dados encerrada (decisão do usuário, 2026-10-01).** Dos 34 fatores do FEL 1, 20 têm a matéria-prima
-coberta, 12 parcialmente e 2 sem dado (a geopolítica do ouro e a do petróleo, que dependem do desenho de eventos do
-David). O que falta não é fonte: são as regras de cada fator. **Fonte nova só com uma demanda específica** (do David, do
-Comitê ou do usuário), com a autorização registrada no ADR, como antes. A coleta diária continua, e a manutenção das
-fontes já implementadas (mudança de formato, fonte que fecha, como a LBMA) segue normal.
+| Ativo | Coberto | Parcial | Sem dado |
+|---|---|---|---|
+| Café (8) | 6 | 2 | 0 |
+| Milho (8) | 4 | 4 | 0 |
+| Ouro (8) | 6 | 1 | 1 |
+| Petróleo (10) | 4 | 5 | 1 |
+| **Total (34)** | **20** | **12** | **2** |
+
+**Os 2 fatores sem dado** são os geopolíticos, e não se resolvem com fonte nova:
+
+| Fator | Peso | Por quê | O que resolve |
+|---|---|---|---|
+| Ouro: geopolítica e risco sistêmico | Alto | É evento (conflito, sanção, crise), não série numérica | O desenho de registro de eventos (ADR 0010): decisão do David |
+| Petróleo: geopolítica e conflitos (Oriente Médio, Rússia) | Alto | Mesmo caso | Mesmo caso |
+
+Os 12 parciais têm dado, com lacunas da própria fonte (ex.: a demanda de petróleo sem a Rússia), à espera de uma
+decisão do David ou do Comitê (ex.: a geada do café, a paridade do milho, o DXY licenciado) ou sem fonte gratuita (ex.:
+o preço mínimo do café, bloqueado por reCAPTCHA). O detalhe de cada fonte está no §2 ("Dados coletados") e no §3.
+
+**Aquisição de dados encerrada (decisão do usuário, 2026-10-01).** O que falta não é fonte: são as regras de cada
+fator. **Fonte nova só com uma demanda específica** (do David, do Comitê ou do usuário), com a autorização registrada no
+ADR, como antes. A coleta diária continua, e a manutenção das fontes já implementadas (mudança de formato, fonte que
+fecha, como a LBMA) segue normal.
+
+</details>
 
 ## Próximos passos
 
@@ -61,6 +70,23 @@ quando chegar a vez delas.
 <details>
 <summary>2. Pronto</summary>
 
+### Resumo
+
+A **infraestrutura de dados** para ouro e milho está pronta: coleta,
+armazenamento point-in-time (com data de publicação) e exibição nos
+Observáveis. As fontes fundamentais gratuitas de milho e ouro que faltavam foram fechadas em 2026-10-01 (ADRs 0033
+a 0037 e 0039). No mesmo dia a LBMA fechou o feed público do preço do ouro: o preço diário passou a ser o futuro de
+ouro em dólar da B3 (GLD, desde 2025-07-21), e se ele serve de referência é decisão do David (ADR 0044). O **café** completou os 4 passos da onda (posição dos fundos, exportação,
+futuro ICF da B3, safra da Conab, clima pela NOAA STAR, balanço por país do USDA, estoques certificados da ICE e
+resumo diário do Cecafé: ADRs 0028 a 0032 e 0038, §3), o custo de produção da Conab (ADR 0043; o preço mínimo exige
+reCAPTCHA) e o preço mensal do FMI, desde 1992 (ADR 0045). O **petróleo** começou em 2026-10-01: estoques, produção, refino e
+preço à vista diário da EIA (WTI desde 1986), a posição dos fundos no WTI (ADR 0040), a produção do Brasil por UF da
+ANP (ADR 0041) e a produção e a demanda por país do JODI (ADRs 0042 e 0046); a Baker Hughes não respondeu (§3). **Nada interpreta esses dados ainda** — motor analítico, IA,
+sinais, backtest e execução de ordens seguem como contratos vazios, à espera
+das definições do David (ver `CLAUDE.md`, "Restrições permanentes").
+O desenho já está decidido: o motor prepara a base (fatores e regras do Comitê)
+e a **IA gera a recomendação**, que uma pessoa decide se segue (§5).
+
 ### Plataforma
 
 | Item | Detalhe |
@@ -71,7 +97,7 @@ quando chegar a vez delas.
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js`: juro real 10a = `DFII10`, com `DGS10 − T10YIE` como validação cruzada (5.932 de 5.932 datas iguais). Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
-| Telas de dados | `/dados-mercado/observaveis` (56 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Telas de dados | `/dados-mercado/observaveis` (60 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` na `servidor02` (coleta 04:00, 06:00, 08:00 **UTC**; backup 10:00 UTC, **não versionado**) — ADR 0004, ADR 0026 |
