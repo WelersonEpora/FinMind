@@ -67,3 +67,5 @@ ignorados. 415 meses por série (1992-01 a 2026-07), o valor mais recente de cad
   daria a data real, mas o FMI não guarda versões; fica como alternativa, se o David pedir.
 - O histórico anterior a 1992 se perdeu na versão atual: não é recuperado.
 - Licença do FMI não lida: antes de exibir a terceiros, ler os termos (como as reservas do FMI, ADR 0036).
+- **No servidor em 2026-10-01** (coleta manual, informado pelo usuário): 3.284 lidos, 830 criados, 765 revisões, 1.128
+  ignorados, 0 falhas, os mesmos números de dev.
