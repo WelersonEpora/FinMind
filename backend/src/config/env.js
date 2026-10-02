@@ -69,5 +69,11 @@ module.exports = {
     apiKey: process.env.GEMINI_API_KEY || "",
     model: process.env.GEMINI_MODEL || "gemini-flash-latest",
     timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS || 180000)
+  },
+  // Leitura diária de geopolítica (ADR 0047): uma por dia, a primeira que der certo; as execuções seguintes do cron pulam
+  // a chamada. GEOPOLITICA_REFAZER=1, só no comando (não no .env), força uma nova leitura que substitui a do dia:
+  //   GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica
+  geopolitica: {
+    refazer: process.env.GEOPOLITICA_REFAZER === "1"
   }
 };

@@ -55,6 +55,9 @@ Confiança: alta
 Fontes: UKMTO; Al Jazeera - https://www.aljazeera.com/news/2026/8/18/vessel-hit
 `;
 
+// Repositório falso: ainda não há leitura do dia (o download segue para a IA).
+const SEM_LEITURA_HOJE = { existeLeituraDoDia: async () => false };
+
 const RESPOSTA = {
   texto: TEXTO,
   grounding: {
@@ -287,10 +290,12 @@ test("download: monta o prompt versionado com a data e as fontes e chama o prove
   const recebidos = [];
   const deps = {
     dataReferencia: "2026-10-01",
+    geopoliticaRepository: SEM_LEITURA_HOJE,
     geminiSearch: {
       async pesquisarNaWeb(entrada) {
         recebidos.push(entrada);
-        return { texto: TEXTO, grounding: null, modelo: "m", tokens: 1 };
+        // Uma página lida (sem link de redirecionamento: nada a seguir).
+        return { texto: TEXTO, grounding: { groundingChunks: [{ web: { title: "apnews.com" } }] }, modelo: "m", tokens: 1 };
       }
     }
   };
@@ -358,4 +363,68 @@ test("normalize: o assunto vem do coletor (GEOPOLITICA), o tipo vem da IA", () =
     validos[0].eventos.map((e) => e.tipo),
     ["DIPLOMACIA", null, "ROTA_MARITIMA"]
   );
+});
+
+test("download: a IA respondeu sem pesquisar - tenta de novo; se pesquisou na 2ª, segue", async () => {
+  const respostas = [
+    { texto: TEXTO, grounding: null, modelo: "m", tokens: 1 },
+    { texto: TEXTO, grounding: { groundingChunks: [{ web: { title: "ukmto.org" } }] }, modelo: "m", tokens: 2 }
+  ];
+  let chamadas = 0;
+  const deps = { dataReferencia: "2026-10-02", geopoliticaRepository: SEM_LEITURA_HOJE, geminiSearch: { pesquisarNaWeb: async () => respostas[chamadas++] } };
+  const resposta = await coletor.download({ signal: undefined }, deps);
+  assert.equal(chamadas, 2);
+  assert.equal(resposta.tokens, 2);
+});
+
+test("download: sem pesquisa nas 2 tentativas, falha sem gravar nada (nível e resumo de memória não chegam ao Motor)", async () => {
+  let chamadas = 0;
+  const semPesquisa = { texto: TEXTO, grounding: { webSearchQueries: ["x"], groundingChunks: [] }, modelo: "m", tokens: 1 };
+  const deps = { dataReferencia: "2026-10-02", geopoliticaRepository: SEM_LEITURA_HOJE, geminiSearch: { pesquisarNaWeb: async () => (chamadas++, semPesquisa) } };
+  await assert.rejects(coletor.download({ signal: undefined }, deps), (erro) => {
+    assert.equal(erro.code, "UPSTREAM_ERROR");
+    assert.match(erro.message, /respondeu sem pesquisar .* em 2 tentativas/);
+    return true;
+  });
+  assert.equal(chamadas, 2);
+});
+
+test("download: já existe leitura de hoje - pula a chamada à IA e o persist conta como ignorado", async () => {
+  let chamadas = 0;
+  const datasConsultadas = [];
+  const deps = {
+    dataReferencia: "2026-10-02",
+    refazer: false,
+    geopoliticaRepository: { existeLeituraDoDia: async (data) => (datasConsultadas.push(data), true) },
+    geminiSearch: { pesquisarNaWeb: async () => (chamadas++, RESPOSTA) }
+  };
+  const resposta = await coletor.download({ signal: undefined }, deps);
+  assert.equal(chamadas, 0);
+  assert.deepEqual(datasConsultadas, ["2026-10-02"]);
+  assert.deepEqual(resposta, { pular: true, dataReferencia: "2026-10-02" });
+
+  const { validos, invalidos, avisos } = coletor.normalize(coletor.parse(resposta));
+  assert.deepEqual([invalidos, avisos], [[], []]);
+  const repoQueNaoDeveSerChamado = { substituirLeituraDoDia: async () => assert.fail("não deveria gravar") };
+  assert.deepEqual(await coletor.persist(validos, { execucaoId: "e" }, { geopoliticaRepository: repoQueNaoDeveSerChamado }), {
+    criados: 0,
+    atualizados: 0,
+    ignorados: 1,
+    falhas: []
+  });
+});
+
+test("download: com GEOPOLITICA_REFAZER, chama a IA mesmo com leitura de hoje (e não consulta o banco)", async () => {
+  let chamadas = 0;
+  const deps = {
+    dataReferencia: "2026-10-02",
+    refazer: true,
+    geopoliticaRepository: { existeLeituraDoDia: async () => assert.fail("não deveria consultar") },
+    geminiSearch: {
+      pesquisarNaWeb: async () => (chamadas++, { ...RESPOSTA, grounding: { groundingChunks: [{ web: { title: "apnews.com" } }] } })
+    }
+  };
+  const resposta = await coletor.download({ signal: undefined }, deps);
+  assert.equal(chamadas, 1);
+  assert.equal(resposta.pular, undefined);
 });

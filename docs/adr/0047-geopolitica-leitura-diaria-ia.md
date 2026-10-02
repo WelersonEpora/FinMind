@@ -1,6 +1,6 @@
 # 0047 — Geopolítica do ouro e do petróleo: leitura diária por IA com busca na web
 
-**Status:** aceita (2026-10-01). Implementada em dev, com a 1ª leitura real em 2026-10-02; faltam as chaves do Gemini no `.env` do servidor.
+**Status:** aceita (2026-10-01). Em dev e no servidor desde 2026-10-02 (1ª leitura no servidor: success, 38 s, 0 falhas).
 
 ## Contexto
 
@@ -102,6 +102,33 @@ erro). Ficou com uma chamada só, texto com rótulos fixos e parser determiníst
    "GEOPOLÍTICA — OURO/PETRÓLEO" (nível, resumo, eventos aceitos com canal e fontes autorizadas). **Sem leitura na data,
    o bloco diz "indisponível", nunca "normal"**: uma coleta que falhou não pode virar um sinal de calmaria. A leitura de
    ontem não substitui a de hoje.
+
+## Sem pesquisa, sem leitura
+
+**Achado de 2026-10-02:** entre 12h27 e 12h31 (horário de Brasília), o Gemini respondeu **sem pesquisar** e sem erro:
+nenhuma página no grounding, e nível, resumo e eventos escritos de memória, citando AP, UKMTO e Tesouro. Aconteceu na 1ª
+leitura do servidor e em duas do dev; as chamadas seguintes pesquisaram normalmente (5 a 7 buscas cada). A dupla
+conferência rejeitou todos os eventos, mas o **nível e o resumo** teriam ido ao Motor como uma leitura válida.
+
+**Decisão (usuário, 2026-10-02):** uma resposta sem nenhuma página lida no grounding **não é leitura**. O download tenta
+mais uma vez; se de novo vier sem pesquisa, falha (`UpstreamServiceError`): nada é gravado, a execução fica "failed" e
+uma leitura anterior do mesmo dia continua valendo. Sem leitura no dia, o Motor recebe "leitura indisponível". Não existe
+opção para desligar a "memória" do modelo: o prompt proíbe usá-la, mas a garantia é a conferência pelo grounding.
+
+A variação no número de eventos entre execuções do mesmo dia (5, 3) é outra coisa: o julgamento da IA sobre o que é
+relevante não é determinístico; a conferência garante que cada evento aceito foi lido numa fonte confiável.
+
+## Uma leitura por dia
+
+**Decisão (usuário, 2026-10-02):** o cron roda a coleta 3 vezes por madrugada (01h, 03h e 05h em Brasília, ADR 0004).
+Vale a **primeira leitura que der certo**: se já existe leitura do dia, a execução pula a chamada à IA (sem custo) e fica
+como "ignorado" (`registrosIgnorados: 1`, status `success`). As execuções seguintes só servem de nova tentativa quando a
+anterior falhou (por exemplo, a IA sem pesquisar). Antes, cada execução chamava a IA de novo e substituía a leitura: 3
+chamadas pagas por dia e uma leitura que mudava ao longo da madrugada.
+
+Para trocar a leitura do dia por uma nova, só manualmente: `GEOPOLITICA_REFAZER=1 npm run collect --
+--coletor=geopolitica` (variável no comando, não no `.env`). A coleta manual pela tela de Execuções segue a regra de
+pular. A tela Eventos mostra o comando em "Fonte e metodologia".
 
 ## Assunto e tipo do evento (prompt v6)
 

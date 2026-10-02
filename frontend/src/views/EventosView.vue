@@ -185,9 +185,11 @@ onMounted(atualizarTudo)
           </p>
           <ol class="eventos__metodologia-passos">
             <li>
-              <strong>Uma pergunta por dia.</strong> Na coleta diária, o FinMind faz uma única chamada ao Gemini, que
+              <strong>Uma leitura por dia.</strong> Na coleta diária, o FinMind faz uma única chamada ao Gemini, que
               responde para os dois ativos: o nível do dia (Normal, Atenção, Relevante ou Excepcional), um resumo e os
-              eventos.
+              eventos. A coleta roda 3 vezes por madrugada (01h, 03h e 05h, horário de Brasília): vale a primeira leitura
+              que der certo, e as execuções seguintes pulam a chamada (aparecem como "ignorado" em Execuções). Elas só
+              servem de nova tentativa quando a anterior falhou.
             </li>
             <li>
               <strong>Fontes primárias primeiro.</strong> O núcleo são instituições que só publicam quando algo acontece
@@ -207,6 +209,12 @@ onMounted(atualizarTudo)
               confiável <strong>e</strong> se esse site apareceu de fato nos resultados da pesquisa daquela chamada.
               Sem isso, o evento é <strong>rejeitado</strong> e não vai ao Motor (fica visível no filtro "Situação").
               A segunda conferência existe porque, num teste, a IA citou a Reuters sem ter lido nenhuma página dela.
+            </li>
+            <li>
+              <strong>Sem pesquisa, sem leitura.</strong> Às vezes a IA responde sem pesquisar, sem dar erro, escrevendo
+              de memória. Quando a resposta não traz nenhuma página lida, o FinMind tenta mais uma vez; se de novo vier
+              sem pesquisa, nada é gravado e a execução fica como falha. Assim, um nível ou resumo escrito de memória nunca
+              chega ao Motor: sem leitura no dia, o prompt do ativo recebe "leitura indisponível".
             </li>
             <li>
               <strong>Link direto.</strong> A pesquisa informa quais páginas leu e em quais trechos da resposta cada uma
@@ -242,7 +250,18 @@ onMounted(atualizarTudo)
             <dt>Fonte</dt>
             <dd>Gemini (Google) com a pesquisa do Google, sobre os sites confiáveis</dd>
             <dt>Frequência</dt>
-            <dd>Diária, na coleta diária (a data é o dia em São Paulo)</dd>
+            <dd>
+              Uma leitura por dia (a data é o dia em São Paulo), na coleta das 01h, 03h e 05h: vale a primeira que der
+              certo
+            </dd>
+            <dt>Refazer a leitura do dia</dt>
+            <dd>
+              Para trocar a leitura de hoje por uma nova (por exemplo, depois de uma falha da pesquisa), no console do
+              backend:
+              <code class="eventos__metodologia-comando">GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica</code>
+              A nova leitura substitui a anterior do mesmo dia. Sem <code>GEOPOLITICA_REFAZER=1</code>, o comando pula a
+              chamada se já houver leitura de hoje.
+            </dd>
             <template v-for="fonte in fontesConfiaveis || []" :key="fonte.nome">
               <dt>{{ fonte.nome }}</dt>
               <dd>
@@ -604,6 +623,15 @@ onMounted(atualizarTudo)
 }
 .eventos__metodologia-lista dd {
   margin: 0;
+}
+.eventos__metodologia-comando {
+  display: block;
+  margin: 0.35rem 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  background: var(--p-content-hover-background);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
 }
 
 .eventos__leitura-cards {

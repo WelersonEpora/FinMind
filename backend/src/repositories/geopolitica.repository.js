@@ -20,6 +20,11 @@ async function substituirLeituraDoDia(leitura, eventos) {
   });
 }
 
+// Já existe leitura gravada nesta data? (o coletor pula a chamada à IA quando sim: uma leitura por dia.)
+async function existeLeituraDoDia(dataReferencia) {
+  return (await GeopoliticaLeitura.count({ where: { data_referencia: dataReferencia } })) > 0;
+}
+
 // A leitura de uma data, com os eventos de um ativo em ordem de relevância (ou null).
 async function buscarLeituraComEventos(dataReferencia, ativo) {
   return GeopoliticaLeitura.findOne({
@@ -81,4 +86,4 @@ async function buscarLeituraPorId(id) {
   return GeopoliticaLeitura.findByPk(id);
 }
 
-module.exports = { substituirLeituraDoDia, buscarLeituraComEventos, buscarUltimaLeitura, listarEventos, listarAssuntos, buscarLeituraPorId };
+module.exports = { existeLeituraDoDia, substituirLeituraDoDia, buscarLeituraComEventos, buscarUltimaLeitura, listarEventos, listarAssuntos, buscarLeituraPorId };

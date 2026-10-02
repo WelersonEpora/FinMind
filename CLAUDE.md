@@ -87,6 +87,8 @@ Vitest/Cypress.
 
 ```bash
 cd backend && npm run collect
+# geopolítica: uma leitura por dia (as execuções seguintes pulam a chamada à IA); para trocar a leitura de hoje (ADR 0047):
+cd backend && GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica
 ```
 
 Pra preencher histórico retroativo (ex.: banco recém-criado):

@@ -1,6 +1,7 @@
 "use strict";
 
 const env = require("../../config/env");
+const { UpstreamServiceError } = require("../../shared/errors");
 const geminiSearch = require("../../ai/gemini-search.provider");
 const { carregarPrompt } = require("../../ai/carregar-prompt");
 const geopoliticaRepository = require("../../repositories/geopolitica.repository");
@@ -19,7 +20,8 @@ const { FONTES, classificarFonte, sitesDaPesquisa, verificarNaPesquisa, listaPar
 // O QUE É GRAVADO: uma leitura por dia (nível e resumo de cada ativo, a resposta bruta, o prompt, o modelo e o
 // grounding) e os eventos dela. Reexecutar no mesmo dia substitui a leitura do dia, numa transação.
 //
-// VALIDAÇÃO: as duas seções e um nível reconhecível em cada uma são obrigatórios; faltou algo, nada é gravado
+// VALIDAÇÃO: a IA precisa ter pesquisado (ao menos uma página lida no grounding; senão, mais uma tentativa e, se
+// falhar de novo, a execução falha sem gravar nada). As duas seções e um nível reconhecível em cada uma são obrigatórios; faltou algo, nada é gravado
 // (item inválido, execução "failed") e uma leitura anterior do mesmo dia fica como estava. Um evento só é aceito se
 // citar um site confiável (lista única para os dois ativos) que TAMBÉM apareceu nos resultados da pesquisa desta
 // chamada; senão, é gravado como rejeitado (aceito = false, vai para a tela, não vai ao Motor) e vira aviso da
@@ -46,11 +48,45 @@ function montarPrompt(dataReferencia) {
   });
 }
 
+// Quantas chamadas fazer até a IA de fato pesquisar (ver `pesquisou`).
+const TENTATIVAS_ATE_PESQUISAR = 2;
+
+// A IA pesquisou de verdade? Só se a resposta trouxer ao menos uma página lida no grounding. Em 2026-10-02, por alguns
+// minutos (12h27-12h31), o Gemini respondeu SEM pesquisar, sem erro nenhum: escreveu nível, resumo e eventos de memória,
+// citando AP, UKMTO e Tesouro sem ter lido nada. Os eventos foram rejeitados pela conferência, mas o nível e o resumo
+// teriam ido ao Motor. Sem pesquisa, não há leitura.
+function pesquisou(resposta) {
+  return (resposta.grounding?.groundingChunks || []).length > 0;
+}
+
 async function download({ signal }, deps = {}) {
   const provedor = deps.geminiSearch || geminiSearch;
+  const repo = deps.geopoliticaRepository || geopoliticaRepository;
   const dataReferencia = deps.dataReferencia || hojeEmSaoPaulo();
+  const refazer = deps.refazer ?? env.geopolitica.refazer;
+
+  // Uma leitura por dia, a primeira que der certo: o cron roda 3 vezes (01h, 03h e 05h em Brasília) e as execuções
+  // seguintes só servem de nova tentativa quando a anterior falhou. Pular não gasta chamada; fica como "ignorado" na
+  // execução. GEOPOLITICA_REFAZER=1 força uma nova leitura, que substitui a do dia.
+  if (!refazer && (await repo.existeLeituraDoDia(dataReferencia))) {
+    return { pular: true, dataReferencia };
+  }
+
   const { versao, instrucaoDoSistema, prompt } = montarPrompt(dataReferencia);
-  const resposta = await provedor.pesquisarNaWeb({ systemInstruction: instrucaoDoSistema, prompt, signal });
+
+  let resposta;
+  for (let tentativa = 1; tentativa <= TENTATIVAS_ATE_PESQUISAR; tentativa += 1) {
+    resposta = await provedor.pesquisarNaWeb({ systemInstruction: instrucaoDoSistema, prompt, signal });
+    if (pesquisou(resposta)) break;
+  }
+  if (!pesquisou(resposta)) {
+    // Falha de comunicação, não item inválido: nada é gravado, a execução fica "failed" e uma leitura anterior do mesmo
+    // dia continua valendo; sem leitura no dia, o Motor recebe "leitura indisponível", nunca o que a IA lembrou.
+    throw new UpstreamServiceError(
+      `A IA respondeu sem pesquisar (nenhuma página lida) em ${TENTATIVAS_ATE_PESQUISAR} tentativas: leitura descartada, nada foi gravado.`
+    );
+  }
+
   // Os links do grounding expiram: a URL final de cada página lida é resolvida agora e fica gravada no grounding.
   await resolverLinks(resposta.grounding, { fetchFn: deps.fetch || fetch, signal });
   return { ...resposta, instrucaoDoSistema, prompt, versaoPrompt: versao, dataReferencia };
@@ -123,6 +159,9 @@ function normalizarEvento(evento, ativo, sites, grounding) {
 }
 
 function normalize([resposta]) {
+  // Já havia leitura de hoje: nada a validar; o persist conta como "ignorado".
+  if (resposta.pular) return { validos: [{ pular: true }], invalidos: [], avisos: [] };
+
   const secoes = parsearBoletim(resposta.texto);
   const invalidos = [];
   const avisos = [];
@@ -176,7 +215,11 @@ function normalize([resposta]) {
 async function persist(validos, { execucaoId }, deps = {}) {
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
   const resultado = { criados: 0, atualizados: 0, ignorados: 0, falhas: [] };
-  for (const { leitura, eventos } of validos) {
+  for (const { pular, leitura, eventos } of validos) {
+    if (pular) {
+      resultado.ignorados += 1;
+      continue;
+    }
     const { substituiu } = await repo.substituirLeituraDoDia({ ...leitura, collection_execution_id: execucaoId }, eventos);
     if (substituiu) resultado.atualizados += 1;
     else resultado.criados += 1;
