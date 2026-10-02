@@ -58,10 +58,12 @@ FinMind/
       router/                  # rotas + guarda de autenticação
       stores/auth.js            # estado de sessão (composable reativo, sem Pinia)
       services/                  # http (axios) + serviços por recurso
-      views/                      # Login, Dashboard, Configuração, Observáveis,
-                                   # Observável (detalhe), Execuções
+      views/                      # Login, Centro de Decisão, Configuração, Observáveis,
+                                   # Observável (detalhe), Eventos, Execuções
       components/layout/           # AppShell, Sidebar, Topbar (responsivo)
       components/charts/            # EChartsBase + LineChart (vue-echarts)
+      components/centro-decisao/     # seletor de data e card de preço do Centro de Decisão
+      components/eventos/            # detalhe do evento, nível e pressão (Eventos e Centro de Decisão)
       theme/                         # preset PrimeVue (finmind-preset.js)
   docker/
     compose.dev.yml               # PostgreSQL + pgAdmin (backend roda local)

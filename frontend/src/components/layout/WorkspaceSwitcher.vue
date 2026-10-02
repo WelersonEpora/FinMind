@@ -16,7 +16,7 @@ const workspaces = useWorkspaceStore()
 const createOpen = ref(false)
 
 // Escolher um espaço sempre leva à Visão geral dele - de qualquer página, inclusive
-// de uma página global (dashboard, dados de mercado) ou de outra página do
+// de uma página global (Centro de Decisão, dados de mercado) ou de outra página do
 // espaço anterior. Escolher o espaço que já está ativo também leva à Visão
 // geral (se já estiver nela, não muda nada).
 function selectWorkspace(id) {

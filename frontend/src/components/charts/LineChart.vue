@@ -11,18 +11,29 @@ const props = defineProps({
   pontos: { type: Array, default: () => [] },
   unidade: { type: String, default: null },
   // Rótulo de legenda por chave de `serie` (ex.: { meta: 'Meta (Copom)' }).
-  seriesLabels: { type: Object, default: () => ({}) }
+  seriesLabels: { type: Object, default: () => ({}) },
+  // Casas decimais do eixo e do tooltip (null = as 4 de sempre).
+  casasDecimais: { type: Number, default: null },
+  // Mini-gráfico do card de preço do Centro de Decisão (ADR 0048).
+  compacto: { type: Boolean, default: false },
+  altura: { type: String, default: '280px' }
 })
 
 const temDadoSuficiente = computed(() => props.pontos.length >= 2)
 const opcaoEchart = computed(() =>
-  construirOpcaoLineChart({ pontos: props.pontos, unidade: props.unidade, seriesLabels: props.seriesLabels })
+  construirOpcaoLineChart({
+    pontos: props.pontos,
+    unidade: props.unidade,
+    seriesLabels: props.seriesLabels,
+    compacto: props.compacto,
+    ...(props.casasDecimais == null ? {} : { casasDecimais: props.casasDecimais })
+  })
 )
 </script>
 
 <template>
   <div class="line-chart">
-    <EChartsBase v-if="temDadoSuficiente" :option="opcaoEchart" />
+    <EChartsBase v-if="temDadoSuficiente" :option="opcaoEchart" :altura="altura" />
     <p v-else class="line-chart__vazio">Histórico insuficiente para exibir o gráfico.</p>
   </div>
 </template>

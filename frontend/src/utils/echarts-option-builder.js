@@ -8,8 +8,8 @@
 // quando há mais de uma série, pra não mudar o visual do caso simples
 // (1 série, ex.: USD_BRL).
 
-const FORMATADOR_EIXO_Y = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
-const FORMATADOR_TOOLTIP = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+// Casas decimais padrão (cotação do dólar, 4 casas); o mini-gráfico do Centro de Decisão passa as da série.
+const CASAS_DECIMAIS_PADRAO = 4
 const FORMATADOR_DATA = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 
 const CHAVE_SERIE_PADRAO = '__default__'
@@ -40,7 +40,14 @@ function agruparPorSerie(pontos) {
   return grupos
 }
 
-export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) {
+function formatadorNumero(casasDecimais) {
+  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: casasDecimais, maximumFractionDigits: casasDecimais })
+}
+
+// `compacto`: o mini-gráfico do card de preço do Centro de Decisão (ADR 0048) - margens menores, eixo Y com poucos
+// rótulos, sem pontos marcados; o tooltip continua igual.
+export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {}, casasDecimais = CASAS_DECIMAIS_PADRAO, compacto = false }) {
+  const formatador = formatadorNumero(casasDecimais)
   const grupos = agruparPorSerie(pontos)
   const chaves = [...grupos.keys()]
   const multiplasSeries = chaves.length > 1
@@ -55,7 +62,7 @@ export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) 
       data: dados,
       symbol: 'circle',
       symbolSize: 5,
-      showSymbol: dados.length <= 90,
+      showSymbol: !compacto && dados.length <= 90,
       smooth: false,
       lineStyle: { width: 2, color: cor, type: repetida ? 'dashed' : 'solid' },
       itemStyle: { color: cor },
@@ -72,7 +79,7 @@ export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) 
     // (grid/eixos desenhados, série sem nenhum pixel visível, mesmo com
     // dado válido - verificado via captura de pixels do canvas). Espaço à
     // esquerda calculado pra caber o rótulo do eixo Y (valores tipo "5,20").
-    grid: { left: 48, right: 16, top: multiplasSeries ? 36 : 16, bottom: 32 },
+    grid: compacto ? { left: 56, right: 8, top: 10, bottom: 24 } : { left: 48, right: 16, top: multiplasSeries ? 36 : 16, bottom: 32 },
     xAxis: {
       type: 'time',
       axisLine: { lineStyle: { color: COR_BORDA } },
@@ -80,7 +87,7 @@ export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) 
       splitLine: { show: false },
       axisLabel: {
         color: COR_TEXTO_MUTED,
-        fontSize: 11,
+        fontSize: compacto ? 10 : 11,
         hideOverlap: true,
         formatter: (valor) => FORMATADOR_DATA.format(new Date(valor))
       }
@@ -95,7 +102,8 @@ export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) 
       max: ({ min, max }) => max + (max - min || 1) * 0.1,
       axisLine: { show: false },
       splitLine: { lineStyle: { color: COR_BORDA, type: 'dashed' } },
-      axisLabel: { color: COR_TEXTO_MUTED, fontSize: 11, formatter: (valor) => FORMATADOR_EIXO_Y.format(valor) }
+      ...(compacto ? { splitNumber: 2 } : {}),
+      axisLabel: { color: COR_TEXTO_MUTED, fontSize: compacto ? 10 : 11, formatter: (valor) => formatador.format(valor) }
     },
     tooltip: {
       trigger: 'axis',
@@ -104,7 +112,7 @@ export function construirOpcaoLineChart({ pontos, unidade, seriesLabels = {} }) 
       borderColor: COR_BORDA,
       borderWidth: 1,
       padding: 10,
-      valueFormatter: (valor) => `${FORMATADOR_TOOLTIP.format(valor)}${unidade ? ` ${unidade}` : ''}`,
+      valueFormatter: (valor) => `${formatador.format(valor)}${unidade ? ` ${unidade}` : ''}`,
       axisPointer: { type: 'line', lineStyle: { color: COR_TEXTO_MUTED, width: 1 } }
     },
     series

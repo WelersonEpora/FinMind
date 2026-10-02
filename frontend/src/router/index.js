@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
 import { useWorkspaceStore } from '../stores/workspace.js'
 import LoginView from '../views/LoginView.vue'
-import DashboardView from '../views/DashboardView.vue'
+import CentroDecisaoView from '../views/CentroDecisaoView.vue'
 import ComoFuncionaView from '../views/ComoFuncionaView.vue'
 import ConfiguracaoView from '../views/ConfiguracaoView.vue'
 import UsuariosView from '../views/UsuariosView.vue'
@@ -21,7 +21,8 @@ const router = createRouter({
   routes: [
     { path: '/login', name: 'login', component: LoginView, meta: { public: true } },
     { path: '/indisponivel', name: 'indisponivel', component: ServidorIndisponivelView, meta: { public: true } },
-    { path: '/', name: 'dashboard', component: DashboardView },
+    // Tela inicial: o Centro de Decisão (ADR 0048), no lugar do antigo Dashboard.
+    { path: '/', name: 'centro-decisao', component: CentroDecisaoView },
     { path: '/como-funciona', name: 'como-funciona', component: ComoFuncionaView },
     { path: '/dados-mercado/observaveis', name: 'dados-mercado-observaveis', component: ObservaveisView },
     {
@@ -61,7 +62,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.name === 'login' && auth.state.user) {
-    return { name: 'dashboard' }
+    return { name: 'centro-decisao' }
   }
 
   // Um :workspaceId na URL só vale se for de um espaço do próprio usuário
@@ -71,12 +72,12 @@ router.beforeEach(async (to) => {
   if (to.params.workspaceId) {
     const workspaces = useWorkspaceStore()
     if (!workspaces.setActive(to.params.workspaceId)) {
-      return { name: 'dashboard' }
+      return { name: 'centro-decisao' }
     }
   }
 
   if (to.meta.requiresAdmin && auth.state.user?.role !== 'admin') {
-    return { name: 'dashboard' }
+    return { name: 'centro-decisao' }
   }
 
   return true

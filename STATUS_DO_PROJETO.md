@@ -83,6 +83,7 @@ quando chegar a vez delas.
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js`: juro real 10a = `DFII10`, com `DGS10 − T10YIE` como validação cruzada (5.932 de 5.932 datas iguais). Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
+| Centro de Decisão | A tela inicial (`/`), no desenho do AgroMind: para um ativo (ouro, petróleo, milho, café) e uma data, o preço como era conhecido no fim daquele dia (point-in-time, com troca de série, mini-gráfico e variações; futuros pelo vencimento mais próximo, sem emendar) e a leitura de geopolítica da data, com os eventos da semana. O espaço da análise fica reservado até as regras do David e do Comitê: nenhum sinal é gerado — ADR 0048 |
 | Telas de dados | `/dados-mercado/observaveis` (60 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
@@ -388,7 +389,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
-| Geopolítica - leitura do dia (ouro e petróleo) | Nível (NORMAL, ATENÇÃO, RELEVANTE, EXCEPCIONAL), resumo e eventos com canal de transmissão e fontes; entregue ao Motor por `geopolitica.service.js` | Diária | 2026-10-02 | Não se aplica (data de referência = o dia em São Paulo) | Dev e servidor; tela `/dados-mercado/eventos` |
+| Geopolítica - leitura do dia (ouro e petróleo) | Nível (NORMAL, ATENÇÃO, RELEVANTE, EXCEPCIONAL), resumo e eventos com canal de transmissão e fontes; entregue ao Motor por `geopolitica.service.js` | Diária | 2026-10-02 | Não se aplica (data de referência = o dia em São Paulo) | Dev e servidor; telas `/dados-mercado/eventos` e Centro de Decisão (ADR 0048) |
 
 </details>
 
@@ -1431,6 +1432,15 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>7. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-02</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Centro de Decisão no lugar do Dashboard | A tela inicial, no desenho do Centro de Decisão do AgroMind, sem o sinal, a leitura por prazo e a síntese (são regras do David e do Comitê: o espaço fica reservado). Um seletor de ativo e de data (semana em botões, como no AgroMind); o preço como era conhecido no fim do dia escolhido, por `asOf`, com troca de série (ouro: GLD ou LBMA; petróleo: WTI ou Brent; milho: CEPEA/ESALQ ou CCM; café: ICF ou FMI), mini-gráfico em ECharts, variações de 1, 7, 30 e 90 dias e aviso de série defasada ou encerrada; futuros pelo vencimento mais próximo, sem emendar. "O que está movimentando o mercado": a leitura de geopolítica da data e os eventos da semana, com o detalhe num modal. Os cards do topo da tela Eventos foram para cá; o detalhe do evento virou um componente das duas telas. Conferido contra o banco de dev nos 4 ativos e 8 séries (ex.: o ouro em 10/03/2025 sem GLD e com a LBMA) | ADR 0048 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-01</summary>

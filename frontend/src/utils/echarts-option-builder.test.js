@@ -83,3 +83,25 @@ test('construirOpcaoLineChart repete cores só depois de esgotar a paleta e trac
   assert.ok(tracejadas.length > 0)
   assert.equal(option.legend.type, 'scroll')
 })
+
+test('construirOpcaoLineChart compacto (card de preço do Centro de Decisão): sem pontos marcados e com as casas da série', () => {
+  const option = construirOpcaoLineChart({
+    pontos: [
+      { data: '2026-09-30', valor: 3800 },
+      { data: '2026-10-01', valor: 3838.5 }
+    ],
+    unidade: 'US$/oz',
+    casasDecimais: 2,
+    compacto: true
+  })
+
+  assert.equal(option.series[0].showSymbol, false)
+  assert.equal(option.yAxis.splitNumber, 2)
+  assert.equal(option.tooltip.valueFormatter(3838.5), '3.838,50 US$/oz')
+})
+
+test('construirOpcaoLineChart sem casasDecimais mantém as 4 casas de sempre', () => {
+  const option = construirOpcaoLineChart({ pontos: [{ data: '2026-09-11', valor: 5.09 }], unidade: 'R$/US$' })
+  assert.equal(option.tooltip.valueFormatter(5.09), '5,0900 R$/US$')
+  assert.equal(option.yAxis.splitNumber, undefined)
+})

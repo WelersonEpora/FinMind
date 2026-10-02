@@ -195,9 +195,11 @@ pelo Nginx Proxy Manager da VM. Ver `docs/architecture.md` § "Deploy".
   `docs/adr/0001-fonte-cotacao-dolar-bcb-sgs.md`,
   `docs/adr/0005-primevue-para-tabelas-de-dados.md` e
   `docs/adr/0006-fonte-taxa-selic-bcb-sgs.md`.
-- Dashboard inicial com o cartão de cotação do dólar já mostrando dado real;
-  os demais cartões seguem placeholders explícitos (nenhum outro dado de
-  mercado fictício).
+- Centro de Decisão (`/`, a tela inicial): para um ativo (ouro, petróleo,
+  milho, café) e uma data, o preço como era conhecido naquele dia (com troca
+  de série, mini-gráfico e variações) e a leitura de geopolítica da data. O
+  espaço da análise fica reservado até o David e o Comitê definirem as regras
+  (nenhum sinal é gerado). Ver `docs/adr/0048-centro-de-decisao.md`.
 - Tela de configuração/status dos módulos (`/configuracao`).
 - Banco de dados PostgreSQL com migrations e seeders.
 - Motor analítico e integração com IA seguem como contratos vazios,

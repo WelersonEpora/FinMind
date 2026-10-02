@@ -16,7 +16,7 @@ const auth = useAuthStore()
 const workspaces = useWorkspaceStore()
 
 const links = [
-  { to: '/', label: 'Dashboard', icon: 'bi-grid-1x2-fill' },
+  { to: '/', label: 'Centro de Decisão', icon: 'bi-compass' },
   { to: '/como-funciona', label: 'Como funciona', icon: 'bi-question-circle' }
 ]
 

@@ -192,4 +192,4 @@ prompt v1 ficam sem o dado.
   contexto, e nenhuma resposta dispara ação.
 - Variáveis novas: `GEMINI_API_KEY_FREE` e `GEMINI_API_KEY` (ao menos uma, para registrar o coletor), `GEMINI_MODEL` (padrão
   `gemini-flash-latest`) e `GEMINI_TIMEOUT_MS` (padrão 180000).
-- Tela "Eventos" (`/dados-mercado/eventos`, só leitura, `GET /api/v1/geopolitica/eventos` e `/leituras/ultima`): no topo, a última leitura (nível e resumo de cada ativo); abaixo, os eventos expandíveis no estilo da tela do AgroMind, só com os aceitos por padrão (os rejeitados, com o filtro).
+- Tela "Eventos" (`/dados-mercado/eventos`, só leitura, `GET /api/v1/geopolitica/eventos` e `/leituras/ultima`): no topo, a última leitura (nível e resumo de cada ativo; desde 2026-10-02 no Centro de Decisão, ADR 0048); abaixo, os eventos expandíveis no estilo da tela do AgroMind, só com os aceitos por padrão (os rejeitados, com o filtro).

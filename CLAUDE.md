@@ -9,7 +9,7 @@ agente precisa saber antes de tocar em código.
 
 Plataforma de inteligência aplicada ao mercado financeiro: coleta de dados
 → preparação → motor analítico (regras do especialista de mercado) → síntese
-por IA → resultado. Hoje: autenticação, espaços, dashboard e a **coleta de
+por IA → resultado. Hoje: autenticação, espaços, o Centro de Decisão (tela inicial) e a **coleta de
 dados de milho e ouro** (as fontes do relatório FEL 1 do especialista de mercado,
 "David"), guardada com data de publicação. O motor analítico e a integração com
 IA seguem como contratos vazios até o David e o Comitê definirem regras,
@@ -278,7 +278,7 @@ Ver também `backend/src/collectors/base/README.md`.
 - Views ficam em `frontend/src/views/`, uma por rota, sempre dentro de
   `<AppShell>`. Padrão de estado: `loading`/`errorMessage`/dado, com
   `v-if="loading"` → `v-else-if="errorMessage"` → `v-else` (ver
-  `DashboardView.vue`/`UsuariosView.vue` como referência).
+  `CentroDecisaoView.vue`/`UsuariosView.vue` como referência).
 - Sem Pinia — estado compartilhado é um `reactive()` module-level exposto
   por uma função `useXStore()` (ver `stores/auth.js`).
 - Um `service` por recurso em `frontend/src/services/`, funções `async`

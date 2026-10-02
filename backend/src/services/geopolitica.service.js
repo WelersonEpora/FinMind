@@ -173,8 +173,9 @@ async function listarEventos(filtros = {}, deps = {}) {
   };
 }
 
-// A leitura mais recente para a faixa do topo: o nível e o resumo de cada ativo (é o que o Motor recebe junto com os
-// eventos, e num dia NORMAL é tudo o que existe). `leitura: null` antes da primeira coleta.
+// A leitura mais recente, para a metodologia da tela Eventos (modelo e versão do prompt) e a lista de sites confiáveis.
+// O nível e o resumo de uma data vão para o Centro de Decisão por `obterGeopoliticaDoDia` (ADR 0048).
+// `leitura: null` antes da primeira coleta.
 async function obterUltimaLeitura(deps = {}) {
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
   const leitura = await repo.buscarUltimaLeitura();
