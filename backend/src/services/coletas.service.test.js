@@ -92,6 +92,17 @@ test("obterExecucao traz os avisos da fonte do metadata (lista vazia quando não
   assert.deepEqual(semAviso.execucao.avisos, []);
 });
 
+test("obterExecucao traz os detalhes do coletor (ex.: IA) do metadata; null quando não há", async () => {
+  const detalhes = { ia: { chave: "gratuita", modelo: "gemini-3.8-flash", tokens: 7096, buscas: 4, paginasLidas: 8 } };
+  const comDetalhes = await coletasService.obterExecucao("exec-1", {
+    collectionExecutionRepository: { buscarPorId: async () => ({ ...execucaoFake, metadata: { invalidos: [], detalhes } }) }
+  });
+  assert.deepEqual(comDetalhes.execucao.detalhes, detalhes);
+
+  const semDetalhes = await coletasService.obterExecucao("exec-1", { collectionExecutionRepository: { buscarPorId: async () => execucaoFake } });
+  assert.equal(semDetalhes.execucao.detalhes, null);
+});
+
 function depsDeTeste(execucoesRegistradas, { antesDeTerminar } = {}) {
   return {
     collectionExecutionRepository: {

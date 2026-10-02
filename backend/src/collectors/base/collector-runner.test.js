@@ -78,6 +78,25 @@ test("executarColetor: avisos da fonte (defeito conhecido, tratado pelo coletor)
   assert.equal(execucao.status, "success");
   assert.equal(execucao.records_failed, 0);
   assert.deepEqual(execucao.metadata.avisos, [aviso]);
+  // Sem detalhes do coletor, a chave nem aparece no metadata.
+  assert.equal("detalhes" in execucao.metadata, false);
+});
+
+test("executarColetor: detalhes do coletor (ex.: chamada de IA) vão para o metadata da execução", async () => {
+  const repo = criarRepoFake();
+  const detalhes = { ia: { chave: "paga", modelo: "gemini-3.8-flash", tokens: 9744, buscas: 7, paginasLidas: 9 } };
+  const collector = {
+    codigo: "coletor-teste",
+    download: async () => [{ valor: 1 }],
+    parse: (rawData) => rawData,
+    normalize: (rawItems) => ({ validos: rawItems, invalidos: [], detalhes }),
+    persist: async (validos) => ({ criados: validos.length, atualizados: 0, ignorados: 0, falhas: [] })
+  };
+
+  const execucao = await executarColetor(collector, {}, { collectionExecutionRepository: repo, logger: logSilencioso });
+
+  assert.equal(execucao.status, "success");
+  assert.deepEqual(execucao.metadata.detalhes, detalhes);
 });
 
 test("executarColetor marca failed quando nenhum item válido persiste", async () => {

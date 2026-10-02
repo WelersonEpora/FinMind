@@ -297,6 +297,20 @@ onMounted(carregar)
           {{ execucaoDetalhe.registros.lidos }} / {{ execucaoDetalhe.registros.criados }} / {{ execucaoDetalhe.registros.atualizados }} /
           {{ execucaoDetalhe.registros.ignorados }} / {{ execucaoDetalhe.registros.falhos }}
         </dd>
+        <!-- Só para coletores que chamam IA (hoje, a geopolítica): o coletor registra em metadata.detalhes.ia. -->
+        <template v-if="execucaoDetalhe.detalhes?.ia">
+          <dt class="col-12 mt-2">IA</dt>
+          <dt class="col-5 fw-normal">Chave</dt>
+          <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.chave === 'paga' ? 'Paga' : execucaoDetalhe.detalhes.ia.chave === 'gratuita' ? 'Gratuita' : '-' }}</dd>
+          <dt class="col-5 fw-normal">Modelo</dt>
+          <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.modelo || '-' }}</dd>
+          <dt class="col-5 fw-normal">Tokens</dt>
+          <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.tokens != null ? execucaoDetalhe.detalhes.ia.tokens.toLocaleString('pt-BR') : '-' }}</dd>
+          <dt class="col-5 fw-normal">Buscas / páginas lidas</dt>
+          <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.buscas }} / {{ execucaoDetalhe.detalhes.ia.paginasLidas }}</dd>
+          <dt class="col-5 fw-normal">Versão do prompt</dt>
+          <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.versaoPrompt || '-' }}</dd>
+        </template>
         <template v-if="execucaoDetalhe.mensagemErro">
           <dt class="col-12 mt-2">Mensagem de erro</dt>
           <dd class="col-12"><pre class="small text-danger mb-0">{{ execucaoDetalhe.mensagemErro }}</pre></dd>

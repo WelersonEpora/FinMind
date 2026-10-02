@@ -77,7 +77,7 @@ async function executarColetor(collector, { triggerType = "manual", triggeredBy 
   try {
     const rawData = await baixarComTimeout(collector);
     const rawItems = collector.parse(rawData);
-    const { validos, invalidos, avisos = [] } = collector.normalize(rawItems);
+    const { validos, invalidos, avisos = [], detalhes = null } = collector.normalize(rawItems);
     const persistResult = await collector.persist(validos, { execucaoId: execucao.id }, deps);
     const falhasPersistencia = persistResult.falhas || [];
 
@@ -96,7 +96,9 @@ async function executarColetor(collector, { triggerType = "manual", triggeredBy 
       metadata: {
         invalidos: invalidos.slice(0, 50),
         falhasPersistencia: falhasPersistencia.slice(0, 50),
-        avisos: avisos.slice(0, 50)
+        avisos: avisos.slice(0, 50),
+        // Opcional, do próprio coletor (ex.: a chave, o modelo e os tokens de uma chamada de IA): vai ao detalhe da execução.
+        ...(detalhes && { detalhes })
       }
     });
 

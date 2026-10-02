@@ -428,3 +428,16 @@ test("download: com GEOPOLITICA_REFAZER, chama a IA mesmo com leitura de hoje (e
   assert.equal(chamadas, 1);
   assert.equal(resposta.pular, undefined);
 });
+
+test("normalize: detalhes da chamada de IA para a execução (chave, modelo, tokens, buscas e páginas lidas)", () => {
+  const { detalhes } = coletor.normalize(coletor.parse(RESPOSTA));
+  assert.deepEqual(detalhes, {
+    ia: { chave: "gratuita", modelo: "gemini-flash-latest", tokens: 1234, versaoPrompt: RESPOSTA.versaoPrompt, buscas: 2, paginasLidas: 3 }
+  });
+  // Resposta fora do formato: a chamada aconteceu, os detalhes vão junto.
+  const invalida = coletor.normalize(coletor.parse({ ...RESPOSTA, texto: "sem seções" }));
+  assert.equal(invalida.validos.length, 0);
+  assert.equal(invalida.detalhes.ia.chave, "gratuita");
+  // Leitura de hoje já existia: não houve chamada, não há detalhes.
+  assert.equal(coletor.normalize([{ pular: true }]).detalhes, undefined);
+});

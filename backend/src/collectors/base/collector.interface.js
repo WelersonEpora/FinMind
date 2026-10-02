@@ -14,8 +14,10 @@
  *     tentativasRetry: number,                // tentativas de retry (só download)
  *     download: async ({ signal }) => rawData,        // busca os dados brutos na fonte
  *     parse: (rawData) => rawItems[],                  // extrai a lista de itens brutos
- *     normalize: (rawItems) => { validos, invalidos, avisos? }, // mapeia pro modelo canônico + valida
- *                                              // (avisos: defeito conhecido da fonte, não é falha)
+ *     normalize: (rawItems) => { validos, invalidos, avisos?, detalhes? }, // mapeia pro modelo canônico + valida
+ *                                              // (avisos: defeito conhecido da fonte, não é falha;
+ *                                              //  detalhes: objeto livre do coletor, gravado no detalhe da
+ *                                              //  execução - ex.: chave, modelo e tokens de uma chamada de IA)
  *     persist: async (validos, { execucaoId }, deps) => { criados, atualizados, ignorados }
  *   }
  *

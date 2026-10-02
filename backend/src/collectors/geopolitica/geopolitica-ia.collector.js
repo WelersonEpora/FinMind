@@ -158,6 +158,21 @@ function normalizarEvento(evento, ativo, sites, grounding) {
   };
 }
 
+// Dados da chamada de IA para o detalhe da execução (tela Execuções): qual chave respondeu, o modelo, os tokens e quanto
+// a pesquisa trabalhou. Vão em metadata.detalhes da execução (collector-runner.js).
+function detalhesDaIa(resposta) {
+  return {
+    ia: {
+      chave: resposta.chave ?? null,
+      modelo: resposta.modelo ?? null,
+      tokens: resposta.tokens ?? null,
+      versaoPrompt: resposta.versaoPrompt ?? null,
+      buscas: (resposta.grounding?.webSearchQueries || []).length,
+      paginasLidas: (resposta.grounding?.groundingChunks || []).length
+    }
+  };
+}
+
 function normalize([resposta]) {
   // Já havia leitura de hoje: nada a validar; o persist conta como "ignorado".
   if (resposta.pular) return { validos: [{ pular: true }], invalidos: [], avisos: [] };
@@ -174,7 +189,8 @@ function normalize([resposta]) {
       invalidos.push({ item: { ativo, nivel: secao.nivelTexto }, motivo: `Nível do ${NOME_ATIVO[ativo]} fora da escala: "${secao.nivelTexto ?? ""}".` });
     }
   }
-  if (invalidos.length > 0) return { validos: [], invalidos, avisos };
+  // A chamada aconteceu (e gastou tokens) mesmo com a resposta fora do formato: os detalhes vão junto.
+  if (invalidos.length > 0) return { validos: [], invalidos, avisos, detalhes: detalhesDaIa(resposta) };
 
   const sites = sitesDaPesquisa(resposta.grounding);
   const eventos = [];
@@ -209,7 +225,7 @@ function normalize([resposta]) {
     chave: resposta.chave,
     grounding: resposta.grounding
   };
-  return { validos: [{ leitura, eventos }], invalidos, avisos };
+  return { validos: [{ leitura, eventos }], invalidos, avisos, detalhes: detalhesDaIa(resposta) };
 }
 
 async function persist(validos, { execucaoId }, deps = {}) {

@@ -65,7 +65,9 @@ async function obterExecucao(id, deps = {}) {
 
   // Só no detalhe: os avisos da fonte (defeitos conhecidos, tratados pelo coletor; não contam como falha).
   const avisos = (execucao.metadata?.avisos || []).map((a) => ({ item: a.item ?? null, motivo: a.motivo }));
-  return { execucao: { ...paraExecucaoResposta(execucao), avisos } };
+  // Também só no detalhe: o que o próprio coletor registrou (ex.: chave, modelo e tokens de uma chamada de IA), ou null.
+  const detalhes = execucao.metadata?.detalhes ?? null;
+  return { execucao: { ...paraExecucaoResposta(execucao), avisos, detalhes } };
 }
 
 // Coleta manual em andamento neste processo: um segundo pedido enquanto ela roda é recusado (409), em vez de

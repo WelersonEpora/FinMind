@@ -10,18 +10,14 @@ import { nivel, pressao, rotuloAtivo, rotuloGrau, formatarData, rotuloFonte, rot
 
 // Tela Eventos (ADR 0047): o que a leitura diária de geopolítica encontrou e entregou como contexto ao prompt do ouro
 // e do petróleo. Só leitura. No topo, a última leitura (o nível e o resumo de cada ativo, que num dia NORMAL é tudo o
-// que existe); abaixo, os eventos, um por linha, expandíveis. Rejeitados (sem site confiável) só com o filtro.
+// que existe); abaixo, os eventos aceitos (os que vão ao Motor), um por linha, expandíveis. Os rejeitados (sem site
+// confiável confirmado na pesquisa) não aparecem aqui: ficam no detalhe da execução, na tela Execuções.
 
 const OPCOES_LINHAS_POR_PAGINA = [25, 50, 100, 200]
 const OPCOES_ATIVO = [
   { valor: '', rotulo: 'Todos' },
   { valor: 'OURO', rotulo: 'Ouro' },
   { valor: 'PETROLEO', rotulo: 'Petróleo' }
-]
-const OPCOES_SITUACAO = [
-  { valor: 'aceitos', rotulo: 'Aceitos (vão ao Motor)' },
-  { valor: 'rejeitados', rotulo: 'Rejeitados (sem site confiável)' },
-  { valor: 'todos', rotulo: 'Todos' }
 ]
 
 const leitura = ref(null)
@@ -42,7 +38,6 @@ const tipoFiltro = ref('')
 const assuntoFiltro = ref('')
 // O filtro de assunto só aparece quando houver mais de um assunto com evento (hoje só Geopolítica).
 const assuntosDisponiveis = ref([])
-const situacaoFiltro = ref('aceitos')
 const dataInicioFiltro = ref('')
 const dataFimFiltro = ref('')
 
@@ -67,7 +62,8 @@ async function carregar() {
       ativo: ativoFiltro.value || undefined,
       tipo: tipoFiltro.value || undefined,
       assunto: assuntoFiltro.value || undefined,
-      situacao: situacaoFiltro.value,
+      // Só os aceitos (o que vai ao Motor); os rejeitados aparecem no detalhe da execução, na tela Execuções.
+      situacao: 'aceitos',
       dataInicio: dataInicioFiltro.value || undefined,
       dataFim: dataFimFiltro.value || undefined,
       pagina: paginaAtual.value,
@@ -119,7 +115,7 @@ function atualizarTudo() {
   carregar()
 }
 
-watch([ativoFiltro, tipoFiltro, assuntoFiltro, situacaoFiltro, dataInicioFiltro, dataFimFiltro, tamanhoPagina], () => {
+watch([ativoFiltro, tipoFiltro, assuntoFiltro, dataInicioFiltro, dataFimFiltro, tamanhoPagina], () => {
   paginaAtual.value = 1
   carregar()
 })
@@ -207,7 +203,7 @@ onMounted(atualizarTudo)
               <strong>Dupla conferência.</strong> O Google não permite travar a pesquisa nesses sites: o pedido orienta,
               mas não garante. Por isso o FinMind confere cada fonte citada: ela só sustenta o evento se for um site
               confiável <strong>e</strong> se esse site apareceu de fato nos resultados da pesquisa daquela chamada.
-              Sem isso, o evento é <strong>rejeitado</strong> e não vai ao Motor (fica visível no filtro "Situação").
+              Sem isso, o evento é <strong>rejeitado</strong> e não vai ao Motor: ele não aparece nesta tela, só como aviso no detalhe da execução (tela Execuções), com o motivo.
               A segunda conferência existe porque, num teste, a IA citou a Reuters sem ter lido nenhuma página dela.
             </li>
             <li>
@@ -307,12 +303,6 @@ onMounted(atualizarTudo)
             </select>
           </div>
           <div>
-            <label class="form-label small mb-1 d-block">Situação</label>
-            <select v-model="situacaoFiltro" class="form-select form-select-sm">
-              <option v-for="opcao in OPCOES_SITUACAO" :key="opcao.valor" :value="opcao.valor">{{ opcao.rotulo }}</option>
-            </select>
-          </div>
-          <div>
             <label class="form-label small mb-1 d-block">De</label>
             <input v-model="dataInicioFiltro" type="date" class="form-control form-control-sm" />
           </div>
@@ -391,20 +381,10 @@ onMounted(atualizarTudo)
           <Column header="Confiança">
             <template #body="{ data }">{{ rotuloGrau(data.confianca) }}</template>
           </Column>
-          <Column v-if="situacaoFiltro !== 'aceitos'" header="Situação">
-            <template #body="{ data }">
-              <span v-if="data.aceito" class="situacao situacao--aceito"><i class="pi pi-check-circle"></i> Aceito</span>
-              <span v-else class="situacao situacao--rejeitado"><i class="pi pi-ban"></i> Rejeitado</span>
-            </template>
-          </Column>
 
           <template #expansion="{ data }">
             <div class="eventos__expansao">
               <h3 class="eventos__expansao-titulo">{{ data.titulo }}</h3>
-
-              <div v-if="!data.aceito" class="alert alert-warning small py-2">
-                <strong>Rejeitado: não vai ao Motor.</strong> {{ data.motivoRejeicao }}
-              </div>
 
               <dl class="eventos__expansao-meta">
                 <div><dt>Assunto</dt><dd>{{ rotuloAssunto(data.assunto) }}</dd></div>
@@ -709,20 +689,6 @@ onMounted(atualizarTudo)
   vertical-align: bottom;
 }
 
-.situacao {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.situacao--aceito {
-  color: var(--p-green-600, #16a34a);
-}
-.situacao--rejeitado {
-  color: var(--p-red-600, #dc2626);
-}
 
 .pressao {
   display: inline-flex;

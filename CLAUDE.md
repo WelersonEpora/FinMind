@@ -184,7 +184,10 @@ Detalhe completo e alternativas consideradas:
    `{ codigo, timeoutMs, tentativasRetry, download, parse, normalize,
    persist }` — `normalize` retorna `{ validos, invalidos }` (e, opcional,
    `avisos`: defeito CONHECIDO da fonte que o coletor trata de propósito, sem
-   gravar nada; fica no detalhe da execução e não conta como falha); `persist`
+   gravar nada; fica no detalhe da execução e não conta como falha; e
+   `detalhes`: objeto livre do coletor, também no detalhe da execução - ex.: a
+   geopolítica registra `{ ia: { chave, modelo, tokens, buscas, paginasLidas,
+   versaoPrompt } }`, mostrado no bloco "IA" da tela Execuções); `persist`
    retorna `{ criados, atualizados, ignorados, falhas }`.
 2. Um módulo por fonte em `collectors/<fonte>/<nome>.collector.js`,
    registrado (`registerCollector(...)`) em `collectors/index.js`.
