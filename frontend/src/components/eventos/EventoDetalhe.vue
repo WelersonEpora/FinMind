@@ -47,36 +47,40 @@ const emit = defineEmits(['ver-ia'])
           <!-- No evento, a fonte só é citada pelo nome; o link dos sites fica em "Fonte e metodologia" da tela Eventos.
                O único link aqui é o do próprio evento: a página que a pesquisa leu (origem "pesquisa"). -->
           <span class="evento-detalhe__fonte-nome">{{ rotuloFonte(fonte) }}</span>
-          <!-- Só a página "pesquisa" sustenta o evento (ADR 0049): a citação da IA, mesmo de fonte autorizada, não basta. -->
+          <!-- Só a página "pesquisa" sustenta o evento (ADR 0049): a citação da IA, mesmo de fonte autorizada, não basta.
+               O caso normal (a página lida, com o link ao lado) não leva marca; só as exceções levam, como aviso. Sem o
+               link, a página lida ganha a marca, para não ficar igual a uma citação. -->
           <span
-            v-if="fonte.origem === 'pesquisa'"
+            v-if="fonte.origem === 'pesquisa' && !fonte.url"
             class="fonte-tag fonte-tag--autorizada"
-            title="Página de fonte autorizada que a pesquisa leu e que apoia o texto deste evento: o link abre o aviso, o comunicado ou a matéria."
+            title="Página de fonte autorizada que a pesquisa leu e que apoia o texto deste evento."
           >
-            autorizada · página que sustenta o evento
+            sustenta o evento
           </span>
-          <span
-            v-else-if="fonte.fonteAutorizada && fonte.confirmadaNaPesquisa"
-            class="fonte-tag"
-            title="Fonte autorizada citada pela IA e lida em algum ponto da pesquisa, mas nenhuma página dela está ligada ao texto deste evento: a citação sozinha não sustenta o evento."
-          >
-            autorizada · só citada pela IA
-          </span>
-          <span
-            v-else-if="fonte.fonteAutorizada"
-            class="fonte-tag fonte-tag--alerta"
-            title="Fonte autorizada citada pela IA, mas nenhuma página dela foi lida nesta pesquisa: não sustenta o evento."
-          >
-            autorizada · não lida na pesquisa
-          </span>
-          <span v-else class="fonte-tag">fora da lista</span>
+          <template v-else-if="fonte.origem !== 'pesquisa'">
+            <span
+              v-if="fonte.fonteAutorizada && fonte.confirmadaNaPesquisa"
+              class="fonte-tag"
+              title="Fonte autorizada citada pela IA e lida em algum ponto da pesquisa, mas nenhuma página dela está ligada ao texto deste evento: a citação sozinha não sustenta o evento."
+            >
+              só citada pela IA
+            </span>
+            <span
+              v-else-if="fonte.fonteAutorizada"
+              class="fonte-tag fonte-tag--alerta"
+              title="Fonte autorizada citada pela IA, mas nenhuma página dela foi lida nesta pesquisa: não sustenta o evento."
+            >
+              não lida na pesquisa
+            </span>
+            <span v-else class="fonte-tag" title="Fonte fora da lista de fontes autorizadas: não sustenta o evento.">fora da lista</span>
+          </template>
           <a
             v-if="fonte.origem === 'pesquisa' && fonte.url"
             class="evento-detalhe__fonte-url"
             :href="fonte.url"
             target="_blank"
             rel="noopener noreferrer"
-            title="Abrir a página oficial deste evento em nova aba"
+            title="Página de fonte autorizada que a pesquisa leu e que sustenta este evento: abrir em nova aba"
           >
             <i class="bi bi-box-arrow-up-right"></i> {{ fonte.url }}
           </a>
