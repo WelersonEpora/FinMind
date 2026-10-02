@@ -150,13 +150,13 @@ test("série encerrada: o último valor aparece com o aviso de defasagem e a dat
   assert.equal(centroDecisao.preco.valor, 3810);
 });
 
-test("milho e café não têm leitura de geopolítica (ADR 0047 cobre só ouro e petróleo)", async () => {
+test("milho e café também têm a leitura de eventos de mercado (ADR 0049)", async () => {
   const geo = geopoliticaFalsa();
   const repo = repoCom([linha("B3.MILHO_ESALQ.AVISTA_BRL", "2026-10-01", 65.4)]);
   const { centroDecisao } = await obterCentroDecisao({ ativo: "MILHO" }, { agora: AGORA, observationRepository: repo, geopoliticaService: geo });
-  assert.equal(centroDecisao.geopolitica, null);
   assert.equal(centroDecisao.preco.unidade, "R$/saca");
-  assert.equal(geo.chamadas.length, 0);
+  assert.deepEqual(geo.chamadas.find((c) => c.obterGeopoliticaDoDia).obterGeopoliticaDoDia, ["MILHO", "2026-10-02"]);
+  assert.equal(centroDecisao.geopolitica.nivel, "ATENCAO");
 });
 
 test("eventos: os aceitos da semana que termina na data, do ativo escolhido", async () => {

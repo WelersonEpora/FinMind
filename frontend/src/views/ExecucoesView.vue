@@ -297,7 +297,7 @@ onMounted(carregar)
           {{ execucaoDetalhe.registros.lidos }} / {{ execucaoDetalhe.registros.criados }} / {{ execucaoDetalhe.registros.atualizados }} /
           {{ execucaoDetalhe.registros.ignorados }} / {{ execucaoDetalhe.registros.falhos }}
         </dd>
-        <!-- Só para coletores que chamam IA (hoje, a geopolítica): o coletor registra em metadata.detalhes.ia. -->
+        <!-- Só para coletores que chamam IA (hoje, os eventos de mercado): o coletor registra em metadata.detalhes.ia. -->
         <template v-if="execucaoDetalhe.detalhes?.ia">
           <dt class="col-12 mt-2">IA</dt>
           <dt class="col-5 fw-normal">Chave</dt>
@@ -308,6 +308,23 @@ onMounted(carregar)
           <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.tokens != null ? execucaoDetalhe.detalhes.ia.tokens.toLocaleString('pt-BR') : '-' }}</dd>
           <dt class="col-5 fw-normal">Buscas / páginas lidas</dt>
           <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.buscas }} / {{ execucaoDetalhe.detalhes.ia.paginasLidas }}</dd>
+          <!-- Quais fontes autorizadas a pesquisa leu (ADR 0049): é por aqui que se vê se a lista está grande demais. -->
+          <!-- Chamada repetida porque um ativo veio NORMAL sem o mínimo de pesquisa (ADR 0049, item 14). -->
+          <template v-if="execucaoDetalhe.detalhes.ia.repeticoesPeloPiso">
+            <dt class="col-5 fw-normal">Repetidas pelo mínimo de pesquisa</dt>
+            <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.repeticoesPeloPiso }}</dd>
+          </template>
+          <!-- Desde a v11, duas chamadas (ouro e petróleo; milho e café): as fontes lidas de cada uma. -->
+          <template v-if="execucaoDetalhe.detalhes.ia.fontesLidasPorChamada">
+            <template v-for="(fontes, frente) in execucaoDetalhe.detalhes.ia.fontesLidasPorChamada" :key="frente">
+              <dt class="col-5 fw-normal">Fontes lidas ({{ frente === 'OURO_PETROLEO' ? 'ouro e petróleo' : frente === 'MILHO_CAFE' ? 'milho e café' : frente }})</dt>
+              <dd class="col-7">{{ fontes.join(', ') || 'nenhuma' }}</dd>
+            </template>
+          </template>
+          <template v-else-if="execucaoDetalhe.detalhes.ia.fontesLidas">
+            <dt class="col-5 fw-normal">Fontes autorizadas lidas</dt>
+            <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.fontesLidas.join(', ') || 'nenhuma' }}</dd>
+          </template>
           <dt class="col-5 fw-normal">Versão do prompt</dt>
           <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.versaoPrompt || '-' }}</dd>
         </template>

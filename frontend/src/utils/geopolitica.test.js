@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nivel, pressao, rotuloAtivo, rotuloGrau, formatarData, rotuloFonte, rotuloAssunto, rotuloTipo, TIPOS } from './geopolitica.js'
+import { nivel, pressao, rotuloAtivo, rotuloGrau, formatarData, rotuloFonte, rotuloTipo, TIPOS, ATIVOS } from './geopolitica.js'
 
 test('nível: rótulo e classe de cada um da escala; código desconhecido aparece como veio', () => {
   assert.deepEqual(nivel('ATENCAO'), { rotulo: 'Atenção', classe: 'atencao' })
@@ -11,6 +11,8 @@ test('nível: rótulo e classe de cada um da escala; código desconhecido aparec
 
 test('ativo e grau', () => {
   assert.equal(rotuloAtivo('PETROLEO'), 'Petróleo')
+  assert.equal(rotuloAtivo('CAFE'), 'Café')
+  assert.deepEqual(Object.keys(ATIVOS), ['OURO', 'PETROLEO', 'MILHO', 'CAFE'])
   assert.equal(rotuloGrau('MEDIA'), 'Média')
   assert.equal(rotuloGrau(null), '—')
 })
@@ -32,9 +34,9 @@ test('pressão: seta e rótulo; sem o dado (prompt v1), null', () => {
   assert.equal(pressao(null), null)
 })
 
-test('assunto e tipo: rótulos; código desconhecido', () => {
-  assert.equal(rotuloAssunto('GEOPOLITICA'), 'Geopolítica')
-  assert.equal(rotuloTipo('ROTA_MARITIMA'), 'Rota marítima')
+test('tipo: os 7 tipos do ADR 0049; código desconhecido', () => {
+  assert.equal(rotuloTipo('POLITICA_OFERTA'), 'Política de oferta')
+  assert.equal(rotuloTipo('ROTA_MARITIMA'), '—')
   assert.equal(rotuloTipo(null), '—')
   assert.equal(Object.keys(TIPOS).length, 7)
 })

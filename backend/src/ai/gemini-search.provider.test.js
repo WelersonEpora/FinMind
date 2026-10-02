@@ -116,16 +116,23 @@ test("pesquisarNaWeb: resposta vazia e nenhuma chave viram erro explícito", asy
   await assert.rejects(pesquisar(async () => respostaHttp(200, RESPOSTA_OK), { ...CONFIG, apiKeyFree: "", apiKey: "" }), /GEMINI_API_KEY_FREE e GEMINI_API_KEY/);
 });
 
-test("carregarPrompt: o prompt da geopolítica tem versão, instrução fixa e todos os placeholders preenchidos", () => {
+test("carregarPrompt: o prompt dos eventos de mercado tem versão, instrução fixa e todos os placeholders preenchidos", () => {
   const { versao, instrucaoDoSistema, prompt } = carregarPrompt("geopolitica-diaria.md", {
     data_referencia: "2026-10-01",
+    ativos: "MILHO e CAFÉ",
+    piso: "- MILHO: x",
     fontes_confiaveis: "- A",
+    tipos: "- T",
+    fatores: "- F",
     sugestoes_busca: "- C"
   });
-  assert.equal(versao, "geopolitica-diaria@6");
+  assert.equal(versao, "geopolitica-diaria@12");
   assert.doesNotMatch(instrucaoDoSistema, /\{\{/);
-  assert.match(instrucaoDoSistema, /^OURO$/m);
+  // A instrução é a mesma para as duas chamadas: o exemplo de formato e a seção EVENTOS; os ativos vêm do prompt.
   assert.match(instrucaoDoSistema, /^PETRÓLEO$/m);
+  assert.match(instrucaoDoSistema, /^EVENTOS$/m);
+  assert.match(instrucaoDoSistema, /ATIVOS DESTA CHAMADA/);
+  assert.match(prompt, /Ativos desta chamada: MILHO e CAFÉ/);
   assert.doesNotMatch(prompt, /\{\{/);
   assert.throws(() => carregarPrompt("geopolitica-diaria.md", { data_referencia: "x" }), /falta o valor/);
 });

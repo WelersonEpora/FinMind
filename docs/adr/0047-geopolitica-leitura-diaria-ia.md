@@ -1,6 +1,11 @@
 # 0047 — Geopolítica do ouro e do petróleo: leitura diária por IA com busca na web
 
 **Status:** aceita (2026-10-01). Em dev e no servidor desde 2026-10-02 (1ª leitura no servidor: success, 38 s, 0 falhas).
+**Estendida pelo ADR 0049 (2026-10-02):** o mesmo coletor passou a ler eventos de mercado de quatro ativos (ouro,
+petróleo, milho e café) em sete tipos, dos quais a geopolítica é um. Mudaram a lista de fontes (sai o World Gold Council,
+entram USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA, USDA FAS e INMET), a regra de aceite (a página da fonte tem
+de estar ligada ao texto do evento; a citação não basta), o fim da cobertura mínima por site e o formato da resposta.
+O que segue descreve a decisão original; onde divergir, vale o ADR 0049.
 
 ## Contexto
 

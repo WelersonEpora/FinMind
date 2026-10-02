@@ -59,8 +59,9 @@ reservado e a pergunta vira um seletor de ativo neutro.
 8. **"O que está movimentando o mercado":** a leitura de geopolítica da data (nível e resumo do ativo, que saem do topo
    da tela Eventos) e os eventos aceitos dos 7 dias até a data (até 12; o resto, pelo link para Eventos). Cada card
    abre o detalhe do evento num modal. O detalhe é o mesmo componente da expansão da linha na tela Eventos
-   (`components/eventos/EventoDetalhe.vue`, com `NivelBadge.vue` e `PressaoIndicador.vue`). Milho e café não têm
-   leitura de geopolítica (ADR 0047): a seção diz isso. Data sem leitura: "sem leitura", nunca a de outro dia.
+   (`components/eventos/EventoDetalhe.vue`, com `NivelBadge.vue` e `PressaoIndicador.vue`). Desde o ADR 0049, a
+   leitura cobre também o milho e o café (eventos de mercado em sete tipos). Data sem leitura: "sem leitura", nunca a de
+   outro dia.
 9. **"Análise do FinMind":** o espaço do Insight do AgroMind, só com o aviso de que as regras, os cálculos e os
    critérios de sinal são do especialista e do Comitê, e o link para o status.
 

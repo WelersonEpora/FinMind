@@ -34,16 +34,15 @@ async function buscarLeituraComEventos(dataReferencia, ativo) {
   });
 }
 
-// A leitura mais recente (ou null), sem os eventos: a faixa do topo da tela Eventos.
+// A leitura mais recente (ou null), sem os eventos: a metodologia da tela Eventos (modelo e versão do prompt).
 async function buscarUltimaLeitura() {
   return GeopoliticaLeitura.findOne({ order: [["data_referencia", "DESC"]] });
 }
 
 // Eventos para a tela, do mais recente para o mais antigo, com a data da leitura de cada um.
-async function listarEventos({ ativo, assunto, tipo, aceito, dataInicio, dataFim, pagina, tamanhoPagina, ordem }) {
+async function listarEventos({ ativo, tipo, aceito, dataInicio, dataFim, pagina, tamanhoPagina, ordem }) {
   const where = {};
   if (ativo) where.ativo = ativo;
-  if (assunto) where.assunto = assunto;
   if (tipo) where.tipo = tipo;
   if (aceito !== undefined) where.aceito = aceito;
 
@@ -75,15 +74,9 @@ async function listarEventos({ ativo, assunto, tipo, aceito, dataInicio, dataFim
   return { registros: rows, total: count };
 }
 
-// Assuntos que já têm evento gravado (a tela só mostra o filtro de assunto quando há mais de um).
-async function listarAssuntos() {
-  const linhas = await GeopoliticaEvento.findAll({ attributes: ["assunto"], group: ["assunto"], order: [["assunto", "ASC"]], raw: true });
-  return linhas.map((linha) => linha.assunto);
-}
-
 // Uma leitura pelo id, sem os eventos: o detalhe da IA (prompt, resposta e pesquisa) da tela Eventos.
 async function buscarLeituraPorId(id) {
   return GeopoliticaLeitura.findByPk(id);
 }
 
-module.exports = { existeLeituraDoDia, substituirLeituraDoDia, buscarLeituraComEventos, buscarUltimaLeitura, listarEventos, listarAssuntos, buscarLeituraPorId };
+module.exports = { existeLeituraDoDia, substituirLeituraDoDia, buscarLeituraComEventos, buscarUltimaLeitura, listarEventos, buscarLeituraPorId };

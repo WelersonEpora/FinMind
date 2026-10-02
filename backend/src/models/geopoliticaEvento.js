@@ -2,13 +2,12 @@
 
 const { DataTypes } = require("sequelize");
 const { randomUUID } = require("node:crypto");
+const { ATIVOS, CODIGOS_TIPO: TIPOS } = require("../shared/eventos-mercado");
 
-// Um evento de uma leitura diária de geopolítica (ADR 0047), por ativo. `aceito = false` quando nenhuma fonte
-// autorizada o sustenta: fica gravado para a tela, mas não vai ao Motor.
-const ATIVOS = ["OURO", "PETROLEO"];
-// Em sincronia manual com os CHECKs da migration e com o parser (geopolitica-boletim.parser.js).
-const ASSUNTOS = ["GEOPOLITICA"];
-const TIPOS = ["CONFLITO_MILITAR", "ROTA_MARITIMA", "INFRAESTRUTURA", "SANCAO", "PRODUCAO", "DIPLOMACIA", "OUTRO"];
+// Um evento de mercado de uma leitura diária (ADRs 0047 e 0049), uma linha por ativo afetado: o mesmo fato que afeta
+// petróleo e ouro tem duas linhas, com a mesma ordem e as mesmas fontes, cada uma com o fator e a pressão do seu ativo.
+// `aceito = false` quando nenhuma página de fonte autorizada o sustenta: fica gravado para a tela, mas não vai ao Motor.
+// ATIVOS e TIPOS vêm de shared/eventos-mercado.js, em sincronia com os CHECKs das migrations.
 const GRAUS = ["BAIXA", "MEDIA", "ALTA"];
 
 module.exports = (sequelize) => {
@@ -18,8 +17,9 @@ module.exports = (sequelize) => {
       id: { type: DataTypes.UUID, primaryKey: true, allowNull: false, defaultValue: randomUUID },
       leitura_id: { type: DataTypes.UUID, allowNull: false },
       ativo: { type: DataTypes.STRING(20), allowNull: false, validate: { isIn: [ATIVOS] } },
-      assunto: { type: DataTypes.STRING(30), allowNull: false, validate: { isIn: [ASSUNTOS] } },
       tipo: { type: DataTypes.STRING(30), allowNull: true, validate: { isIn: [TIPOS] } },
+      // Um dos 34 fatores do FEL 1 (shared/fatores-fel1.js) ou NAO_SE_APLICA; null nos eventos de antes do ADR 0049.
+      fator: { type: DataTypes.STRING(60), allowNull: true },
       ordem: { type: DataTypes.INTEGER, allowNull: false },
       titulo: { type: DataTypes.STRING(300), allowNull: false },
       resumo: { type: DataTypes.TEXT, allowNull: true },
@@ -41,7 +41,6 @@ module.exports = (sequelize) => {
   );
 
   GeopoliticaEvento.ATIVOS = ATIVOS;
-  GeopoliticaEvento.ASSUNTOS = ASSUNTOS;
   GeopoliticaEvento.TIPOS = TIPOS;
 
   GeopoliticaEvento.associate = (db) => {

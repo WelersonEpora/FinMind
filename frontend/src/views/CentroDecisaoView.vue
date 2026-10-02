@@ -12,8 +12,8 @@ import centroDecisaoService from '../services/centro-decisao.service.js'
 import { formatarData, rotuloTipo } from '../utils/geopolitica.js'
 
 // Centro de Decisão (ADR 0048): a tela inicial, no desenho do Centro de Decisão do AgroMind. Um ativo e uma data
-// mudam a tela inteira: o preço como era conhecido no fim daquele dia (point-in-time) e a leitura de geopolítica
-// dela. O espaço da análise (fatores, leitura por prazo, síntese) fica reservado até o David e o Comitê definirem as
+// mudam a tela inteira: o preço como era conhecido no fim daquele dia (point-in-time) e a leitura de eventos de mercado
+// dela (ADR 0049). O espaço da análise (fatores, leitura por prazo, síntese) fica reservado até o David e o Comitê definirem as
 // regras do Motor: nenhum sinal ou recomendação é gerado aqui.
 //
 // O ativo, a data e a série ficam na URL (?ativo=&data=&serie=): recarregar ou compartilhar o link abre a mesma leitura.
@@ -139,27 +139,29 @@ watch(() => route.query, carregar, { immediate: true })
             <div class="centro__secao-cabecalho">
               <h2 class="centro__secao-titulo">O que está movimentando o mercado</h2>
               <p class="centro__secao-subtitulo">
-                Leitura diária de geopolítica, gerada por IA com busca só em sites confiáveis. Eventos dos 7 dias até a data.
+                Fatos externos relevantes para o preço que os dados coletados ainda não mostram, encontrados por IA com
+                busca só em fontes autorizadas. Eventos dos 7 dias até a data.
               </p>
             </div>
 
-            <div v-if="!centro.geopolitica" class="alert alert-light small mb-0">
-              A leitura diária de geopolítica cobre só o ouro e o petróleo (ADR 0047). Para o
-              {{ centro.ativo.nome.toLowerCase() }}, ainda não há eventos.
-            </div>
-
-            <template v-else>
+            <template v-if="centro.geopolitica">
               <article v-if="centro.geopolitica.disponivel" class="centro__leitura">
                 <div class="centro__leitura-topo">
-                  <h3>Geopolítica do {{ centro.ativo.nome.toLowerCase() }} em {{ formatarData(centro.geopolitica.data) }}</h3>
+                  <h3>Eventos do {{ centro.ativo.nome.toLowerCase() }} em {{ formatarData(centro.geopolitica.data) }}</h3>
                   <NivelBadge :codigo="centro.geopolitica.nivel" />
                 </div>
                 <p class="centro__leitura-resumo">{{ centro.geopolitica.resumo || 'Sem resumo.' }}</p>
-                <p class="centro__leitura-rodape">Escala de nível provisória: a régua é do especialista.</p>
+                <p class="centro__leitura-rodape">
+                  <!-- As fontes que a pesquisa do dia de fato leu (pelo grounding), não as que a IA diz ter consultado. -->
+                  Fontes lidas na pesquisa do dia:
+                  {{ centro.geopolitica.fontesLidas?.length ? centro.geopolitica.fontesLidas.join(', ') : 'nenhuma' }}.
+                  Escala de nível provisória: a régua é do especialista.
+                </p>
               </article>
               <div v-else class="alert alert-light small">
-                Sem leitura de geopolítica em {{ formatarData(centro.geopolitica.data) }}. A leitura só existe dos dias em
-                que a coleta rodou e não é refeita para datas passadas.
+                Sem leitura de eventos do {{ centro.ativo.nome.toLowerCase() }} em {{ formatarData(centro.geopolitica.data) }}.
+                A leitura só existe dos dias em que a coleta rodou (a do milho e a do café, desde 02/10/2026) e não é
+                refeita para datas passadas.
               </div>
 
               <p v-if="centro.geopolitica.eventos.length === 0" class="text-muted small mb-0">

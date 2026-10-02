@@ -96,8 +96,8 @@ Regras adicionais, todas obrigatórias:
 |---|---|---|
 | `market_quote` | GLOBAL | sem `workspace_id`, e nunca terá |
 | `observation` | GLOBAL | dado de mercado point-in-time, append-only (ADR 0008); sem `workspace_id`, e nunca terá |
-| `geopolitica_leitura` | GLOBAL | leitura diária de geopolítica do ouro e do petróleo, gerada por IA (ADR 0047); sem `workspace_id` |
-| `geopolitica_evento` | GLOBAL | eventos de cada leitura (ADR 0047) |
+| `geopolitica_leitura` | GLOBAL | leitura diária de eventos de mercado (ouro, petróleo, milho e café), gerada por IA (ADRs 0047 e 0049); sem `workspace_id` |
+| `geopolitica_evento` | GLOBAL | eventos de cada leitura, um por ativo afetado, com tipo e fator do FEL 1 (ADRs 0047 e 0049) |
 | `collection_execution` | GLOBAL | visibilidade hoje aberta a autenticados; restringir a admin de plataforma quando houver clientes externos |
 | `system_setting` | GLOBAL | configuração da plataforma |
 | `user` | USER (identidade) | identidade global, não vínculo com espaço |

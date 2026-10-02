@@ -1,6 +1,6 @@
 import http from './http.js'
 
-// Leitura diária de geopolítica do ouro e do petróleo (ADR 0047): a tela Eventos só lê.
+// Leitura diária de eventos de mercado (ADRs 0047 e 0049): a tela Eventos só lê.
 async function listarEventos({ ativo, situacao, dataInicio, dataFim, pagina, tamanhoPagina, ordem } = {}) {
   const { data } = await http.get('/api/v1/geopolitica/eventos', {
     params: { ativo, situacao, dataInicio, dataFim, pagina, tamanhoPagina, ordem }

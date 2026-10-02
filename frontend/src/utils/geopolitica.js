@@ -1,4 +1,5 @@
-// Rótulos da leitura de geopolítica (ADR 0047) para a tela Eventos. Funções puras, testáveis sem DOM.
+// Rótulos da leitura diária de eventos de mercado (ADRs 0047 e 0049) para a tela Eventos e o Centro de Decisão.
+// Funções puras, testáveis sem DOM. Os códigos estão em sincronia com o backend (shared/eventos-mercado.js).
 
 const NIVEIS = {
   NORMAL: { rotulo: 'Normal', classe: 'normal' },
@@ -7,7 +8,7 @@ const NIVEIS = {
   EXCEPCIONAL: { rotulo: 'Excepcional', classe: 'excepcional' }
 }
 
-const ATIVOS = { OURO: 'Ouro', PETROLEO: 'Petróleo' }
+export const ATIVOS = { OURO: 'Ouro', PETROLEO: 'Petróleo', MILHO: 'Milho', CAFE: 'Café' }
 const GRAUS = { BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta' }
 
 // Pressão do fato sobre o preço (prompt v2): para que lado o fato, sozinho, empurra o preço. Não é previsão.
@@ -50,20 +51,15 @@ export function rotuloFonte(fonte) {
   }
 }
 
-// Assunto (o fator) e tipo do evento dentro dele. Em sincronia com o backend (GeopoliticaEvento.ASSUNTOS e .TIPOS).
-export const ASSUNTOS = { GEOPOLITICA: 'Geopolítica' }
+// Tipo do evento (ADR 0049): a geopolítica é um deles.
 export const TIPOS = {
-  CONFLITO_MILITAR: 'Conflito militar',
-  ROTA_MARITIMA: 'Rota marítima',
-  INFRAESTRUTURA: 'Infraestrutura',
-  SANCAO: 'Sanção',
-  PRODUCAO: 'Decisão de produção',
-  DIPLOMACIA: 'Diplomacia',
-  OUTRO: 'Outro'
-}
-
-export function rotuloAssunto(codigo) {
-  return ASSUNTOS[codigo] || codigo || '—'
+  GEOPOLITICA: 'Geopolítica',
+  POLITICA_COMERCIAL: 'Política comercial',
+  CLIMA_EXTREMO: 'Clima extremo',
+  REGULACAO: 'Regulação',
+  CHOQUE_LOGISTICO: 'Choque logístico',
+  SANIDADE: 'Sanidade',
+  POLITICA_OFERTA: 'Política de oferta'
 }
 
 export function rotuloTipo(codigo) {

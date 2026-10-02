@@ -3,35 +3,29 @@
 const geopoliticaRepository = require("../repositories/geopolitica.repository");
 const { NotFoundError, ValidationError } = require("../shared/errors");
 const { validarPaginacao } = require("../shared/utils/pagination");
-const { FONTES, CODIGOS } = require("../collectors/geopolitica/fontes-autorizadas");
+const { FONTES, CODIGOS, fontesDaPesquisa } = require("../collectors/geopolitica/fontes-autorizadas");
+const { ATIVOS, ROTULO_ATIVO, TIPOS, CODIGOS_TIPO, frenteDoAtivo } = require("../shared/eventos-mercado");
+const { nomeDoFator } = require("../shared/fatores-fel1");
 
-// Entrega a leitura diária de geopolítica ao Motor (ADR 0047): o bloco "GEOPOLÍTICA — <ATIVO>" que entra no prompt
-// do ativo como contexto do fator geopolítico do dia. Só os eventos aceitos (sustentados por fonte autorizada) vão
-// para o bloco; os rejeitados ficam só na tela.
+// Entrega a leitura diária de eventos de mercado (ADRs 0047 e 0049) ao Motor e às telas. Para o Motor, o bloco
+// "EVENTOS DE MERCADO — <ATIVO>" que entra no prompt do ativo como contexto: o nível e o resumo do dia e os eventos
+// aceitos (sustentados por página de fonte autorizada), cada um com o tipo, o fator do FEL 1, o canal, a pressão, a
+// intensidade, a confiança, o resumo e as fontes. Os rejeitados ficam só na tela. Os eventos são uma camada
+// complementar aos observáveis: não mexem em nenhuma série.
 //
-// Sem leitura na data, o bloco diz "indisponível", nunca "normal": uma coleta que falhou não pode virar, no prompt,
-// um sinal de calmaria. A leitura é de UMA data: não se usa a de ontem no lugar da de hoje.
+// Sem leitura na data (ou numa leitura anterior ao ADR 0049, que não tinha o milho e o café), o bloco diz
+// "indisponível", nunca "normal": uma coleta que falhou não pode virar, no prompt, um sinal de calmaria. A leitura é de
+// UMA data: não se usa a de ontem no lugar da de hoje.
 //
 // O peso disso na análise é decidido pela IA do ativo e pelas regras do David, não aqui.
 
-const ATIVOS = { OURO: "OURO", PETROLEO: "PETRÓLEO" };
 const NIVEL_EXIBICAO = { NORMAL: "NORMAL", ATENCAO: "ATENÇÃO", RELEVANTE: "RELEVANTE", EXCEPCIONAL: "EXCEPCIONAL" };
 const GRAU_EXIBICAO = { BAIXA: "baixa", MEDIA: "média", ALTA: "alta" };
 const PRESSAO_EXIBICAO = { ALTA: "alta", BAIXA: "baixa", AMBIGUA: "ambígua" };
-// Em sincronia com GeopoliticaEvento.TIPOS (model) e com o parser.
-const TIPO_EXIBICAO = {
-  CONFLITO_MILITAR: "conflito militar",
-  ROTA_MARITIMA: "rota marítima",
-  INFRAESTRUTURA: "infraestrutura",
-  SANCAO: "sanção",
-  PRODUCAO: "decisão de produção",
-  DIPLOMACIA: "diplomacia",
-  OUTRO: "outro"
-};
-const ASSUNTOS = ["GEOPOLITICA"];
+const ROTULO_TIPO = Object.fromEntries(TIPOS.map((t) => [t.codigo, t.rotulo]));
 
 function validar(ativo, dataReferencia) {
-  if (!ATIVOS[ativo]) throw new ValidationError(`Ativo inválido: "${ativo}". Use OURO ou PETROLEO.`);
+  if (!ATIVOS.includes(ativo)) throw new ValidationError(`Ativo inválido: "${ativo}". Use ${ATIVOS.join(", ")}.`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dataReferencia))) {
     throw new ValidationError(`Data de referência inválida: "${dataReferencia}". Use AAAA-MM-DD.`);
   }
@@ -43,7 +37,8 @@ function formatarFonte(fonte) {
 
 function formatarEvento(evento, indice) {
   const linhas = [`${indice + 1}. ${evento.titulo}`];
-  if (evento.tipo) linhas.push(`   Tipo: ${TIPO_EXIBICAO[evento.tipo]}`);
+  if (evento.tipo) linhas.push(`   Tipo: ${ROTULO_TIPO[evento.tipo]}`);
+  if (evento.fator) linhas.push(`   Fator do FEL 1: ${nomeDoFator(evento.fator)}`);
   if (evento.resumo) linhas.push(`   Resumo: ${evento.resumo}`);
   if (evento.canalTransmissao) linhas.push(`   Canal de transmissão: ${evento.canalTransmissao}`);
   // Dito explicitamente como leitura da IA sobre o fato isolado, para a IA do ativo não tomar como conclusão.
@@ -53,48 +48,64 @@ function formatarEvento(evento, indice) {
     evento.confianca && `Confiança: ${GRAU_EXIBICAO[evento.confianca]}`
   ].filter(Boolean);
   if (graus.length > 0) linhas.push(`   ${graus.join(" | ")}`);
-  // Só os sites confiáveis confirmados nos resultados da pesquisa: são eles que sustentam o evento.
-  const fontes = evento.fontes.filter((f) => f.fonteAutorizada && f.confirmadaNaPesquisa).map(formatarFonte);
+  // Só as páginas de fonte autorizada que sustentam o evento (ligadas a ele pela pesquisa).
+  const fontes = evento.fontes.filter((f) => f.origem === "pesquisa").map(formatarFonte);
   if (fontes.length > 0) linhas.push(`   Fontes: ${fontes.join("; ")}`);
   return linhas.join("\n");
 }
 
-function formatarContexto(geopolitica) {
-  const titulo = `GEOPOLÍTICA — ${ATIVOS[geopolitica.ativo]} (${geopolitica.dataReferencia})`;
-  if (!geopolitica.disponivel) {
+function formatarContexto(leitura) {
+  const titulo = `EVENTOS DE MERCADO — ${ROTULO_ATIVO[leitura.ativo]} (${leitura.dataReferencia})`;
+  if (!leitura.disponivel) {
     return `${titulo}\nLeitura indisponível: a busca deste dia não rodou ou falhou. Não trate a ausência como situação normal.`;
   }
   const linhas = [
-    `${titulo} - leitura gerada por IA com busca na web; escala de nível provisória`,
-    `Nível: ${NIVEL_EXIBICAO[geopolitica.nivel]}`
+    `${titulo} - leitura gerada por IA com busca na web, só em fontes autorizadas; escala de nível provisória`,
+    `Nível: ${NIVEL_EXIBICAO[leitura.nivel]}`
   ];
-  if (geopolitica.resumo) linhas.push(`Resumo: ${geopolitica.resumo}`);
-  if (geopolitica.eventos.length === 0) {
-    linhas.push("Eventos: nenhum evento geopolítico fora do normal sustentado pelas fontes autorizadas.");
+  if (leitura.resumo) linhas.push(`Resumo: ${leitura.resumo}`);
+  // Quais fontes a pesquisa do dia de fato leu, pelo grounding (nunca pelo que a IA diz ter consultado: ADR 0049).
+  linhas.push(`Fontes autorizadas lidas na pesquisa do dia: ${leitura.fontesLidas.length ? leitura.fontesLidas.join(", ") : "nenhuma"}`);
+  if (leitura.eventos.length === 0) {
+    linhas.push("Eventos: nenhum evento fora do normal sustentado pelas fontes autorizadas.");
   } else {
-    linhas.push("Eventos:", ...geopolitica.eventos.map(formatarEvento));
+    linhas.push("Eventos:", ...leitura.eventos.map(formatarEvento));
   }
   return linhas.join("\n");
 }
 
-// { ativo, dataReferencia, disponivel, nivel, resumo, eventos, contexto } - `contexto` é o bloco pronto para o prompt.
+// As fontes autorizadas lidas pela chamada que cuidou do ativo (desde a v11, as páginas do grounding gravado são
+// marcadas com a frente; numa leitura anterior, sem a marca, valem todas).
+function fontesLidasDoAtivo(grounding, ativo) {
+  const frente = frenteDoAtivo(ativo)?.codigo;
+  const paginas = (grounding?.groundingChunks || []).filter((c) => !c.frente || c.frente === frente);
+  return fontesDaPesquisa({ groundingChunks: paginas });
+}
+
+// { ativo, dataReferencia, disponivel, nivel, resumo, fontesLidas, eventos, contexto } - `contexto` é o bloco pronto para
+// o prompt. `fontesLidas`: os nomes das fontes autorizadas que a pesquisa do dia de fato leu (o grounding gravado).
 async function obterGeopoliticaDoDia(ativo, dataReferencia, deps = {}) {
   validar(ativo, dataReferencia);
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
-  const leitura = await repo.buscarLeituraComEventos(dataReferencia, ativo);
+  const registro = await repo.buscarLeituraComEventos(dataReferencia, ativo);
+  const coluna = ativo.toLowerCase();
+  // Leitura anterior ao ADR 0049 não tem o milho nem o café: para eles, é como não ter leitura.
+  const nivel = registro ? registro[`nivel_${coluna}`] : null;
 
-  const geopolitica = leitura
+  const leitura = nivel
     ? {
         ativo,
         dataReferencia,
         disponivel: true,
-        nivel: ativo === "OURO" ? leitura.nivel_ouro : leitura.nivel_petroleo,
-        resumo: ativo === "OURO" ? leitura.resumo_ouro : leitura.resumo_petroleo,
-        eventos: (leitura.eventos || [])
+        nivel,
+        resumo: registro[`resumo_${coluna}`],
+        fontesLidas: fontesLidasDoAtivo(registro.grounding, ativo).map((codigo) => FONTES[codigo].nome),
+        eventos: (registro.eventos || [])
           .filter((e) => e.aceito)
           .map((e) => ({
             titulo: e.titulo,
             tipo: e.tipo,
+            fator: e.fator,
             resumo: e.resumo,
             canalTransmissao: e.canal_transmissao,
             pressao: e.pressao,
@@ -103,9 +114,9 @@ async function obterGeopoliticaDoDia(ativo, dataReferencia, deps = {}) {
             fontes: e.fontes
           }))
       }
-    : { ativo, dataReferencia, disponivel: false, nivel: null, resumo: null, eventos: [] };
+    : { ativo, dataReferencia, disponivel: false, nivel: null, resumo: null, fontesLidas: [], eventos: [] };
 
-  return { ...geopolitica, contexto: formatarContexto(geopolitica) };
+  return { ...leitura, contexto: formatarContexto(leitura) };
 }
 
 // --- Tela Eventos (/dados-mercado/eventos): só leitura ---
@@ -127,8 +138,9 @@ function paraEventoResposta(evento) {
     leituraId: evento.leitura_id,
     data: leitura.data_referencia,
     ativo: evento.ativo,
-    assunto: evento.assunto,
     tipo: evento.tipo,
+    fator: evento.fator,
+    fatorNome: nomeDoFator(evento.fator),
     ordem: evento.ordem,
     titulo: evento.titulo,
     resumo: evento.resumo,
@@ -142,21 +154,19 @@ function paraEventoResposta(evento) {
   };
 }
 
-// Filtros: ativo (OURO | PETROLEO), situacao (aceitos - o padrão, o que vai ao Motor | rejeitados | todos),
-// dataInicio/dataFim, paginação e ordem pela data.
+// Filtros: ativo, tipo, situacao (aceitos - o padrão, o que vai ao Motor | rejeitados | todos), dataInicio/dataFim,
+// paginação e ordem pela data.
 async function listarEventos(filtros = {}, deps = {}) {
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
   const { pagina, tamanhoPagina } = validarPaginacao(filtros, { tamanhoPadrao: 25, tamanhoMaximo: 200 });
-  if (filtros.ativo && !ATIVOS[filtros.ativo]) throw new ValidationError('"ativo" deve ser OURO ou PETROLEO.');
+  if (filtros.ativo && !ATIVOS.includes(filtros.ativo)) throw new ValidationError(`"ativo" deve ser um entre: ${ATIVOS.join(", ")}.`);
   const situacao = filtros.situacao || "aceitos";
   if (!(situacao in ACEITO_POR_FILTRO)) throw new ValidationError('"situacao" deve ser aceitos, rejeitados ou todos.');
   const ordem = filtros.ordem === "ASC" ? "ASC" : "DESC";
-  if (filtros.assunto && !ASSUNTOS.includes(filtros.assunto)) throw new ValidationError('"assunto" inválido.');
-  if (filtros.tipo && !TIPO_EXIBICAO[filtros.tipo]) throw new ValidationError('"tipo" inválido.');
+  if (filtros.tipo && !CODIGOS_TIPO.includes(filtros.tipo)) throw new ValidationError('"tipo" inválido.');
 
   const { registros, total } = await repo.listarEventos({
     ativo: filtros.ativo || undefined,
-    assunto: filtros.assunto || undefined,
     tipo: filtros.tipo || undefined,
     aceito: ACEITO_POR_FILTRO[situacao],
     dataInicio: validarFiltroData(filtros.dataInicio, "dataInicio"),
@@ -167,31 +177,38 @@ async function listarEventos(filtros = {}, deps = {}) {
   });
   return {
     eventos: registros.map(paraEventoResposta),
-    // Assuntos que já têm evento: a tela só mostra o filtro de assunto quando há mais de um.
-    assuntosDisponiveis: await repo.listarAssuntos(),
     paginacao: { pagina, tamanhoPagina, total, totalPaginas: Math.max(1, Math.ceil(total / tamanhoPagina)) }
   };
 }
 
-// A leitura mais recente, para a metodologia da tela Eventos (modelo e versão do prompt) e a lista de sites confiáveis.
-// O nível e o resumo de uma data vão para o Centro de Decisão por `obterGeopoliticaDoDia` (ADR 0048).
-// `leitura: null` antes da primeira coleta.
+// A lista de fontes autorizadas para a tela, do mesmo catálogo que o prompt e o parser usam: a tela nunca mostra uma
+// lista diferente da real.
+function fontesConfiaveis() {
+  return CODIGOS.map((codigo) => ({
+    nome: FONTES[codigo].nome,
+    enderecos: FONTES[codigo].escopos.map((e) => `${e.host}${e.caminho || ""}`),
+    papel: FONTES[codigo].papel,
+    tipos: FONTES[codigo].tipos,
+    ativos: FONTES[codigo].ativos
+  }));
+}
+
+// A leitura mais recente (o nível e o resumo de cada ativo, o modelo e a versão do prompt), para a metodologia da tela
+// Eventos. `leitura: null` antes da primeira coleta.
 async function obterUltimaLeitura(deps = {}) {
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
   const leitura = await repo.buscarUltimaLeitura();
-  // A lista vem do mesmo catálogo que o prompt e o parser usam: a tela nunca mostra uma lista diferente da real.
-  const fontesConfiaveis = CODIGOS.map((codigo) => ({
-    nome: FONTES[codigo].nome,
-    dominios: FONTES[codigo].dominios,
-    papel: FONTES[codigo].papel
-  }));
-  if (!leitura) return { leitura: null, fontesConfiaveis };
+  if (!leitura) return { leitura: null, fontesConfiaveis: fontesConfiaveis() };
   return {
-    fontesConfiaveis,
+    fontesConfiaveis: fontesConfiaveis(),
     leitura: {
       data: leitura.data_referencia,
-      ouro: { nivel: leitura.nivel_ouro, resumo: leitura.resumo_ouro },
-      petroleo: { nivel: leitura.nivel_petroleo, resumo: leitura.resumo_petroleo },
+      ...Object.fromEntries(
+        ATIVOS.map((ativo) => {
+          const coluna = ativo.toLowerCase();
+          return [coluna, { nivel: leitura[`nivel_${coluna}`] ?? null, resumo: leitura[`resumo_${coluna}`] ?? null }];
+        })
+      ),
       modelo: leitura.modelo,
       chave: leitura.chave,
       versaoPrompt: leitura.versao_prompt,
@@ -207,7 +224,7 @@ async function obterDetalheIa(leituraId, deps = {}) {
   if (!/^[0-9a-f-]{36}$/i.test(String(leituraId))) throw new ValidationError("Leitura inválida.");
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
   const leitura = await repo.buscarLeituraPorId(leituraId);
-  if (!leitura) throw new NotFoundError("Leitura de geopolítica não encontrada.");
+  if (!leitura) throw new NotFoundError("Leitura de eventos não encontrada.");
   const grounding = leitura.grounding || {};
   return {
     detalheIa: {

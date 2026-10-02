@@ -2,83 +2,216 @@
 
 const { URL } = require("node:url");
 
-// Sites confiáveis da leitura diária de geopolítica (ADR 0047). UMA lista para os dois ativos: a IA decide em que
-// seção o fato entra pelo canal de transmissão (um ataque em Ormuz, do UKMTO, também conta para o ouro), e qualquer
-// site da lista sustenta um evento de qualquer ativo. Com listas separadas por ativo, o ouro ficou sem nenhuma fonte
-// diária legível (a Reuters não aparece na pesquisa do Gemini) - ver o ADR.
+// Fontes autorizadas da leitura diária de eventos de mercado (ADRs 0047 e 0049). UMA lista para os quatro ativos: a IA
+// decide os ativos de cada evento pelo canal de transmissão, não pela fonte (um ataque no Mar Vermelho, do UKMTO, conta
+// para o petróleo, o ouro e o café). Os `tipos` e os `ativos` de cada fonte orientam a busca no prompt; não limitam o
+// que a fonte pode sustentar.
 //
-// O núcleo são fontes que só publicam quando algo acontece (um aviso do UKMTO já é uma anomalia por definição), mais
-// uma agência de notícias para o que nenhuma instituição publica em tempo real (escalada militar, ataque em terra).
-// Fonte nova nesta lista só com autorização do usuário registrada no ADR.
+// Cada fonte tem um ou mais ESCOPOS: o domínio e, quando o domínio é compartilhado, o caminho da instituição. No
+// `gov.br`, o domínio sozinho não prova nada (o título que o Google devolve é "www.gov.br" para o MAPA, a Conab ou
+// qualquer ministério): vale só `gov.br/agricultura`. A conferência é sempre pela URL final da página lida.
+//
+// Testadas com a pesquisa do Gemini em 2026-10-02 (ADR 0049). Fonte nova só com autorização do usuário no ADR.
 //
 // A API do Gemini não restringe a busca por domínio: a lista orienta a busca pelo prompt (com "site:") e é conferida
-// depois, fonte a fonte, contra os sites que a pesquisa de fato devolveu (verificarNaPesquisa).
+// depois, página a página, contra o que a pesquisa de fato leu (paginas-da-pesquisa.js).
 
 const FONTES = {
   UKMTO: {
     nome: "UKMTO / JMIC",
     papel: "incidentes marítimos: ataques, ameaças e desvios em Ormuz, Mar Vermelho e Bab el-Mandeb",
-    dominios: ["ukmto.org"],
+    escopos: [{ host: "ukmto.org" }],
+    tipos: ["GEOPOLITICA", "CHOQUE_LOGISTICO"],
+    ativos: ["PETROLEO", "OURO", "CAFE"],
     apelidos: ["ukmto", "jmic", "joint maritime information center", "united kingdom maritime trade operations"],
-    buscas: ["site:ukmto.org warning", "site:ukmto.org JMIC advisory"]
+    buscas: [
+      { busca: "site:ukmto.org warning", ativos: ["PETROLEO", "OURO"] },
+      { busca: "site:ukmto.org JMIC advisory", ativos: ["PETROLEO", "OURO"] },
+      { busca: "site:ukmto.org Red Sea Bab el-Mandeb", ativos: ["CAFE"] }
+    ]
   },
   TESOURO: {
     nome: "Tesouro dos EUA (OFAC e comunicados)",
     papel: "sanções a países produtores, à frota que os atende, a reservas e a pagamentos internacionais",
-    dominios: ["treasury.gov"],
+    escopos: [{ host: "treasury.gov" }],
+    tipos: ["GEOPOLITICA"],
+    ativos: ["PETROLEO", "OURO"],
     apelidos: ["ofac", "office of foreign assets control", "u.s. treasury", "us treasury", "treasury department", "tesouro dos eua", "departamento do tesouro"],
     buscas: ["site:home.treasury.gov press releases sanctions", "site:ofac.treasury.gov recent actions"]
   },
   OPEP: {
     nome: "OPEP",
     papel: "decisões de produção da OPEP+ (raras, mas decisivas)",
-    dominios: ["opec.org"],
+    escopos: [{ host: "opec.org" }],
+    tipos: ["POLITICA_OFERTA"],
+    ativos: ["PETROLEO"],
     apelidos: ["opep", "opec"],
     buscas: ["site:opec.org press release"]
   },
   AP: {
     nome: "AP News",
-    papel: "escalada militar, ataques em terra e fatos que nenhuma instituição publica em tempo real",
-    dominios: ["apnews.com"],
+    papel: "escalada militar, ataques em terra e guerra (inclusive no Mar Negro): o que nenhuma instituição publica em tempo real",
+    escopos: [{ host: "apnews.com" }],
+    tipos: ["GEOPOLITICA"],
+    ativos: ["OURO", "PETROLEO", "MILHO"],
     apelidos: ["ap news", "associated press", "apnews"],
-    buscas: ["site:apnews.com Iran strike", "site:apnews.com oil attack sanctions", "site:apnews.com gold safe haven"]
+    buscas: [
+      { busca: "site:apnews.com Iran strike", ativos: ["OURO", "PETROLEO"] },
+      { busca: "site:apnews.com oil attack sanctions", ativos: ["OURO", "PETROLEO"] },
+      { busca: "site:apnews.com Black Sea ports Odesa grain", ativos: ["MILHO"] }
+    ]
   },
-  WGC: {
-    nome: "World Gold Council",
-    papel: "interpretação: se o mercado de ouro está precificando o risco geopolítico (análise semanal, não notícia)",
-    dominios: ["gold.org"],
-    apelidos: ["world gold council", "wgc"],
-    buscas: ["site:gold.org weekly markets monitor"]
+  USTR: {
+    nome: "USTR (Representante Comercial dos EUA)",
+    papel: "tarifas, acordos e investigações comerciais dos EUA (Brasil, China, México)",
+    escopos: [{ host: "ustr.gov" }],
+    tipos: ["POLITICA_COMERCIAL"],
+    ativos: ["MILHO", "CAFE"],
+    apelidos: ["ustr", "u.s. trade representative", "office of the united states trade representative", "representante comercial dos eua"],
+    buscas: ["site:ustr.gov press release tariff", "site:ustr.gov Brazil", "site:ustr.gov China agriculture"]
+  },
+  CASA_BRANCA: {
+    nome: "Casa Branca (atos presidenciais)",
+    papel: "ordens executivas e proclamações: tarifas, isenções, sanções e regras de biocombustível",
+    escopos: [{ host: "whitehouse.gov" }],
+    tipos: ["POLITICA_COMERCIAL", "REGULACAO", "GEOPOLITICA"],
+    ativos: ["MILHO", "CAFE", "PETROLEO"],
+    apelidos: ["white house", "whitehouse", "casa branca"],
+    buscas: ["site:whitehouse.gov presidential-actions tariff", "site:whitehouse.gov executive order Brazil"]
+  },
+  MOFCOM: {
+    nome: "MOFCOM (Ministério do Comércio da China)",
+    papel: "tarifas, contramedidas e restrições de importação da China",
+    escopos: [{ host: "mofcom.gov.cn" }],
+    tipos: ["POLITICA_COMERCIAL"],
+    ativos: ["MILHO"],
+    apelidos: ["mofcom", "ministry of commerce", "ministerio do comercio da china"],
+    buscas: ["site:english.mofcom.gov.cn tariff countermeasures", "site:english.mofcom.gov.cn agricultural imports"]
+  },
+  // Código mantido (COMISSAO_EUROPEIA) para não quebrar as fontes já gravadas; o Conselho entrou em 2026-10-02 (ADR 0049):
+  // a posição do Conselho sobre resíduos de pesticidas nas importações (30/09) saiu só em consilium.europa.eu.
+  COMISSAO_EUROPEIA: {
+    nome: "União Europeia (Comissão e Conselho)",
+    papel: "regulação de importação da UE (EUDR, a lei antidesmatamento que atinge o café; limites de resíduos de pesticidas) e acordos comerciais (UE-Mercosul)",
+    escopos: [{ host: "ec.europa.eu" }, { host: "consilium.europa.eu" }],
+    tipos: ["REGULACAO", "POLITICA_COMERCIAL"],
+    ativos: ["CAFE", "MILHO"],
+    apelidos: ["european commission", "comissao europeia", "council of the eu", "conselho da ue", "conselho da uniao europeia"],
+    buscas: ["site:ec.europa.eu EUDR deforestation", "site:ec.europa.eu Mercosur trade agreement", "site:consilium.europa.eu press release import food feed"]
+  },
+  MAPA: {
+    nome: "MAPA (Ministério da Agricultura)",
+    papel: "abertura e fechamento de mercados externos, acordos sanitários, pragas e portarias do Brasil",
+    escopos: [{ host: "gov.br", caminho: "/agricultura" }],
+    tipos: ["POLITICA_COMERCIAL", "SANIDADE", "REGULACAO"],
+    ativos: ["MILHO", "CAFE"],
+    apelidos: ["mapa", "ministerio da agricultura"],
+    buscas: ["site:gov.br/agricultura abertura de mercado", "site:gov.br/agricultura praga milho café"]
+  },
+  USDA_FAS: {
+    nome: "USDA FAS (relatórios GAIN)",
+    papel: "medidas de outros governos sobre milho e café (México, China, UE e outros), relatadas pelos adidos agrícolas dos EUA",
+    escopos: [{ host: "fas.usda.gov" }],
+    tipos: ["POLITICA_COMERCIAL", "SANIDADE", "REGULACAO"],
+    ativos: ["MILHO", "CAFE"],
+    apelidos: ["usda fas", "foreign agricultural service", "gain report", "relatorio gain"],
+    buscas: ["site:fas.usda.gov GAIN corn import policy", "site:fas.usda.gov GAIN coffee"]
+  },
+  INMET: {
+    nome: "INMET (avisos meteorológicos)",
+    papel: "avisos de geada e onda de frio nas regiões do café (MG, SP, PR, ES) e da safrinha (PR, MS, MT, GO)",
+    escopos: [{ host: "inmet.gov.br" }],
+    tipos: ["CLIMA_EXTREMO"],
+    ativos: ["CAFE", "MILHO"],
+    apelidos: ["inmet", "instituto nacional de meteorologia"],
+    buscas: ["site:avisos.inmet.gov.br geada", "site:portal.inmet.gov.br geada onda de frio"]
   }
 };
 
 const CODIGOS = Object.keys(FONTES);
 
-// Hosts de redirecionamento do grounding do Google: a URL não diz o site de origem, então vale o nome citado.
+// Hosts de redirecionamento do grounding do Google: a URL não diz o site de origem.
 const HOSTS_REDIRECIONAMENTO = ["vertexaisearch.cloud.google.com"];
 
 function semAcento(texto) {
   return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-function hostDe(url) {
-  try {
-    return new URL(url).hostname.toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
 function dominioCasa(host, dominio) {
   return host === dominio || host.endsWith(`.${dominio}`);
 }
 
-// Código do site confiável da citação, ou null. Com uma URL de verdade, decide só o domínio: "Reuters via
-// business-standard.com" não conta. Sem URL (ou com o redirecionamento do Google), decide o nome.
+// O caminho casa por segmento: "/agricultura" aceita "/agricultura/pt-br/..." e não aceita "/agricultura-familiar".
+function caminhoCasa(caminhoUrl, prefixo) {
+  return !prefixo || caminhoUrl === prefixo || caminhoUrl.startsWith(`${prefixo}/`);
+}
+
+// Código da fonte autorizada a que a URL pertence (domínio e, se houver, o caminho da instituição), ou null.
+function fonteDaUrl(url) {
+  let partes;
+  try {
+    partes = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = partes.hostname.toLowerCase();
+  if (HOSTS_REDIRECIONAMENTO.some((h) => dominioCasa(host, h))) return null;
+  const caminho = decodeURIComponent(partes.pathname).toLowerCase();
+  return CODIGOS.find((codigo) => FONTES[codigo].escopos.some((e) => dominioCasa(host, e.host) && caminhoCasa(caminho, e.caminho))) || null;
+}
+
+// A URL é de uma publicação específica (a matéria, o aviso, o comunicado)? Página inicial, página de autor, de tag, de
+// tópico, de busca ou listagem de notícias e comunicados NÃO sustentam um fato (ADR 0049, item 15): no 1º evento do
+// reforço militar dos EUA (2026-10-02), a pesquisa ligou ao texto a página do autor na AP. Essas páginas continuam
+// contando como fonte lida para o piso (mostram que a fonte foi consultada).
+const SEGMENTOS_DE_INDICE = new Set(["author", "authors", "autor", "autores", "tag", "tags", "topic", "topics", "hub", "search", "busca", "category", "categories", "categoria", "categorias"]);
+const ULTIMOS_SEGMENTOS_DE_LISTAGEM = new Set([
+  "news",
+  "newsroom",
+  "noticias",
+  "ultimas-noticias",
+  "press-releases",
+  "press-release",
+  "releases",
+  "presidential-actions",
+  "fact-sheets",
+  "recent-actions",
+  "index.html",
+  "index.htm",
+  "index.shtml"
+]);
+
+function paginaEspecifica(url) {
+  let partes;
+  try {
+    partes = new URL(url);
+  } catch {
+    return false;
+  }
+  const segmentos = decodeURIComponent(partes.pathname).toLowerCase().split("/").filter(Boolean);
+  if (segmentos.length === 0) return false;
+  if (segmentos.some((s) => SEGMENTOS_DE_INDICE.has(s))) return false;
+  const ultimo = segmentos[segmentos.length - 1];
+  if (ULTIMOS_SEGMENTOS_DE_LISTAGEM.has(ultimo)) return false;
+  // Listagem por ano ou por mês: ".../press-releases/2026", ".../press-releases/2026/september".
+  const anterior = segmentos[segmentos.length - 2];
+  if (/^\d{4}$/.test(ultimo) && ULTIMOS_SEGMENTOS_DE_LISTAGEM.has(anterior)) return false;
+  const meses = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  if (meses.includes(ultimo) && /^\d{4}$/.test(anterior || "")) return false;
+  return true;
+}
+
+// Fonte autorizada de uma CITAÇÃO da IA ({ nome, url }), só para exibir: com uma URL de verdade, decide a URL; sem URL
+// (ou com o redirecionamento do Google), decide o nome. A citação nunca sustenta o evento sozinha (ver o coletor).
 function classificarFonte({ nome, url }) {
-  const host = url ? hostDe(url) : null;
-  if (host && !HOSTS_REDIRECIONAMENTO.some((h) => dominioCasa(host, h))) {
-    return CODIGOS.find((codigo) => FONTES[codigo].dominios.some((d) => dominioCasa(host, d))) || null;
+  if (url) {
+    let host = null;
+    try {
+      host = new URL(url).hostname.toLowerCase();
+    } catch {
+      host = null;
+    }
+    if (host && !HOSTS_REDIRECIONAMENTO.some((h) => dominioCasa(host, h))) return fonteDaUrl(url);
   }
   const texto = semAcento(nome || "");
   return (
@@ -88,28 +221,44 @@ function classificarFonte({ nome, url }) {
   );
 }
 
-// Sites que a pesquisa desta chamada de fato devolveu. O grounding do Gemini traz um título por resultado, que é o
-// domínio ("ukmto.org", "treasury.gov"); a URL é um redirecionamento do Google e não serve.
-function sitesDaPesquisa(grounding) {
-  return [...new Set((grounding?.groundingChunks || []).map((c) => String(c.web?.title || "").toLowerCase()).filter(Boolean))];
+// Fontes autorizadas com alguma página lida nesta pesquisa (pela URL final de cada página do grounding).
+function fontesDaPesquisa(grounding) {
+  const codigos = (grounding?.groundingChunks || []).map((c) => (c.web?.urlFinal ? fonteDaUrl(c.web.urlFinal) : null)).filter(Boolean);
+  return [...new Set(codigos)];
 }
 
-// O site confiável `codigo` apareceu nos resultados da pesquisa? Sem isso, a citação não prova nada: no teste de
-// 2026-10-02, a IA citou "Reuters" com a página inicial do site sem ter lido nenhuma página do reuters.com.
-function verificarNaPesquisa(codigo, sites) {
-  return FONTES[codigo].dominios.some((d) => sites.some((site) => dominioCasa(site, d) || dominioCasa(d, site)));
+function rotulosDe(codigos, rotulos) {
+  return codigos.map((codigo) => rotulos[codigo] || codigo).join(", ");
 }
 
-// Texto da lista para o prompt: "- UKMTO / JMIC (ukmto.org): incidentes marítimos...".
-function listaParaPrompt() {
-  return CODIGOS.map((codigo) => `- ${FONTES[codigo].nome} (${FONTES[codigo].dominios.join(", ")}): ${FONTES[codigo].papel}`).join("\n");
+// Fontes que cobrem algum dos ativos (os de uma chamada: ADR 0049, item 12). Sem `ativos`, todas.
+function fontesDosAtivos(ativos) {
+  return CODIGOS.filter((codigo) => !ativos || FONTES[codigo].ativos.some((a) => ativos.includes(a)));
 }
 
-function sugestoesDeBusca() {
-  return Object.values(FONTES)
-    .flatMap((fonte) => fonte.buscas)
-    .map((busca) => `- ${busca}`)
+// Texto da lista para o prompt de uma chamada: "- USTR (...) (ustr.gov) - tipos: Política comercial - ativos: milho,
+// café: tarifas ...". Só as fontes que cobrem os ativos da chamada, e só esses ativos em cada uma.
+function listaParaPrompt({ rotuloTipo, nomeAtivo, ativos }) {
+  return fontesDosAtivos(ativos)
+    .map((codigo) => {
+      const fonte = FONTES[codigo];
+      const enderecos = fonte.escopos.map((e) => `${e.host}${e.caminho || ""}`).join(", ");
+      const ativosDaFonte = ativos ? fonte.ativos.filter((a) => ativos.includes(a)) : fonte.ativos;
+      return `- ${fonte.nome} (${enderecos}) - tipos: ${rotulosDe(fonte.tipos, rotuloTipo)} - ativos: ${rotulosDe(ativosDaFonte, nomeAtivo)}: ${fonte.papel}`;
+    })
     .join("\n");
 }
 
-module.exports = { FONTES, CODIGOS, classificarFonte, sitesDaPesquisa, verificarNaPesquisa, listaParaPrompt, sugestoesDeBusca };
+// Uma sugestão é um texto (vale para os ativos da fonte) ou { busca, ativos } (só para esses ativos).
+function sugestoesDeBusca({ ativos } = {}) {
+  return fontesDosAtivos(ativos)
+    .flatMap((codigo) =>
+      FONTES[codigo].buscas
+        .map((s) => (typeof s === "string" ? { busca: s, ativos: FONTES[codigo].ativos } : s))
+        .filter((s) => !ativos || s.ativos.some((a) => ativos.includes(a)))
+        .map((s) => `- ${s.busca}`)
+    )
+    .join("\n");
+}
+
+module.exports = { FONTES, CODIGOS, fonteDaUrl, paginaEspecifica, classificarFonte, fontesDaPesquisa, fontesDosAtivos, listaParaPrompt, sugestoesDeBusca };

@@ -3,7 +3,8 @@
 `provider.interface.js` documenta o contrato que um provedor de IA precisa implementar. `null-provider.js` continua
 sendo o padrão de tudo que ainda não tem definição: falha explicitamente, nunca simula uma resposta.
 
-**Única integração real até agora: a leitura diária de geopolítica do ouro e do petróleo** (ADR 0047).
+**Única integração real até agora: a leitura diária de eventos de mercado do ouro, do petróleo, do milho e do café**
+(ADR 0047, estendida pelo ADR 0049; a geopolítica é um dos sete tipos de evento).
 `gemini-search.provider.js` chama o Gemini com busca na web (API REST, sem SDK) e devolve o texto como veio; o prompt
 fica versionado em `prompts/geopolitica-diaria.md` (carregado por `carregar-prompt.js`) e quem interpreta a resposta é o
 parser do coletor `collectors/geopolitica/`. A leitura é **contexto** para o prompt do ativo, não regra nem sinal.

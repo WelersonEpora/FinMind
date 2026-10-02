@@ -21,15 +21,16 @@ const LEITURA = {
       aceito: true,
       titulo: "EUA negam alívio de sanções ao Irã",
       resumo: "Em 30/09...",
-      tipo: "DIPLOMACIA",
+      tipo: "GEOPOLITICA",
+      fator: "OURO_GEOPOLITICA",
       canal_transmissao: "Busca por ativo de proteção.",
       pressao: "ALTA",
       intensidade: "MEDIA",
       confianca: "ALTA",
       fontes: [
-        { nome: "AP News", url: "https://apnews.com/x", fonteAutorizada: "AP", confirmadaNaPesquisa: true },
-        // Site confiável, mas não confirmado na pesquisa: não vai ao bloco do Motor.
-        { nome: "OFAC", url: null, fonteAutorizada: "TESOURO", confirmadaNaPesquisa: false },
+        { nome: "AP News", url: "https://apnews.com/x", fonteAutorizada: "AP", confirmadaNaPesquisa: true, origem: "pesquisa" },
+        // Citação da IA (mesmo de fonte lida na pesquisa): não sustenta o evento e não vai ao bloco do Motor.
+        { nome: "OFAC", url: null, fonteAutorizada: "TESOURO", confirmadaNaPesquisa: true, origem: "citada" },
         { nome: "Blog", url: "https://exemplo.com", fonteAutorizada: null }
       ]
     },
@@ -56,9 +57,9 @@ test("obterGeopoliticaDoDia: bloco do ativo só com os eventos aceitos e as font
   assert.equal(resultado.disponivel, true);
   assert.equal(resultado.nivel, "RELEVANTE");
   assert.equal(resultado.eventos.length, 1);
-  assert.match(resultado.contexto, /^GEOPOLÍTICA — OURO \(2026-10-01\)/);
+  assert.match(resultado.contexto, /^EVENTOS DE MERCADO — OURO \(2026-10-01\)/);
   assert.match(resultado.contexto, /Nível: RELEVANTE/);
-  assert.match(resultado.contexto, /1\. EUA negam alívio de sanções ao Irã\n   Tipo: diplomacia/);
+  assert.match(resultado.contexto, /1\. EUA negam alívio de sanções ao Irã\n {3}Tipo: Geopolítica\n {3}Fator do FEL 1: Geopolítica e risco sistêmico/);
   assert.match(resultado.contexto, /Canal de transmissão: Busca por ativo de proteção\./);
   assert.match(resultado.contexto, /Pressão do fato sobre o preço: alta \(leitura da IA, com o resto constante\)/);
   assert.match(resultado.contexto, /Intensidade: média \| Confiança: alta/);
@@ -67,11 +68,38 @@ test("obterGeopoliticaDoDia: bloco do ativo só com os eventos aceitos e as font
   assert.doesNotMatch(resultado.contexto, /exemplo\.com|Rejeitado/);
 });
 
+test("obterGeopoliticaDoDia: as fontes lidas vêm do grounding gravado, não do que a IA diz ter consultado", async () => {
+  const grounding = {
+    groundingChunks: [
+      { web: { title: "www.gov.br", urlFinal: "https://www.gov.br/agricultura/pt-br/x" } },
+      { web: { title: "ukmto.org", urlFinal: "https://www.ukmto.org/aviso.pdf" } },
+      { web: { title: "www.gov.br", urlFinal: "https://www.gov.br/conab/pt-br/x" } }
+    ]
+  };
+  const leitura = { ...LEITURA, resumo_ouro: "Foram consultadas USTR, MOFCOM e MAPA.", grounding };
+  const resultado = await obterGeopoliticaDoDia("OURO", "2026-10-02", { geopoliticaRepository: repoCom(leitura) });
+  assert.deepEqual(resultado.fontesLidas, ["MAPA (Ministério da Agricultura)", "UKMTO / JMIC"]);
+  assert.match(resultado.contexto, /Fontes autorizadas lidas na pesquisa do dia: MAPA \(Ministério da Agricultura\), UKMTO \/ JMIC/);
+  // Desde a v11 (duas chamadas), cada página é marcada com a frente: o milho só vê as da chamada de milho e café.
+  const porFrente = {
+    groundingChunks: [
+      { frente: "OURO_PETROLEO", web: { urlFinal: "https://www.ukmto.org/aviso.pdf" } },
+      { frente: "MILHO_CAFE", web: { urlFinal: "https://ustr.gov/x" } }
+    ]
+  };
+  const milho = await obterGeopoliticaDoDia("MILHO", "2026-10-02", {
+    geopoliticaRepository: repoCom({ ...LEITURA, nivel_milho: "NORMAL", grounding: porFrente, eventos: [] })
+  });
+  assert.deepEqual(milho.fontesLidas, ["USTR (Representante Comercial dos EUA)"]);
+  const semGrounding = await obterGeopoliticaDoDia("OURO", "2026-10-02", { geopoliticaRepository: repoCom(LEITURA) });
+  assert.match(semGrounding.contexto, /Fontes autorizadas lidas na pesquisa do dia: nenhuma/);
+});
+
 test("obterGeopoliticaDoDia: nível NORMAL sem eventos diz isso explicitamente", async () => {
   const resultado = await obterGeopoliticaDoDia("PETROLEO", "2026-10-01", { geopoliticaRepository: repoCom({ ...LEITURA, eventos: [] }) });
-  assert.match(resultado.contexto, /^GEOPOLÍTICA — PETRÓLEO/);
+  assert.match(resultado.contexto, /^EVENTOS DE MERCADO — PETRÓLEO/);
   assert.match(resultado.contexto, /Nível: NORMAL/);
-  assert.match(resultado.contexto, /nenhum evento geopolítico fora do normal/);
+  assert.match(resultado.contexto, /nenhum evento fora do normal/);
 });
 
 test("obterGeopoliticaDoDia: sem leitura na data, 'indisponível' - nunca 'normal'", async () => {
@@ -82,15 +110,27 @@ test("obterGeopoliticaDoDia: sem leitura na data, 'indisponível' - nunca 'norma
   assert.doesNotMatch(resultado.contexto, /Nível/);
 });
 
+test("obterGeopoliticaDoDia: milho e café (ADR 0049); leitura anterior sem o ativo vale como indisponível", async () => {
+  const comCafe = await obterGeopoliticaDoDia("CAFE", "2026-10-02", {
+    geopoliticaRepository: repoCom({ ...LEITURA, nivel_cafe: "ATENCAO", resumo_cafe: "Geada em MG.", eventos: [] })
+  });
+  assert.equal(comCafe.disponivel, true);
+  assert.match(comCafe.contexto, /^EVENTOS DE MERCADO — CAFÉ \(2026-10-02\)/);
+  assert.match(comCafe.contexto, /Resumo: Geada em MG\./);
+  // Leitura de 2026-10-01 (só ouro e petróleo): para o milho, não há leitura.
+  const antiga = await obterGeopoliticaDoDia("MILHO", "2026-10-01", { geopoliticaRepository: repoCom(LEITURA) });
+  assert.equal(antiga.disponivel, false);
+  assert.match(antiga.contexto, /Leitura indisponível/);
+});
+
 test("obterGeopoliticaDoDia: ativo ou data inválidos", async () => {
-  await assert.rejects(obterGeopoliticaDoDia("CAFE", "2026-10-01", { geopoliticaRepository: repoCom(null) }), /Ativo inválido/);
+  await assert.rejects(obterGeopoliticaDoDia("SOJA", "2026-10-01", { geopoliticaRepository: repoCom(null) }), /Ativo inválido/);
   await assert.rejects(obterGeopoliticaDoDia("OURO", "01/10/2026", { geopoliticaRepository: repoCom(null) }), /Data de referência inválida/);
 });
 
 test("listarEventos: por padrão só os aceitos; filtros e paginação passam ao repositório; resposta com a data e o nível do dia", async () => {
   const chamadas = [];
   const repo = {
-    listarAssuntos: async () => ["GEOPOLITICA"],
     async listarEventos(filtros) {
       chamadas.push(filtros);
       return {
@@ -100,8 +140,8 @@ test("listarEventos: por padrão só os aceitos; filtros e paginação passam ao
             id: "e1",
             leitura_id: "l1",
             ativo: "PETROLEO",
-            assunto: "GEOPOLITICA",
-            tipo: "ROTA_MARITIMA",
+            tipo: "GEOPOLITICA",
+            fator: "PETROLEO_GEOPOLITICA",
             ordem: 1,
             titulo: "Petroleiro atingido",
             resumo: "r",
@@ -122,7 +162,6 @@ test("listarEventos: por padrão só os aceitos; filtros e paginação passam ao
   const resultado = await listarEventos({ ativo: "PETROLEO", dataInicio: "2026-09-01" }, { geopoliticaRepository: repo });
   assert.deepEqual(chamadas[0], {
     ativo: "PETROLEO",
-    assunto: undefined,
     tipo: undefined,
     aceito: true,
     dataInicio: "2026-09-01",
@@ -133,9 +172,10 @@ test("listarEventos: por padrão só os aceitos; filtros e paginação passam ao
   });
   assert.equal(resultado.eventos[0].data, "2026-10-01");
   assert.equal(resultado.eventos[0].leituraId, "l1");
-  assert.equal(resultado.eventos[0].assunto, "GEOPOLITICA");
-  assert.equal(resultado.eventos[0].tipo, "ROTA_MARITIMA");
-  assert.deepEqual(resultado.assuntosDisponiveis, ["GEOPOLITICA"]);
+  assert.equal(resultado.eventos[0].tipo, "GEOPOLITICA");
+  assert.equal(resultado.eventos[0].fator, "PETROLEO_GEOPOLITICA");
+  assert.equal(resultado.eventos[0].fatorNome, "Geopolítica e conflitos (Oriente Médio, Rússia)");
+  assert.equal(resultado.eventos[0].assunto, undefined);
   assert.equal(resultado.eventos[0].canalTransmissao, "rota");
   assert.equal(resultado.eventos[0].pressao, "AMBIGUA");
   assert.deepEqual(resultado.paginacao, { pagina: 1, tamanhoPagina: 25, total: 1, totalPaginas: 1 });
@@ -145,18 +185,17 @@ test("listarEventos: por padrão só os aceitos; filtros e paginação passam ao
   assert.equal(chamadas[1].ordem, "ASC");
   await listarEventos({ situacao: "rejeitados" }, { geopoliticaRepository: repo });
   assert.equal(chamadas[2].aceito, false);
-  await listarEventos({ assunto: "GEOPOLITICA", tipo: "SANCAO" }, { geopoliticaRepository: repo });
-  assert.equal(chamadas[3].assunto, "GEOPOLITICA");
-  assert.equal(chamadas[3].tipo, "SANCAO");
+  await listarEventos({ ativo: "CAFE", tipo: "CLIMA_EXTREMO" }, { geopoliticaRepository: repo });
+  assert.equal(chamadas[3].ativo, "CAFE");
+  assert.equal(chamadas[3].tipo, "CLIMA_EXTREMO");
 });
 
 test("listarEventos: filtros inválidos", async () => {
-  const repo = { listarEventos: async () => ({ registros: [], total: 0 }), listarAssuntos: async () => [] };
-  await assert.rejects(listarEventos({ ativo: "CAFE" }, { geopoliticaRepository: repo }), /"ativo"/);
+  const repo = { listarEventos: async () => ({ registros: [], total: 0 }) };
+  await assert.rejects(listarEventos({ ativo: "SOJA" }, { geopoliticaRepository: repo }), /"ativo"/);
   await assert.rejects(listarEventos({ situacao: "x" }, { geopoliticaRepository: repo }), /"situacao"/);
   await assert.rejects(listarEventos({ dataFim: "01/10/2026" }, { geopoliticaRepository: repo }), /"dataFim"/);
-  await assert.rejects(listarEventos({ tipo: "GUERRA" }, { geopoliticaRepository: repo }), /"tipo"/);
-  await assert.rejects(listarEventos({ assunto: "CLIMA" }, { geopoliticaRepository: repo }), /"assunto"/);
+  await assert.rejects(listarEventos({ tipo: "SANCAO" }, { geopoliticaRepository: repo }), /"tipo"/);
 });
 
 test("obterUltimaLeitura: nível e resumo de cada ativo; null antes da primeira coleta", async () => {
@@ -173,12 +212,16 @@ test("obterUltimaLeitura: nível e resumo de cada ativo; null antes da primeira 
   };
   const { leitura: resposta } = await obterUltimaLeitura({ geopoliticaRepository: { buscarUltimaLeitura: async () => leitura } });
   assert.deepEqual(resposta.ouro, { nivel: "RELEVANTE", resumo: "o" });
+  // Leitura anterior ao ADR 0049: milho e café sem nível.
+  assert.deepEqual(resposta.cafe, { nivel: null, resumo: null });
   assert.equal(resposta.chave, "gratuita");
   const vazia = await obterUltimaLeitura({ geopoliticaRepository: { buscarUltimaLeitura: async () => null } });
   assert.equal(vazia.leitura, null);
   // A lista de sites confiáveis vem sempre, do mesmo catálogo do prompt e do parser.
-  assert.deepEqual(vazia.fontesConfiaveis.map((f) => f.dominios[0]), ["ukmto.org", "treasury.gov", "opec.org", "apnews.com", "gold.org"]);
-  assert.ok(vazia.fontesConfiaveis.every((f) => f.papel));
+  assert.equal(vazia.fontesConfiaveis.length, 11);
+  assert.deepEqual(vazia.fontesConfiaveis.find((f) => f.nome.startsWith("MAPA")).enderecos, ["gov.br/agricultura"]);
+  assert.ok(!vazia.fontesConfiaveis.some((f) => f.enderecos.includes("gold.org")));
+  assert.ok(vazia.fontesConfiaveis.every((f) => f.papel && f.tipos.length && f.ativos.length));
 });
 
 test("obterDetalheIa: instrução do sistema, prompt, resposta, buscas e páginas lidas da leitura", async () => {

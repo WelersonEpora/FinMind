@@ -8,7 +8,7 @@ const { somarDias } = require("../shared/utils/date-utils");
 const { ValidationError } = require("../shared/errors");
 
 // Centro de Decisão (ADR 0048): a tela inicial. Para um ATIVO e uma DATA, devolve o preço como era conhecido no fim
-// daquele dia (point-in-time, ADR 0008) e a leitura de geopolítica daquela data (ADR 0047). Só EXIBE dado coletado:
+// daquele dia (point-in-time, ADR 0008) e a leitura de eventos de mercado daquela data (ADRs 0047 e 0049). Só EXIBE dado coletado:
 // a variação é aritmética sobre a própria série (sem limiar, sem sinal), e o espaço da análise do Motor fica vazio
 // até o David e o Comitê definirem as regras.
 //
@@ -20,7 +20,6 @@ const ATIVOS = [
   {
     codigo: "OURO",
     nome: "Ouro",
-    geopolitica: true,
     series: [
       { codigo: "GLD", nome: "Futuro B3 (GLD)", observavel: "GLD_PRECOS", futuro: { prefixo: "B3.GLD", campo: "SETTLE" } },
       { codigo: "LBMA", nome: "LBMA Gold Price PM", observavel: "OURO_LBMA", seriesCode: "LBMA.GOLD_PM.USD" }
@@ -29,7 +28,6 @@ const ATIVOS = [
   {
     codigo: "PETROLEO",
     nome: "Petróleo",
-    geopolitica: true,
     series: [
       { codigo: "WTI", nome: "WTI à vista (EIA)", observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.WTI" },
       { codigo: "BRENT", nome: "Brent à vista (EIA)", observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.BRENT" }
@@ -38,7 +36,6 @@ const ATIVOS = [
   {
     codigo: "MILHO",
     nome: "Milho",
-    geopolitica: false,
     series: [
       { codigo: "CEPEA", nome: "Indicador CEPEA/ESALQ", observavel: "MILHO_CEPEA_ESALQ", seriesCode: "B3.MILHO_ESALQ.AVISTA_BRL" },
       { codigo: "CCM", nome: "Futuro B3 (CCM)", observavel: "CCM_PRECOS", futuro: { prefixo: "B3.CCM", campo: "SETTLE" } }
@@ -47,7 +44,6 @@ const ATIVOS = [
   {
     codigo: "CAFE",
     nome: "Café",
-    geopolitica: false,
     series: [
       { codigo: "ICF", nome: "Futuro B3 (ICF)", observavel: "ICF_PRECOS", futuro: { prefixo: "B3.ICF", campo: "SETTLE" } },
       { codigo: "FMI", nome: "FMI mensal (arábica)", observavel: "CAFE_PRECO_FMI", seriesCode: "FRED.PCOFFOTMUSDM" }
@@ -70,7 +66,7 @@ const VARIACOES = [
   { codigo: "d30", dias: 30, rotulo: "30 dias" },
   { codigo: "d90", dias: 90, rotulo: "90 dias" }
 ];
-// Eventos de geopolítica na seção "O que está movimentando o mercado": os da semana que termina na data.
+// Eventos de mercado na seção "O que está movimentando o mercado": os da semana que termina na data.
 const DIAS_EVENTOS = 7;
 const MAX_EVENTOS = 12;
 
@@ -209,7 +205,6 @@ async function lerPreco(serie, { data, agora }, deps) {
 }
 
 async function lerGeopolitica(ativo, data, deps) {
-  if (!ativo.geopolitica) return null;
   const servico = deps.geopoliticaService || geopoliticaService;
   const [doDia, recentes] = await Promise.all([
     servico.obterGeopoliticaDoDia(ativo.codigo, data, deps),
@@ -223,6 +218,7 @@ async function lerGeopolitica(ativo, data, deps) {
     disponivel: doDia.disponivel,
     nivel: doDia.nivel,
     resumo: doDia.resumo,
+    fontesLidas: doDia.fontesLidas,
     eventos: recentes.eventos,
     totalEventos: recentes.paginacao.total
   };
@@ -240,7 +236,7 @@ async function obterCentroDecisao(filtros = {}, deps = {}) {
       data,
       hoje,
       ativos: ATIVOS.map((a) => ({ codigo: a.codigo, nome: a.nome })),
-      ativo: { codigo: ativo.codigo, nome: ativo.nome, geopolitica: ativo.geopolitica },
+      ativo: { codigo: ativo.codigo, nome: ativo.nome },
       series: ativo.series.map((s) => ({ codigo: s.codigo, nome: s.nome })),
       variacoes: VARIACOES.map(({ codigo, rotulo }) => ({ codigo, rotulo })),
       preco,

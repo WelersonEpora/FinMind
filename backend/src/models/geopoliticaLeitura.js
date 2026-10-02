@@ -3,8 +3,9 @@
 const { DataTypes } = require("sequelize");
 const { randomUUID } = require("node:crypto");
 
-// Leitura diária de geopolítica (ADR 0047): uma por dia, com o nível e o resumo do ouro e do petróleo e a resposta
-// bruta da IA. Os eventos ficam em geopolitica_evento (apagados em cascata quando o dia é refeito).
+// Leitura diária de eventos de mercado (ADRs 0047 e 0049): uma por dia, com o nível e o resumo de cada ativo e a
+// resposta bruta da IA. Os eventos ficam em geopolitica_evento (apagados em cascata quando o dia é refeito). Milho e café
+// entraram com o ADR 0049: nulos nas leituras anteriores.
 const NIVEIS = ["NORMAL", "ATENCAO", "RELEVANTE", "EXCEPCIONAL"];
 
 module.exports = (sequelize) => {
@@ -17,6 +18,10 @@ module.exports = (sequelize) => {
       resumo_ouro: { type: DataTypes.TEXT, allowNull: true },
       nivel_petroleo: { type: DataTypes.STRING(20), allowNull: false, validate: { isIn: [NIVEIS] } },
       resumo_petroleo: { type: DataTypes.TEXT, allowNull: true },
+      nivel_milho: { type: DataTypes.STRING(20), allowNull: true, validate: { isIn: [NIVEIS] } },
+      resumo_milho: { type: DataTypes.TEXT, allowNull: true },
+      nivel_cafe: { type: DataTypes.STRING(20), allowNull: true, validate: { isIn: [NIVEIS] } },
+      resumo_cafe: { type: DataTypes.TEXT, allowNull: true },
       texto_bruto: { type: DataTypes.TEXT, allowNull: false },
       instrucao_sistema: { type: DataTypes.TEXT, allowNull: false },
       prompt: { type: DataTypes.TEXT, allowNull: false },

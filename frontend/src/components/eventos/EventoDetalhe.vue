@@ -1,9 +1,9 @@
 <script setup>
 import Button from 'primevue/button'
 import PressaoIndicador from './PressaoIndicador.vue'
-import { pressao, rotuloAtivo, rotuloGrau, rotuloFonte, rotuloAssunto, rotuloTipo } from '../../utils/geopolitica.js'
+import { pressao, rotuloAtivo, rotuloGrau, rotuloFonte, rotuloTipo } from '../../utils/geopolitica.js'
 
-// Detalhe de um evento da leitura de geopolítica (ADR 0047): a expansão da linha na tela Eventos e o modal do card
+// Detalhe de um evento de mercado (ADRs 0047 e 0049): a expansão da linha na tela Eventos e o modal do card
 // no Centro de Decisão. Um só componente, para as duas telas nunca mostrarem o evento de jeitos diferentes.
 defineProps({
   evento: { type: Object, required: true },
@@ -19,9 +19,9 @@ const emit = defineEmits(['ver-ia'])
     <h3 class="evento-detalhe__titulo">{{ evento.titulo }}</h3>
 
     <dl class="evento-detalhe__meta">
-      <div><dt>Assunto</dt><dd>{{ rotuloAssunto(evento.assunto) }}</dd></div>
       <div><dt>Tipo</dt><dd>{{ rotuloTipo(evento.tipo) }}</dd></div>
       <div><dt>Ativo</dt><dd>{{ rotuloAtivo(evento.ativo) }}</dd></div>
+      <div><dt>Fator do FEL 1</dt><dd>{{ evento.fatorNome || '—' }}</dd></div>
       <div><dt>Pressão sobre o preço</dt><dd><PressaoIndicador :codigo="evento.pressao" /></dd></div>
       <div><dt>Intensidade</dt><dd>{{ rotuloGrau(evento.intensidade) }}</dd></div>
       <div><dt>Confiança</dt><dd>{{ rotuloGrau(evento.confianca) }}</dd></div>
@@ -47,22 +47,27 @@ const emit = defineEmits(['ver-ia'])
           <!-- No evento, a fonte só é citada pelo nome; o link dos sites fica em "Fonte e metodologia" da tela Eventos.
                O único link aqui é o do próprio evento: a página que a pesquisa leu (origem "pesquisa"). -->
           <span class="evento-detalhe__fonte-nome">{{ rotuloFonte(fonte) }}</span>
+          <!-- Só a página "pesquisa" sustenta o evento (ADR 0049): a citação da IA, mesmo de fonte autorizada, não basta. -->
           <span
             v-if="fonte.origem === 'pesquisa'"
             class="fonte-tag fonte-tag--autorizada"
-            title="Página que a pesquisa leu e que apoia este evento: o link abre a notícia ou o aviso oficial."
+            title="Página de fonte autorizada que a pesquisa leu e que apoia o texto deste evento: o link abre o aviso, o comunicado ou a matéria."
           >
-            confiável · link direto da pesquisa
+            autorizada · página que sustenta o evento
           </span>
-          <span v-else-if="fonte.fonteAutorizada && fonte.confirmadaNaPesquisa" class="fonte-tag fonte-tag--autorizada">
-            confiável · confirmada na pesquisa
+          <span
+            v-else-if="fonte.fonteAutorizada && fonte.confirmadaNaPesquisa"
+            class="fonte-tag"
+            title="Fonte autorizada citada pela IA e lida em algum ponto da pesquisa, mas nenhuma página dela está ligada ao texto deste evento: a citação sozinha não sustenta o evento."
+          >
+            autorizada · só citada pela IA
           </span>
           <span
             v-else-if="fonte.fonteAutorizada"
             class="fonte-tag fonte-tag--alerta"
-            title="Site confiável, mas ele não apareceu nos resultados da pesquisa desta chamada: não sustenta o evento."
+            title="Fonte autorizada citada pela IA, mas nenhuma página dela foi lida nesta pesquisa: não sustenta o evento."
           >
-            confiável · não confirmada na pesquisa
+            autorizada · não lida na pesquisa
           </span>
           <span v-else class="fonte-tag">fora da lista</span>
           <a

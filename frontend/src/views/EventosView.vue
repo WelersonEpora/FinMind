@@ -8,20 +8,16 @@ import AppShell from '../components/layout/AppShell.vue'
 import EventoDetalhe from '../components/eventos/EventoDetalhe.vue'
 import PressaoIndicador from '../components/eventos/PressaoIndicador.vue'
 import geopoliticaService from '../services/geopolitica.service.js'
-import { rotuloAtivo, rotuloGrau, formatarData, rotuloAssunto, rotuloTipo, TIPOS } from '../utils/geopolitica.js'
+import { rotuloAtivo, rotuloGrau, formatarData, rotuloTipo, TIPOS, ATIVOS } from '../utils/geopolitica.js'
 
-// Tela Eventos (ADR 0047): o que a leitura diária de geopolítica encontrou e entregou como contexto ao prompt do ouro
-// e do petróleo. Só leitura: os eventos aceitos (os que vão ao Motor), um por linha, expandíveis. O nível e o resumo do
-// dia de cada ativo ficam no Centro de Decisão (ADR 0048); aqui a última leitura só alimenta a metodologia (modelo e
-// versão do prompt). Os rejeitados (sem site confiável confirmado na pesquisa) não aparecem aqui: ficam no detalhe da
-// execução, na tela Execuções.
+// Tela Eventos (ADRs 0047 e 0049): os eventos de mercado que a leitura diária encontrou e entregou como contexto ao
+// prompt de cada ativo (ouro, petróleo, milho e café). Só leitura: os eventos aceitos (os que vão ao Motor), um por
+// linha, expandíveis, com filtro por ativo, tipo e período. O nível e o resumo do dia de cada ativo ficam no Centro de
+// Decisão (ADR 0048); aqui a última leitura só alimenta a metodologia (modelo e versão do prompt). Os rejeitados (sem
+// página de fonte autorizada ligada ao evento) não aparecem aqui: ficam no detalhe da execução, na tela Execuções.
 
 const OPCOES_LINHAS_POR_PAGINA = [25, 50, 100, 200]
-const OPCOES_ATIVO = [
-  { valor: '', rotulo: 'Todos' },
-  { valor: 'OURO', rotulo: 'Ouro' },
-  { valor: 'PETROLEO', rotulo: 'Petróleo' }
-]
+const OPCOES_ATIVO = [{ valor: '', rotulo: 'Todos' }, ...Object.entries(ATIVOS).map(([valor, rotulo]) => ({ valor, rotulo }))]
 
 const leitura = ref(null)
 const fontesConfiaveis = ref(null)
@@ -37,9 +33,6 @@ const errorMessage = ref('')
 
 const ativoFiltro = ref('')
 const tipoFiltro = ref('')
-const assuntoFiltro = ref('')
-// O filtro de assunto só aparece quando houver mais de um assunto com evento (hoje só Geopolítica).
-const assuntosDisponiveis = ref([])
 const dataInicioFiltro = ref('')
 const dataFimFiltro = ref('')
 
@@ -60,7 +53,6 @@ async function carregar() {
     const resultado = await geopoliticaService.listarEventos({
       ativo: ativoFiltro.value || undefined,
       tipo: tipoFiltro.value || undefined,
-      assunto: assuntoFiltro.value || undefined,
       // Só os aceitos (o que vai ao Motor); os rejeitados aparecem no detalhe da execução, na tela Execuções.
       situacao: 'aceitos',
       dataInicio: dataInicioFiltro.value || undefined,
@@ -71,7 +63,6 @@ async function carregar() {
     })
     eventos.value = resultado.eventos
     totalEventos.value = resultado.paginacao.total
-    assuntosDisponiveis.value = resultado.assuntosDisponiveis || []
   } catch (_err) {
     errorMessage.value = 'Não foi possível carregar os eventos.'
   } finally {
@@ -114,7 +105,7 @@ function atualizarTudo() {
   carregar()
 }
 
-watch([ativoFiltro, tipoFiltro, assuntoFiltro, dataInicioFiltro, dataFimFiltro, tamanhoPagina], () => {
+watch([ativoFiltro, tipoFiltro, dataInicioFiltro, dataFimFiltro, tamanhoPagina], () => {
   paginaAtual.value = 1
   carregar()
 })
@@ -139,8 +130,9 @@ onMounted(atualizarTudo)
       <header class="eventos__cabecalho">
         <h1 class="eventos__titulo"><i class="bi bi-globe2"></i> Eventos</h1>
         <p class="eventos__subtitulo">
-          Leitura diária de geopolítica do ouro e do petróleo, gerada por IA com busca na web só nos sites confiáveis.
-          É o contexto do fator geopolítico no prompt de cada ativo.
+          Eventos de mercado do ouro, do petróleo, do milho e do café: fatos externos relevantes para o preço que os
+          dados coletados ainda não mostram, encontrados por IA com busca só em fontes autorizadas. São contexto para a
+          análise de cada ativo, ao lado dos observáveis.
         </p>
       </header>
 
@@ -150,78 +142,81 @@ onMounted(atualizarTudo)
         <details class="eventos__metodologia">
           <summary>Fonte e metodologia</summary>
           <p>
-            Leitura diária de geopolítica do ouro e do petróleo, feita por IA (Gemini) com a pesquisa do Google, usando
-            somente os sites confiáveis abaixo. Responde a uma pergunta: aconteceu hoje algo <strong>fora do normal</strong>
-            com potencial de afetar o preço do ouro ou do petróleo? Não é um resumo do noticiário nem um sistema de
-            acompanhamento de eventos: cada dia é uma leitura nova, e um fato que continua relevante simplesmente aparece
-            de novo.
+            Leitura diária de eventos de mercado do ouro, do petróleo, do milho e do café, feita por IA (Gemini) com a
+            pesquisa do Google, usando somente as fontes autorizadas abaixo. Procura <strong>fatos externos, recentes e
+            relevantes para o preço que o FinMind não obtém dos observáveis</strong>: a tarifa anunciada hoje, a geada de
+            hoje, o ataque de hoje. Não é um resumo do noticiário nem um sistema de acompanhamento de eventos: cada dia é
+            uma leitura nova, e um fato que continua relevante simplesmente aparece de novo.
           </p>
           <ol class="eventos__metodologia-passos">
             <li>
-              <strong>Uma leitura por dia.</strong> Na coleta diária, o FinMind faz uma única chamada ao Gemini, que
-              responde para os dois ativos: o nível do dia (Normal, Atenção, Relevante ou Excepcional), um resumo e os
-              eventos. A coleta roda 3 vezes por madrugada (01h, 03h e 05h, horário de Brasília): vale a primeira leitura
-              que der certo, e as execuções seguintes pulam a chamada (aparecem como "ignorado" em Execuções). Elas só
-              servem de nova tentativa quando a anterior falhou.
+              <strong>Uma leitura por dia, em duas chamadas.</strong> Na coleta diária, o FinMind faz duas chamadas ao
+              Gemini, em paralelo: uma para o ouro e o petróleo, outra para o milho e o café, cada uma com as fontes que
+              cobrem os seus ativos. Juntas, formam a leitura do dia: o nível (Normal, Atenção, Relevante ou Excepcional) e
+              um resumo de cada ativo e a lista de eventos. A coleta roda 3 vezes por madrugada (01h, 03h e 05h, horário de Brasília): vale a primeira
+              leitura que der certo, e as execuções seguintes pulam a chamada (aparecem como "ignorado" em Execuções).
             </li>
             <li>
-              <strong>Fontes primárias primeiro.</strong> O núcleo são instituições que só publicam quando algo acontece
-              (um aviso do UKMTO já é, por definição, uma anomalia), mais uma agência de notícias para o que nenhuma
-              instituição publica em tempo real, como escalada militar e ataques em terra. É <strong>uma lista só para os
-              dois ativos</strong>: um ataque em Ormuz relatado pelo UKMTO pode contar para o petróleo (rota) e para o
-              ouro (risco e inflação via energia). A IA decide a seção pelo canal de transmissão.
+              <strong>Observável não é evento.</strong> Preço, produção, exportação, estoque, previsão do tempo comum e
+              relatórios periódicos (WASDE, Conab, COT, EIA) o FinMind já coleta: não viram evento. A IA é instruída a ser
+              conservadora: na dúvida, não é evento, e um dia sem nenhum evento é normal.
             </li>
             <li>
-              <strong>Só sites confiáveis.</strong> O pedido manda usar somente esses sites, com as buscas restritas a
-              eles e ao menos uma busca em cada um. Um fato encontrado só em outro site não deve ser relatado. A rotina
-              (sanções e notícias de todo dia) não conta como "fora do normal".
+              <strong>Tipo e ativos.</strong> Cada evento tem um tipo (geopolítica, política comercial, clima extremo,
+              regulação, choque logístico, sanidade ou política de oferta) e os ativos que ele afeta, decididos pelo canal
+              de transmissão, não pela fonte: um ataque no Mar Vermelho pode afetar petróleo, ouro e café. Para cada ativo,
+              o evento indica o fator do FEL 1 afetado (um dos 34 da planilha de fatores) ou "não se aplica", o canal de
+              transmissão e a intensidade. Um ativo afetado só de forma indireta (o ouro pela aversão a risco) só entra
+              quando o fato muda o risco do sistema, como uma escalada entre países.
             </li>
             <li>
-              <strong>Dupla conferência.</strong> O Google não permite travar a pesquisa nesses sites: o pedido orienta,
-              mas não garante. Por isso o FinMind confere cada fonte citada: ela só sustenta o evento se for um site
-              confiável <strong>e</strong> se esse site apareceu de fato nos resultados da pesquisa daquela chamada.
-              Sem isso, o evento é <strong>rejeitado</strong> e não vai ao Motor: ele não aparece nesta tela, só como aviso no detalhe da execução (tela Execuções), com o motivo.
-              A segunda conferência existe porque, num teste, a IA citou a Reuters sem ter lido nenhuma página dela.
+              <strong>Só fontes autorizadas.</strong> A pesquisa é orientada às fontes da lista abaixo, cada uma com o seu
+              papel. A lista não é um checklist: a IA pesquisa onde um evento relevante pode ter sido publicado, mas há um
+              mínimo por ativo antes de declarar Normal (no milho e no café, uma fonte de comércio ou regulação; no milho,
+              também a AP sobre o Mar Negro). O FinMind confere esse mínimo pelas páginas lidas e avisa na execução quando
+              falta. Um fato encontrado só em outro site não é relatado. A rotina (sanções e avisos de chuva de todo dia)
+              não conta.
+            </li>
+            <li>
+              <strong>Conferência da fonte.</strong> O Google não permite travar a pesquisa nessas fontes: o pedido
+              orienta, mas não garante. Por isso o FinMind só aceita o evento se uma <strong>página de fonte
+              autorizada</strong> que a pesquisa de fato leu estiver <strong>ligada ao texto do evento</strong>. A página é
+              conferida pelo endereço completo: no gov.br, vale só o caminho da instituição (gov.br/agricultura para o
+              MAPA). A citação feita pela IA não basta. Sem isso, o evento é <strong>rejeitado</strong> e não vai ao Motor:
+              ele não aparece nesta tela, só como aviso no detalhe da execução (tela Execuções), com o motivo. A regra
+              existe porque, num teste, a IA citou a Reuters sem ter lido nenhuma página dela.
             </li>
             <li>
               <strong>Sem pesquisa, sem leitura.</strong> Às vezes a IA responde sem pesquisar, sem dar erro, escrevendo
               de memória. Quando a resposta não traz nenhuma página lida, o FinMind tenta mais uma vez; se de novo vier
-              sem pesquisa, nada é gravado e a execução fica como falha. Assim, um nível ou resumo escrito de memória nunca
-              chega ao Motor: sem leitura no dia, o prompt do ativo recebe "leitura indisponível".
+              sem pesquisa, nada é gravado e a execução fica como falha. Sem leitura no dia, o prompt do ativo recebe
+              "leitura indisponível", nunca "normal".
             </li>
             <li>
-              <strong>Link direto.</strong> A pesquisa informa quais páginas leu e em quais trechos da resposta cada uma
-              se apoia. O FinMind segue esses links na hora da coleta e liga cada evento às páginas dos sites confiáveis
-              que o sustentam. No evento, a fonte aparece só pelo nome, e o único link é o do próprio evento: o aviso, o
-              comunicado ou a matéria oficial que a pesquisa leu. Sem essa ligação, a fonte fica só citada, sem link. Os
-              sites confiáveis, com o link de cada um, estão na lista abaixo.
-            </li>
-            <li>
-              <strong>Assunto e tipo.</strong> Todo evento desta leitura é do assunto <strong>Geopolítica</strong>
-              (preenchido pelo FinMind, não pela IA). Dentro dele, a IA classifica o <strong>tipo</strong> numa lista
-              fechada: conflito militar, rota marítima, infraestrutura, sanção, decisão de produção, diplomacia ou outro.
-              Outros assuntos no futuro usarão o mesmo mecanismo, cada um com o próprio prompt e as próprias fontes.
+              <strong>Link direto.</strong> No evento, o link é o da página que a pesquisa leu e que sustenta o evento: o
+              aviso, o comunicado, a ordem ou a matéria.
             </li>
             <li>
               <strong>Uso no Motor.</strong> O nível, o resumo e os eventos aceitos de cada ativo entram no prompt da
-              análise daquele ativo como contexto do fator geopolítico, só com as fontes confirmadas. Sem leitura no
-              dia, o prompt recebe "leitura indisponível", nunca "normal".
+              análise daquele ativo como contexto (título, tipo, fator, canal, pressão, intensidade, confiança, resumo e
+              fontes). Os eventos complementam os observáveis: não mudam nenhuma série.
             </li>
             <li>
               <strong>Pressão sobre o preço.</strong> É para que lado o fato, sozinho e com o resto constante, empurra o
-              preço. Não é previsão: o preço pode ir para o outro lado por juros, dólar ou outros fatores.
+              preço de cada ativo. Não é previsão: o preço pode ir para o outro lado por juros, dólar ou outros fatores.
             </li>
           </ol>
           <p class="eventos__metodologia-nota">
-            A pesquisa lê a internet do dia: a leitura só vale da primeira coleta em diante e não serve para backtest.
-            A escala de nível e o que conta como "fora do normal" são provisórios: a régua é do especialista. Intensidade
-            e confiança são declaradas pela própria IA. Ficaram de fora, depois de testados: a Reuters (a pesquisa do
-            Gemini não lê o site), a IEA (publica pouco que mude a leitura de um dia) e Fed, BCE, BIS e FMI (são
-            política monetária e regulação, outro fator). Decisão registrada no ADR 0047.
+            A pesquisa lê a internet do dia: a leitura só vale da primeira coleta em diante e não serve para backtest. O
+            milho e o café entraram em 02/10/2026. A escala de nível e o que conta como "fora do normal" são provisórios: a
+            régua é do especialista. Intensidade e confiança são declaradas pela própria IA. Ficaram de fora, depois de
+            testados: a Reuters (a pesquisa do Gemini não lê o site), o World Gold Council (análise, não fato), APHIS,
+            alfândega da China, SENASA e Federal Register (sem informação nova), e, por ora, MME, EPA, Conab e MDIC.
+            Decisões registradas nos ADRs 0047 e 0049.
           </p>
           <dl class="eventos__metodologia-lista">
             <dt>Fonte</dt>
-            <dd>Gemini (Google) com a pesquisa do Google, sobre os sites confiáveis</dd>
+            <dd>Gemini (Google) com a pesquisa do Google, sobre as fontes autorizadas</dd>
             <dt>Frequência</dt>
             <dd>
               Uma leitura por dia (a data é o dia em São Paulo), na coleta das 01h, 03h e 05h: vale a primeira que der
@@ -238,11 +233,11 @@ onMounted(atualizarTudo)
             <template v-for="fonte in fontesConfiaveis || []" :key="fonte.nome">
               <dt>{{ fonte.nome }}</dt>
               <dd>
-                <template v-for="(dominio, i) in fonte.dominios" :key="dominio">
+                <template v-for="(endereco, i) in fonte.enderecos" :key="endereco">
                   <template v-if="i > 0">, </template>
-                  <a class="eventos__metodologia-dominio" :href="`https://${dominio}`" target="_blank" rel="noopener noreferrer">{{ dominio }}</a>
+                  <a class="eventos__metodologia-dominio" :href="`https://${endereco}`" target="_blank" rel="noopener noreferrer">{{ endereco }}</a>
                 </template>
-                · {{ fonte.papel }}
+                · {{ fonte.papel }} · {{ fonte.tipos.map(rotuloTipo).join(', ') }} · {{ fonte.ativos.map(rotuloAtivo).join(', ') }}
               </dd>
             </template>
             <template v-if="leitura">
@@ -263,13 +258,6 @@ onMounted(atualizarTudo)
             <label class="form-label small mb-1 d-block">Ativo</label>
             <select v-model="ativoFiltro" class="form-select form-select-sm">
               <option v-for="opcao in OPCOES_ATIVO" :key="opcao.valor" :value="opcao.valor">{{ opcao.rotulo }}</option>
-            </select>
-          </div>
-          <div v-if="assuntosDisponiveis.length > 1">
-            <label class="form-label small mb-1 d-block">Assunto</label>
-            <select v-model="assuntoFiltro" class="form-select form-select-sm">
-              <option value="">Todos</option>
-              <option v-for="codigo in assuntosDisponiveis" :key="codigo" :value="codigo">{{ rotuloAssunto(codigo) }}</option>
             </select>
           </div>
           <div>
@@ -326,9 +314,6 @@ onMounted(atualizarTudo)
           <Column expander style="width: 3rem" />
           <Column field="data" header="Data" sortable>
             <template #body="{ data }">{{ formatarData(data.data) }}</template>
-          </Column>
-          <Column v-if="assuntosDisponiveis.length > 1" header="Assunto">
-            <template #body="{ data }">{{ rotuloAssunto(data.assunto) }}</template>
           </Column>
           <Column header="Tipo">
             <template #body="{ data }"><span class="tipo-tag">{{ rotuloTipo(data.tipo) }}</span></template>
