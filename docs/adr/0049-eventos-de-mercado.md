@@ -1,7 +1,8 @@
 # 0049 — Eventos de mercado: a leitura de geopolítica estendida a quatro ativos e sete tipos
 
 **Status:** aceita (2026-10-02). Em dev desde 2026-10-02 (prompt v12, duas chamadas por dia: a última leitura real,
-success, 0 falhas, 0 avisos). No servidor a partir do deploy de 2026-10-02 (a migration roda no deploy).
+success, 0 falhas, 0 avisos). No servidor desde 2026-10-02 (a migration rodou no deploy; a leitura do dia foi refeita com duas chamadas: success, 56 s,
+0 falhas).
 
 ## Contexto
 

@@ -383,13 +383,13 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Eventos de mercado por IA (Gemini com busca na web) · Ouro, petróleo, milho, café · API · nível 4 · Ouro e petróleo: dev e servidor; milho e café: dev</summary>
+<summary>Eventos de mercado por IA (Gemini com busca na web) · Ouro, petróleo, milho, café · API · nível 4 · Dev e servidor</summary>
 
 **Acesso:** uma chamada diária ao Gemini com Google Search (chave gratuita `GEMINI_API_KEY_FREE` primeiro; a paga, `GEMINI_API_KEY`, só no 429 ou 5xx persistente), orientada a uma lista única de 11 fontes autorizadas para os quatro ativos (desde 2026-10-02, ADR 0049): UKMTO/JMIC, Tesouro dos EUA, OPEP, AP News, USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA (`gov.br/agricultura`), USDA FAS e INMET. Sete tipos de evento (a geopolítica é um deles), cada evento com os ativos afetados e o fator do FEL 1 de cada um. O evento só é aceito com uma página de fonte autorizada, conferida pela URL, que a pesquisa leu e ligou ao texto dele: a citação da IA não basta. **Ressalva principal:** **não é série nem é reproduzível**: uma leitura por dia (nível e resumo de cada ativo e os eventos), que vale da 1ª coleta em diante, sem backtest; a escala de níveis é provisória (a régua é do David); evento sem página de fonte autorizada é rejeitado e não vai ao Motor; preço, produção, exportação, estoque e relatórios periódicos não viram evento (já são observáveis). **Evidência:** ADRs 0047 e 0049.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
-| Eventos de mercado - leitura do dia (ouro, petróleo, milho e café) | Nível (NORMAL, ATENÇÃO, RELEVANTE, EXCEPCIONAL) e resumo de cada ativo; eventos com tipo, ativos, fator do FEL 1, canal de transmissão, pressão e fontes; entregue ao Motor por `geopolitica.service.js` | Diária | 2026-10-02 (milho e café também) | Não se aplica (data de referência = o dia em São Paulo) | Dev e servidor; telas `/dados-mercado/eventos` e Centro de Decisão (ADR 0048) |
+| Eventos de mercado - leitura do dia (ouro, petróleo, milho e café) | Nível (NORMAL, ATENÇÃO, RELEVANTE, EXCEPCIONAL) e resumo de cada ativo; eventos com tipo, ativos, fator do FEL 1, canal de transmissão, pressão e fontes; entregue ao Motor por `geopolitica.service.js` | Diária | 2026-10-02 (milho e café também; no servidor, a leitura de 2026-10-02 refeita com duas chamadas: success, 56 s, 0 falhas) | Não se aplica (data de referência = o dia em São Paulo) | Dev e servidor; telas `/dados-mercado/eventos` e Centro de Decisão (ADR 0048) |
 
 </details>
 

@@ -1,13 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import LineChart from '../charts/LineChart.vue'
-import { formatarValor, formatarVariacao } from '../../utils/centro-decisao.js'
+import SeletorOpcao from './SeletorOpcao.vue'
+import { formatarValor, formatarVariacao, iconeAtivo } from '../../utils/centro-decisao.js'
 import { formatarData } from '../../utils/geopolitica.js'
 
 // Card de preço do Centro de Decisão (ADR 0048), no desenho do PrecoDestaqueCard do AgroMind: o valor da série como
 // era conhecido na data escolhida, o mini-gráfico e as variações. A série é trocada aqui (lista fixa por ativo, a 1ª é
 // o padrão). Só exibe: a variação é aritmética sobre a própria série, não sinal.
 const props = defineProps({
+  ativoCodigo: { type: String, required: true },
   ativoNome: { type: String, required: true },
   preco: { type: Object, required: true },
   series: { type: Array, required: true },
@@ -26,22 +28,19 @@ const variacoesVisiveis = computed(() =>
 )
 
 const ICONE_DIRECAO = { alta: 'bi-arrow-up', queda: 'bi-arrow-down', estavel: 'bi-dash' }
-
-function aoTrocarSerie(evento) {
-  emit('selecionar-serie', evento.target.value)
-}
 </script>
 
 <template>
   <article class="preco-card">
     <header class="preco-card__topo">
-      <h2 class="preco-card__titulo"><i class="bi bi-graph-up"></i> Preço do {{ ativoNome.toLowerCase() }}</h2>
-      <label class="preco-card__serie">
-        <span class="visually-hidden">Série de preço</span>
-        <select class="form-select form-select-sm" :value="preco.codigo" @change="aoTrocarSerie">
-          <option v-for="serie in series" :key="serie.codigo" :value="serie.codigo">{{ serie.nome }}</option>
-        </select>
-      </label>
+      <h2 class="preco-card__titulo"><span class="preco-card__icone" aria-hidden="true">{{ iconeAtivo(ativoCodigo) }}</span> Preço do {{ ativoNome.toLowerCase() }}</h2>
+      <SeletorOpcao
+        :model-value="preco.codigo"
+        :opcoes="series"
+        rotulo="Série de preço"
+        compacto
+        @update:model-value="(serie) => emit('selecionar-serie', serie)"
+      />
     </header>
 
     <template v-if="preco.disponivel">
@@ -100,7 +99,7 @@ function aoTrocarSerie(evento) {
   flex-direction: column;
   gap: 0.6rem;
   height: 100%;
-  border: 1px solid var(--p-content-border-color);
+  border: 1px solid var(--p-surface-300);
   border-radius: 16px;
   padding: 1rem 1.15rem;
   background: var(--p-content-background);
@@ -123,8 +122,9 @@ function aoTrocarSerie(evento) {
   font-weight: 700;
 }
 
-.preco-card__serie select {
-  min-width: 12rem;
+.preco-card__icone {
+  font-size: 1.3rem;
+  line-height: 1;
 }
 
 .preco-card__contrato {

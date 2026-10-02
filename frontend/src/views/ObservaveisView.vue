@@ -137,11 +137,6 @@ onMounted(carregar)
 </template>
 
 <style scoped>
-.observaveis {
-  max-width: 1440px;
-  margin: 0 auto;
-}
-
 .observaveis :deep(.p-datatable-tbody > tr > td) {
   /* Toda a linha na mesma fonte (antes só Nome/Fonte, que são textos longos e quebravam em duas linhas). */
   font-size: 0.75rem;

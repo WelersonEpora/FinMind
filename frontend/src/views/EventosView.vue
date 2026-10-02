@@ -393,11 +393,6 @@ onMounted(atualizarTudo)
 </template>
 
 <style scoped>
-.eventos {
-  max-width: 1440px;
-  margin: 0 auto;
-}
-
 .eventos__cabecalho {
   margin-bottom: 1.25rem;
 }

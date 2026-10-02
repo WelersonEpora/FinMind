@@ -3,12 +3,14 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Dialog from 'primevue/dialog'
 import AppShell from '../components/layout/AppShell.vue'
+import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
 import SeletorData from '../components/centro-decisao/SeletorData.vue'
 import PrecoCard from '../components/centro-decisao/PrecoCard.vue'
 import EventoDetalhe from '../components/eventos/EventoDetalhe.vue'
 import NivelBadge from '../components/eventos/NivelBadge.vue'
 import PressaoIndicador from '../components/eventos/PressaoIndicador.vue'
 import centroDecisaoService from '../services/centro-decisao.service.js'
+import { iconeAtivo } from '../utils/centro-decisao.js'
 import { formatarData, rotuloTipo } from '../utils/geopolitica.js'
 
 // Centro de Decisão (ADR 0048): a tela inicial, no desenho do Centro de Decisão do AgroMind. Um ativo e uma data
@@ -33,6 +35,8 @@ const detalheEventoVisivel = computed({
     if (!visivel) eventoAberto.value = null
   }
 })
+
+const opcoesAtivo = computed(() => (centro.value?.ativos || []).map((a) => ({ ...a, icone: iconeAtivo(a.codigo) })))
 
 function filtrosDaRota() {
   const { ativo, data, serie } = route.query
@@ -62,8 +66,8 @@ function navegar({ ativo, data, serie }) {
   router.replace({ query: Object.fromEntries(Object.entries(query).filter(([, v]) => v)) })
 }
 
-function selecionarAtivo(evento) {
-  navegar({ ativo: evento.target.value, data: centro.value.data })
+function selecionarAtivo(ativo) {
+  navegar({ ativo, data: centro.value.data })
 }
 
 function selecionarData(data) {
@@ -93,19 +97,14 @@ watch(() => route.query, carregar, { immediate: true })
         <div v-if="errorMessage" class="alert alert-danger small">{{ errorMessage }}</div>
 
         <section class="centro__contexto">
-          <label class="centro__ativo">
-            <span class="centro__ativo-icone"><i class="bi bi-compass"></i></span>
-            <span class="visually-hidden">Ativo</span>
-            <select class="form-select" :value="centro.ativo.codigo" @change="selecionarAtivo">
-              <option v-for="ativo in centro.ativos" :key="ativo.codigo" :value="ativo.codigo">{{ ativo.nome }}</option>
-            </select>
-          </label>
+          <SeletorOpcao :model-value="centro.ativo.codigo" :opcoes="opcoesAtivo" rotulo="Ativo" @update:model-value="selecionarAtivo" />
           <SeletorData :model-value="centro.data" :hoje="centro.hoje" @update:model-value="selecionarData" />
         </section>
 
         <div class="centro__conteudo" :class="{ 'centro__conteudo--atualizando': atualizando }">
           <div class="centro__linha">
             <PrecoCard
+              :ativo-codigo="centro.ativo.codigo"
               :ativo-nome="centro.ativo.nome"
               :preco="centro.preco"
               :series="centro.series"
@@ -201,11 +200,6 @@ watch(() => route.query, carregar, { immediate: true })
 </template>
 
 <style scoped>
-.centro {
-  max-width: 1440px;
-  margin: 0 auto;
-}
-
 .centro__cabecalho {
   margin-bottom: 1rem;
 }
@@ -231,30 +225,9 @@ watch(() => route.query, carregar, { immediate: true })
   flex-wrap: wrap;
   margin-bottom: 1.25rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--p-content-border-color);
+  border: 1px solid var(--p-surface-300);
   border-radius: 16px;
   background: var(--p-content-background);
-}
-
-.centro__ativo {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 0;
-}
-.centro__ativo select {
-  min-width: 11rem;
-  font-weight: 700;
-}
-.centro__ativo-icone {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 10px;
-  background: var(--p-content-hover-background);
-  color: var(--p-primary-color);
 }
 
 .centro__conteudo {
@@ -275,7 +248,7 @@ watch(() => route.query, carregar, { immediate: true })
 .centro__analise {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--p-content-border-color);
+  border: 1px solid var(--p-surface-300);
   border-radius: 16px;
   background: var(--p-content-background);
   overflow: hidden;
@@ -346,7 +319,7 @@ watch(() => route.query, carregar, { immediate: true })
 .centro__leitura {
   margin-bottom: 1rem;
   padding: 0.9rem 1.1rem;
-  border: 1px solid var(--p-content-border-color);
+  border: 1px solid var(--p-surface-300);
   border-radius: 14px;
   background: var(--p-content-background);
 }
@@ -384,7 +357,7 @@ watch(() => route.query, carregar, { immediate: true })
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.9rem 1rem;
-  border: 1px solid var(--p-content-border-color);
+  border: 1px solid var(--p-surface-300);
   border-radius: 14px;
   background: var(--p-content-background);
   color: var(--p-text-color);

@@ -525,13 +525,12 @@ onMounted(carregarTudo)
 
 <style scoped>
 .observavel-detalhe {
-  max-width: 1440px;
   /* .finmind-main (AppShell.vue) tem padding-top de 1.5rem, padrão pra
      views sem link de "voltar" (ex.: título grande logo no topo). Aqui, com
      o link de volta sendo o 1o elemento, esse mesmo respiro fica grande
      demais - visualmente parecia sobrar uma linha em branco acima dele
      (achado real, comparado à mesma tela do AgroMind). Só nesta view. */
-  margin: -0.75rem auto 0;
+  margin-top: -0.75rem;
 }
 
 .observavel-detalhe__voltar {

@@ -351,11 +351,6 @@ onMounted(carregar)
 </template>
 
 <style scoped>
-.execucoes {
-  max-width: 1440px;
-  margin: 0 auto;
-}
-
 .execucoes__cabecalho {
   display: flex;
   flex-wrap: wrap;

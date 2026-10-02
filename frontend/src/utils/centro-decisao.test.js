@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { somarDias, semanaDe, formatarDataLonga, formatarValor, formatarVariacao } from './centro-decisao.js'
+import { somarDias, semanaDe, formatarDataLonga, formatarValor, formatarVariacao, iconeAtivo } from './centro-decisao.js'
 
 test('somarDias atravessa mês e ano', () => {
   assert.equal(somarDias('2026-10-02', -3), '2026-09-29')
@@ -35,4 +35,10 @@ test('formatarVariacao: sinal, direção e estável perto de zero', () => {
   assert.deepEqual(formatarVariacao(-0.42), { texto: '−0,4%', direcao: 'queda' })
   assert.deepEqual(formatarVariacao(0.01), { texto: '0,0%', direcao: 'estavel' })
   assert.equal(formatarVariacao(null), null)
+})
+
+test('iconeAtivo: um ícone por ativo e um genérico para ativo desconhecido', () => {
+  assert.equal(iconeAtivo('MILHO'), '🌽')
+  assert.equal(iconeAtivo('CAFE'), '☕')
+  assert.equal(iconeAtivo('NOVO'), '📈')
 })
