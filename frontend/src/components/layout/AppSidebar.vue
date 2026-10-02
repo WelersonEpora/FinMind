@@ -24,6 +24,7 @@ const links = [
 // (DashboardShell.vue).
 const dadosMercadoLinks = [
   { to: '/dados-mercado/observaveis', label: 'Observáveis', icon: 'bi-database' },
+  { to: '/dados-mercado/eventos', label: 'Eventos', icon: 'bi-globe2' },
   { to: '/dados-mercado/execucoes', label: 'Execuções', icon: 'bi-arrow-repeat' }
 ]
 

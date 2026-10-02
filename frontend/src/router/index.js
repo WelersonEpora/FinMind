@@ -9,6 +9,7 @@ import UsuariosView from '../views/UsuariosView.vue'
 import ObservaveisView from '../views/ObservaveisView.vue'
 import ObservavelDetalheView from '../views/ObservavelDetalheView.vue'
 import ExecucoesView from '../views/ExecucoesView.vue'
+import EventosView from '../views/EventosView.vue'
 import EspacoView from '../views/EspacoView.vue'
 import StatusProjetoView from '../views/StatusProjetoView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
@@ -29,6 +30,7 @@ const router = createRouter({
       component: ObservavelDetalheView
     },
     { path: '/dados-mercado/execucoes', name: 'dados-mercado-execucoes', component: ExecucoesView },
+    { path: '/dados-mercado/eventos', name: 'dados-mercado-eventos', component: EventosView },
     // Tudo que é privado a um espaço vive sob /e/:workspaceId/... (futuras
     // rotas de carteira etc. entram como filhas/irmãs desta) - o guard abaixo
     // valida o :workspaceId de qualquer rota assim. Páginas de mercado

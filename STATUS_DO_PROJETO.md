@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-01.**
+**Última atualização: 2026-10-02.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -27,11 +27,13 @@ A **infraestrutura de dados é suficiente** para seguir: dos 34 fatores da plani
 | Petróleo (10) | 4 | 5 | 1 |
 | **Total (34)** | **20** | **12** | **2** |
 
-**Os 2 fatores sem dado** são os geopolíticos, e não se resolvem com fonte nova:
+**Os 2 fatores sem dado** são os geopolíticos: são eventos, não séries. Em 2026-10-01 o usuário autorizou uma
+**leitura diária por IA com busca na web** para os dois (ADR 0047), já implementada em dev; eles continuam contados como
+"sem dado" até a leitura rodar no servidor:
 
 | Fator | Peso | Por quê | O que resolve |
 |---|---|---|---|
-| Ouro: geopolítica e risco sistêmico | Alto | É evento (conflito, sanção, crise), não série numérica | O desenho de registro de eventos (ADR 0010): decisão do David |
+| Ouro: geopolítica e risco sistêmico | Alto | É evento (conflito, sanção, crise), não série numérica | Leitura diária por IA (ADR 0047): em dev; faltam as chaves do Gemini no servidor. A régua dos níveis (o que é "fora do normal") é do David |
 | Petróleo: geopolítica e conflitos (Oriente Médio, Rússia) | Alto | Mesmo caso | Mesmo caso |
 
 Os 12 parciais têm dado, com lacunas da própria fonte (ex.: a demanda de petróleo sem a Rússia), à espera de uma
@@ -379,6 +381,17 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 
 </details>
 
+<details>
+<summary>Geopolítica por IA (Gemini com busca na web) · Ouro, petróleo · API · nível 3 · Só dev (faltam as chaves no servidor)</summary>
+
+**Acesso:** uma chamada diária ao Gemini com Google Search (chave gratuita `GEMINI_API_KEY_FREE` primeiro; a paga, `GEMINI_API_KEY`, só no 429 ou 5xx persistente), orientada a uma lista única de sites confiáveis para os dois ativos: UKMTO/JMIC, Tesouro dos EUA (OFAC e comunicados), OPEP, AP News e World Gold Council; cada fonte citada é conferida contra os sites que a pesquisa de fato devolveu. **Ressalva principal:** **não é série nem é reproduzível**: uma leitura por dia (nível e resumo de cada ativo e os eventos), que vale da 1ª coleta em diante, sem backtest; a escala de níveis é provisória (a régua é do David); evento sem fonte autorizada é rejeitado e não vai ao Motor. **Evidência:** ADR 0047.
+
+| Série | O que tem | Frequência | Desde | `published_at` | Status |
+|---|---|---|---|---|---|
+| Geopolítica - leitura do dia (ouro e petróleo) | Nível (NORMAL, ATENÇÃO, RELEVANTE, EXCEPCIONAL), resumo e eventos com canal de transmissão e fontes; entregue ao Motor por `geopolitica.service.js` | Diária | 1ª coleta | Não se aplica (data de referência = o dia em São Paulo) | Dev; tela `/dados-mercado/eventos` |
+
+</details>
+
 Fontes **avaliadas e não coletadas** (adiadas, aguardando o Comitê ou descartadas: Pink Sheet do Banco Mundial, US
 Treasury, FAO/AMIS, PSD do milho, séries históricas da Conab, as fontes de clima do FEL 1, frete, Abimilho e CNA, a
 paridade de exportação do IMEA...): `docs/reconhecimento-fontes/README.md`, uma linha por fonte, com a evidência.
@@ -409,8 +422,8 @@ do JODI, com o fator que cada uma atenderia, em `docs/reconhecimento-fontes/READ
 
 ### Infraestrutura pendente
 
-Nenhuma no momento (a última, `imea-custo-milho` sempre "Parcial", foi resolvida em 2026-09-28: o rótulo repetido
-de Tangará da Serra virou aviso da fonte, ADR 0002).
+- **`GEMINI_API_KEY_FREE` e `GEMINI_API_KEY` no `.env` do servidor** (a gratuita primeiro, a paga como reserva), para registrar a leitura diária de geopolítica (ADR 0047). Sem nenhuma das duas, o
+  coletor não entra na coleta.
 
 ### Carga histórica pendente no servidor
 
@@ -1424,6 +1437,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Geopolítica do ouro e do petróleo: leitura diária por IA | Os 2 fatores sem dado do FEL 1. No padrão do AgroMind (ADR 0027 de lá): uma chamada diária ao Gemini com busca na web, prompt versionado, texto com rótulos fixos, parser determinístico, leitura do dia apagada e recriada numa transação, entregue ao Motor como bloco do prompt do ativo ("indisponível" quando falta, nunca "normal"). Fontes autorizadas conferidas no parser. Primeira integração real com IA. Tela `/dados-mercado/eventos` (última leitura no topo, eventos expandíveis). Dev: migration, testes novos e repositório testado contra o Postgres; 1ª leitura real em dev em 2026-10-02 (prompt v4, chave paga, 40 s; o evento de Ormuz conferido: aviso 147-26 do UKMTO); falta o servidor | ADR 0047 |
 | Petróleo: demanda por país (JODI) | A análise de cobertura dos 34 fatores do FEL 1 achou a demanda global de petróleo (peso Alto) sem dado fora dos EUA. O JODI tem a demanda total de derivados de 105 países desde 2002, num arquivo separado do da produção (650 MB descompactado). O coletor da produção virou uma base comum, sem mudar o comportamento. Sem a Rússia, Brasil até 2022. Dev: 24.474 valores, 0 falhas, idempotente, pico de 838 MB | ADR 0046, `docs/reconhecimento-fontes/petroleo.md` |
 | Café: preço mensal do FMI (pelo ALFRED) | Depois da decisão do Comitê de seguir com o histórico disponível (sem o KC), o único histórico longo e gratuito de preço do café: arábica e robusta do FMI, mensal, desde 1992, com as revisões (530 de 559 meses revisados) na data de cada versão no FRED. O coletor do CPI virou uma base comum do ALFRED (sem mudar o comportamento); o café tem fonte própria. Os meses de 1980 a 1991, retirados da série atual, não são gravados. Dev: 830 criados, 765 revisões, 0 falhas, idempotente, igual ao CSV do FRED | ADR 0045, `docs/reconhecimento-fontes/fred.md` |
 | Ouro: LBMA encerrada, futuro GLD da B3 | O feed público da LBMA fechou (403 nas três coletas da manhã; o histórico foi para o portal MyLBMA, com licença da IBA). Das alternativas testadas, só o futuro de ouro em dólar da B3 (GLD) é oficial, diário e grátis: está no arquivo do Up2Data já usado no CCM, liquida pelo LBMA Gold Price e tem o histórico inteiro na janela (desde 2025-07-21; 5.409 valores em dev e no servidor, 0 falhas, idempotente). A LBMA saiu da coleta diária; o card mostra o histórico com a situação nova "Encerrada". 2 cards novos (58). Autorizado pelo usuário, só aquisição de dados | ADR 0044, `docs/reconhecimento-fontes/b3-gld-ouro.md` |

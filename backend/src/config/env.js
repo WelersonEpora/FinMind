@@ -59,5 +59,15 @@ module.exports = {
     // Com ela o coletor do FRED usa a API REST; sem ela cai no CSV público (ADR 0012).
     // Também serve às vintages (ALFRED, ADR 0011).
     fredApiKey: process.env.FRED_API_KEY || ""
+  },
+  // Gemini com busca na web (ADR 0047): só a leitura diária de geopolítica usa. Duas chaves, como no AgroMind: a
+  // gratuita é tentada primeiro e a paga só entra quando a gratuita esgota a cota (429) ou falha com 5xx persistente.
+  // Com uma só das duas, usa essa; sem nenhuma, o coletor não é registrado. O timeout é por chamada: a chamada com
+  // busca leva de 30 s a 2 min (medido no AgroMind).
+  gemini: {
+    apiKeyFree: process.env.GEMINI_API_KEY_FREE || "",
+    apiKey: process.env.GEMINI_API_KEY || "",
+    model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+    timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS || 180000)
   }
 };

@@ -19,7 +19,8 @@ module.exports = [
         Buffer: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
-        AbortController: "readonly"
+        AbortController: "readonly",
+        AbortSignal: "readonly"
       }
     },
     rules: {

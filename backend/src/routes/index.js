@@ -10,6 +10,7 @@ const coletasRoutes = require("./coletas.routes");
 const workspaceRoutes = require("./workspace.routes");
 const statusProjetoRoutes = require("./status-projeto.routes");
 const documentosProjetoRoutes = require("./documentos-projeto.routes");
+const geopoliticaRoutes = require("./geopolitica.routes");
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use("/api/v1", coletasRoutes);
 router.use("/api/v1", workspaceRoutes);
 router.use("/api/v1", statusProjetoRoutes);
 router.use("/api/v1", documentosProjetoRoutes);
+router.use("/api/v1", geopoliticaRoutes);
 
 module.exports = router;

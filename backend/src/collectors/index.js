@@ -41,6 +41,7 @@ const imeaCustoMilhoCollector = require("./imea/imea-custo-milho.collector");
 const imeaOfertaDemandaMilhoCollector = require("./imea/imea-oferta-demanda-milho.collector");
 const imeaAndamentoMilhoCollector = require("./imea/imea-andamento-milho.collector");
 const { criarColetorVh } = require("./noaa/noaa-vh.collector");
+const geopoliticaIaCollector = require("./geopolitica/geopolitica-ia.collector");
 
 function bootstrapCollectors() {
   if (listCollectors().length === 0) {
@@ -107,6 +108,13 @@ function bootstrapCollectors() {
       registerCollector(usdaCropProgressCollector);
     } else {
       logger.warn("NASS_API_KEY não definida - coletor do USDA Crop Progress (milho) não registrado.");
+    }
+
+    // Geopolítica do ouro e do petróleo: uma chamada diária ao Gemini com busca na web (ADR 0047).
+    if (env.gemini.apiKeyFree || env.gemini.apiKey) {
+      registerCollector(geopoliticaIaCollector);
+    } else {
+      logger.warn("GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas - leitura diária de geopolítica (ouro e petróleo) não registrada.");
     }
   }
 }
