@@ -4,9 +4,10 @@ const env = require("../config/env");
 const { NotConfiguredError, UpstreamServiceError } = require("../shared/errors");
 
 // Primeiro provedor real de IA do FinMind (ADR 0047): o Gemini com busca na web (Google Search grounding), pela API
-// REST, sem SDK. Usado só pela leitura diária de geopolítica. Mesmo padrão do AgroMind (ADRs 0026 e 0027 de lá):
-// UMA chamada, resposta em TEXTO com rótulos fixos e nada de saída estruturada (JSON) junto com a busca - lá, o
-// JSON com a busca desligava o grounding sem erro ou vazava o raciocínio do modelo para dentro das strings.
+// REST, sem SDK. Usado pela leitura diária de eventos (`pesquisarNaWeb`) e pela leitura diária de tendência do
+// petróleo (`gerarJson`, ADR 0052). Mesmo padrão do AgroMind (ADRs 0026 e 0027 de lá): com a busca, UMA chamada,
+// resposta em TEXTO com rótulos fixos e nada de saída estruturada (JSON) junto - lá, o JSON com a busca desligava o
+// grounding sem erro ou vazava o raciocínio do modelo para dentro das strings. Sem a busca, o JSON não tem esse problema.
 //
 // DUAS CHAVES (também como no AgroMind, ADR 0024 de lá): a gratuita é tentada primeiro; a paga só entra quando a
 // gratuita esgota a cota (429) ou continua com 5xx depois das tentativas locais. No AgroMind, o tier gratuito levou
@@ -81,22 +82,17 @@ function chavesEmOrdem(config) {
   ].filter(Boolean);
 }
 
-async function pesquisarNaWeb({ systemInstruction, prompt, signal }, deps = {}) {
+// Uma chamada com as duas chaves (a gratuita primeiro, a paga como reserva): o JSON da resposta e a chave que respondeu.
+async function chamarComChaves(corpo, { signal }, deps) {
   const config = deps.gemini || env.gemini;
   const contexto = { config, fetchFn: deps.fetch || fetch, esperar: deps.esperar || esperarPadrao };
   const chaves = chavesEmOrdem(config);
   if (chaves.length === 0) {
-    throw new NotConfiguredError("GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas: a busca com o Gemini está desligada.");
+    throw new NotConfiguredError("GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas: o Gemini está desligado.");
   }
 
-  const corpo = JSON.stringify({
-    systemInstruction: { parts: [{ text: systemInstruction }] },
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    tools: [{ google_search: {} }]
-  });
-
-  let json;
   let chaveUsada = chaves[0];
+  let json;
   try {
     json = await chamarComRetry({ apiKey: chaveUsada.apiKey, corpo, signal }, contexto);
   } catch (erro) {
@@ -121,7 +117,6 @@ async function pesquisarNaWeb({ systemInstruction, prompt, signal }, deps = {}) 
   if (!texto.trim()) {
     throw new UpstreamServiceError(`Gemini devolveu uma resposta vazia (finishReason: ${candidato?.finishReason ?? "?"}).`);
   }
-
   return {
     texto,
     grounding: candidato.groundingMetadata ?? null,
@@ -131,4 +126,26 @@ async function pesquisarNaWeb({ systemInstruction, prompt, signal }, deps = {}) 
   };
 }
 
-module.exports = { nome: "gemini", pesquisarNaWeb, extrairTexto };
+function corpoDaChamada({ systemInstruction, prompt }, extra) {
+  return JSON.stringify({
+    systemInstruction: { parts: [{ text: systemInstruction }] },
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    ...extra
+  });
+}
+
+// Com a busca na web: a leitura diária de eventos (ADR 0047).
+async function pesquisarNaWeb({ systemInstruction, prompt, signal }, deps = {}) {
+  return chamarComChaves(corpoDaChamada({ systemInstruction, prompt }, { tools: [{ google_search: {} }] }), { signal }, deps);
+}
+
+// SEM busca e com a resposta em JSON: a leitura diária de tendência do petróleo (ADR 0052), que só interpreta a BASE
+// que recebe. Devolve o texto como veio (sem `grounding`): quem lê e valida o JSON é o coletor.
+async function gerarJson({ systemInstruction, prompt, signal }, deps = {}) {
+  const corpo = corpoDaChamada({ systemInstruction, prompt }, { generationConfig: { responseMimeType: "application/json" } });
+  const resposta = await chamarComChaves(corpo, { signal }, deps);
+  delete resposta.grounding;
+  return resposta;
+}
+
+module.exports = { nome: "gemini", pesquisarNaWeb, gerarJson, extrairTexto };

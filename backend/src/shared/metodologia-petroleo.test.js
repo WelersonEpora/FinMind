@@ -333,11 +333,15 @@ test("o resultado de um fator de evento são os eventos dele na janela do fator 
   // 02h UTC de 04/10 ainda é 03/10 em São Paulo.
   const { eventosFator } = await obterEventosFator("petroleo", "petroleo_opep", {}, { geopoliticaService, agora: new Date("2026-10-04T02:00:00Z") });
   assert.deepEqual(pedido, ["PETROLEO", "PETROLEO_OPEP", "2026-10-03", 45]);
-  assert.equal(eventosFator.contexto, "EVENTOS DO FATOR");
+  // Logo abaixo do título, a identificação do fator no catálogo (o código que a IA cita, o peso e o tipo no FEL 1).
+  assert.equal(
+    eventosFator.contexto,
+    "EVENTOS DO FATOR\nCódigo: PETROLEO_OPEP | Peso no FEL 1: Alto | Tipo no FEL 1: Geopolítico/Fundamentalista | Regra: fator de evento (janela de 45 dias)"
+  );
   await assert.rejects(obterEventosFator("PETROLEO", "PETROLEO_DOLAR", {}, { geopoliticaService }), (err) => err.statusCode === 404);
 });
 
-test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na janela dela) e o bloco completo", async () => {
+test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na janela dela), com a versão da metodologia", async () => {
   let asOf;
   const pointInTimeService = { obterAsOf: async (args) => { asOf = args.asOf; return []; } };
   const datasEventos = [];
@@ -355,8 +359,10 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   assert.equal(simulacao.fatores.length, 10);
   assert.deepEqual(simulacao.fatores.filter((f) => f.tipo === "EVENTO").map((f) => f.codigo), ["PETROLEO_OPEP", "PETROLEO_GEOPOLITICA"]);
   assert.ok(simulacao.fatores.filter((f) => f.tipo === "CALCULADO").every((f) => f.medida === null && f.textoPrompt.startsWith("FATOR — ")));
-  assert.match(simulacao.promptCompleto, /^FATORES DO PETRÓLEO EM 15\/03\/2022: o que se sabia até o fim deste dia\./);
-  assert.match(simulacao.promptCompleto, /\n\nEVENTOS DO FATOR PETROLEO_OPEP\n\nFATOR — Estoques/);
+  assert.equal(simulacao.versaoMetodologia, "petroleo-v1 (2026-10-02)");
+  assert.match(simulacao.fatores[0].textoPrompt, /^EVENTOS DO FATOR PETROLEO_OPEP\nCódigo: PETROLEO_OPEP \| Peso no FEL 1: Alto/);
+  // O prompt completo é do prompt-diario.service.js: a simulação não monta um texto próprio.
+  assert.equal(simulacao.promptCompleto, undefined);
 });
 
 test("simulação: data obrigatória, válida e não no futuro", async () => {

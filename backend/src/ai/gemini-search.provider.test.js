@@ -142,3 +142,25 @@ test("chaves: as duas falham - a mensagem diz o que cada uma respondeu", async (
   await assert.rejects(pesquisar(fetchFn), /Chave gratuita: status 429\. Chave paga: status 429/);
   assert.deepEqual(chaves, ["chave-gratuita", "chave-paga"]);
 });
+
+test("gerarJson (ADR 0052): sem busca, com a resposta em JSON; mesma ordem de chaves; sem grounding", async () => {
+  const corpos = [];
+  const { fetchFn, chaves } = fetchEmSequencia([429, 200]);
+  const resposta = await provedor.gerarJson(
+    { systemInstruction: "s", prompt: "p" },
+    {
+      fetch: async (url, opcoes) => {
+        corpos.push(JSON.parse(opcoes.body));
+        return fetchFn(url, opcoes);
+      },
+      gemini: CONFIG,
+      esperar: SEM_ESPERA
+    }
+  );
+  assert.equal(corpos[0].tools, undefined);
+  assert.deepEqual(corpos[0].generationConfig, { responseMimeType: "application/json" });
+  assert.deepEqual(chaves, ["chave-gratuita", "chave-paga"]);
+  assert.equal(resposta.chave, "paga");
+  assert.equal(resposta.modelo, "gemini-2.5-flash");
+  assert.equal("grounding" in resposta, false);
+});

@@ -80,9 +80,22 @@ function comPonto(frase) {
   return frase.endsWith(".") ? frase : `${frase}.`;
 }
 
+const SITUACAO_REGRA = { PROPOSTA: "proposta", VALIDADA: "validada" };
+
+// A 2ª linha do bloco: o código do fator (o que a IA cita na resposta), o tipo no FEL 1, a situação da regra e a
+// versão do cálculo. O nome no FEL 1 NÃO entra: o título diz o dado usado, e o nome do FEL 1 pode citar o que não entra
+// no cálculo (ex.: a Guiana na oferta não-OPEP); ele fica no modal da tela.
+function linhaIdentificacao(fator, calculo) {
+  const partes = [`Código: ${fator.codigo}`];
+  if (fator.fel1?.tipo) partes.push(`Tipo no FEL 1: ${fator.fel1.tipo}`);
+  if (fator.proposta?.situacao) partes.push(`Regra: ${SITUACAO_REGRA[fator.proposta.situacao] || fator.proposta.situacao}`);
+  if (calculo.factorId) partes.push(`Cálculo: ${calculo.factorId} v${calculo.factorVersion}`);
+  return partes.join(" | ");
+}
+
 function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
   const { apresentacao } = calculo;
-  const linhas = [`FATOR — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (peso ${fator.peso})`];
+  const linhas = [`FATOR — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (peso ${fator.peso})`, linhaIdentificacao(fator, calculo)];
   if (!ponto) {
     // Numa simulação, o comum é a publicação registrada do dado ser posterior à data (ex.: o histórico do JODI tem a
     // data da 1ª coleta como limite superior, ADR 0042): pela regra point-in-time, ele ainda não era conhecido.

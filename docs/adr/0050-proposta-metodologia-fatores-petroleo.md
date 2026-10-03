@@ -1,6 +1,7 @@
 # 0050 — Proposta de metodologia dos fatores do petróleo, para o David validar
 
-**Status:** aceita (2026-10-02).
+**Status:** aceita (2026-10-02). Em 2026-10-03 o David aprovou em reunião as decisões tomadas para os fatores (as
+respostas por escrito virão depois), e a proposta passou a alimentar a IA e o Centro de Decisão do petróleo (ADR 0052).
 
 ## Contexto
 

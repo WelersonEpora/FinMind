@@ -25,9 +25,15 @@ async function getEventosFator(ativo, fator, { data: dataSimulada } = {}) {
   return data
 }
 
-// Simulação numa data (AAAA-MM-DD): o resumo de cada fator com o que se sabia até o fim dela e o bloco completo.
+// Simulação numa data (AAAA-MM-DD): o resumo de cada fator com o que se sabia até o fim dela.
 async function getSimulacao(ativo, dataSimulada) {
   const { data } = await http.get(`/api/v1/ativos/${encodeURIComponent(ativo)}/metodologia/simulacao`, { params: { data: dataSimulada } })
+  return data
+}
+
+// O prompt diário de análise do ativo numa data (AAAA-MM-DD), como a IA de tendência o receberia (ADR 0051).
+async function getPromptDiario(ativo, dataAnalise) {
+  const { data } = await http.get(`/api/v1/ativos/${encodeURIComponent(ativo)}/metodologia/prompt-diario`, { params: { data: dataAnalise } })
   return data
 }
 
@@ -47,4 +53,4 @@ async function salvarParametros(ativo, fator, { parametros, motivo }) {
   return data
 }
 
-export default { getMetodologiaAtivo, getCalculoFator, getEventosFator, getSimulacao, getParametros, salvarParametros }
+export default { getMetodologiaAtivo, getCalculoFator, getEventosFator, getSimulacao, getPromptDiario, getParametros, salvarParametros }

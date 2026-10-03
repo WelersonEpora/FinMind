@@ -306,8 +306,15 @@ onMounted(carregar)
           <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.modelo || '-' }}</dd>
           <dt class="col-5 fw-normal">Tokens</dt>
           <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.tokens != null ? execucaoDetalhe.detalhes.ia.tokens.toLocaleString('pt-BR') : '-' }}</dd>
-          <dt class="col-5 fw-normal">Buscas / páginas lidas</dt>
-          <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.buscas }} / {{ execucaoDetalhe.detalhes.ia.paginasLidas }}</dd>
+          <!-- Só com busca na web (a leitura de tendência do petróleo não busca, ADR 0052). -->
+          <template v-if="execucaoDetalhe.detalhes.ia.buscas != null">
+            <dt class="col-5 fw-normal">Buscas / páginas lidas</dt>
+            <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.buscas }} / {{ execucaoDetalhe.detalhes.ia.paginasLidas }}</dd>
+          </template>
+          <template v-if="execucaoDetalhe.detalhes.ia.respostasRecusadas">
+            <dt class="col-5 fw-normal">Respostas recusadas na validação</dt>
+            <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.respostasRecusadas }}</dd>
+          </template>
           <!-- Quais fontes autorizadas a pesquisa leu (ADR 0049): é por aqui que se vê se a lista está grande demais. -->
           <!-- Chamada repetida porque um ativo veio NORMAL sem o mínimo de pesquisa (ADR 0049, item 14). -->
           <template v-if="execucaoDetalhe.detalhes.ia.repeticoesPeloPiso">

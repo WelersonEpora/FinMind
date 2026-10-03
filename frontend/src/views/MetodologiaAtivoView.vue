@@ -6,6 +6,7 @@ import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
 import CalculoFator from '../components/metodologia/CalculoFator.vue'
 import EventosFator from '../components/metodologia/EventosFator.vue'
 import ResultadoSimulacao from '../components/metodologia/ResultadoSimulacao.vue'
+import PromptDiario from '../components/metodologia/PromptDiario.vue'
 import metodologiaAtivoService from '../services/metodologia-ativo.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
 
@@ -38,7 +39,6 @@ const simulacao = ref(null)
 const simulando = ref(false)
 const erroSimulacao = ref('')
 const promptAberto = ref(false)
-const copiado = ref(false)
 
 const resultadosPorFator = computed(() => new Map((simulacao.value?.fatores || []).map((f) => [f.codigo, f])))
 
@@ -65,18 +65,6 @@ function limparSimulacao() {
   dataEscolhida.value = ''
   erroSimulacao.value = ''
   promptAberto.value = false
-}
-
-async function copiarPrompt() {
-  try {
-    await navigator.clipboard.writeText(simulacao.value.promptCompleto)
-    copiado.value = true
-    setTimeout(() => {
-      copiado.value = false
-    }, 2000)
-  } catch (_err) {
-    erroSimulacao.value = 'Não foi possível copiar o texto: selecione e copie manualmente.'
-  }
 }
 
 function abrirFator(fator) {
@@ -339,12 +327,12 @@ watch(ativo, carregar, { immediate: true })
         </div>
       </div>
     </div>
-    <!-- O bloco dos fatores completo na data simulada: o que iria ao prompt da IA do ativo. -->
+    <!-- O prompt diário da data simulada: o que a IA de tendência receberia (ADR 0051). -->
     <div v-if="promptAberto && simulacao" class="metodologia-ativo__modal-backdrop" @click.self="promptAberto = false">
       <div class="metodologia-ativo__modal" role="dialog" aria-modal="true" aria-labelledby="prompt-titulo">
         <div class="metodologia-ativo__modal-header">
           <div class="metodologia-ativo__modal-titulo">
-            <h3 id="prompt-titulo">Prompt completo dos fatores</h3>
+            <h3 id="prompt-titulo">Prompt diário de análise</h3>
             <span class="metodologia-ativo__simulacao-data">{{ formatarData(simulacao.data) }}</span>
           </div>
           <button type="button" class="metodologia-ativo__fechar" aria-label="Fechar" title="Fechar" @click="promptAberto = false">
@@ -352,13 +340,7 @@ watch(ativo, carregar, { immediate: true })
           </button>
         </div>
         <div class="metodologia-ativo__modal-body">
-          <div class="metodologia-ativo__prompt-acoes">
-            <span class="text-muted small">{{ simulacao.promptCompleto.length.toLocaleString('pt-BR') }} caracteres</span>
-            <button type="button" class="btn btn-outline-secondary btn-sm" @click="copiarPrompt">
-              <i class="bi" :class="copiado ? 'bi-check2' : 'bi-clipboard'"></i> {{ copiado ? 'Copiado' : 'Copiar' }}
-            </button>
-          </div>
-          <pre class="metodologia-ativo__prompt">{{ simulacao.promptCompleto }}</pre>
+          <PromptDiario :ativo="metodologia.ativo" :data="simulacao.data" />
         </div>
       </div>
     </div>
@@ -469,23 +451,6 @@ watch(ativo, carregar, { immediate: true })
   color: #0d4fc4;
   font-size: 0.75rem;
   font-weight: 700;
-}
-
-.metodologia-ativo__prompt-acoes {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.metodologia-ativo__prompt {
-  margin: 0;
-  padding: 0.85rem;
-  white-space: pre-wrap;
-  border-radius: 8px;
-  background: rgba(19, 33, 59, 0.05);
-  font-size: 0.78rem;
-  line-height: 1.5;
 }
 
 .metodologia-ativo__conteudo {

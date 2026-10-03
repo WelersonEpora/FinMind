@@ -1,6 +1,7 @@
 "use strict";
 
 const metodologiaAtivoService = require("../services/metodologia-ativo.service");
+const promptDiarioService = require("../services/prompt-diario.service");
 
 async function detalhar(req, res, next) {
   try {
@@ -34,6 +35,14 @@ async function simular(req, res, next) {
   }
 }
 
+async function promptDiario(req, res, next) {
+  try {
+    return res.json(await promptDiarioService.montarPromptDiario(req.params.ativo, { data: req.query.data }));
+  } catch (err) {
+    return next(err);
+  }
+}
+
 async function listarParametros(req, res, next) {
   try {
     return res.json(await metodologiaAtivoService.listarParametros(req.params.ativo, req.params.fator));
@@ -51,4 +60,4 @@ async function salvarParametros(req, res, next) {
   }
 }
 
-module.exports = { detalhar, calcularFator, obterEventosFator, simular, listarParametros, salvarParametros };
+module.exports = { detalhar, calcularFator, obterEventosFator, simular, promptDiario, listarParametros, salvarParametros };

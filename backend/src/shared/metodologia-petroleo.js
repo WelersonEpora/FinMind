@@ -23,7 +23,8 @@ const { FATORES } = require("./fatores-fel1");
 //              leitura diária marcados com ele nessa janela (geopolitica.service.js::obterEventosDoFator), o bloco que
 //              vai ao prompt da IA do ativo como está.
 //
-// Nada daqui alimenta o Centro de Decisão, o motor ou o prompt da IA, e nada gera sinal (ADR 0050).
+// Desde a aprovação do David (2026-10-03), a leitura dos fatores vai ao prompt diário e a leitura de tendência da IA
+// aparece no Centro de Decisão (ADR 0052). Nada daqui gera sinal de compra ou venda.
 
 const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
 

@@ -6,6 +6,8 @@ import AppShell from '../components/layout/AppShell.vue'
 import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
 import SeletorData from '../components/centro-decisao/SeletorData.vue'
 import PrecoCard from '../components/centro-decisao/PrecoCard.vue'
+import AnaliseTendencia from '../components/centro-decisao/AnaliseTendencia.vue'
+import EvidenciasAnalise from '../components/centro-decisao/EvidenciasAnalise.vue'
 import EventoDetalhe from '../components/eventos/EventoDetalhe.vue'
 import NivelBadge from '../components/eventos/NivelBadge.vue'
 import PressaoIndicador from '../components/eventos/PressaoIndicador.vue'
@@ -15,8 +17,9 @@ import { formatarData, rotuloTipo } from '../utils/geopolitica.js'
 
 // Centro de Decisão (ADR 0048): a tela inicial, no desenho do Centro de Decisão do AgroMind. Um ativo e uma data
 // mudam a tela inteira: o preço como era conhecido no fim daquele dia (point-in-time) e a leitura de eventos de mercado
-// dela (ADR 0049). O espaço da análise (fatores, leitura por prazo, síntese) fica reservado até o David e o Comitê definirem as
-// regras do Motor: nenhum sinal ou recomendação é gerado aqui.
+// dela (ADR 0049). No petróleo, ao lado do preço ficam as evidências que formaram o prompt e, numa linha própria, a
+// leitura diária de tendência da IA nos quatro horizontes, em linha do tempo (ADR 0052); nos outros ativos, fica reservado até o David e o Comitê definirem as regras. Nenhum sinal ou recomendação de
+// compra ou venda é gerado aqui.
 //
 // O ativo, a data e a série ficam na URL (?ativo=&data=&serie=): recarregar ou compartilhar o link abre a mesma leitura.
 
@@ -113,9 +116,13 @@ watch(() => route.query, carregar, { immediate: true })
               @selecionar-serie="selecionarSerie"
             />
 
-            <!-- Espaço do Motor: no AgroMind, o "Insight" (sinal, leitura por prazo, fatores). No FinMind, as regras são
-                 do David e do Comitê (CLAUDE.md): até lá, só o aviso. -->
-            <article class="centro__analise">
+            <!-- Nos ativos com leitura diária de tendência (hoje, o petróleo; ADR 0052): ao lado do preço, as evidências que
+                 formaram o prompt; a análise vem na linha de baixo, de ponta a ponta. -->
+            <EvidenciasAnalise v-if="centro.analise" :analise="centro.analise" :ativo-codigo="centro.ativo.codigo" :ativo-nome="centro.ativo.nome" />
+
+            <!-- Espaço do Motor nos outros ativos: no AgroMind, o "Insight" (sinal, leitura por prazo, fatores). No FinMind,
+                 as regras são do David e do Comitê (CLAUDE.md): até lá, só o aviso. -->
+            <article v-else class="centro__analise">
               <header class="centro__analise-topo">
                 <h2><i class="bi bi-lightbulb"></i> Análise do FinMind</h2>
               </header>
@@ -132,6 +139,11 @@ watch(() => route.query, carregar, { immediate: true })
                 <router-link to="/status-projeto" class="centro__analise-link">Ver o que falta decidir</router-link>
               </div>
             </article>
+          </div>
+
+          <!-- A leitura de tendência nos quatro horizontes, em linha do tempo. -->
+          <div v-if="centro.analise" class="centro__linha-inteira">
+            <AnaliseTendencia :analise="centro.analise" :ativo-nome="centro.ativo.nome" />
           </div>
 
           <section class="centro__secao">
@@ -236,6 +248,10 @@ watch(() => route.query, carregar, { immediate: true })
 .centro__conteudo--atualizando {
   opacity: 0.55;
   pointer-events: none;
+}
+
+.centro__linha-inteira {
+  margin: -0.75rem 0 2rem;
 }
 
 .centro__linha {

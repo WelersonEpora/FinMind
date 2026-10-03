@@ -2,15 +2,17 @@
 
 const observationRepository = require("../repositories/observation.repository");
 const geopoliticaService = require("./geopolitica.service");
+const analiseDiariaService = require("./analise-diaria.service");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
 const { somarDias } = require("../shared/utils/date-utils");
 const { ValidationError } = require("../shared/errors");
 
 // Centro de Decisão (ADR 0048): a tela inicial. Para um ATIVO e uma DATA, devolve o preço como era conhecido no fim
-// daquele dia (point-in-time, ADR 0008) e a leitura de eventos de mercado daquela data (ADRs 0047 e 0049). Só EXIBE dado coletado:
-// a variação é aritmética sobre a própria série (sem limiar, sem sinal), e o espaço da análise do Motor fica vazio
-// até o David e o Comitê definirem as regras.
+// daquele dia (point-in-time, ADR 0008), a leitura de eventos de mercado daquela data (ADRs 0047 e 0049) e, no petróleo,
+// a leitura de tendência da IA feita naquela data (ADR 0052). A variação é aritmética sobre a própria série (sem
+// limiar, sem sinal). Nos ativos sem leitura de tendência, o espaço da análise fica vazio até o David e o Comitê
+// definirem as regras.
 //
 // Cada ativo tem uma lista FIXA de séries de preço; a 1ª é o padrão e o usuário troca na tela. Não há regra que
 // escolha a "melhor" série: isso seria critério de análise. Quando o David definir o preço de referência de cada
@@ -229,7 +231,11 @@ async function obterCentroDecisao(filtros = {}, deps = {}) {
   const agora = deps.agora || new Date();
   const { ativo, data, hoje, serie } = validarFiltros(filtros, agora);
 
-  const [preco, geopolitica] = await Promise.all([lerPreco(serie, { data, agora }, deps), lerGeopolitica(ativo, data, deps)]);
+  const [preco, geopolitica, analise] = await Promise.all([
+    lerPreco(serie, { data, agora }, deps),
+    lerGeopolitica(ativo, data, deps),
+    (deps.analiseDiariaService || analiseDiariaService).obterAnaliseDoDia(ativo.codigo, data, deps)
+  ]);
 
   return {
     centroDecisao: {
@@ -240,9 +246,11 @@ async function obterCentroDecisao(filtros = {}, deps = {}) {
       series: ativo.series.map((s) => ({ codigo: s.codigo, nome: s.nome })),
       variacoes: VARIACOES.map(({ codigo, rotulo }) => ({ codigo, rotulo })),
       preco,
-      geopolitica
+      geopolitica,
+      // null: o ativo não tem leitura diária de tendência (a tela mostra o espaço reservado da análise).
+      analise
     }
   };
 }
 
-module.exports = { obterCentroDecisao, calcularVariacoes, ATIVOS };
+module.exports = { obterCentroDecisao, calcularVariacoes, lerPreco, ATIVOS };

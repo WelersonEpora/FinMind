@@ -195,7 +195,14 @@ async function obterEventosFator(ativo, codigoFator, { data } = {}, deps = {}) {
   const servico = deps.geopoliticaService || geopoliticaService;
   const agora = deps.agora || new Date();
   const dia = data === undefined || data === "" ? hojeEmSaoPaulo(agora) : validarDataSimulada(data, agora);
-  return { eventosFator: await servico.obterEventosDoFator(codigo, fator.codigo, dia, fator.evento.janelaDias, deps) };
+  const eventosFator = await servico.obterEventosDoFator(codigo, fator.codigo, dia, fator.evento.janelaDias, deps);
+  // Logo abaixo do título, a identificação do fator no catálogo, como nos fatores calculados: o código (o que a IA cita
+  // na resposta), o peso e o tipo no FEL 1. O serviço de eventos não conhece o catálogo da metodologia.
+  const identificacao =
+    `Código: ${fator.codigo} | Peso no FEL 1: ${fator.peso} | Tipo no FEL 1: ${fator.fel1.tipo} | ` +
+    `Regra: fator de evento (janela de ${fator.evento.janelaDias} dias)`;
+  const [titulo, ...resto] = eventosFator.contexto.split("\n");
+  return { eventosFator: { ...eventosFator, contexto: [titulo, identificacao, ...resto].join("\n") } };
 }
 
 // --- Simulação numa data (ADR 0050) -------------------------------------------------------------------------------
@@ -211,11 +218,21 @@ function resumoCalculado(calculo) {
   return {
     tipo: "CALCULADO",
     observedAt: ultimo?.observedAt ?? null,
+    // Quando o dado do ponto ficou disponível (point-in-time) e se essa data é estimada: a idade e a qualidade do dado.
+    publicadoEm: ultimo?.disponivelEm ?? null,
+    publicadoEmEstimado: ultimo ? Boolean(ultimo.disponivelEmEhEstimado) : null,
     periodicidade: calculo.periodicidade,
+    // A versão do cálculo e dos parâmetros usados: a auditoria de "o que a IA recebeu".
+    factorId: calculo.factorId,
+    factorVersion: calculo.factorVersion,
+    parametros: calculo.parametros,
+    origemParametros: calculo.origemParametros ? { versao: calculo.origemParametros.versao, alteradoEm: calculo.origemParametros.alteradoEm } : null,
     medida: ultimo ? { rotulo: graficoC.rotulo, valor: ultimo[graficoC.campo] ?? null, unidade: graficoC.unidade || "%" } : null,
     decisao: d
       ? {
           direcao: d.direcao,
+          intensidade: d.intensidade,
+          tendencia: d.tendencia,
           rotuloDirecao: rotulosDecisao.direcao[d.direcao],
           rotuloIntensidade: rotulosDecisao.intensidade[d.intensidade],
           rotuloTendencia: d.tendencia ? rotulosDecisao.tendencia[d.tendencia] : null
@@ -243,7 +260,14 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
   const dia = validarDataSimulada(data, agora);
   const fatores = await Promise.all(
     metodologia.fatores.map(async (fator) => {
-      const base = { codigo: fator.codigo, nome: fator.nome, peso: fator.peso };
+      const base = {
+        codigo: fator.codigo,
+        nome: fator.nome,
+        peso: fator.peso,
+        tipoFel1: fator.fel1.tipo,
+        situacaoRegra: fator.proposta.situacao,
+        observaveis: fator.dados.observaveis
+      };
       if (CALCULOS[fator.codigo]) {
         const { calculo } = await calcularFator(codigo, fator.codigo, { data: dia }, deps);
         return { ...base, ...resumoCalculado(calculo) };
@@ -255,13 +279,11 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
       return { ...base, tipo: "SEM_PROPOSTA", textoPrompt: null };
     })
   );
-  const cabecalho =
-    `FATORES DO ${metodologia.nome.toUpperCase()} EM ${dia.split("-").reverse().join("/")}: o que se sabia até o fim deste ` +
-    `dia. Proposta de metodologia do FinMind: cada fator calculado traz a medida (A), a leitura com a regra aplicada (B), ` +
-    `a leitura do fator (C) e a validação histórica (D), que contextualiza a relação com o preço e não entra na leitura ` +
-    `atual; os fatores de evento trazem os eventos da leitura diária por IA.`;
-  const promptCompleto = [cabecalho, ...fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt)].join("\n\n");
-  return { simulacao: { ativo: codigo, data: dia, fatores, promptCompleto } };
+  // O prompt completo (com o preço, a cobertura e as faixas) é montado pelo prompt-diario.service.js, que usa estes
+  // mesmos resultados: a simulação não monta um texto próprio.
+  return {
+    simulacao: { ativo: codigo, data: dia, versaoMetodologia: `${codigo.toLowerCase()}-v${metodologia.versao} (${metodologia.dataVersao})`, fatores }
+  };
 }
 
 // Histórico dos parâmetros do fator, da versão mais recente para a mais antiga, e os padrões do código.

@@ -60,7 +60,8 @@ module.exports = {
     // Também serve às vintages (ALFRED, ADR 0011).
     fredApiKey: process.env.FRED_API_KEY || ""
   },
-  // Gemini com busca na web (ADR 0047): só a leitura diária de geopolítica usa. Duas chaves, como no AgroMind: a
+  // Gemini (ADR 0047): a leitura diária de eventos (com busca na web) e a de tendência do petróleo (sem busca, ADR
+  // 0052). Duas chaves, como no AgroMind: a
   // gratuita é tentada primeiro e a paga só entra quando a gratuita esgota a cota (429) ou falha com 5xx persistente.
   // Com uma só das duas, usa essa; sem nenhuma, o coletor não é registrado. O timeout é por chamada: a chamada com
   // busca leva de 30 s a 2 min (medido no AgroMind).
@@ -75,5 +76,10 @@ module.exports = {
   //   GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica
   geopolitica: {
     refazer: process.env.GEOPOLITICA_REFAZER === "1"
+  },
+  // Leitura diária de tendência do petróleo (ADR 0052): a mesma regra, uma por dia. Para trocar a de hoje:
+  //   ANALISE_DIARIA_REFAZER=1 npm run collect -- --coletor=analise
+  analiseDiaria: {
+    refazer: process.env.ANALISE_DIARIA_REFAZER === "1"
   }
 };

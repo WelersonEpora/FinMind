@@ -1,0 +1,182 @@
+"use strict";
+
+process.env.POSTGRES_HOST = process.env.POSTGRES_HOST || "localhost";
+process.env.POSTGRES_PORT = process.env.POSTGRES_PORT || "5432";
+process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE || "finmind_test";
+process.env.POSTGRES_USER = process.env.POSTGRES_USER || "finmind";
+process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || "finmind";
+process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
+
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const { montarPromptDiario, situacaoDoFator } = require("./prompt-diario.service");
+const config = require("../shared/analise-diaria-petroleo");
+const { ATIVOS } = require("./centro-decisao.service");
+
+const CALCULADO = {
+  codigo: "PETROLEO_ESTOQUES_EIA",
+  nome: "Estoques de petróleo dos EUA (EIA)",
+  peso: "Alto",
+  tipoFel1: "Fundamentalista",
+  situacaoRegra: "PROPOSTA",
+  tipo: "CALCULADO",
+  observedAt: "2026-09-25",
+  publicadoEm: "2026-09-30T15:30:00Z",
+  publicadoEmEstimado: true,
+  periodicidade: "SEMANAL",
+  factorId: "estoques_petroleo_eia",
+  factorVersion: 1,
+  parametros: { limiarModeradoPct: 3 },
+  origemParametros: null,
+  medida: { rotulo: "Desvio (B)", valor: 1.86, unidade: "%" },
+  decisao: { direcao: "NEUTRA", intensidade: "FRACA", tendencia: "ESTAVEL" },
+  textoPrompt: "FATOR — Estoques de petróleo dos EUA (EIA) — PETRÓLEO (peso Alto)\nCódigo: PETROLEO_ESTOQUES_EIA"
+};
+const SEM_DADO = { ...CALCULADO, codigo: "PETROLEO_OFERTA_NAO_OPEP", nome: "Oferta não-OPEP", periodicidade: "MENSAL", medida: null, decisao: null, textoPrompt: "FATOR — Oferta" };
+const EVENTO = {
+  codigo: "PETROLEO_GEOPOLITICA",
+  nome: "Geopolítica e conflitos",
+  peso: "Alto",
+  tipoFel1: "Geopolítico",
+  situacaoRegra: "PROPOSTA",
+  tipo: "EVENTO",
+  eventos: 2,
+  janelaDias: 30,
+  primeiraLeitura: "2026-10-02",
+  ultimaLeitura: { data: "2026-10-02", nivel: "RELEVANTE" },
+  textoPrompt: "EVENTOS DO FATOR — Geopolítica\nCódigo: PETROLEO_GEOPOLITICA"
+};
+
+const PRECO = {
+  disponivel: true,
+  nome: "WTI à vista (EIA)",
+  unidade: "US$/barril",
+  fonte: "EIA - preços à vista (spot)",
+  valor: 96.16,
+  dataReferencia: "2026-09-29",
+  publicadoEm: "2026-09-30T15:30:00Z",
+  publicadoEmEstimado: true,
+  diasSemDado: 4,
+  defasada: false,
+  variacoes: {
+    d1: { percentual: -3.23, desde: "2026-09-28" },
+    d7: { percentual: -0.26, desde: "2026-09-22" },
+    d30: { percentual: 13.7, desde: "2026-08-28" },
+    d90: null
+  },
+  pontos: [
+    { data: "2026-09-28", valor: 99.37 },
+    { data: "2026-09-29", valor: 96.16 }
+  ]
+};
+
+function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO } = {}) {
+  const chamadas = {};
+  return {
+    chamadas,
+    agora: new Date("2026-10-03T15:00:00Z"),
+    metodologiaAtivoService: {
+      async simularFatores(ativo, opcoes) {
+        chamadas.simular = [ativo, opcoes.data];
+        return { simulacao: { ativo, data: opcoes.data, versaoMetodologia: "petroleo-v1 (2026-10-02)", fatores } };
+      }
+    },
+    centroDecisaoService: {
+      ATIVOS,
+      async lerPreco(serie, opcoes) {
+        chamadas.preco = [serie.codigo, opcoes.data];
+        return preco;
+      }
+    }
+  };
+}
+
+test("os blocos fixos (1, 4, 5 e 6) vão na instrução do sistema; a base e a leitura do motor (2 e 3), no prompt", async () => {
+  const { promptDiario: p } = await montarPromptDiario("petroleo", { data: "2026-10-03" }, deps());
+  for (const bloco of ["[1. PAPEL E OBJETIVO]", "[4. COMO ANALISAR]", "[5. LIMITES]", "[6. FORMATO DA RESPOSTA — JSON]"]) {
+    assert.ok(p.instrucaoDoSistema.includes(bloco), bloco);
+  }
+  for (const bloco of ["[2. BASE", "2.1 PREÇO DO WTI", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
+    assert.ok(p.prompt.includes(bloco), bloco);
+  }
+  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@1");
+  assert.equal(p.versaoMetodologia, "petroleo-v1 (2026-10-02)");
+  assert.equal(p.versaoConfiguracao, config.VERSAO);
+  assert.match(p.hashEntrada, /^[0-9a-f]{64}$/);
+  assert.doesNotMatch(p.prompt, /\{\{/);
+});
+
+test("a instrução não esconde números da metodologia nem recomenda: as faixas vêm da configuração, no bloco 2.4", async () => {
+  const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps());
+  assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
+  assert.match(p.instrucaoDoSistema, /leitura de tendência, não recomendação/);
+  assert.match(p.instrucaoDoSistema, /Não faça síntese nem conclusão entre os horizontes/);
+  for (const h of config.HORIZONTES) {
+    const { t1, t2 } = config.FAIXAS[h.codigo];
+    const fmt = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    assert.ok(p.prompt.includes(`${h.codigo} (${h.rotulo}, ${h.dias} dia`), h.codigo);
+    assert.ok(p.prompt.includes(`T1 = ${fmt(t1)}% | T2 = ${fmt(t2)}%`), `${h.codigo} faixas`);
+  }
+});
+
+test("a base traz o preço do WTI com as datas e as variações dos horizontes, e a curva sem fonte como SEM DADO", async () => {
+  const d = deps();
+  const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, d);
+  assert.deepEqual(d.chamadas.preco, ["WTI", "2026-10-03"]);
+  assert.deepEqual(d.chamadas.simular, ["PETROLEO", "2026-10-03"]);
+  assert.match(p.prompt, /Último preço: US\$ 96,16 em 29\/09\/2026 \| publicado em 30\/09\/2026 \(data estimada\) \| 4 dia\(s\) antes da data da análise/);
+  assert.match(p.prompt, /Os horizontes da tabela 2\.4 contam a partir de 29\/09\/2026/);
+  assert.match(p.prompt, /1 dia \(pregão anterior\): -3,23% \(desde 28\/09\/2026\) \| 7 dias: -0,26% .* \| 90 dias: SEM DADO/);
+  assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/barril\): 29\/09\/2026: 96,16; 28\/09\/2026: 99,37/);
+  assert.match(p.prompt, /2\.2 CURVA FUTURA DO WTI .*\nSEM DADO: não há fonte da curva futura do WTI/);
+  assert.equal(p.entrada.curva, null);
+  assert.equal(p.entrada.precoReferencia.dataReferencia, "2026-09-29");
+});
+
+test("sem preço na data, o bloco diz SEM DADO", async () => {
+  const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps({ preco: { disponivel: false } }));
+  assert.match(p.prompt, /2\.1 PREÇO DO WTI .*\nPreço do WTI: SEM DADO até a data da análise\./);
+  assert.equal(p.entrada.precoReferencia, null);
+});
+
+test("a situação dos dados só traz fatos: referência, publicação, idade, SEM DADO e SEM LEITURA", async () => {
+  const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps());
+  assert.match(p.prompt, /1\. PETROLEO_GEOPOLITICA — Geopolítica e conflitos \(peso Alto\) \| fator de evento \| última leitura em 02\/10\/2026 \| 2 evento\(s\) na janela de 30 dias/);
+  assert.match(p.prompt, /2\. PETROLEO_ESTOQUES_EIA — .* \| semanal \| referência 25\/09\/2026 \| publicado em 30\/09\/2026 \(data estimada\) \| idade: 8 dia\(s\)/);
+  assert.match(p.prompt, /3\. PETROLEO_OFERTA_NAO_OPEP — .* \| mensal \| SEM DADO até a data/);
+  assert.doesNotMatch(p.prompt, /DEFASADO/);
+  assert.equal(situacaoDoFator({ ...EVENTO, primeiraLeitura: null, ultimaLeitura: null }, "2026-10-03").situacao, "SEM_LEITURA");
+  assert.equal(situacaoDoFator({ ...EVENTO, primeiraLeitura: "2026-10-02" }, "2022-03-15").situacao, "SEM_LEITURA");
+});
+
+test("a leitura do motor junta os blocos dos fatores na ordem do catálogo; a entrada estruturada guarda regra, versão e leitura", async () => {
+  const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps());
+  const leitura = p.prompt.slice(p.prompt.indexOf("[3. LEITURA DO MOTOR"));
+  assert.ok(leitura.indexOf("EVENTOS DO FATOR — Geopolítica") < leitura.indexOf("FATOR — Estoques"));
+  const estoques = p.entrada.fatores.find((f) => f.fator === "PETROLEO_ESTOQUES_EIA");
+  assert.equal(estoques.factorId, "estoques_petroleo_eia");
+  assert.equal(estoques.situacaoRegra, "PROPOSTA");
+  assert.deepEqual(estoques.leitura, { pressao: "NEUTRA", intensidade: "FRACA", tendencia: "ESTAVEL" });
+  assert.equal(p.entrada.fatores.find((f) => f.fator === "PETROLEO_GEOPOLITICA").janelaDias, 30);
+  assert.deepEqual(p.entrada.horizontes.map((h) => h.codigo), ["IMEDIATO", "CURTO", "MEDIO", "LONGO"]);
+  assert.equal(p.entrada.referenciaHorizontes, "DATA_DO_ULTIMO_PRECO");
+});
+
+test("o mesmo dia e a mesma base dão o mesmo hash; outro ativo não tem prompt diário", async () => {
+  const a = (await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps())).promptDiario.hashEntrada;
+  const b = (await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps())).promptDiario.hashEntrada;
+  assert.equal(a, b);
+  await assert.rejects(montarPromptDiario("MILHO", {}, deps()), (err) => err.statusCode === 404);
+});
+
+test("faixas: quatro horizontes com T1 < T2; a classificação do realizado segue as bordas da tabela 2.4", () => {
+  assert.deepEqual(config.HORIZONTES.map((h) => [h.codigo, h.dias]), [["IMEDIATO", 1], ["CURTO", 7], ["MEDIO", 30], ["LONGO", 90]]);
+  for (const h of config.HORIZONTES) assert.ok(config.FAIXAS[h.codigo].t1 < config.FAIXAS[h.codigo].t2, h.codigo);
+  const { t1, t2 } = config.FAIXAS.CURTO;
+  assert.equal(config.classificarVariacao(0, "CURTO"), "LATERAL");
+  assert.equal(config.classificarVariacao(t1 - 0.01, "CURTO"), "LATERAL");
+  assert.equal(config.classificarVariacao(t1, "CURTO"), "ALTA_LEVE");
+  assert.equal(config.classificarVariacao(-t2, "CURTO"), "BAIXA_FORTE");
+  assert.equal(config.classificarVariacao(null, "CURTO"), null);
+  for (const codigo of config.CODIGOS_FAIXA) assert.ok(config.TENDENCIA_DA_FAIXA[codigo]);
+});
