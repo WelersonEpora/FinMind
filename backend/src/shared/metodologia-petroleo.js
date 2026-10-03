@@ -118,22 +118,27 @@ const DEFINICOES = [
       fonte: "IEA, OPEC"
     },
     dados: {
-      observaveis: ["PETROLEO_DEMANDA_JODI", "PETROLEO_FLUXOS_EIA"],
+      observaveis: ["PETROLEO_FLUXOS_EIA", "PETROLEO_DEMANDA_JODI"],
       eventos: false,
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente para a demanda dos EUA, que o fator calcula. No histórico do FinMind (desde 1990), o crescimento anual do consumo dos EUA anda junto com o preço (correlação de +0,28 com a variação do WTI dos 6 meses anteriores, desde 2010), mas não o antecipa (perto de zero com o WTI 13 ou 26 semanas depois): os dois seguem a economia. Mede a situação, como o FEL 1 descreve. A China, que o FEL 1 cita, ficou de fora: no JODI ela é \"não avaliada\" e caiu ~30% de mar a jun/2026 (de ~17.500 para ~11.700 mil barris/dia) sem explicação; a do JODI também não antecipa o preço."
+      },
       lacunas: [
-        "A Rússia não reporta ao JODI; a China e a Índia têm código de avaliação 3 (não avaliado).",
-        "Indicadores de atividade econômica (PMI, PIB) não são coletados."
+        "A China (JODI) não entra no cálculo: dado não avaliado pelo próprio JODI, com a queda de 2026 sem explicação, e ~2 meses de atraso. Continua coletada (card do JODI).",
+        "A Rússia não reporta ao JODI; indicadores de atividade econômica (PMI, PIB) não são coletados."
       ]
     },
     proposta: {
-      objetivo: "Medir se o consumo de petróleo está acelerando ou desacelerando.",
-      medida: "Demanda de derivados da China e dos EUA (JODI, mensal) e os derivados fornecidos nos EUA (EIA, semanal).",
-      comparacao: "O mesmo período do ano anterior (variação anual), para tirar a sazonalidade.",
-      leitura: "Crescimento anual positivo e subindo é demanda forte (pressão de alta); queda é demanda fraca."
+      objetivo: "Medir se o consumo de petróleo está forte ou fraco, pela demanda dos EUA.",
+      medida: "Consumo médio das últimas 4 semanas nos EUA (derivados fornecidos, EIA); a semana isolada oscila com feriados.",
+      comparacao: "O mesmo período do ano anterior (crescimento anual), que tira a sazonalidade.",
+      leitura: "Crescimento anual acima de uma faixa neutra (padrão: 2%) é demanda forte (pressão de alta); abaixo, demanda fraca (pressão de baixa). Intensidade forte a partir de 5%. Tendência: se o crescimento mudou 2,5 p.p. ou mais em 13 semanas, está subindo ou caindo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
     perguntas: [
-      "Basta China e EUA, como no FEL 1, ou entram Índia e Europa?",
-      "O consumo medido basta, ou é preciso um indicador de atividade (que hoje não é coletado)?"
+      "A demanda dos EUA basta como medida, ou a China precisa entrar? A série da China no JODI é \"não avaliada\" e caiu ~30% em 2026 sem explicação: há outra fonte confiável para ela?",
+      "O consumo medido basta, ou é preciso um indicador de atividade econômica (que hoje não é coletado)?"
     ]
   },
   {
@@ -171,17 +176,25 @@ const DEFINICOES = [
     dados: {
       observaveis: ["PETROLEO_FLUXOS_EIA"],
       eventos: false,
-      lacunas: ["A contagem de sondas (rig count, Baker Hughes) não é coletada."]
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente para medir a oferta americana. No histórico do FinMind, de 2010 em diante, o crescimento anual da produção anda no sentido contrário do WTI 26 semanas depois (correlação de -0,39; -0,22 em 13 semanas; desde 1990, -0,19): produção crescendo forte antecede preço em queda, a direção do FEL 1. O preço não aparece puxando a produção no mesmo período (o crescimento não acompanha a alta do WTI dos 6 a 12 meses anteriores). Exemplos: recorde e +13% no ano em nov/2014, antes da queda de 2015; recorde e +10% em nov/2019, antes de 2020. A semana isolada é estimativa arredondada da EIA: por isso a medida usa a média de 4 semanas e o crescimento anual."
+      },
+      lacunas: [
+        "O rig count (Baker Hughes) não é coletado: ele antecipa a produção em alguns meses (um aviso mais cedo), mas não é necessário para medi-la.",
+        "A produção semanal é estimativa da EIA, arredondada e revista depois pelo dado mensal (não coletado)."
+      ]
     },
     proposta: {
-      objetivo: "Medir se a oferta americana está crescendo ou encolhendo.",
-      medida: "Produção semanal de petróleo dos EUA (EIA) e a variação em 4 semanas.",
-      comparacao: "Máxima histórica e média das 13 semanas anteriores.",
-      leitura: "Produção em recorde e subindo pressiona para baixo; produção caindo, para cima (a direção do FEL 1)."
+      objetivo: "Medir se a oferta americana está crescendo ou encolhendo, e se está em recorde.",
+      medida: "Produção média das últimas 4 semanas (a semana isolada é arredondada) e a distância do recorde.",
+      comparacao: "O mesmo período do ano anterior (crescimento anual), que tira a sazonalidade.",
+      leitura: "Crescimento anual acima de uma faixa neutra (padrão: 3%) indica mais oferta (pressão de baixa); abaixo, menos oferta (pressão de alta). Intensidade forte a partir de 10%. Tendência: se o crescimento mudou 2 p.p. ou mais em 13 semanas, o crescimento está subindo ou caindo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
     perguntas: [
-      "Sem o rig count, a produção semanal basta? Ou o rig count (que antecipa a produção) é necessário?",
-      "A produção semanal é estimativa da EIA, revista depois pelo dado mensal: usar a semanal mesmo assim?"
+      "O crescimento anual da produção basta, ou o rig count (que antecipa a produção, e não é coletado) é necessário?",
+      "A produção em recorde deve pesar por si, mesmo com crescimento pequeno (como em set/2026: recorde, +3,3% no ano)?"
     ]
   },
   {
@@ -236,17 +249,25 @@ const DEFINICOES = [
     dados: {
       observaveis: ["PETROLEO_PRECOS_EIA", "PETROLEO_FLUXOS_EIA"],
       eventos: false,
-      lacunas: ["A margem de refino (crack spread) não é publicada pela EIA: é um cálculo sobre os preços (ADR 0040)."]
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente para medir a margem de refino, que a EIA não publica: o FinMind a calcula com os preços à vista que já coleta (gasolina e diesel de Nova York e o Brent), desde 2006 (o diesel S10 começa aí; a média de 5 anos, em 2011). No histórico, a margem acima do normal anda com refinarias mais cheias (correlação de +0,25 com a utilização e +0,20 com o crescimento do petróleo processado), o mecanismo do FEL 1, mas não antecipa o preço do petróleo (-0,08 a -0,15 com o WTI 13 e 26 semanas depois, levemente no sentido contrário). Mede a situação do refino. Com o Brent, e não o WTI: os derivados de Nova York são precificados contra o Brent, e em 2011-2013 o WTI ficou até US$ 20 abaixo dele, o que inflava o crack sem que a margem real subisse."
+      },
+      lacunas: [
+        "A margem de refino não é publicada pela EIA: é calculada pelo FinMind (crack 3-2-1). Só Nova York: os preços da Costa do Golfo não são coletados.",
+        "Os preços diários saem uma vez por semana (quarta): a última semana pode ter só 1 ou 2 dias."
+      ]
     },
     proposta: {
-      objetivo: "Medir se refinar está dando lucro, o que puxa a compra de petróleo bruto.",
-      medida: "Crack spread 3-2-1 com os preços de Nova York: [(2 × gasolina + 1 × diesel) × 42 galões − 3 × WTI] ÷ 3, em US$ por barril; e a utilização das refinarias.",
-      comparacao: "Média da mesma época nos 5 anos anteriores (a margem é sazonal).",
-      leitura: "Margem acima da referência indica demanda firme por petróleo bruto (pressão de alta); abaixo, demanda fraca."
+      objetivo: "Medir se refinar está dando lucro acima ou abaixo do normal, o que puxa (ou freia) a compra de petróleo bruto.",
+      medida: "Crack spread 3-2-1 com os preços de Nova York e o Brent: [(2 × gasolina + 1 × diesel) × 42 galões − 3 × Brent] ÷ 3, em US$ por barril, na média dos dias da semana; a utilização das refinarias como contexto.",
+      comparacao: "Média do crack da mesma semana nos 5 anos anteriores (a margem é sazonal); o desvio em US$ por barril, e não em %, que explode quando a média é baixa.",
+      leitura: "Margem acima do normal além de uma faixa (padrão: US$ 3 por barril) indica demanda firme por petróleo bruto (pressão de alta); abaixo, demanda fraca (pressão de baixa). Intensidade forte a partir de US$ 10. Tendência: se o desvio mudou US$ 3 ou mais em 4 semanas. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
     perguntas: [
-      "Qual crack spread: 3-2-1, 2-1-1, ou gasolina e diesel separados?",
-      "Os preços de Nova York (os que a EIA publica de graça) servem, ou é preciso a Costa do Golfo?"
+      "Qual crack spread: 3-2-1, 2-1-1, ou gasolina e diesel separados? (Em 2022 e em 2026 a alta veio do diesel.)",
+      "Margem muito alta por falta de derivados (como em 2022 e hoje) deve ser lida como alta para o petróleo, como diz o FEL 1, ou como um problema do refino que não puxa o petróleo?"
     ]
   },
   {

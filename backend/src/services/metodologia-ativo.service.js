@@ -4,24 +4,20 @@ const { ConflictError, NotFoundError, ValidationError } = require("../shared/err
 const fatorParametroRepository = require("../repositories/fator-parametro.repository");
 const { obterMetodologiaPetroleo } = require("../shared/metodologia-petroleo");
 const { buscarNoCatalogo } = require("./observaveis.service");
-const estoquesPetroleoEia = require("../factors/estoques-petroleo-eia.factor");
 
 // Metodologia dos fatores por ativo: a proposta para o David validar (ADR 0050). Só o petróleo por enquanto.
 const METODOLOGIAS = {
   PETROLEO: obterMetodologiaPetroleo
 };
 
-// Propostas já calculadas (camadas A, B e C simulada): fator do FEL 1 -> função do `factors/`. Um piloto por vez,
-// para o David ver como a proposta fica no histórico antes de calcular as outras.
+// Propostas já calculadas (camadas A, B e C simulada): fator do FEL 1 -> a METODOLOGIA do módulo em `factors/`
+// (calcular, explicar, exemplos, parâmetros padrão e a apresentação que a tela genérica desenha). Um fator novo é
+// só uma linha aqui.
 const CALCULOS = {
-  PETROLEO_ESTOQUES_EIA: {
-    calcular: estoquesPetroleoEia.calcularEstoquesPetroleoEia,
-    factorId: estoquesPetroleoEia.FACTOR_ID,
-    factorVersion: estoquesPetroleoEia.FACTOR_VERSION,
-    parametrosPadrao: estoquesPetroleoEia.PARAMETROS_PADRAO,
-    exemplos: estoquesPetroleoEia.exemplosEstoques,
-    unidade: "mil barris"
-  }
+  PETROLEO_ESTOQUES_EIA: require("../factors/estoques-petroleo-eia.factor").METODOLOGIA,
+  PETROLEO_PRODUCAO_EUA: require("../factors/producao-petroleo-eua.factor").METODOLOGIA,
+  PETROLEO_DEMANDA: require("../factors/demanda-petroleo-eua.factor").METODOLOGIA,
+  PETROLEO_REFINO: require("../factors/refino-petroleo.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -129,6 +125,7 @@ async function calcularFator(ativo, codigoFator, { desde, ...opcoes } = {}, deps
   const agora = deps.agora || new Date();
   const todos = await calculo.calcular({ asOf: agora, parametros }, deps);
   const pontos = desde ? todos.filter((ponto) => ponto.observedAt >= desde) : todos;
+  const ultimo = todos.at(-1) || null;
   return {
     calculo: {
       fator: fator.codigo,
@@ -141,9 +138,12 @@ async function calcularFator(ativo, codigoFator, { desde, ...opcoes } = {}, deps
       parametrosSistema: sistema.parametros,
       origemParametros: sistema.origem,
       parametrosPadrao: calculo.parametrosPadrao,
-      unidade: calculo.unidade,
-      periodicidade: "SEMANAL",
+      unidade: calculo.apresentacao.unidade,
+      periodicidade: calculo.periodicidade,
       tempoReal: false,
+      apresentacao: calculo.apresentacao,
+      // A decisão da última semana em passos, com os números dela; o peso fecha a lista (vem do FEL 1).
+      explicacao: ultimo?.decisao ? [...calculo.explicar(ultimo, parametros), `Peso: ${fator.peso}, do FEL 1 (não é calculado).`] : [],
       exemplos: calculo.exemplos(todos, parametros),
       pontos
     }

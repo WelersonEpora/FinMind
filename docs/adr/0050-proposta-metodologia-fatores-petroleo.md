@@ -88,7 +88,43 @@ Centro de Decisão nem a IA e não gera sinal.
    400; dois salvamentos simultâneos, 409 pelo índice único de fator e versão). O cálculo
    (`.../calculo`) usa os valores do sistema e aceita outros na query só para simular (`simulacao: true`). Quando
    o motor existir, ele lê os parâmetros desta tabela.
-9. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
+9. **Segundo fator calculado: produção dos EUA, e a tela genérica** (2026-10-03). O dado da EIA basta: de 2010 em
+   diante, o crescimento anual da produção tem correlação de -0,39 com o WTI 26 semanas depois (-0,22 em 13; -0,19
+   desde 1990), a direção do FEL 1, e o preço não aparece puxando a produção no mesmo período. A semana isolada é
+   estimativa arredondada da EIA (desde 2023, metade das semanas é múltiplo de 100 mil barris/dia), por isso a
+   medida é a média de 4 semanas e o crescimento contra as mesmas 4 semanas do ano anterior, mais a distância do
+   recorde. O rig count, também no FEL 1, não é coletado: antecipa a produção, mas não é necessário para medi-la.
+   Padrões: faixa neutra de 3%, forte a partir de 10%, janela de 13 semanas (a produção muda devagar) e mudança
+   mínima de 2 p.p. (mediana de ~2,1 a 2,5 p.p. em 13 semanas). Com o 2º fator, a camada C virou um núcleo comum,
+   `factors/base/decisao-por-faixa.js` (decisão, explicação passo a passo e exemplos), e cada fator exporta uma
+   `METODOLOGIA` (cálculo, explicação, exemplos, parâmetros padrão e a `apresentacao`: quadros, gráficos, rótulos e
+   parâmetros). A tela (`CalculoFator.vue` e `DecisaoFator.vue`) não conhece nenhum fator: desenha a apresentação,
+   e a explicação vem pronta do backend. Um fator novo é um módulo em `factors/` e uma linha no service; um teste
+   de contrato confere que todo campo citado pela apresentação existe nos pontos calculados.
+10. **Terceiro fator calculado: demanda, só dos EUA** (2026-10-03). O consumo semanal dos EUA (derivados fornecidos,
+    EIA, desde 1990) anda junto com o preço (+0,28 com a variação do WTI dos 6 meses anteriores, desde 2010), mas
+    não o antecipa (perto de zero com o WTI 13 ou 26 semanas depois): os dois seguem a economia, e o fator mede a
+    situação. A China, que o FEL 1 cita, ficou de fora **por decisão do usuário**: no JODI ela é "não avaliada" pelo
+    próprio JODI e caiu ~30% de mar a jun/2026 (de ~17.500 para ~11.700 mil barris/dia) sem explicação; fica como
+    lacuna e pergunta ao David. Medida e comparação iguais às da produção (média de 4 semanas contra as mesmas 4
+    do ano anterior), agora num núcleo comum, `factors/base/crescimento-anual-semanal.js`, usado pelos dois. A
+    decisão por faixa ganhou o **sentido** (`acimaPressiona`): na demanda, crescer acima da faixa é pressão de
+    ALTA, o inverso dos fatores de oferta. Padrões: faixa de 2%, forte a partir de 5% (percentis ~50 e 80 desde
+    2010), 13 semanas e 2,5 p.p.
+11. **Quarto fator calculado: refino** (2026-10-03). A margem de refino não é publicada pela EIA: o FinMind calcula o
+    crack 3-2-1 com os preços à vista que já coleta, [(2 × gasolina + 1 × diesel) × 42 − 3 × Brent] ÷ 3, em US$ por
+    barril, na média dos dias da semana. Contra o **Brent**, e não o WTI: os derivados de Nova York são precificados
+    contra o Brent, e em 2011-2013 o WTI ficou até US$ 20 abaixo dele, o que inflava o crack com WTI (US$ 47 em 2012
+    contra US$ 29 com o Brent). Desde 2006 (o diesel S10); a média de 5 anos, desde 2011. O desvio contra a média da
+    mesma semana é em **US$ por barril**, não em %: a média chega a US$ 7 e o desvio em % explodia (+247% em 2012).
+    No histórico, a margem acima do normal anda com refinarias mais cheias (+0,25 com a utilização), o mecanismo do
+    FEL 1, mas não antecipa o preço do petróleo. Padrões: faixa de US$ 3, forte a partir de US$ 10, 4 semanas e
+    US$ 3 (percentis ~40 e ~80 do |desvio| e a mediana da mudança em 4 semanas). Hoje a margem está extrema
+    (US$ 52,5 contra US$ 23,4 de média), como na crise do diesel de 2022: a leitura disso é pergunta ao David. Com o
+    4º fator, a média da mesma semana em 5 anos virou o núcleo `factors/base/mesma-semana-5-anos.js` (estoques e
+    refino), e a decisão por faixa aceita a unidade da medida (% ou US$/barril) na explicação, nos parâmetros e no
+    gráfico; as chaves dos parâmetros continuam terminando em "Pct" e "Pp" (são as das versões já gravadas).
+12. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
    marcadas.
 
 ## Consequências

@@ -1,21 +1,17 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import LineChart from '../charts/LineChart.vue'
-import DecisaoEstoquesPetroleo from './DecisaoEstoquesPetroleo.vue'
+import DecisaoFator from './DecisaoFator.vue'
 import metodologiaAtivoService from '../../services/metodologia-ativo.service.js'
-import { formatarValor } from '../../utils/observaveis-format.js'
-import { PERIODOS_CALCULO, desdeDoPeriodo, seriesEstoquesPetroleo } from '../../utils/metodologia.js'
+import { PERIODOS_CALCULO, desdeDoPeriodo, formatarQuadro, linhaSecundaria, seriesDoGrafico } from '../../utils/metodologia.js'
 
-// A proposta do fator de estoques calculada (ADR 0050), com as mesmas letras do "Como medir": A. Medir (o estoque e
-// a variação da semana) e B. Ler (a média da mesma semana nos 5 anos anteriores e o desvio contra ela) neste card; a
-// C. Decidir (simulação, com parâmetros ajustáveis) no card de baixo. Só o que entra na conta do fator: o preço fica
-// de fora.
+// A proposta de um fator calculada (ADR 0050), com as mesmas letras do "Como medir": A. Medir e B. Ler neste card;
+// C. Decidir (com os parâmetros do sistema, ou simulando outros) no card de baixo. Genérico: os quadros, o gráfico e
+// os textos vêm da `apresentacao` que a API manda para cada fator. Só o que entra na conta do fator.
 const props = defineProps({
   ativo: { type: String, required: true },
   fator: { type: String, required: true }
 })
-
-const SERIES_LABELS = { estoque: 'Estoque (A)', media5Anos: 'Média de 5 anos (B)' }
 
 const periodo = ref('3A')
 const loading = ref(true)
@@ -65,13 +61,12 @@ watch(
   { immediate: true }
 )
 
-const linhas = computed(() => seriesEstoquesPetroleo(calculo.value?.pontos))
+const apresentacao = computed(() => calculo.value?.apresentacao || null)
+const grafico = computed(() =>
+  apresentacao.value ? seriesDoGrafico(calculo.value.pontos, apresentacao.value.graficoAB) : { linhas: [], rotulos: {} }
+)
 const ultimo = computed(() => calculo.value?.pontos.at(-1) || null)
-
-function sinalizado(valor, casas) {
-  if (valor === null || valor === undefined) return '-'
-  return `${valor > 0 ? '+' : ''}${formatarValor(valor, casas)}`
-}
+const ROTULO_CAMADA = { A: 'A. Medir', B: 'B. Ler' }
 
 function dataBr(iso) {
   return iso ? iso.split('-').reverse().join('/') : '-'
@@ -103,45 +98,31 @@ function dataBr(iso) {
       <template v-if="ultimo">
         <p class="calculo__semana">Semana encerrada em {{ dataBr(ultimo.observedAt) }}</p>
         <div class="calculo__resumo">
-          <div class="calculo__quadro">
-            <span class="calculo__camada">A. Medir</span>
-            <span>Estoque sem a SPR</span>
-            <strong>{{ formatarValor(ultimo.estoque, 0) }}</strong>
-            <small>{{ calculo.unidade }}</small>
-          </div>
-          <div class="calculo__quadro">
-            <span class="calculo__camada">A. Medir</span>
-            <span>Contra a semana anterior</span>
-            <strong>{{ sinalizado(ultimo.variacaoSemanal, 0) }}</strong>
-            <small>{{ calculo.unidade }}</small>
-          </div>
-          <div class="calculo__quadro">
-            <span class="calculo__camada">B. Ler</span>
-            <span>Média de 5 anos (mesma semana)</span>
-            <strong>{{ formatarValor(ultimo.media5Anos, 0) }}</strong>
-            <small>{{ calculo.unidade }}</small>
-          </div>
-          <div class="calculo__quadro">
-            <span class="calculo__camada">B. Ler</span>
-            <span>Desvio contra a média</span>
-            <strong>{{ sinalizado(ultimo.desvioPct, 2) }}%</strong>
-            <small>{{ sinalizado(ultimo.desvio, 0) }} {{ calculo.unidade }}</small>
+          <div v-for="quadro in apresentacao.quadros" :key="quadro.campo" class="calculo__quadro">
+            <span class="calculo__camada">{{ ROTULO_CAMADA[quadro.camada] }}</span>
+            <span>{{ quadro.rotulo }}</span>
+            <strong>{{ formatarQuadro(ultimo[quadro.campo], quadro) }}</strong>
+            <small>{{ linhaSecundaria(ultimo, quadro) }}</small>
           </div>
         </div>
       </template>
 
-      <p class="calculo__titulo-grafico">Estoque sem a SPR (A) × média da mesma semana nos 5 anos anteriores (B)</p>
-      <LineChart :pontos="linhas" :unidade="calculo.unidade" :casas-decimais="0" :series-labels="SERIES_LABELS" />
+      <p class="calculo__titulo-grafico">{{ apresentacao.graficoAB.titulo }}</p>
+      <LineChart
+        :pontos="grafico.linhas"
+        :unidade="apresentacao.graficoAB.unidade"
+        :casas-decimais="apresentacao.graficoAB.casas"
+        :series-labels="grafico.rotulos"
+      />
 
       <p class="calculo__nota">
-        Semanal, não é tempo real: a EIA publica na quarta (quinta com feriado) a semana encerrada na sexta anterior.
-        Fator {{ calculo.factorId }} v{{ calculo.factorVersion }}, calculado na hora a partir dos dados coletados, sem
-        gravar nada.
+        {{ apresentacao.nota }} Fator {{ calculo.factorId }} v{{ calculo.factorVersion }}, calculado na hora a partir dos
+        dados coletados, sem gravar nada.
       </p>
     </template>
   </section>
 
-  <DecisaoEstoquesPetroleo
+  <DecisaoFator
     v-if="calculo"
     :ativo="ativo"
     :fator="fator"

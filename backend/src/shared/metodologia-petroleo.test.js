@@ -85,10 +85,75 @@ test("a API devolve o observável com o nome do card", () => {
   assert.deepEqual(estoques.dados.observaveis, [{ codigo: "PETROLEO_ESTOQUES_EIA", nome: "Petróleo EUA - estoques (EIA)" }]);
 });
 
-test("o fator de estoques sai marcado como calculado; os demais não", () => {
+test("os fatores de estoques, demanda, produção e refino saem marcados como calculados; os demais não", () => {
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
-  assert.deepEqual(metodologia.fatores.filter((fator) => fator.calculado).map((fator) => fator.codigo), ["PETROLEO_ESTOQUES_EIA"]);
+  assert.deepEqual(
+    metodologia.fatores.filter((fator) => fator.calculado).map((fator) => fator.codigo),
+    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_PRODUCAO_EUA", "PETROLEO_REFINO"]
+  );
 });
+
+// Contrato da tela genérica: todo campo que a apresentação de um fator cita existe nos pontos que o cálculo devolve,
+// os parâmetros da tela são os do fator, e a explicação fecha com o peso do FEL 1.
+const LINHAS_SINTETICAS = {
+  PETROLEO_ESTOQUES_EIA: { serie: "EIA.PETROLEO_ESTOQUES.PETROLEO_SEM_SPR", base: 420000 },
+  PETROLEO_PRODUCAO_EUA: { serie: "EIA.PETROLEO_FLUXOS.PRODUCAO", base: 13000 },
+  PETROLEO_DEMANDA: { serie: "EIA.PETROLEO_FLUXOS.DERIVADOS_FORNECIDOS", base: 20000 },
+  PETROLEO_REFINO: { gerar: diasDePrecos }
+};
+
+// O refino lê preços diários (Brent, gasolina e diesel) e a utilização semanal: 7 anos de dias úteis.
+function diasDePrecos() {
+  const linhas = [];
+  const inicio = Date.UTC(2015, 0, 5);
+  const linha = (serie, observedAt, value) => ({ seriesCode: serie, observedAt, value, publishedAt: new Date(), publishedAtIsEstimated: true });
+  for (let i = 0; i < 365 * 7; i += 1) {
+    const data = new Date(inicio + i * 86400000);
+    const dia = data.getUTCDay();
+    const observedAt = data.toISOString().slice(0, 10);
+    if (dia === 0 || dia === 6) continue;
+    linhas.push(linha("EIA.PETROLEO_PRECOS.BRENT", observedAt, 70 + (i % 30)));
+    linhas.push(linha("EIA.PETROLEO_PRECOS.GASOLINA_NY", observedAt, 2.2 + (i % 17) / 100));
+    linhas.push(linha("EIA.PETROLEO_PRECOS.DIESEL_NY", observedAt, 2.5 + (i % 23) / 100));
+    if (dia === 5) linhas.push(linha("EIA.PETROLEO_FLUXOS.UTILIZACAO_REFINARIAS", observedAt, 90));
+  }
+  return linhas;
+}
+
+function semanasSinteticas({ serie, base }) {
+  const linhas = [];
+  const inicio = Date.UTC(2015, 0, 2);
+  for (let i = 0; i < 52 * 7; i += 1) {
+    const observedAt = new Date(inicio + i * 7 * 86400000).toISOString().slice(0, 10);
+    linhas.push({ seriesCode: serie, observedAt, value: base + (i % 13) * 100 + i * 5, publishedAt: new Date(), publishedAtIsEstimated: true });
+  }
+  return linhas;
+}
+
+for (const codigo of Object.keys(LINHAS_SINTETICAS)) {
+  test(`contrato da tela genérica: ${codigo}`, async () => {
+    const definicao = LINHAS_SINTETICAS[codigo];
+    const pointInTimeService = { obterAsOf: async () => (definicao.gerar ? definicao.gerar() : semanasSinteticas(definicao)) };
+    const deps = { pointInTimeService, fatorParametroRepository: repoFalso() };
+    const { calculo } = await calcularFator("PETROLEO", codigo, {}, deps);
+    const ultimo = calculo.pontos.at(-1);
+    const { apresentacao } = calculo;
+    const campos = [
+      ...apresentacao.quadros.flatMap((q) => [q.campo, q.secundario?.campo].filter(Boolean)),
+      ...apresentacao.graficoAB.series.map((serie) => serie.campo),
+      apresentacao.graficoAB.exigeCampo,
+      apresentacao.graficoC.campo
+    ];
+    for (const campo of campos) assert.ok(campo in ultimo, `${codigo}: o ponto não tem o campo "${campo}"`);
+    assert.ok(typeof ultimo[apresentacao.graficoC.campo] === "number", `${codigo}: a medida da decisão está vazia`);
+    assert.ok(ultimo.decisao);
+    assert.deepEqual(apresentacao.parametros.map((parametro) => parametro.chave).sort(), Object.keys(calculo.parametrosPadrao).sort());
+    assert.ok(calculo.explicacao.length >= 4);
+    assert.match(calculo.explicacao.at(-1), /do FEL 1/);
+    assert.ok(apresentacao.rotulosDecisao.tendencia[ultimo.decisao.tendencia ?? "ESTAVEL"]);
+    assert.ok(calculo.exemplos.episodios.length > 0 && calculo.exemplos.cenarios.every((c) => c.decisao));
+  });
+}
 
 test("o cálculo devolve a proposta com a situação dela e recusa fator sem cálculo e data inválida", async () => {
   const deps = { pointInTimeService: semDados, fatorParametroRepository: repoFalso() };

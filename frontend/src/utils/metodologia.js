@@ -1,4 +1,5 @@
-// Tela Metodologia do Ativo (ADR 0050) - funções puras, testáveis sem DOM.
+// Tela Metodologia do Ativo (ADR 0050) - funções puras, testáveis sem DOM. A tela não conhece nenhum fator: desenha
+// a `apresentacao` que a API manda (quadros, gráficos, parâmetros, rótulos); a regra e a explicação vêm do backend.
 
 // Períodos do gráfico da proposta calculada: anos para trás a partir de hoje, ou o histórico inteiro.
 export const PERIODOS_CALCULO = [
@@ -17,109 +18,51 @@ export function desdeDoPeriodo(codigo, hoje) {
   return d.toISOString().slice(0, 10)
 }
 
-// Pontos do fator de estoques -> as duas linhas do gráfico (no formato do LineChart): o estoque e a média de 5 anos,
-// só onde existe a média, para as duas cobrirem o mesmo trecho.
-export function seriesEstoquesPetroleo(pontos = []) {
+// Pontos -> as linhas do gráfico das camadas A e B (no formato do LineChart), só onde existe `grafico.exigeCampo`,
+// para todas cobrirem o mesmo trecho. Os rótulos da legenda vão em `rotulos`.
+export function seriesDoGrafico(pontos = [], grafico) {
   const linhas = []
   for (const p of pontos) {
-    if (p.media5Anos === null) continue
-    linhas.push({ data: p.observedAt, valor: p.estoque, serie: 'estoque' })
-    linhas.push({ data: p.observedAt, valor: p.media5Anos, serie: 'media5Anos' })
+    if (grafico.exigeCampo && (p[grafico.exigeCampo] === null || p[grafico.exigeCampo] === undefined)) continue
+    for (const serie of grafico.series) {
+      if (p[serie.campo] !== null && p[serie.campo] !== undefined) linhas.push({ data: p.observedAt, valor: p[serie.campo], serie: serie.campo })
+    }
   }
-  return linhas
+  const rotulos = Object.fromEntries(grafico.series.map((serie) => [serie.campo, serie.rotulo]))
+  return { linhas, rotulos }
 }
 
-// --- Camada C (simulação) do fator de estoques -------------------------------------------------------------------
-// A regra fica no backend (`decidirEstoques`); aqui só os rótulos e a explicação da decisão que a API devolveu.
-
-export const ROTULOS_DECISAO = {
-  direcao: { ALTA: 'Pressão de alta', BAIXA: 'Pressão de baixa', NEUTRA: 'Neutra' },
-  intensidade: { FRACA: 'Fraca', MODERADA: 'Moderada', FORTE: 'Forte' },
-  tendencia: { APERTANDO: 'Apertando', AFROUXANDO: 'Afrouxando', ESTAVEL: 'Estável' }
-}
-
-export const PARAMETROS_ESTOQUES = [
-  {
-    chave: 'limiarModeradoPct',
-    rotulo: 'Faixa neutra',
-    unidade: '%',
-    explicacao: 'Desvio, para cima ou para baixo, até onde o estoque é considerado normal (sem pressão).'
-  },
-  {
-    chave: 'limiarFortePct',
-    rotulo: 'Limiar de intensidade forte',
-    unidade: '%',
-    explicacao: 'A partir desse desvio a pressão é forte; entre a faixa neutra e ele, moderada.'
-  },
-  {
-    chave: 'semanasTendencia',
-    rotulo: 'Janela da tendência',
-    unidade: 'semanas',
-    explicacao: 'Contra quantas semanas atrás o desvio é comparado para dizer se o aperto ou a sobra está mudando.'
-  },
-  {
-    chave: 'limiarTendenciaPp',
-    rotulo: 'Mudança mínima da tendência',
-    unidade: 'p.p.',
-    explicacao: 'Quanto o desvio precisa mudar na janela para não ser considerado estável.'
-  }
-]
-
-const fmt = (n, casas = 2) => n.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
-const comSinal = (n, casas = 2) => `${n > 0 ? '+' : ''}${fmt(n, casas)}`
-
-export function parametrosAlterados(parametros, padrao) {
-  return Object.keys(padrao || {}).some((chave) => Number(parametros?.[chave]) !== Number(padrao[chave]))
-}
-
-// Os passos da decisão de uma semana, em texto, com os números dela e os parâmetros em uso.
-export function explicarDecisao(ponto, parametros, peso) {
-  const d = ponto?.decisao
-  if (!d) return []
-  const { limiarModeradoPct: mod, limiarFortePct: forte, semanasTendencia: semanas, limiarTendenciaPp: tend } = parametros
-  const desvio = ponto.desvioPct
-  const passos = [`O estoque está ${comSinal(desvio)}% contra a média da mesma semana nos 5 anos anteriores (B).`]
-
-  if (d.direcao === 'NEUTRA') {
-    passos.push(`Direção: a faixa neutra vai de −${fmt(mod, 1)}% a +${fmt(mod, 1)}%. ${comSinal(desvio)}% está dentro dela → Neutra.`)
-  } else if (d.direcao === 'ALTA') {
-    passos.push(`Direção: ${comSinal(desvio)}% está abaixo de −${fmt(mod, 1)}%: estoque abaixo do normal é aperto → Pressão de alta.`)
-  } else {
-    passos.push(`Direção: ${comSinal(desvio)}% está acima de +${fmt(mod, 1)}%: estoque acima do normal é sobra → Pressão de baixa.`)
-  }
-
-  const absoluto = fmt(Math.abs(desvio))
-  if (d.intensidade === 'FORTE') passos.push(`Intensidade: ${absoluto}% é ${fmt(forte, 1)}% ou mais → Forte.`)
-  else if (d.intensidade === 'MODERADA') passos.push(`Intensidade: ${absoluto}% fica entre ${fmt(mod, 1)}% e ${fmt(forte, 1)}% → Moderada.`)
-  else passos.push(`Intensidade: ${absoluto}% é menor que ${fmt(mod, 1)}% → Fraca.`)
-
-  if (d.tendencia === null) {
-    passos.push(`Tendência: sem o desvio de ${semanas} semanas antes, não calculada.`)
-  } else {
-    const anterior = desvio - d.mudancaDesvioPp
-    const base = `Tendência: há ${semanas} semanas o desvio era ${comSinal(anterior)}%; mudou ${comSinal(d.mudancaDesvioPp)} p.p.`
-    if (d.tendencia === 'ESTAVEL') passos.push(`${base}, menos que ${fmt(tend, 1)} p.p. → Estável.`)
-    else if (d.tendencia === 'APERTANDO') passos.push(`${base}: caiu ${fmt(tend, 1)} p.p. ou mais, o estoque está indo para baixo do normal → Apertando.`)
-    else passos.push(`${base}: subiu ${fmt(tend, 1)} p.p. ou mais, o estoque está indo para cima do normal → Afrouxando.`)
-  }
-
-  if (peso) passos.push(`Peso: ${peso}, do FEL 1 (não é calculado).`)
-  return passos
-}
-
-// O desvio (B) e as faixas da decisão (C), no formato do LineChart: o desvio e os quatro limiares como linhas.
-export function seriesDesvioComFaixas(pontos = [], parametros) {
+// A medida da decisão (camada C) e as faixas dela, no formato do LineChart: a medida e os quatro limiares como linhas.
+export function seriesComFaixas(pontos = [], campo, parametros) {
   const linhas = []
   const { limiarModeradoPct: mod, limiarFortePct: forte } = parametros
   for (const p of pontos) {
-    if (p.desvioPct === null) continue
-    linhas.push({ data: p.observedAt, valor: p.desvioPct, serie: 'desvio' })
+    if (p[campo] === null || p[campo] === undefined) continue
+    linhas.push({ data: p.observedAt, valor: p[campo], serie: 'medida' })
     linhas.push({ data: p.observedAt, valor: forte, serie: 'forteAcima' })
     linhas.push({ data: p.observedAt, valor: mod, serie: 'neutraAcima' })
     linhas.push({ data: p.observedAt, valor: -mod, serie: 'neutraAbaixo' })
     linhas.push({ data: p.observedAt, valor: -forte, serie: 'forteAbaixo' })
   }
   return linhas
+}
+
+// Um valor de quadro, como a apresentação pede: casas decimais, sinal (+/-) e unidade colada (ex.: "%").
+export function formatarQuadro(valor, { casas = 0, sinal = false, unidadeValor = '' } = {}) {
+  if (valor === null || valor === undefined) return '-'
+  const numero = valor.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
+  return `${sinal && valor > 0 ? '+' : ''}${numero}${unidadeValor}`
+}
+
+// A linha de baixo de um quadro: o valor secundário (com prefixo e sufixo) ou só o sufixo do principal.
+export function linhaSecundaria(ponto, quadro) {
+  const s = quadro.secundario
+  if (!s) return quadro.sufixo || ''
+  return [s.prefixo, formatarQuadro(ponto?.[s.campo], s), s.sufixo].filter(Boolean).join(' ')
+}
+
+export function parametrosAlterados(parametros, padrao) {
+  return Object.keys(padrao || {}).some((chave) => Number(parametros?.[chave]) !== Number(padrao[chave]))
 }
 
 // De onde vêm os valores do sistema: a versão salva (quem e quando) ou, sem nenhuma, o padrão do código.

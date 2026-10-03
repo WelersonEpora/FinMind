@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
-import CalculoEstoquesPetroleo from '../components/metodologia/CalculoEstoquesPetroleo.vue'
+import CalculoFator from '../components/metodologia/CalculoFator.vue'
 import metodologiaAtivoService from '../services/metodologia-ativo.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
 
@@ -199,8 +199,8 @@ watch(ativo, carregar, { immediate: true })
             </ul>
           </section>
 
-          <CalculoEstoquesPetroleo
-            v-if="fatorSelecionado.calculado && fatorSelecionado.codigo === 'PETROLEO_ESTOQUES_EIA'"
+          <CalculoFator
+            v-if="fatorSelecionado.calculado"
             :ativo="metodologia.ativo"
             :fator="fatorSelecionado.codigo"
           />

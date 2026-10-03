@@ -3,19 +3,12 @@ import { computed, reactive, ref, watch } from 'vue'
 import LineChart from '../charts/LineChart.vue'
 import metodologiaAtivoService from '../../services/metodologia-ativo.service.js'
 import { useAuthStore } from '../../stores/auth.js'
-import {
-  PARAMETROS_ESTOQUES,
-  ROTULOS_DECISAO,
-  descreverOrigemParametros,
-  explicarDecisao,
-  parametrosAlterados,
-  seriesDesvioComFaixas
-} from '../../utils/metodologia.js'
+import { descreverOrigemParametros, parametrosAlterados, seriesComFaixas } from '../../utils/metodologia.js'
 
-// Camada C do fator de estoques (ADR 0050): a direção, a intensidade e a tendência, com os parâmetros EM USO NO
-// SISTEMA (a última versão salva, ou o padrão do código). Qualquer um pode simular outros valores (nada é gravado);
-// só o admin salva uma versão nova, com o motivo. A regra roda no backend; aqui ficam a explicação, os parâmetros,
-// o histórico e os exemplos.
+// Camada C de um fator (ADR 0050): a direção, a intensidade e a tendência, com os parâmetros EM USO NO SISTEMA (a
+// última versão salva, ou o padrão do código). Qualquer um pode simular outros valores (nada é gravado); só o admin
+// salva uma versão nova, com o motivo. Genérico: a regra e a explicação vêm do backend, e os rótulos, os parâmetros
+// e o gráfico, da `apresentacao` do fator.
 const props = defineProps({
   ativo: { type: String, required: true },
   fator: { type: String, required: true },
@@ -28,13 +21,14 @@ const emit = defineEmits(['simular', 'salvo'])
 const auth = useAuthStore()
 const ehAdmin = computed(() => auth.state.user?.role === 'admin')
 
-const SERIES_LABELS = {
-  desvio: 'Desvio (B)',
+const apresentacao = computed(() => props.calculo.apresentacao)
+const seriesLabels = computed(() => ({
+  medida: apresentacao.value.graficoC.rotulo,
   forteAcima: 'Forte (acima)',
   neutraAcima: 'Faixa neutra (acima)',
   neutraAbaixo: 'Faixa neutra (abaixo)',
   forteAbaixo: 'Forte (abaixo)'
-}
+}))
 
 const formulario = reactive({})
 watch(
@@ -44,19 +38,23 @@ watch(
 )
 
 const ultimo = computed(() => props.calculo.pontos.at(-1) || null)
-const passos = computed(() => explicarDecisao(ultimo.value, props.calculo.parametros, props.calculo.peso))
 const editados = computed(() => parametrosAlterados(formulario, props.calculo.parametros))
 const diferenteDoSistema = computed(() => parametrosAlterados(formulario, props.calculo.parametrosSistema))
 const origem = computed(() => descreverOrigemParametros(props.calculo.origemParametros))
-const linhas = computed(() => seriesDesvioComFaixas(props.calculo.pontos, props.calculo.parametros))
+const linhas = computed(() => seriesComFaixas(props.calculo.pontos, apresentacao.value.graficoC.campo, props.calculo.parametros))
 
 function rotulo(tipo, valor) {
-  return valor ? ROTULOS_DECISAO[tipo][valor] : '-'
+  return valor ? apresentacao.value.rotulosDecisao[tipo][valor] : '-'
 }
+
+// A unidade da medida da decisão: % na maioria dos fatores; US$/barril no refino.
+const unidadeMedida = computed(() => apresentacao.value.graficoC.unidade || '%')
 
 function comSinal(n) {
   if (n === null || n === undefined) return '-'
-  return `${n > 0 ? '+' : ''}${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+  const numero = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const u = unidadeMedida.value === '%' ? '%' : ` ${unidadeMedida.value}`
+  return `${n > 0 ? '+' : ''}${numero}${u}`
 }
 
 function dataBr(iso) {
@@ -124,7 +122,7 @@ async function alternarHistorico() {
 }
 
 function resumoParametros(parametros) {
-  return PARAMETROS_ESTOQUES.map((p) => `${p.rotulo}: ${parametros[p.chave]} ${p.unidade}`).join(' · ')
+  return apresentacao.value.parametros.map((p) => `${p.rotulo}: ${parametros[p.chave]} ${p.unidade}`).join(' · ')
 }
 </script>
 
@@ -165,13 +163,13 @@ function resumoParametros(parametros) {
 
       <p class="decisao__subtitulo">Como chegamos aqui</p>
       <ol class="decisao__passos">
-        <li v-for="passo in passos" :key="passo">{{ passo }}</li>
+        <li v-for="passo in calculo.explicacao" :key="passo">{{ passo }}</li>
       </ol>
     </template>
 
     <p class="decisao__subtitulo">Parâmetros</p>
     <div class="decisao__parametros">
-      <label v-for="p in PARAMETROS_ESTOQUES" :key="p.chave" class="decisao__parametro">
+      <label v-for="p in apresentacao.parametros" :key="p.chave" class="decisao__parametro">
         <span class="decisao__parametro-rotulo">{{ p.rotulo }}</span>
         <span class="decisao__parametro-campo">
           <input v-model.number="formulario[p.chave]" type="number" step="any" min="0" class="form-control form-control-sm" />
@@ -240,8 +238,8 @@ function resumoParametros(parametros) {
       </template>
     </div>
 
-    <p class="decisao__subtitulo">Desvio (B) e as faixas da decisão (C)</p>
-    <LineChart :pontos="linhas" unidade="%" :casas-decimais="2" :series-labels="SERIES_LABELS" />
+    <p class="decisao__subtitulo">{{ apresentacao.graficoC.titulo }}</p>
+    <LineChart :pontos="linhas" :unidade="unidadeMedida" :casas-decimais="2" :series-labels="seriesLabels" />
 
     <p class="decisao__subtitulo">Exemplos: semanas reais</p>
     <div class="table-responsive">
@@ -250,7 +248,7 @@ function resumoParametros(parametros) {
           <tr>
             <th>Semana</th>
             <th>Contexto</th>
-            <th>Desvio</th>
+            <th>{{ apresentacao.exemplos.colunaValor }}</th>
             <th>Direção</th>
             <th>Intensidade</th>
             <th>Tendência</th>
@@ -260,7 +258,7 @@ function resumoParametros(parametros) {
           <tr v-for="e in calculo.exemplos.episodios" :key="e.data">
             <td>{{ dataBr(e.data) }}</td>
             <td>{{ e.rotulo }}</td>
-            <td>{{ comSinal(e.desvioPct) }}</td>
+            <td>{{ comSinal(e.valor) }}</td>
             <td :class="classeDirecao(e.decisao?.direcao)">{{ rotulo('direcao', e.decisao?.direcao) }}</td>
             <td>{{ rotulo('intensidade', e.decisao?.intensidade) }}</td>
             <td>{{ rotulo('tendencia', e.decisao?.tendencia) }}</td>
@@ -275,7 +273,7 @@ function resumoParametros(parametros) {
         <thead>
           <tr>
             <th>Cenário</th>
-            <th>Desvio</th>
+            <th>{{ apresentacao.exemplos.colunaValor }}</th>
             <th>{{ calculo.parametros.semanasTendencia }} semanas antes</th>
             <th>Direção</th>
             <th>Intensidade</th>
@@ -285,8 +283,8 @@ function resumoParametros(parametros) {
         <tbody>
           <tr v-for="c in calculo.exemplos.cenarios" :key="c.rotulo">
             <td>{{ c.rotulo }}</td>
-            <td>{{ comSinal(c.desvioPct) }}</td>
-            <td>{{ comSinal(c.desvioAnterior) }}</td>
+            <td>{{ comSinal(c.valor) }}</td>
+            <td>{{ comSinal(c.valorAnterior) }}</td>
             <td :class="classeDirecao(c.decisao?.direcao)">{{ rotulo('direcao', c.decisao?.direcao) }}</td>
             <td>{{ rotulo('intensidade', c.decisao?.intensidade) }}</td>
             <td>{{ rotulo('tendencia', c.decisao?.tendencia) }}</td>

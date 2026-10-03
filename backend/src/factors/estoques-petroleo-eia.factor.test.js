@@ -90,10 +90,10 @@ test("C. intensidade pelos limiares: fraca, moderada e forte", () => {
   assert.equal(decidirEstoques(-10, null).intensidade, "FORTE");
 });
 
-test("C. tendência pela mudança do desvio: estável abaixo do limiar, apertando se cai, afrouxando se sobe", () => {
-  assert.deepEqual(decidirEstoques(5, 4), { direcao: "BAIXA", intensidade: "MODERADA", tendencia: "ESTAVEL", mudancaDesvioPp: 1 });
-  assert.equal(decidirEstoques(5, 8).tendencia, "APERTANDO");
-  assert.equal(decidirEstoques(5, 2).tendencia, "AFROUXANDO");
+test("C. tendência pela mudança do desvio: estável abaixo do limiar, caindo (apertando) ou subindo (afrouxando)", () => {
+  assert.deepEqual(decidirEstoques(5, 4), { direcao: "BAIXA", intensidade: "MODERADA", tendencia: "ESTAVEL", mudancaPp: 1 });
+  assert.equal(decidirEstoques(5, 8).tendencia, "CAINDO");
+  assert.equal(decidirEstoques(5, 2).tendencia, "SUBINDO");
   assert.equal(decidirEstoques(5, null).tendencia, null);
 });
 
@@ -109,8 +109,8 @@ test("a tendência usa o desvio de semanasTendencia semanas antes, mesmo antes d
   const linhas = [...base(anterior), estoque(anterior, 110), ...base(SEMANA), estoque(SEMANA, 104)];
   const ponto = derivarEstoquesPetroleoEia(linhas, { observadoDesde: SEMANA }).at(-1);
   assert.equal(ponto.desvioPct, 4);
-  assert.equal(ponto.decisao.mudancaDesvioPp, -6);
-  assert.equal(ponto.decisao.tendencia, "APERTANDO");
+  assert.equal(ponto.decisao.mudancaPp, -6);
+  assert.equal(ponto.decisao.tendencia, "CAINDO");
 });
 
 test("exemplos: episódios reais pela semana (nulos sem dado) e cenários pela mesma regra, com os parâmetros em uso", () => {
@@ -119,6 +119,6 @@ test("exemplos: episódios reais pela semana (nulos sem dado) e cenários pela m
   assert.equal(episodios.find((e) => e.data === "2022-06-24").decisao.direcao, "ALTA");
   assert.equal(episodios.find((e) => e.data === "2020-06-26").decisao, null);
   assert.ok(cenarios.every((c) => c.decisao && c.rotulo));
-  const comOutros = exemplosEstoques([], { ...PARAMETROS_PADRAO, limiarModeradoPct: 7 }).cenarios.find((c) => c.desvioPct === -5);
+  const comOutros = exemplosEstoques([], { ...PARAMETROS_PADRAO, limiarModeradoPct: 7 }).cenarios.find((c) => c.valor === -5);
   assert.equal(comOutros.decisao.direcao, "NEUTRA");
 });
