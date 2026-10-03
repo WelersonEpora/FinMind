@@ -21,7 +21,13 @@ cálculos e critérios de sinal (ver `STATUS_DO_PROJETO.md`, §4).
   técnico ou cálculo de mercado** que não tenha sido definido pelo
   especialista David. Um coletor de dado público oficial (ex.: cotação do
   dólar via BCB) é infraestrutura, não estratégia — mas qualquer regra que
-  *interprete* esse dado (limiar, sinal, recomendação) é.
+  *interprete* esse dado (limiar, sinal, recomendação) é. **Exceção:**
+  uma *proposta* de metodologia de fator para o David validar (ADR 0050)
+  é permitida, desde que fique marcada como proposta (`situacao:
+  "PROPOSTA"`), separada do que vem do FEL 1 e não alimente o motor, o
+  Centro de Decisão nem a IA. A direção de um fator pode ser *simulada*
+  (camada C), com parâmetros explícitos e ajustáveis pelo Comitê, só na
+  tela de metodologia.
 - **Nenhuma execução automática de ordens** existe ou deve ser adicionada
   nesta fase. A arquitetura mantém geração de análise e execução de ordens
   como camadas fisicamente separadas (ver `docs/architecture.md`).

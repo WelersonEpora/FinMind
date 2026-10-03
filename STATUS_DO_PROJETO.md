@@ -55,6 +55,7 @@ quando chegar a vez delas.
 |---|---|---|---|
 | **1. Decisões de base** | Critérios de aprovação do backtest, preço e orçamento, instrumento e horizontes, medidas dos fatores do milho (só a camada A) e ajustes no FEL 1 | Comitê | **Atual**: reunião feita em 2026-10-01 (perguntas 2, 3 e 8: seguir com o histórico disponível); aguarda o documento do David com as demais respostas |
 | 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | **Proposta pronta** (§5b), aguarda o Comitê |
+| 2b. Entendimento do petróleo | Propor os 10 fatores do petróleo nas três camadas (medida, comparação e um esboço da leitura), ao lado do que o FEL 1 diz e dos dados que já temos, com as perguntas de cada fator | FinMind → David | **Proposta pronta** (§5c), aguarda o David |
 | 3. Medidas e dados | Implementar as medidas confirmadas e coletar os dados aprovados que faltam | FinMind | Depende da 1 |
 | 4. Regras | O Comitê define a leitura (B) e a regra (C) de cada fator; o FinMind faz o backtest; o Comitê aprova | Comitê + FinMind | Depende da 3 |
 | 5. IA em simulação | Prompt, registro de cada recomendação e simulação por pelo menos 6 meses (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | Depende da 4 |
@@ -1412,6 +1413,26 @@ autorização para uma série nova numa fonte que já usamos (CPI e meta do Fed,
 </details>
 
 <details>
+<summary>5c. Proposta — Fatores do Petróleo</summary>
+
+**Por decisão do usuário (2026-10-02), o FinMind propõe ao David os 10 fatores do petróleo nas três camadas, para abrir
+caminho: é rascunho, pode estar errado e serve para ser corrigido** (ADR 0050). Cada fator mostra, em blocos separados,
+o que o FEL 1 diz (tipo, direção, mecanismo, fonte), os dados que já coletamos e as lacunas, a proposta (medida,
+comparação e um esboço da leitura) e as perguntas ao David. Nada disso alimenta o motor, o Centro de Decisão ou a IA,
+e nenhum sinal é gerado.
+
+O conteúdo está na tela **Metodologia do Ativo** (`/dados-mercado/metodologia/PETROLEO`), e não é copiado aqui. O fator de estoques EIA tem a proposta **calculada** (piloto): o estoque contra a média da mesma semana nos 5 anos anteriores, no histórico desde 1982, e a **camada C** (direção, intensidade e tendência) com os parâmetros em uso no sistema, guardados no banco com histórico de versões: qualquer usuário simula outros valores na tela, e o admin salva uma versão nova, com o motivo. Em jun/2020 ficou 15% acima da média; em jun/2022, 12,5% abaixo. As
+perguntas que mais destravam:
+
+1. **Estoques EIA (Alto):** "abaixo do esperado" é contra o consenso de analistas (pago, não coletado) ou contra uma
+   referência histórica (a média de 5 anos da mesma semana, que a EIA publica)?
+2. **OPEP+ (Alto):** pesa o anúncio da reunião (evento) ou a produção bombeada (mensal, ~2 meses de atraso)?
+3. **Geopolítica (Alto):** ameaça sem efeito material conta, ou só a interrupção que já aconteceu?
+4. **Fundos (COT):** confirmam os outros fatores ou têm direção própria?
+
+</details>
+
+<details>
 <summary>6. Fora do escopo por enquanto</summary>
 
 Não implementar sem autorização explícita registrada em ADR:
@@ -1438,6 +1459,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Proposta de metodologia dos fatores do petróleo | Por decisão do usuário, um primeiro desenho dos 10 fatores do petróleo para o David validar. Partiu de um rascunho do GitHub Copilot, revisto: cada fator separa o que o FEL 1 diz, os dados que já temos (com link para o card) e as lacunas, a proposta nas três camadas, marcada como proposta, e as perguntas ao David. Sai a "decisão adotada" e o service que derivava a direção da geopolítica dos eventos da IA. Tela `/dados-mercado/metodologia/PETROLEO`, `GET /api/v1/ativos/:ativo/metodologia`. Piloto calculado: o fator de estoques EIA (camadas A e B, sem direção), com o estoque contra a média de 5 anos da mesma semana em gráfico, conferido no banco de dev. O dado da EIA basta para o fator (avaliado contra o histórico do WTI; não capta a reação do dia da divulgação). Camada C num card próprio, com a decisão da semana explicada passo a passo, os parâmetros e exemplos reais e hipotéticos; o peso é o do FEL 1. Os parâmetros em uso no sistema ficam no banco (tabela nova `fator_parametro_versao`, uma versão por ajuste, com autor e motivo): simular é livre, salvar é do admin. O `CLAUDE.md` ganhou a exceção para propostas assim marcadas | ADR 0050, §5c |
 | Eventos de mercado (a geopolítica estendida ao milho e ao café) | Depois de uma análise dos fatores do milho e do café em busca do que os observáveis não captam (anúncios que o mercado precifica no dia: tarifa, abertura de mercado, geada, rota bloqueada, regulação), o coletor de geopolítica virou o de eventos de mercado, sem coletor, pipeline ou tabela nova: 4 ativos, 7 tipos (a geopolítica é um), o fator do FEL 1 afetado em cada ativo (um dos 34 da planilha, ou não se aplica) e 11 fontes autorizadas, testadas uma a uma na pesquisa do Gemini (sai o World Gold Council; entram USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA, USDA FAS e INMET). A conferência ficou mais rígida: só aceita o evento com uma página de fonte autorizada, conferida pela URL (no gov.br, pelo caminho da instituição), ligada ao texto dele. A lista deixou de ser checklist; um piso por ativo (prompt v8) exige, antes de um ativo ser Normal, ao menos uma fonte daquele ativo pesquisada (no milho e no café, de política comercial ou regulação), porque a 1ª leitura v7 declarou o milho Normal sem consultar fonte do milho. Uma migration (milho e café na leitura, tipo, fator, sai o assunto), com os eventos existentes mapeados. Depois: canal e intensidade por ativo e a regra de ativo indireto (o ouro deixou de entrar num incidente isolado de petróleo), o Mar Negro no mínimo do milho, a UE com Comissão e Conselho e as fontes lidas tiradas do grounding, nunca do texto da IA (prompts v9 e v10). Numa chamada só, 4 de 5 leituras ficaram com a cobertura do agro abaixo do mínimo; por decisão do usuário, a leitura passou a ser feita em **duas chamadas** (ouro e petróleo; milho e café), no mesmo coletor e na mesma leitura (prompt v11). Dev: 2 leituras com duas chamadas, 6 fontes lidas no agro em cada, 0 avisos, 24 a 33 mil tokens por dia. Diagnóstico de 10 leituras: o fato concreto (navio em Ormuz) em 10 de 10, a temperatura 0 sem ganho; o piso do ouro passou a exigir a AP ou o Tesouro (v12), e o reforço militar dos EUA entrou nas 3 leituras seguintes. Com a repetição só da chamada que não cumpriu o piso (uma vez), 4 leituras com 0 avisos. Só uma publicação específica (a matéria, o aviso, o comunicado) sustenta um evento: página de autor, de tag ou listagem não conta. Resta variação de julgamento em casos de fronteira (o envio de porta-aviões dos EUA entrou em 4 de 7 leituras e puxa o nível do ouro): a régua do "fora do normal" é do David | ADR 0049 |
 | Centro de Decisão no lugar do Dashboard | A tela inicial, no desenho do Centro de Decisão do AgroMind, sem o sinal, a leitura por prazo e a síntese (são regras do David e do Comitê: o espaço fica reservado). Um seletor de ativo e de data (semana em botões, como no AgroMind); o preço como era conhecido no fim do dia escolhido, por `asOf`, com troca de série (ouro: GLD ou LBMA; petróleo: WTI ou Brent; milho: CEPEA/ESALQ ou CCM; café: ICF ou FMI), mini-gráfico em ECharts, variações de 1, 7, 30 e 90 dias e aviso de série defasada ou encerrada; futuros pelo vencimento mais próximo, sem emendar. "O que está movimentando o mercado": a leitura de geopolítica da data e os eventos da semana, com o detalhe num modal. Os cards do topo da tela Eventos foram para cá; o detalhe do evento virou um componente das duas telas. Conferido contra o banco de dev nos 4 ativos e 8 séries (ex.: o ouro em 10/03/2025 sem GLD e com a LBMA) | ADR 0048 |
 
