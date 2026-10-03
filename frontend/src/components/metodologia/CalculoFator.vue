@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import LineChart from '../charts/LineChart.vue'
 import DecisaoFator from './DecisaoFator.vue'
 import metodologiaAtivoService from '../../services/metodologia-ativo.service.js'
-import { PERIODOS_CALCULO, desdeDoPeriodo, formatarQuadro, linhaSecundaria, seriesDoGrafico } from '../../utils/metodologia.js'
+import { PERIODOS_CALCULO, desdeDoPeriodo, formatarQuadro, linhaSecundaria, periodoDoFator, seriesDoGrafico } from '../../utils/metodologia.js'
 
 // A proposta de um fator calculada (ADR 0050), com as mesmas letras do "Como medir": A. Medir e B. Ler neste card;
 // C. Decidir (com os parâmetros do sistema, ou simulando outros) no card de baixo. Genérico: os quadros, o gráfico e
@@ -67,10 +67,8 @@ const grafico = computed(() =>
 )
 const ultimo = computed(() => calculo.value?.pontos.at(-1) || null)
 const ROTULO_CAMADA = { A: 'A. Medir', B: 'B. Ler' }
+const periodoFator = computed(() => periodoDoFator(calculo.value?.periodicidade))
 
-function dataBr(iso) {
-  return iso ? iso.split('-').reverse().join('/') : '-'
-}
 </script>
 
 <template>
@@ -96,7 +94,7 @@ function dataBr(iso) {
     <template v-else-if="calculo">
       <div v-if="errorMessage" class="alert alert-danger py-2">{{ errorMessage }}</div>
       <template v-if="ultimo">
-        <p class="calculo__semana">Semana encerrada em {{ dataBr(ultimo.observedAt) }}</p>
+        <p class="calculo__semana">{{ periodoFator.referencia(ultimo.observedAt) }}</p>
         <div class="calculo__resumo">
           <div v-for="quadro in apresentacao.quadros" :key="quadro.campo" class="calculo__quadro">
             <span class="calculo__camada">{{ ROTULO_CAMADA[quadro.camada] }}</span>

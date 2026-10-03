@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import LineChart from '../charts/LineChart.vue'
 import metodologiaAtivoService from '../../services/metodologia-ativo.service.js'
 import { useAuthStore } from '../../stores/auth.js'
-import { descreverOrigemParametros, parametrosAlterados, seriesComFaixas } from '../../utils/metodologia.js'
+import { descreverOrigemParametros, parametrosAlterados, periodoDoFator, seriesComFaixas } from '../../utils/metodologia.js'
 
 // Camada C de um fator (ADR 0050): a direção, a intensidade e a tendência, com os parâmetros EM USO NO SISTEMA (a
 // última versão salva, ou o padrão do código). Qualquer um pode simular outros valores (nada é gravado); só o admin
@@ -22,6 +22,8 @@ const auth = useAuthStore()
 const ehAdmin = computed(() => auth.state.user?.role === 'admin')
 
 const apresentacao = computed(() => props.calculo.apresentacao)
+// Semana ou mês: os textos de período seguem a periodicidade do fator.
+const periodoFator = computed(() => periodoDoFator(props.calculo.periodicidade))
 const seriesLabels = computed(() => ({
   medida: apresentacao.value.graficoC.rotulo,
   forteAcima: 'Forte (acima)',
@@ -55,10 +57,6 @@ function comSinal(n) {
   const numero = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const u = unidadeMedida.value === '%' ? '%' : ` ${unidadeMedida.value}`
   return `${n > 0 ? '+' : ''}${numero}${u}`
-}
-
-function dataBr(iso) {
-  return iso ? iso.split('-').reverse().join('/') : '-'
 }
 
 function dataHoraBr(instante) {
@@ -140,7 +138,7 @@ function resumoParametros(parametros) {
     </p>
 
     <template v-if="ultimo?.decisao">
-      <p class="decisao__semana">Semana encerrada em {{ dataBr(ultimo.observedAt) }}</p>
+      <p class="decisao__semana">{{ periodoFator.referencia(ultimo.observedAt) }}</p>
       <div class="decisao__resultado">
         <div class="decisao__quadro" :class="classeDirecao(ultimo.decisao.direcao)">
           <span>Direção</span>
@@ -241,12 +239,12 @@ function resumoParametros(parametros) {
     <p class="decisao__subtitulo">{{ apresentacao.graficoC.titulo }}</p>
     <LineChart :pontos="linhas" :unidade="unidadeMedida" :casas-decimais="2" :series-labels="seriesLabels" />
 
-    <p class="decisao__subtitulo">Exemplos: semanas reais</p>
+    <p class="decisao__subtitulo">Exemplos: {{ periodoFator.janela }} reais</p>
     <div class="table-responsive">
       <table class="table table-sm decisao__tabela">
         <thead>
           <tr>
-            <th>Semana</th>
+            <th>{{ periodoFator.unidade }}</th>
             <th>Contexto</th>
             <th>{{ apresentacao.exemplos.colunaValor }}</th>
             <th>Direção</th>
@@ -256,7 +254,7 @@ function resumoParametros(parametros) {
         </thead>
         <tbody>
           <tr v-for="e in calculo.exemplos.episodios" :key="e.data">
-            <td>{{ dataBr(e.data) }}</td>
+            <td>{{ periodoFator.data(e.data) }}</td>
             <td>{{ e.rotulo }}</td>
             <td>{{ comSinal(e.valor) }}</td>
             <td :class="classeDirecao(e.decisao?.direcao)">{{ rotulo('direcao', e.decisao?.direcao) }}</td>
@@ -274,7 +272,7 @@ function resumoParametros(parametros) {
           <tr>
             <th>Cenário</th>
             <th>{{ apresentacao.exemplos.colunaValor }}</th>
-            <th>{{ calculo.parametros.semanasTendencia }} semanas antes</th>
+            <th>{{ calculo.parametros.semanasTendencia }} {{ periodoFator.janela }} antes</th>
             <th>Direção</th>
             <th>Intensidade</th>
             <th>Tendência</th>

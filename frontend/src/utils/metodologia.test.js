@@ -8,7 +8,8 @@ import {
   formatarQuadro,
   linhaSecundaria,
   parametrosAlterados,
-  descreverOrigemParametros
+  descreverOrigemParametros,
+  periodoDoFator
 } from './metodologia.js'
 
 const PARAMS = { limiarModeradoPct: 3, limiarFortePct: 10, semanasTendencia: 4, limiarTendenciaPp: 2 }
@@ -57,6 +58,15 @@ test('formatarQuadro e linhaSecundaria: casas, sinal, unidade e o valor de baixo
     linhaSecundaria({ recorde: 13955 }, { secundario: { campo: 'recorde', casas: 0, prefixo: 'recorde:', sufixo: 'mil barris/dia' } }),
     'recorde: 13.955 mil barris/dia'
   )
+})
+
+test('periodoDoFator: semana por padrão; mês num fator mensal', () => {
+  assert.equal(periodoDoFator('SEMANAL').referencia('2026-10-02'), 'Semana encerrada em 02/10/2026')
+  assert.equal(periodoDoFator(undefined).janela, 'semanas')
+  const mensal = periodoDoFator('MENSAL')
+  assert.equal(mensal.referencia('2026-07-01'), 'Mês de 07/2026')
+  assert.equal(mensal.data('2019-06-01'), '06/2019')
+  assert.equal(mensal.janela, 'meses')
 })
 
 test('parametrosAlterados e descreverOrigemParametros', () => {

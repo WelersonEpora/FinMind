@@ -310,22 +310,28 @@ const DEFINICOES = [
       fonte: "ANP, EIA, IEA"
     },
     dados: {
-      observaveis: ["PETROLEO_PRODUCAO_ANP", "PETROLEO_PRODUCAO_JODI", "PETROLEO_FLUXOS_EIA"],
+      observaveis: ["PETROLEO_PRODUCAO_ANP", "PETROLEO_PRODUCAO_JODI"],
       eventos: false,
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente para medir a oferta de Brasil, Noruega e Canadá (~10,7 milhões de barris/dia em jul/2026), mensal, desde 2002. No histórico do FinMind (2010 a 2026), o crescimento anual destes três não antecipa o preço (perto de zero com o WTI 6 e 12 meses depois, contando os ~2 meses até a divulgação): mede a situação da oferta, como a demanda. A relação com o preço aparece nos EUA (-0,39), que têm fator próprio. A oferta dos três cresceu na maior parte do período (pré-sal e areias betuminosas): com a faixa padrão, o fator fica em pressão de baixa em cerca de metade dos meses."
+      },
       lacunas: [
-        "A Guiana não reporta ao JODI.",
-        "O Brasil para no JODI em dez/2022: o Brasil vem da ANP (em m³, por UF)."
+        "A Guiana, que o especialista cita e é a produção que mais cresce, não reporta a nenhuma fonte coletada.",
+        "O Brasil para no JODI em dez/2022: vem da ANP, em m³ por mês e por UF, convertido pelo FinMind em barris/dia.",
+        "Mensal, com ~2 meses de atraso (JODI); o mês só entra com os três países."
       ]
     },
     proposta: {
-      objetivo: "Medir o crescimento da oferta fora da OPEP+, nos produtores citados pelo especialista.",
-      medida: "Produção do Brasil (ANP), da Noruega (JODI) e dos EUA (EIA), cada uma com a variação anual.",
-      comparacao: "O mesmo mês do ano anterior.",
-      leitura: "Crescimento forte da oferta não-OPEP pressiona para baixo; queda, para cima (a direção indicada pelo especialista)."
+      objetivo: "Medir o crescimento da oferta fora da OPEP+, nos produtores citados pelo especialista e no Canadá.",
+      medida: "Produção somada de Brasil (ANP), Noruega e Canadá (JODI), em mil barris/dia, na média de 3 meses. O Canadá, fora do FEL 1, entrou por decisão do usuário (4º produtor do mundo); os EUA ficaram de fora, por decisão do usuário, porque já são o fator de produção dos EUA.",
+      comparacao: "A média dos mesmos 3 meses do ano anterior: o crescimento anual, em %.",
+      leitura: "Oferta crescendo além de uma faixa (padrão: 3% no ano) pressiona o petróleo para baixo; encolhendo, favorece (pressão de alta). Intensidade forte a partir de 7%. Tendência: se o crescimento mudou 2 p.p. ou mais em 3 meses, a oferta está acelerando ou desacelerando. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
     perguntas: [
-      "Os EUA entram aqui ou só no fator de produção dos EUA (para não contar duas vezes)?",
-      "Os países são lidos um a um ou somados num bloco?"
+      "Os países são lidos um a um ou somados num bloco? A proposta soma Brasil, Noruega e Canadá.",
+      "O fator mede a situação (não antecipa o preço, como a demanda): serve assim, ou a oferta não-OPEP só importa quando surpreende (o que exigiria a projeção da IEA ou da EIA, não coletada)?"
     ]
   }
 ];

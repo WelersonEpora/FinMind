@@ -103,28 +103,28 @@ watch(ativo, carregar, { immediate: true })
           </div>
 
           <template v-else>
-            <div class="alert alert-warning small">
-              <strong>Proposta para validação do especialista.</strong>
-              Os fatores, o peso, a direção e o mecanismo são do especialista. A forma de medir, ler e decidir cada fator
-              é do FinMind, para abrir a conversa: ainda não alimenta o Centro de Decisão nem a IA.
-            </div>
+            <h2 class="metodologia-ativo__secao-titulo">Fatores</h2>
 
             <div class="metodologia-ativo__cards">
               <article v-for="(fator, index) in metodologia.fatores" :key="fator.codigo" class="metodologia-ativo__card">
+                <!-- Como na barra do modal: o nome e, logo depois, o peso; o botão de detalhes à direita. -->
                 <div class="metodologia-ativo__card-topo">
-                  <span class="metodologia-ativo__numero">#{{ index + 1 }}</span>
-                  <span
-                    class="metodologia-ativo__badge"
-                    :class="{
-                      'metodologia-ativo__badge--alto': fator.peso === 'Alto',
-                      'metodologia-ativo__badge--medio': fator.peso === 'Médio'
-                    }"
-                  >
-                    {{ fator.peso }}
-                  </span>
+                  <div class="metodologia-ativo__card-titulo-grupo">
+                    <h2 class="metodologia-ativo__card-titulo">{{ index + 1 }} - {{ fator.nome }}</h2>
+                    <span
+                      class="metodologia-ativo__badge"
+                      :class="{
+                        'metodologia-ativo__badge--alto': fator.peso === 'Alto',
+                        'metodologia-ativo__badge--medio': fator.peso === 'Médio'
+                      }"
+                    >
+                      Peso {{ fator.peso }}
+                    </span>
+                  </div>
+                  <button type="button" class="btn btn-outline-primary btn-sm metodologia-ativo__botao" @click="abrirFator(fator)">
+                    Detalhes
+                  </button>
                 </div>
-
-                <h2 class="metodologia-ativo__card-titulo">{{ fator.nome }}</h2>
                 <p class="metodologia-ativo__objetivo">{{ fator.fel1.direcao }}</p>
 
                 <div class="metodologia-ativo__marcas">
@@ -138,11 +138,13 @@ watch(ativo, carregar, { immediate: true })
                   </span>
                   <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> Proposta calculada</span>
                 </div>
-
-                <button type="button" class="btn btn-outline-primary btn-sm metodologia-ativo__botao" @click="abrirFator(fator)">
-                  Ver fator
-                </button>
               </article>
+            </div>
+
+            <div class="alert alert-warning small metodologia-ativo__aviso">
+              <strong>Proposta para validação do especialista.</strong>
+              Os fatores, o peso, a direção e o mecanismo são do especialista. A forma de medir, ler e decidir cada fator
+              é do FinMind, para abrir a conversa: ainda não alimenta o Centro de Decisão nem a IA.
             </div>
           </template>
         </div>
@@ -286,6 +288,16 @@ watch(ativo, carregar, { immediate: true })
   transition: opacity 0.15s;
 }
 
+.metodologia-ativo__secao-titulo {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.metodologia-ativo__aviso {
+  margin: 1rem 0 0;
+}
+
 .metodologia-ativo__conteudo--atualizando {
   opacity: 0.55;
   pointer-events: none;
@@ -293,8 +305,15 @@ watch(ativo, carregar, { immediate: true })
 
 .metodologia-ativo__cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+/* Tela estreita: um card por linha. */
+@media (max-width: 900px) {
+  .metodologia-ativo__cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .metodologia-ativo__card {
@@ -309,15 +328,17 @@ watch(ativo, carregar, { immediate: true })
 
 .metodologia-ativo__card-topo {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  gap: 0.75rem;
 }
 
-.metodologia-ativo__numero {
-  font-size: 0.75rem;
-  color: var(--p-text-muted-color);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+.metodologia-ativo__card-titulo-grupo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  min-width: 0;
 }
 
 .metodologia-ativo__badge {
@@ -357,9 +378,14 @@ watch(ativo, carregar, { immediate: true })
   gap: 0.35rem 0.75rem;
 }
 
+/* Mais alto que o título de uma linha: as margens negativas evitam que ele afaste a descrição do título. */
 .metodologia-ativo__botao {
-  margin-top: auto;
-  align-self: flex-start;
+  flex-shrink: 0;
+  margin: -0.3rem 0 -0.4rem;
+}
+
+.metodologia-ativo__card-topo + .metodologia-ativo__objetivo {
+  margin-top: -0.25rem;
 }
 
 .metodologia-ativo__modal-backdrop {

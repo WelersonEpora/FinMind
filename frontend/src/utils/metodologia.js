@@ -61,6 +61,24 @@ export function linhaSecundaria(ponto, quadro) {
   return [s.prefixo, formatarQuadro(ponto?.[s.campo], s), s.sufixo].filter(Boolean).join(' ')
 }
 
+// O período de um ponto do fator, pela periodicidade do cálculo: a semana (padrão) ou o mês num fator mensal.
+const PERIODOS_DO_FATOR = {
+  SEMANAL: { unidade: 'Semana', janela: 'semanas', referencia: (iso) => `Semana encerrada em ${dataBrCompleta(iso)}`, data: dataBrCompleta },
+  MENSAL: { unidade: 'Mês', janela: 'meses', referencia: (iso) => `Mês de ${mesAno(iso)}`, data: mesAno }
+}
+
+function dataBrCompleta(iso) {
+  return iso ? iso.split('-').reverse().join('/') : '-'
+}
+
+function mesAno(iso) {
+  return iso ? iso.slice(0, 7).split('-').reverse().join('/') : '-'
+}
+
+export function periodoDoFator(periodicidade) {
+  return PERIODOS_DO_FATOR[periodicidade] || PERIODOS_DO_FATOR.SEMANAL
+}
+
 export function parametrosAlterados(parametros, padrao) {
   return Object.keys(padrao || {}).some((chave) => Number(parametros?.[chave]) !== Number(padrao[chave]))
 }

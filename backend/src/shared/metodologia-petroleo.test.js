@@ -85,11 +85,11 @@ test("a API devolve o observável com o nome do card", () => {
   assert.deepEqual(estoques.dados.observaveis, [{ codigo: "PETROLEO_ESTOQUES_EIA", nome: "Petróleo EUA - estoques (EIA)" }]);
 });
 
-test("os fatores de estoques, demanda, dólar, produção, juros, fundos e refino saem marcados como calculados; os demais não", () => {
+test("os fatores de estoques, demanda, dólar, produção, juros, fundos, refino e oferta não-OPEP saem marcados como calculados; os demais não", () => {
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
   assert.deepEqual(
     metodologia.fatores.filter((fator) => fator.calculado).map((fator) => fator.codigo),
-    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_JUROS", "PETROLEO_FUNDOS", "PETROLEO_REFINO"]
+    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_JUROS", "PETROLEO_FUNDOS", "PETROLEO_REFINO", "PETROLEO_OFERTA_NAO_OPEP"]
   );
 });
 
@@ -102,8 +102,22 @@ const LINHAS_SINTETICAS = {
   PETROLEO_REFINO: { gerar: diasDePrecos },
   PETROLEO_DOLAR: { gerar: diasDoDolar },
   PETROLEO_FUNDOS: { gerar: semanasDoCot },
-  PETROLEO_JUROS: { gerar: diasDosJuros }
+  PETROLEO_JUROS: { gerar: diasDosJuros },
+  PETROLEO_OFERTA_NAO_OPEP: { gerar: mesesDaOferta }
 };
+
+// A oferta não-OPEP lê o Brasil da ANP (m³ por UF) e Noruega e Canadá do JODI, mensais: 3 anos.
+function mesesDaOferta() {
+  const linhas = [];
+  const linha = (serie, observedAt, value) => ({ seriesCode: serie, observedAt, value, publishedAt: new Date(), publishedAtIsEstimated: true });
+  for (let i = 0; i < 36; i += 1) {
+    const observedAt = new Date(Date.UTC(2023, i, 1)).toISOString().slice(0, 10);
+    linhas.push(linha("ANP.PETROLEO_PRODUCAO.RJ.MAR", observedAt, 15000000 + i * 50000));
+    linhas.push(linha("JODI.PETROLEO_PRODUCAO.NO.PRODUCAO", observedAt, 1800 + (i % 5) * 10));
+    linhas.push(linha("JODI.PETROLEO_PRODUCAO.CA.PRODUCAO", observedAt, 4000 + i * 5));
+  }
+  return linhas;
+}
 
 // Os juros leem o Treasury de 10 anos e a meta do Fed, diários: 2 anos de dias úteis.
 function diasDosJuros() {

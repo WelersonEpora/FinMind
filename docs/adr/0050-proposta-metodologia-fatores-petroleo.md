@@ -151,7 +151,19 @@ Centro de Decisão nem a IA e não gera sinal.
     subindo é pressão de baixa, a direção do FEL 1. Padrões: faixa de 0,5 p.p., forte a partir de 1 p.p. (percentis
     ~60 e acima de 80), 4 semanas e 0,25 p.p. (mediana ~0,19). Com ele, a explicação da decisão por faixa mostra o
     limiar com duas casas quando ele tem (0,25 não vira "0,3").
-15. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
+15. **Oitavo fator calculado: oferta não-OPEP, o primeiro mensal** (2026-10-03). A produção somada de Brasil (ANP,
+    m³ por UF, convertida em mil barris/dia: × 6,28981 ÷ dias do mês ÷ 1.000), Noruega e Canadá (JODI), na média de 3
+    meses, contra os mesmos 3 meses do ano anterior. **Por decisão do usuário:** os EUA ficaram de fora (já são o
+    fator de produção dos EUA; contariam duas vezes) e o Canadá entrou, embora fora do FEL 1 (4º produtor do mundo,
+    dado completo no JODI). A Guiana não reporta a nenhuma fonte coletada. O mês só entra com os três países. No
+    histórico (2010 a 2026), o crescimento destes três não antecipa o preço (perto de zero com o WTI 6 e 12 meses
+    depois, contando os ~2 meses até a divulgação): mede a situação, como a demanda; a relação aparece nos EUA. Como
+    a oferta deles cresceu quase sempre (pré-sal, areias betuminosas), o fator fica em pressão de baixa em cerca de
+    metade dos meses. Padrões: faixa de 3%, forte a partir de 7% (percentis ~40 e ~80), 3 meses e 2 p.p. (mediana
+    ~1,9). Com ele, a decisão por faixa e a tela aceitam um fator mensal: a janela da tendência é em meses (a chave
+    continua `semanasTendencia`, a das versões gravadas) e os textos de período ("Mês de 07/2026", "meses antes")
+    seguem a `periodicidade` do cálculo.
+16. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
    marcadas.
 
 ## Consequências

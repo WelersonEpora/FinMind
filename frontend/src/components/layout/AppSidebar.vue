@@ -17,6 +17,7 @@ const workspaces = useWorkspaceStore()
 
 const links = [
   { to: '/', label: 'Centro de Decisão', icon: 'bi-compass' },
+  { to: '/dados-mercado/metodologia', label: 'Metodologia do Ativo', icon: 'bi-diagram-3' },
   { to: '/como-funciona', label: 'Como funciona', icon: 'bi-question-circle' }
 ]
 
@@ -25,8 +26,7 @@ const links = [
 const dadosMercadoLinks = [
   { to: '/dados-mercado/observaveis', label: 'Observáveis', icon: 'bi-database' },
   { to: '/dados-mercado/eventos', label: 'Eventos', icon: 'bi-globe2' },
-  { to: '/dados-mercado/execucoes', label: 'Execuções', icon: 'bi-arrow-repeat' },
-  { to: '/dados-mercado/metodologia', label: 'Metodologia do Ativo', icon: 'bi-diagram-3' }
+  { to: '/dados-mercado/execucoes', label: 'Execuções', icon: 'bi-arrow-repeat' }
 ]
 
 // Grupo "Espaço": o seletor do espaço ativo (único lugar que mostra o nome

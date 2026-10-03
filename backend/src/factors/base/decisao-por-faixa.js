@@ -18,11 +18,13 @@ const TENDENCIA = { SUBINDO: "SUBINDO", CAINDO: "CAINDO", ESTAVEL: "ESTAVEL" };
 // Os parâmetros que a decisão por faixa recebe, com o texto da tela (a tela não conhece o fator: desenha esta lista).
 // Os limiares estão na unidade da medida do fator: % na maioria; US$/barril no refino. As chaves terminam em "Pct" e
 // "Pp" por história (os primeiros fatores eram em %) e ficam assim: são as chaves das versões já gravadas no banco.
-function parametrosFaixa({ unidade = "%", unidadeMudanca = "p.p." } = {}) {
+// `janela`: a unidade da janela da tendência, "semanas" (padrão) ou "meses" num fator mensal (a chave continua
+// `semanasTendencia`).
+function parametrosFaixa({ unidade = "%", unidadeMudanca = "p.p.", janela = "semanas" } = {}) {
   return [
     { chave: "limiarModeradoPct", rotulo: "Faixa neutra", unidade, explicacao: "Até onde, para cima ou para baixo, a medida é considerada normal (sem pressão)." },
     { chave: "limiarFortePct", rotulo: "Limiar de intensidade forte", unidade, explicacao: "A partir desse valor a pressão é forte; entre a faixa neutra e ele, moderada." },
-    { chave: "semanasTendencia", rotulo: "Janela da tendência", unidade: "semanas", explicacao: "Contra quantas semanas atrás a medida é comparada para dizer se está mudando." },
+    { chave: "semanasTendencia", rotulo: "Janela da tendência", unidade: janela, explicacao: `Contra quantas ${janela} atrás a medida é comparada para dizer se está mudando.` },
     { chave: "limiarTendenciaPp", rotulo: "Mudança mínima da tendência", unidade: unidadeMudanca, explicacao: "Quanto a medida precisa mudar na janela para não ser considerada estável." }
   ];
 }
@@ -78,6 +80,7 @@ const fmtLimiar = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 1, m
 //   subindo / caindo     - o que a tendência significa ("o estoque está indo para cima do normal")
 //   rotulosTendencia     - { SUBINDO, CAINDO, ESTAVEL }
 //   unidade, unidadeMudanca (opcionais) - da medida e da mudança dela: "%" e "p.p." por padrão; " US$/barril" no refino
+//   janela (opcional)    - a unidade da janela da tendência: "semanas" por padrão; "meses" num fator mensal
 function explicarPorFaixa(ponto, parametros, textos) {
   const d = ponto?.decisao;
   if (!d) return [];
@@ -85,6 +88,7 @@ function explicarPorFaixa(ponto, parametros, textos) {
   const { limiarModeradoPct: mod, limiarFortePct: forte, semanasTendencia: semanas, limiarTendenciaPp: tend } = parametros;
   const u = textos.unidade ?? "%";
   const um = textos.unidadeMudanca ?? " p.p.";
+  const janela = textos.janela ?? "semanas";
   const v = `${comSinal(valor)}${u}`;
   const passos = [textos.primeiroPasso(ponto)];
 
@@ -99,9 +103,9 @@ function explicarPorFaixa(ponto, parametros, textos) {
 
   const r = textos.rotulosTendencia;
   if (d.tendencia === null) {
-    passos.push(`Tendência: sem ${textos.nomeValor} de ${semanas} semanas antes, não calculada.`);
+    passos.push(`Tendência: sem ${textos.nomeValor} de ${semanas} ${janela} antes, não calculada.`);
   } else {
-    const base = `Tendência: há ${semanas} semanas ${textos.nomeValor} era ${comSinal(valor - d.mudancaPp)}${u}; mudou ${comSinal(d.mudancaPp)}${um}`;
+    const base = `Tendência: há ${semanas} ${janela} ${textos.nomeValor} era ${comSinal(valor - d.mudancaPp)}${u}; mudou ${comSinal(d.mudancaPp)}${um}`;
     if (d.tendencia === TENDENCIA.ESTAVEL) passos.push(`${base}, menos que ${fmtLimiar(tend)}${um} → ${r.ESTAVEL}.`);
     else if (d.tendencia === TENDENCIA.CAINDO) passos.push(`${base}: caiu ${fmtLimiar(tend)}${um} ou mais, ${textos.caindo} → ${r.CAINDO}.`);
     else passos.push(`${base}: subiu ${fmtLimiar(tend)}${um} ou mais, ${textos.subindo} → ${r.SUBINDO}.`);
