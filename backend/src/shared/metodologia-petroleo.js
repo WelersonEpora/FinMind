@@ -150,19 +150,27 @@ const DEFINICOES = [
       fonte: "US Treasury"
     },
     dados: {
-      observaveis: ["CAMBIO_DXY_FED", "DOLAR_AMPLO_FED"],
+      observaveis: ["DOLAR_AMPLO_FED", "CAMBIO_DXY_FED"],
       eventos: false,
-      lacunas: ["O DXY oficial (ICE) é licenciado e não é coletado; o FinMind tem as moedas da cesta e o índice amplo do Fed."]
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente: o índice do Fed contra as moedas das economias avançadas é o mais próximo do DXY que o FEL 1 cita. No histórico do FinMind (2006 a 2026), o dólar é o fator com a relação mais forte com o preço do petróleo: o desvio do dólar contra a média das 52 semanas anteriores tem correlação de -0,56 com a variação do WTI dos 6 meses anteriores (andam juntos, em sentidos opostos: a \"correlação inversa\" do FEL 1) e de -0,37 com o WTI 26 semanas depois, desde 2015 (dólar forte antecede petróleo mais fraco). Exemplos: dólar 15,6% acima do normal em out/2008 e 8,4% em dez/2014, nas duas grandes quedas do petróleo."
+      },
+      lacunas: [
+        "O DXY oficial (ICE) é licenciado e não é coletado; o índice do Fed das economias avançadas é o substituto (mesmas moedas principais, pesos diferentes).",
+        "O Fed divulga os índices em lote semanal (segundas): a última semana pode estar incompleta."
+      ]
     },
     proposta: {
-      objetivo: "Medir a força do dólar, que encarece o petróleo para quem compra em outra moeda.",
-      medida: "Índice amplo do dólar do Fed e a variação em 1 e 3 meses.",
-      comparacao: "A própria tendência (variação em 3 meses).",
-      leitura: "Dólar subindo pressiona para baixo; dólar caindo, para cima (a direção do FEL 1)."
+      objetivo: "Medir se o dólar está forte ou fraco em relação ao normal recente, o que encarece ou barateia o petróleo para quem compra em outra moeda.",
+      medida: "Índice do dólar do Fed contra as economias avançadas, na média da semana; a variação em 13 semanas como contexto.",
+      comparacao: "A média das 52 semanas anteriores (o normal recente do dólar).",
+      leitura: "Dólar acima do normal além de uma faixa (padrão: 2%) pressiona o petróleo para baixo; abaixo, favorece (pressão de alta). Intensidade forte a partir de 5%. Tendência: se o desvio mudou 1,5 p.p. ou mais em 4 semanas, o dólar está se fortalecendo ou se enfraquecendo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
     perguntas: [
-      "O índice amplo do Fed serve no lugar do DXY, ou é preciso remontar o DXY pelas moedas da cesta?",
-      "O dólar é um fator próprio ou só confirma os outros?"
+      "O índice do Fed das economias avançadas serve no lugar do DXY? O índice amplo (26 moedas) também é coletado e anda ainda mais junto com o petróleo (-0,63), mas antecipa um pouco menos.",
+      "O dólar é um fator próprio (como no FEL 1, peso Médio) ou um filtro que confirma os outros?"
     ]
   },
   {

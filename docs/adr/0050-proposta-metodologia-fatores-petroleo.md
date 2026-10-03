@@ -124,7 +124,15 @@ Centro de Decisão nem a IA e não gera sinal.
     4º fator, a média da mesma semana em 5 anos virou o núcleo `factors/base/mesma-semana-5-anos.js` (estoques e
     refino), e a decisão por faixa aceita a unidade da medida (% ou US$/barril) na explicação, nos parâmetros e no
     gráfico; as chaves dos parâmetros continuam terminando em "Pct" e "Pp" (são as das versões já gravadas).
-12. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
+12. **Quinto fator calculado: dólar** (2026-10-03). O índice do Fed contra as moedas das economias avançadas
+    (DTWEXAFEGS), o mais próximo do DXY que o FEL 1 cita (o DXY da ICE é licenciado), na média da semana, contra a
+    média das 52 semanas anteriores (o normal recente). É o fator com a relação mais forte com o preço: o desvio tem
+    -0,56 com a variação do WTI dos 6 meses anteriores e -0,37 com o WTI 26 semanas depois, desde 2015 (o índice
+    amplo, também coletado, anda ainda mais junto, -0,63, mas antecipa um pouco menos: pergunta ao David). Dólar
+    acima do normal é pressão de baixa. Padrões: faixa de 2%, forte a partir de 5%, 4 semanas e 1,5 p.p. A média
+    semanal de uma série diária (sábado a sexta) virou o núcleo `factors/base/semana-de-dias.js`, usado pelo
+    refino e pelo dólar.
+13. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
    marcadas.
 
 ## Consequências

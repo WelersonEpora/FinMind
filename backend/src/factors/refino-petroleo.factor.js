@@ -3,6 +3,7 @@
 const pointInTimeService = require("../services/point-in-time.service");
 const faixa = require("./base/decisao-por-faixa");
 const { mediaMesmaSemana, DIAS_SEMANA } = require("./base/mesma-semana-5-anos");
+const { somarDias, sextaDaSemana } = require("./base/semana-de-dias");
 
 // FATOR (PROPOSTA, ADR 0050): margem de refino, fator "Refino e margens (crack spreads)" do FEL 1. Mesmo molde dos
 // outros: camadas A e B calculadas, C simulada pela decisão por faixa com parâmetros que o Comitê ajusta; o peso é o
@@ -54,18 +55,6 @@ const PARAMETROS_PADRAO = Object.freeze({
 const ACIMA_PRESSIONA = faixa.DIRECAO.ALTA;
 const ROTULOS_TENDENCIA = { SUBINDO: "Margem subindo", CAINDO: "Margem caindo", ESTAVEL: "Estável" };
 const UNIDADE = " US$/barril";
-
-function somarDias(dataIso, dias) {
-  const d = new Date(`${dataIso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + dias);
-  return d.toISOString().slice(0, 10);
-}
-
-// A sexta da semana (sábado a sexta) de um dia.
-function sextaDaSemana(dataIso) {
-  const diaDaSemana = new Date(`${dataIso}T00:00:00Z`).getUTCDay();
-  return somarDias(dataIso, (5 - diaDaSemana + 7) % 7);
-}
 
 function arredondar(n, casas) {
   const f = 10 ** casas;

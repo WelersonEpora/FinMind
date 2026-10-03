@@ -85,11 +85,11 @@ test("a API devolve o observável com o nome do card", () => {
   assert.deepEqual(estoques.dados.observaveis, [{ codigo: "PETROLEO_ESTOQUES_EIA", nome: "Petróleo EUA - estoques (EIA)" }]);
 });
 
-test("os fatores de estoques, demanda, produção e refino saem marcados como calculados; os demais não", () => {
+test("os fatores de estoques, demanda, dólar, produção e refino saem marcados como calculados; os demais não", () => {
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
   assert.deepEqual(
     metodologia.fatores.filter((fator) => fator.calculado).map((fator) => fator.codigo),
-    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_PRODUCAO_EUA", "PETROLEO_REFINO"]
+    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_REFINO"]
   );
 });
 
@@ -99,8 +99,21 @@ const LINHAS_SINTETICAS = {
   PETROLEO_ESTOQUES_EIA: { serie: "EIA.PETROLEO_ESTOQUES.PETROLEO_SEM_SPR", base: 420000 },
   PETROLEO_PRODUCAO_EUA: { serie: "EIA.PETROLEO_FLUXOS.PRODUCAO", base: 13000 },
   PETROLEO_DEMANDA: { serie: "EIA.PETROLEO_FLUXOS.DERIVADOS_FORNECIDOS", base: 20000 },
-  PETROLEO_REFINO: { gerar: diasDePrecos }
+  PETROLEO_REFINO: { gerar: diasDePrecos },
+  PETROLEO_DOLAR: { gerar: diasDoDolar }
 };
+
+// O dólar lê o índice diário do Fed: 3 anos de dias úteis.
+function diasDoDolar() {
+  const linhas = [];
+  const inicio = Date.UTC(2020, 0, 6);
+  for (let i = 0; i < 365 * 3; i += 1) {
+    const data = new Date(inicio + i * 86400000);
+    if (data.getUTCDay() === 0 || data.getUTCDay() === 6) continue;
+    linhas.push({ seriesCode: "FRED.DTWEXAFEGS", observedAt: data.toISOString().slice(0, 10), value: 110 + (i % 40) / 10, publishedAt: new Date(), publishedAtIsEstimated: true });
+  }
+  return linhas;
+}
 
 // O refino lê preços diários (Brent, gasolina e diesel) e a utilização semanal: 7 anos de dias úteis.
 function diasDePrecos() {
