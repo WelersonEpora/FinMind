@@ -5,6 +5,7 @@ const fatorParametroRepository = require("../repositories/fator-parametro.reposi
 const { obterMetodologiaPetroleo } = require("../shared/metodologia-petroleo");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
+const { montarTextoPrompt } = require("../factors/base/texto-prompt");
 
 // Metodologia dos fatores por ativo: a proposta para o David validar (ADR 0050). Só o petróleo por enquanto.
 const METODOLOGIAS = {
@@ -26,6 +27,24 @@ const CALCULOS = {
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+// O dia de hoje em São Paulo (AAAA-MM-DD): a data das leituras de eventos e o limite de uma simulação.
+function hojeEmSaoPaulo(agora) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
+}
+
+// A data de uma simulação (AAAA-MM-DD): válida e não no futuro.
+function validarDataSimulada(data, agora) {
+  if (!DATA_ISO.test(String(data)) || Number.isNaN(Date.parse(data))) throw new ValidationError('"data" deve estar em AAAA-MM-DD.');
+  if (data > hojeEmSaoPaulo(agora)) throw new ValidationError('"data" não pode estar no futuro.');
+  return data;
+}
+
+// O fim do dia em São Paulo: o asOf de uma simulação (o que já tinha sido publicado até o fim daquele dia). Usa
+// -03:00; nos verões com horário de verão (até 2019) a diferença é de uma hora.
+function fimDoDia(data) {
+  return new Date(`${data}T23:59:59.999-03:00`);
+}
 const MOTIVO_MIN = 5;
 const MOTIVO_MAX = 500;
 const SEMANAS_TENDENCIA_MAX = 26;
@@ -118,7 +137,8 @@ function obterMetodologiaAtivo(ativo) {
 
 // `desde` (AAAA-MM-DD, opcional): a 1ª semana do cálculo; sem ele, o histórico inteiro. Sempre o que se sabe agora.
 // Os demais campos de `opcoes` são parâmetros da camada C para SIMULAR, sobre os do sistema (nada é gravado).
-async function calcularFator(ativo, codigoFator, { desde, ...opcoes } = {}, deps = {}) {
+// `data` (AAAA-MM-DD, opcional): SIMULA o fator naquela data, com o que se sabia até o fim dela (point-in-time).
+async function calcularFator(ativo, codigoFator, { desde, data, ...opcoes } = {}, deps = {}) {
   const { fator, calculo } = fatorCalculado(ativo, codigoFator);
   if (desde !== undefined && (!DATA_ISO.test(desde) || Number.isNaN(Date.parse(desde)))) {
     throw new ValidationError('"desde" deve estar em AAAA-MM-DD.');
@@ -129,11 +149,12 @@ async function calcularFator(ativo, codigoFator, { desde, ...opcoes } = {}, deps
   // O histórico inteiro (~2.300 semanas, uma consulta): os exemplos da camada C são semanas antigas; `desde` só recorta
   // o que vai para o gráfico.
   const agora = deps.agora || new Date();
-  const todos = await calculo.calcular({ asOf: agora, parametros }, deps);
+  const dataSimulada = data === undefined || data === "" ? null : validarDataSimulada(data, agora);
+  const calculados = await calculo.calcular({ asOf: dataSimulada ? fimDoDia(dataSimulada) : agora, parametros }, deps);
+  const todos = dataSimulada ? calculados.filter((ponto) => ponto.observedAt <= dataSimulada) : calculados;
   const pontos = desde ? todos.filter((ponto) => ponto.observedAt >= desde) : todos;
   const ultimo = todos.at(-1) || null;
-  return {
-    calculo: {
+  const calculoResposta = {
       fator: fator.codigo,
       factorId: calculo.factorId,
       factorVersion: calculo.factorVersion,
@@ -147,29 +168,99 @@ async function calcularFator(ativo, codigoFator, { desde, ...opcoes } = {}, deps
       unidade: calculo.apresentacao.unidade,
       periodicidade: calculo.periodicidade,
       tempoReal: false,
+      dataSimulada,
       apresentacao: calculo.apresentacao,
       // A decisão da última semana em passos, com os números dela; o peso fecha a lista (vem do FEL 1).
       explicacao: ultimo?.decisao ? [...calculo.explicar(ultimo, parametros), `Peso: ${fator.peso}, do especialista (não é calculado).`] : [],
       exemplos: calculo.exemplos(todos, parametros),
       pontos
-    }
   };
-}
-
-// O dia de hoje em São Paulo (AAAA-MM-DD): a data das leituras de eventos.
-function hojeEmSaoPaulo(agora) {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
+  // O bloco do fator para o prompt da IA do ativo, o mesmo texto que a tela mostra (ADR 0050).
+  calculoResposta.textoPrompt = montarTextoPrompt({
+    ativo: String(ativo).trim().toUpperCase(),
+    fator,
+    calculo: calculoResposta,
+    ponto: ultimo
+  });
+  return { calculo: calculoResposta };
 }
 
 // O resultado de um fator de evento (ADR 0050): os eventos aceitos da leitura diária marcados com ele, na janela do
-// fator até hoje, e o bloco pronto para o prompt da IA do ativo. Fator sem `evento` no catálogo: 404.
-async function obterEventosFator(ativo, codigoFator, deps = {}) {
+// fator até hoje (ou até `data`, numa simulação), e o bloco pronto para o prompt da IA do ativo. Fator sem `evento`
+// no catálogo: 404.
+async function obterEventosFator(ativo, codigoFator, { data } = {}, deps = {}) {
   const codigo = String(ativo || "").trim().toUpperCase();
   const fator = construtorDoAtivo(codigo)().fatores.find((item) => item.codigo === String(codigoFator || "").toUpperCase());
   if (!fator?.evento) throw new NotFoundError("Este fator não é um fator de evento.");
   const servico = deps.geopoliticaService || geopoliticaService;
-  const data = hojeEmSaoPaulo(deps.agora || new Date());
-  return { eventosFator: await servico.obterEventosDoFator(codigo, fator.codigo, data, fator.evento.janelaDias, deps) };
+  const agora = deps.agora || new Date();
+  const dia = data === undefined || data === "" ? hojeEmSaoPaulo(agora) : validarDataSimulada(data, agora);
+  return { eventosFator: await servico.obterEventosDoFator(codigo, fator.codigo, dia, fator.evento.janelaDias, deps) };
+}
+
+// --- Simulação numa data (ADR 0050) -------------------------------------------------------------------------------
+//
+// O que cada fator do ativo mostraria numa data, com o que se sabia até o fim dela, e o bloco dos fatores completo
+// (os textos de todos, na ordem do catálogo) que iria ao prompt da IA do ativo. Os parâmetros da camada C são os em
+// uso hoje. Nada é gravado.
+
+function resumoCalculado(calculo) {
+  const ultimo = calculo.pontos.at(-1) || null;
+  const { graficoC, rotulosDecisao } = calculo.apresentacao;
+  const d = ultimo?.decisao;
+  return {
+    tipo: "CALCULADO",
+    observedAt: ultimo?.observedAt ?? null,
+    periodicidade: calculo.periodicidade,
+    medida: ultimo ? { rotulo: graficoC.rotulo, valor: ultimo[graficoC.campo] ?? null, unidade: graficoC.unidade || "%" } : null,
+    decisao: d
+      ? {
+          direcao: d.direcao,
+          rotuloDirecao: rotulosDecisao.direcao[d.direcao],
+          rotuloIntensidade: rotulosDecisao.intensidade[d.intensidade],
+          rotuloTendencia: d.tendencia ? rotulosDecisao.tendencia[d.tendencia] : null
+        }
+      : null,
+    textoPrompt: calculo.textoPrompt
+  };
+}
+
+function resumoEvento(eventosFator) {
+  return {
+    tipo: "EVENTO",
+    eventos: eventosFator.eventos.length,
+    janelaDias: eventosFator.janelaDias,
+    primeiraLeitura: eventosFator.primeiraLeitura,
+    ultimaLeitura: eventosFator.ultimaLeitura ? { data: eventosFator.ultimaLeitura.data, nivel: eventosFator.ultimaLeitura.nivel } : null,
+    textoPrompt: eventosFator.contexto
+  };
+}
+
+async function simularFatores(ativo, { data } = {}, deps = {}) {
+  const codigo = String(ativo || "").trim().toUpperCase();
+  const metodologia = construtorDoAtivo(codigo)();
+  const agora = deps.agora || new Date();
+  const dia = validarDataSimulada(data, agora);
+  const fatores = await Promise.all(
+    metodologia.fatores.map(async (fator) => {
+      const base = { codigo: fator.codigo, nome: fator.nome, peso: fator.peso };
+      if (CALCULOS[fator.codigo]) {
+        const { calculo } = await calcularFator(codigo, fator.codigo, { data: dia }, deps);
+        return { ...base, ...resumoCalculado(calculo) };
+      }
+      if (fator.evento) {
+        const { eventosFator } = await obterEventosFator(codigo, fator.codigo, { data: dia }, deps);
+        return { ...base, ...resumoEvento(eventosFator) };
+      }
+      return { ...base, tipo: "SEM_PROPOSTA", textoPrompt: null };
+    })
+  );
+  const cabecalho =
+    `FATORES DO ${metodologia.nome.toUpperCase()} EM ${dia.split("-").reverse().join("/")}: o que se sabia até o fim deste ` +
+    `dia. Proposta de metodologia do FinMind: cada fator calculado traz a medida, a leitura, uma decisão sugerida com a ` +
+    `regra e a relação histórica com o preço; os fatores de evento trazem os eventos da leitura diária por IA.`;
+  const promptCompleto = [cabecalho, ...fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt)].join("\n\n");
+  return { simulacao: { ativo: codigo, data: dia, fatores, promptCompleto } };
 }
 
 // Histórico dos parâmetros do fator, da versão mais recente para a mais antiga, e os padrões do código.
@@ -208,4 +299,4 @@ async function salvarParametros(ativo, codigoFator, { parametros, motivo } = {},
   }
 }
 
-module.exports = { obterMetodologiaAtivo, calcularFator, obterEventosFator, listarParametros, salvarParametros };
+module.exports = { obterMetodologiaAtivo, calcularFator, obterEventosFator, simularFatores, listarParametros, salvarParametros };

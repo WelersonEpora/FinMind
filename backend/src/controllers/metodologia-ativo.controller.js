@@ -20,7 +20,15 @@ async function calcularFator(req, res, next) {
 
 async function obterEventosFator(req, res, next) {
   try {
-    return res.json(await metodologiaAtivoService.obterEventosFator(req.params.ativo, req.params.fator));
+    return res.json(await metodologiaAtivoService.obterEventosFator(req.params.ativo, req.params.fator, { data: req.query.data }));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function simular(req, res, next) {
+  try {
+    return res.json(await metodologiaAtivoService.simularFatores(req.params.ativo, { data: req.query.data }));
   } catch (err) {
     return next(err);
   }
@@ -43,4 +51,4 @@ async function salvarParametros(req, res, next) {
   }
 }
 
-module.exports = { detalhar, calcularFator, obterEventosFator, listarParametros, salvarParametros };
+module.exports = { detalhar, calcularFator, obterEventosFator, simular, listarParametros, salvarParametros };

@@ -178,7 +178,25 @@ Centro de Decisão nem a IA e não gera sinal.
     Limites conhecidos: a reunião da OPEP+ que só mantém as cotas pode não virar evento (o tipo "Política de oferta"
     pede decisão extraordinária); o mesmo fato pode reaparecer em dias seguintes como desdobramento. Se a falta da
     data exata ou da vigência atrapalhar, muda-se o prompt (campos de data do fato e vigência).
-17. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
+17. **O texto de cada fator para o prompt** (2026-10-03, decisão do usuário). Os fatores não decidem: são subsídio
+    para uma IA que lê os 10 juntos e tenta entender a tendência no curto, médio e longo prazo. Cada fator calculado
+    entrega um bloco de texto, montado por uma função genérica (`factors/base/texto-prompt.js`) a partir do que ele já
+    declara: o período do ponto (semana ou mês, não é tempo real), as medidas A e B como a tela as mostra, a decisão
+    sugerida (C) **com a regra e a origem dos parâmetros** (padrão, versão salva ou simulação: a margem até o limiar
+    importa) e a avaliação do dado com a relação histórica com o preço. O texto não diz que os parâmetros não foram
+    validados: a tela inteira já diz que tudo é proposta. A tela mostra o mesmo texto ("Texto exato que vai ao
+    prompt"), como nos fatores de evento: o que se vê é o que a IA recebe.
+18. **Simulação numa data** (2026-10-03, decisão do usuário). A tela escolhe uma data e mostra, em cada card, o que
+    o fator mostraria com o que se sabia até o fim dela, e o bloco dos fatores completo (os 10 textos, na ordem do
+    catálogo, com um cabeçalho) que iria ao prompt da IA do ativo (`GET /ativos/:ativo/metodologia/simulacao?data=`).
+    Os fatores calculados usam a camada point-in-time com `asOf` no fim do dia em São Paulo (-03:00; nos verões com
+    horário de verão, até 2019, a diferença é de uma hora); os de evento, a janela até a data. O cálculo e os eventos de
+    um fator também aceitam `data`, e o modal de detalhes segue a data simulada. Os parâmetros da camada C são os em uso
+    hoje (usar a versão que valia na data é possível, mas fica para depois). Data no futuro: 400. Limites do próprio
+    dado: o histórico do JODI tem a data da 1ª coleta como publicação (limite superior, ADR 0042), então numa data
+    antiga a oferta não-OPEP fica sem dado; a leitura diária de eventos começa em 2026-10-02. É a base para, no futuro,
+    testar o prompt contra o histórico.
+19. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
    marcadas.
 
 ## Consequências

@@ -79,6 +79,13 @@ export function periodoDoFator(periodicidade) {
   return PERIODOS_DO_FATOR[periodicidade] || PERIODOS_DO_FATOR.SEMANAL
 }
 
+// A medida da decisão (camada C) numa linha: sinal, duas casas e a unidade ("%" colado; as outras com espaço).
+export function formatarMedida(valor, unidade = '%') {
+  if (valor === null || valor === undefined) return '-'
+  const numero = valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return `${valor > 0 ? '+' : ''}${numero}${unidade === '%' ? '%' : ` ${unidade}`}`
+}
+
 export function parametrosAlterados(parametros, padrao) {
   return Object.keys(padrao || {}).some((chave) => Number(parametros?.[chave]) !== Number(padrao[chave]))
 }

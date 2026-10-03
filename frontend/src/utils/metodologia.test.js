@@ -9,7 +9,8 @@ import {
   linhaSecundaria,
   parametrosAlterados,
   descreverOrigemParametros,
-  periodoDoFator
+  periodoDoFator,
+  formatarMedida
 } from './metodologia.js'
 
 const PARAMS = { limiarModeradoPct: 3, limiarFortePct: 10, semanasTendencia: 4, limiarTendenciaPp: 2 }
@@ -77,4 +78,11 @@ test('parametrosAlterados e descreverOrigemParametros', () => {
     descreverOrigemParametros({ versao: 2, alteradoPor: { nome: 'Welerson' }, alteradoEm: '2026-10-02T18:00:00Z' }),
     'Versão 2, salva por Welerson em 02/10/2026'
   )
+})
+
+test('formatarMedida: sinal, duas casas e a unidade (% colado, as outras com espaço)', () => {
+  assert.equal(formatarMedida(1.862), '+1,86%')
+  assert.equal(formatarMedida(-20.3, 'pontos'), '-20,30 pontos')
+  assert.equal(formatarMedida(0.93, 'p.p.'), '+0,93 p.p.')
+  assert.equal(formatarMedida(null), '-')
 })

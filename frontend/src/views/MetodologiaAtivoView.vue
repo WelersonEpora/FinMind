@@ -5,6 +5,7 @@ import AppShell from '../components/layout/AppShell.vue'
 import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
 import CalculoFator from '../components/metodologia/CalculoFator.vue'
 import EventosFator from '../components/metodologia/EventosFator.vue'
+import ResultadoSimulacao from '../components/metodologia/ResultadoSimulacao.vue'
 import metodologiaAtivoService from '../services/metodologia-ativo.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
 
@@ -25,6 +26,59 @@ const opcoesAtivo = computed(() => (resposta.value?.ativos || []).map((a) => ({ 
 
 const ROTULO_SITUACAO = { PROPOSTA: 'Proposta, aguardando o David', VALIDADA: 'Validada pelo David' }
 
+// --- Simulação numa data (ADR 0050): o resultado de cada fator com o que se sabia até o fim dela e o prompt completo.
+function hojeLocal() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const hoje = hojeLocal()
+const dataEscolhida = ref('')
+const simulacao = ref(null)
+const simulando = ref(false)
+const erroSimulacao = ref('')
+const promptAberto = ref(false)
+const copiado = ref(false)
+
+const resultadosPorFator = computed(() => new Map((simulacao.value?.fatores || []).map((f) => [f.codigo, f])))
+
+function resultadoDoFator(codigo) {
+  return resultadosPorFator.value.get(codigo) || null
+}
+
+async function simular() {
+  if (!dataEscolhida.value) return
+  simulando.value = true
+  erroSimulacao.value = ''
+  try {
+    const { simulacao: resultado } = await metodologiaAtivoService.getSimulacao(ativo.value, dataEscolhida.value)
+    simulacao.value = resultado
+  } catch (err) {
+    erroSimulacao.value = err?.response?.data?.error?.message || 'Não foi possível simular os fatores nesta data.'
+  } finally {
+    simulando.value = false
+  }
+}
+
+function limparSimulacao() {
+  simulacao.value = null
+  dataEscolhida.value = ''
+  erroSimulacao.value = ''
+  promptAberto.value = false
+}
+
+async function copiarPrompt() {
+  try {
+    await navigator.clipboard.writeText(simulacao.value.promptCompleto)
+    copiado.value = true
+    setTimeout(() => {
+      copiado.value = false
+    }, 2000)
+  } catch (_err) {
+    erroSimulacao.value = 'Não foi possível copiar o texto: selecione e copie manualmente.'
+  }
+}
+
 function abrirFator(fator) {
   fatorSelecionado.value = fator
 }
@@ -33,13 +87,15 @@ function fecharFator() {
   fatorSelecionado.value = null
 }
 
-// Esc fecha o modal, como numa janela.
+// Esc fecha o modal aberto, como numa janela.
 function fecharComEsc(evento) {
-  if (evento.key === 'Escape') fecharFator()
+  if (evento.key !== 'Escape') return
+  if (promptAberto.value) promptAberto.value = false
+  else fecharFator()
 }
 
-watch(fatorSelecionado, (fator) => {
-  if (fator) window.addEventListener('keydown', fecharComEsc)
+watch([fatorSelecionado, promptAberto], ([fator, prompt]) => {
+  if (fator || prompt) window.addEventListener('keydown', fecharComEsc)
   else window.removeEventListener('keydown', fecharComEsc)
 })
 
@@ -59,6 +115,8 @@ async function carregar() {
   else loading.value = true
   errorMessage.value = ''
   fatorSelecionado.value = null
+  // A simulação é de um ativo: trocar de ativo volta para hoje.
+  limparSimulacao()
 
   try {
     resposta.value = await metodologiaAtivoService.getMetodologiaAtivo(ativo.value)
@@ -89,13 +147,25 @@ watch(ativo, carregar, { immediate: true })
       <template v-else>
         <div v-if="errorMessage" class="alert alert-danger small">{{ errorMessage }}</div>
 
-        <section class="metodologia-ativo__contexto">
-          <SeletorOpcao :model-value="resposta.ativo.codigo" :opcoes="opcoesAtivo" rotulo="Ativo" @update:model-value="selecionarAtivo" />
-          <p v-if="metodologia" class="metodologia-ativo__contexto-resumo">
-            {{ metodologia.fatores.length }} fatores · proposta v{{ metodologia.versao }} de
-            {{ formatarData(metodologia.dataVersao) }}
-          </p>
-        </section>
+        <div class="metodologia-ativo__topo">
+          <section class="metodologia-ativo__contexto">
+            <SeletorOpcao :model-value="resposta.ativo.codigo" :opcoes="opcoesAtivo" rotulo="Ativo" @update:model-value="selecionarAtivo" />
+          </section>
+
+          <!-- Simulação numa data: o que cada fator mostraria com o que se sabia até o fim dela. -->
+          <form v-if="metodologia" class="metodologia-ativo__simulacao" @submit.prevent="simular">
+            <label for="data-simulacao" class="metodologia-ativo__simulacao-rotulo">Simular em</label>
+            <input id="data-simulacao" v-model="dataEscolhida" type="date" class="form-control form-control-sm" :max="hoje" required />
+            <button type="submit" class="btn btn-primary btn-sm" :disabled="!dataEscolhida || simulando">
+              {{ simulando ? 'Simulando...' : 'Simular' }}
+            </button>
+            <template v-if="simulacao">
+              <button type="button" class="btn btn-outline-primary btn-sm" @click="promptAberto = true">Ver prompt completo</button>
+              <button type="button" class="btn btn-link btn-sm" @click="limparSimulacao">Voltar para hoje</button>
+            </template>
+          </form>
+        </div>
+        <div v-if="erroSimulacao" class="alert alert-danger small">{{ erroSimulacao }}</div>
 
         <div class="metodologia-ativo__conteudo" :class="{ 'metodologia-ativo__conteudo--atualizando': atualizando }">
           <div v-if="!metodologia" class="alert alert-light">
@@ -104,7 +174,17 @@ watch(ativo, carregar, { immediate: true })
           </div>
 
           <template v-else>
-            <h2 class="metodologia-ativo__secao-titulo">Fatores</h2>
+            <div class="metodologia-ativo__secao-cabecalho">
+              <h2 class="metodologia-ativo__secao-titulo">Fatores</h2>
+              <span class="metodologia-ativo__contexto-resumo">
+                {{ metodologia.fatores.length }} fatores · proposta v{{ metodologia.versao }} de {{ formatarData(metodologia.dataVersao) }}
+              </span>
+            </div>
+            <p v-if="simulacao" class="metodologia-ativo__simulando">
+              <i class="bi bi-clock-history"></i>
+              Simulando {{ formatarData(simulacao.data) }}: o que se sabia até o fim deste dia. A decisão usa os parâmetros
+              em uso hoje.
+            </p>
 
             <div class="metodologia-ativo__cards">
               <article v-for="(fator, index) in metodologia.fatores" :key="fator.codigo" class="metodologia-ativo__card">
@@ -126,7 +206,7 @@ watch(ativo, carregar, { immediate: true })
                   <p class="metodologia-ativo__objetivo">{{ fator.fel1.direcao }}</p>
 
                   <div class="metodologia-ativo__marcas">
-                    <!-- O aviso já diz que tudo é proposta: no card, só a exceção (fator validado). -->
+                    <!-- Tudo é proposta (o resumo ao lado de "Fatores" e o modal dizem): no card, só a exceção (fator validado). -->
                     <span v-if="fator.proposta.situacao === 'VALIDADA'" class="metodologia-ativo__situacao metodologia-ativo__situacao--validada">
                       {{ ROTULO_SITUACAO.VALIDADA }}
                     </span>
@@ -137,17 +217,14 @@ watch(ativo, carregar, { immediate: true })
                     <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> Proposta calculada</span>
                     <span v-if="fator.deEvento" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Fator de evento</span>
                   </div>
+
+                  <!-- O resultado do fator na data simulada, numa linha. -->
+                  <ResultadoSimulacao v-if="resultadoDoFator(fator.codigo)" :resultado="resultadoDoFator(fator.codigo)" :data="simulacao.data" />
                 </div>
                 <button type="button" class="btn btn-outline-primary btn-sm metodologia-ativo__botao" @click="abrirFator(fator)">
                   Detalhes
                 </button>
               </article>
-            </div>
-
-            <div class="alert alert-warning small metodologia-ativo__aviso">
-              <strong>Proposta para validação do especialista.</strong>
-              Os fatores, o peso, a direção e o mecanismo são do especialista. A forma de medir, ler e decidir cada fator
-              é do FinMind, para abrir a conversa: ainda não alimenta o Centro de Decisão nem a IA.
             </div>
           </template>
         </div>
@@ -235,12 +312,21 @@ watch(ativo, carregar, { immediate: true })
             </ul>
           </section>
 
+          <p v-if="simulacao" class="metodologia-ativo__simulando mb-0">
+            <i class="bi bi-clock-history"></i> Simulando {{ formatarData(simulacao.data) }}: o que se sabia até o fim deste dia.
+          </p>
           <CalculoFator
             v-if="fatorSelecionado.calculado"
             :ativo="metodologia.ativo"
             :fator="fatorSelecionado.codigo"
+            :data="simulacao?.data || ''"
           />
-          <EventosFator v-else-if="fatorSelecionado.deEvento" :ativo="metodologia.ativo" :fator="fatorSelecionado.codigo" />
+          <EventosFator
+            v-else-if="fatorSelecionado.deEvento"
+            :ativo="metodologia.ativo"
+            :fator="fatorSelecionado.codigo"
+            :data="simulacao?.data || ''"
+          />
 
           <section class="metodologia-ativo__bloco metodologia-ativo__bloco--perguntas">
             <h4>Pendências <small>o que o especialista ainda decide</small></h4>
@@ -248,6 +334,29 @@ watch(ativo, carregar, { immediate: true })
               <li v-for="pergunta in fatorSelecionado.perguntas" :key="pergunta">{{ pergunta }}</li>
             </ol>
           </section>
+        </div>
+      </div>
+    </div>
+    <!-- O bloco dos fatores completo na data simulada: o que iria ao prompt da IA do ativo. -->
+    <div v-if="promptAberto && simulacao" class="metodologia-ativo__modal-backdrop" @click.self="promptAberto = false">
+      <div class="metodologia-ativo__modal" role="dialog" aria-modal="true" aria-labelledby="prompt-titulo">
+        <div class="metodologia-ativo__modal-header">
+          <div class="metodologia-ativo__modal-titulo">
+            <h3 id="prompt-titulo">Prompt completo dos fatores</h3>
+            <span class="metodologia-ativo__simulacao-data">{{ formatarData(simulacao.data) }}</span>
+          </div>
+          <button type="button" class="metodologia-ativo__fechar" aria-label="Fechar" title="Fechar" @click="promptAberto = false">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="metodologia-ativo__modal-body">
+          <div class="metodologia-ativo__prompt-acoes">
+            <span class="text-muted small">{{ simulacao.promptCompleto.length.toLocaleString('pt-BR') }} caracteres</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @click="copiarPrompt">
+              <i class="bi" :class="copiado ? 'bi-check2' : 'bi-clipboard'"></i> {{ copiado ? 'Copiado' : 'Copiar' }}
+            </button>
+          </div>
+          <pre class="metodologia-ativo__prompt">{{ simulacao.promptCompleto }}</pre>
         </div>
       </div>
     </div>
@@ -296,18 +405,103 @@ watch(ativo, carregar, { immediate: true })
   font-size: 0.85rem;
 }
 
+/* O card do ativo e o da simulação lado a lado; em tela estreita, um abaixo do outro. */
+.metodologia-ativo__topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* O card do ativo ocupa 1/3 da largura e o da simulação, os outros 2/3 (descontado o vão entre eles); em tela estreita,
+   cada um ocupa a linha toda. */
+.metodologia-ativo__topo .metodologia-ativo__contexto {
+  flex: 0 0 calc((100% - 2rem) / 3);
+  min-width: 0;
+}
+
+.metodologia-ativo__topo .metodologia-ativo__simulacao {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .metodologia-ativo__topo .metodologia-ativo__contexto,
+  .metodologia-ativo__topo .metodologia-ativo__simulacao {
+    flex-basis: 100%;
+  }
+}
+
+.metodologia-ativo__simulacao {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--p-surface-300);
+  border-radius: 16px;
+  background: var(--p-content-background);
+}
+
+.metodologia-ativo__simulacao input {
+  width: auto;
+}
+
+.metodologia-ativo__simulacao-rotulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.metodologia-ativo__simulando {
+  margin: -0.25rem 0 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(17, 102, 255, 0.07);
+  color: #0d4fc4;
+  font-size: 0.85rem;
+}
+
+.metodologia-ativo__simulacao-data {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(17, 102, 255, 0.1);
+  color: #0d4fc4;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.metodologia-ativo__prompt-acoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.metodologia-ativo__prompt {
+  margin: 0;
+  padding: 0.85rem;
+  white-space: pre-wrap;
+  border-radius: 8px;
+  background: rgba(19, 33, 59, 0.05);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .metodologia-ativo__conteudo {
   transition: opacity 0.15s;
 }
 
-.metodologia-ativo__secao-titulo {
-  margin: 0 0 0.75rem;
-  font-size: 1.1rem;
-  font-weight: 600;
+.metodologia-ativo__secao-cabecalho {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
-.metodologia-ativo__aviso {
-  margin: 1rem 0 0;
+.metodologia-ativo__secao-titulo {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .metodologia-ativo__conteudo--atualizando {

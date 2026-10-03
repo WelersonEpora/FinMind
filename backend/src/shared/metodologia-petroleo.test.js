@@ -12,7 +12,7 @@ const assert = require("node:assert/strict");
 const { FATORES } = require("./fatores-fel1");
 const { SITUACAO, obterMetodologiaPetroleo } = require("./metodologia-petroleo");
 const { buscarNoCatalogo } = require("../services/observaveis.service");
-const { obterMetodologiaAtivo, calcularFator, obterEventosFator, listarParametros, salvarParametros } = require("../services/metodologia-ativo.service");
+const { obterMetodologiaAtivo, calcularFator, obterEventosFator, simularFatores, listarParametros, salvarParametros } = require("../services/metodologia-ativo.service");
 const { PARAMETROS_PADRAO } = require("../factors/estoques-petroleo-eia.factor");
 
 // Repositório de parâmetros em memória: as versões gravadas, a maior é a vigente.
@@ -210,6 +210,10 @@ for (const codigo of Object.keys(LINHAS_SINTETICAS)) {
     assert.match(calculo.explicacao.at(-1), /do especialista/);
     assert.ok(apresentacao.rotulosDecisao.tendencia[ultimo.decisao.tendencia ?? "ESTAVEL"]);
     assert.ok(calculo.exemplos.episodios.length > 0 && calculo.exemplos.cenarios.every((c) => c.decisao));
+    // O bloco do prompt: o fator, a decisão e a regra; nenhum quadro sem valor vira "undefined".
+    assert.match(calculo.textoPrompt, /^FATOR — .* — PETRÓLEO \(peso (Alto|Médio)\)\n/);
+    assert.match(calculo.textoPrompt, /Decisão sugerida \(C\): .*\nRegra \(parâmetros padrão do FinMind\): neutra entre/);
+    assert.doesNotMatch(calculo.textoPrompt, /undefined|NaN/);
   });
 }
 
@@ -313,8 +317,37 @@ test("o resultado de um fator de evento são os eventos dele na janela do fator 
     }
   };
   // 02h UTC de 04/10 ainda é 03/10 em São Paulo.
-  const { eventosFator } = await obterEventosFator("petroleo", "petroleo_opep", { geopoliticaService, agora: new Date("2026-10-04T02:00:00Z") });
+  const { eventosFator } = await obterEventosFator("petroleo", "petroleo_opep", {}, { geopoliticaService, agora: new Date("2026-10-04T02:00:00Z") });
   assert.deepEqual(pedido, ["PETROLEO", "PETROLEO_OPEP", "2026-10-03", 45]);
   assert.equal(eventosFator.contexto, "EVENTOS DO FATOR");
-  await assert.rejects(obterEventosFator("PETROLEO", "PETROLEO_DOLAR", { geopoliticaService }), (err) => err.statusCode === 404);
+  await assert.rejects(obterEventosFator("PETROLEO", "PETROLEO_DOLAR", {}, { geopoliticaService }), (err) => err.statusCode === 404);
+});
+
+test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na janela dela) e o bloco completo", async () => {
+  let asOf;
+  const pointInTimeService = { obterAsOf: async (args) => { asOf = args.asOf; return []; } };
+  const datasEventos = [];
+  const geopoliticaService = {
+    async obterEventosDoFator(ativo, fator, data, janela) {
+      datasEventos.push(data);
+      return { eventos: [], janelaDias: janela, primeiraLeitura: null, ultimaLeitura: null, contexto: `EVENTOS DO FATOR ${fator}` };
+    }
+  };
+  const deps = { pointInTimeService, geopoliticaService, fatorParametroRepository: repoFalso(), agora: new Date("2026-10-03T12:00:00Z") };
+  const { simulacao } = await simularFatores("petroleo", { data: "2022-03-15" }, deps);
+  assert.equal(simulacao.data, "2022-03-15");
+  assert.equal(asOf.toISOString(), "2022-03-16T02:59:59.999Z");
+  assert.deepEqual([...new Set(datasEventos)], ["2022-03-15"]);
+  assert.equal(simulacao.fatores.length, 10);
+  assert.deepEqual(simulacao.fatores.filter((f) => f.tipo === "EVENTO").map((f) => f.codigo), ["PETROLEO_OPEP", "PETROLEO_GEOPOLITICA"]);
+  assert.ok(simulacao.fatores.filter((f) => f.tipo === "CALCULADO").every((f) => f.medida === null && f.textoPrompt.startsWith("FATOR — ")));
+  assert.match(simulacao.promptCompleto, /^FATORES DO PETRÓLEO EM 15\/03\/2022: o que se sabia até o fim deste dia\./);
+  assert.match(simulacao.promptCompleto, /\n\nEVENTOS DO FATOR PETROLEO_OPEP\n\nFATOR — Estoques/);
+});
+
+test("simulação: data obrigatória, válida e não no futuro", async () => {
+  const deps = { agora: new Date("2026-10-03T12:00:00Z") };
+  await assert.rejects(simularFatores("PETROLEO", {}, deps), (err) => err.statusCode === 400);
+  await assert.rejects(simularFatores("PETROLEO", { data: "15/03/2022" }, deps), (err) => err.statusCode === 400);
+  await assert.rejects(simularFatores("PETROLEO", { data: "2026-10-04" }, deps), /futuro/);
 });

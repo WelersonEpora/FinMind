@@ -8,7 +8,9 @@ import { formatarData, nivel, pressao, rotuloFonte, rotuloGrau, rotuloTipo } fro
 // e o texto exato que vai ao prompt da IA do ativo. A regra e o texto vêm do backend; a tela só desenha.
 const props = defineProps({
   ativo: { type: String, required: true },
-  fator: { type: String, required: true }
+  fator: { type: String, required: true },
+  // AAAA-MM-DD numa simulação; vazio = hoje.
+  data: { type: String, default: '' }
 })
 
 const loading = ref(true)
@@ -19,7 +21,7 @@ async function carregar() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const { eventosFator } = await metodologiaAtivoService.getEventosFator(props.ativo, props.fator)
+    const { eventosFator } = await metodologiaAtivoService.getEventosFator(props.ativo, props.fator, { data: props.data || undefined })
     resultado.value = eventosFator
   } catch (err) {
     errorMessage.value = err?.response?.data?.error?.message || 'Não foi possível carregar os eventos deste fator.'
@@ -28,7 +30,7 @@ async function carregar() {
   }
 }
 
-watch(() => props.fator, carregar, { immediate: true })
+watch([() => props.fator, () => props.data], carregar, { immediate: true })
 
 // Só as páginas que sustentam o evento (ligadas a ele pela pesquisa), como no bloco do prompt.
 function fontesDoEvento(evento) {

@@ -10,7 +10,9 @@ import { PERIODOS_CALCULO, desdeDoPeriodo, formatarQuadro, linhaSecundaria, peri
 // os textos vêm da `apresentacao` que a API manda para cada fator. Só o que entra na conta do fator.
 const props = defineProps({
   ativo: { type: String, required: true },
-  fator: { type: String, required: true }
+  fator: { type: String, required: true },
+  // AAAA-MM-DD numa simulação (o que se sabia até o fim do dia); vazio = hoje.
+  data: { type: String, default: '' }
 })
 
 const periodo = ref('3A')
@@ -31,9 +33,10 @@ async function carregar() {
   else loading.value = true
   errorMessage.value = ''
   try {
-    const desde = desdeDoPeriodo(periodo.value, hojeLocal())
+    const desde = desdeDoPeriodo(periodo.value, props.data || hojeLocal())
     const { calculo: payload } = await metodologiaAtivoService.getCalculoFator(props.ativo, props.fator, {
       desde,
+      data: props.data || undefined,
       parametros: parametros.value
     })
     calculo.value = payload
@@ -50,7 +53,7 @@ function simular(novos) {
   carregar()
 }
 
-watch(periodo, carregar)
+watch([periodo, () => props.data], carregar)
 watch(
   () => props.fator,
   () => {
@@ -117,6 +120,12 @@ const periodoFator = computed(() => periodoDoFator(calculo.value?.periodicidade)
         {{ apresentacao.nota }} Fator {{ calculo.factorId }} v{{ calculo.factorVersion }}, calculado na hora a partir dos
         dados coletados, sem gravar nada.
       </p>
+
+      <!-- O bloco do fator para o prompt da IA do ativo, gerado no backend: o que se vê é o que a IA recebe. -->
+      <details v-if="calculo.textoPrompt" class="calculo__prompt">
+        <summary>Texto exato que vai ao prompt</summary>
+        <pre>{{ calculo.textoPrompt }}</pre>
+      </details>
     </template>
   </section>
 
@@ -214,5 +223,27 @@ const periodoFator = computed(() => periodoDoFator(calculo.value?.periodicidade)
   margin: 0.5rem 0 0;
   font-size: 0.75rem;
   color: var(--p-text-muted-color);
+}
+
+/* Mesmo visual do "Texto exato que vai ao prompt" dos fatores de evento (EventosFator.vue). */
+.calculo__prompt {
+  margin-top: 0.75rem;
+}
+
+.calculo__prompt summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.calculo__prompt pre {
+  margin: 0.5rem 0 0;
+  padding: 0.75rem;
+  max-height: 22rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  border-radius: 8px;
+  background: rgba(19, 33, 59, 0.05);
+  font-size: 0.75rem;
 }
 </style>
