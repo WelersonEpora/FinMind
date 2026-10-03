@@ -45,7 +45,7 @@ const DEFINICOES = [
       objetivo: "Medir se a oferta da OPEP+ está subindo ou caindo de fato, não só no anúncio.",
       medida: "Produção mensal somada dos membros da OPEP+ que reportam ao JODI, e a variação contra o mês anterior.",
       comparacao: "Média dos 12 meses anteriores.",
-      leitura: "Produção abaixo da referência e caindo pressiona para cima; acima e subindo, para baixo (a direção do FEL 1). O anúncio de corte ou aumento entra pelos eventos de mercado, no dia da reunião."
+      leitura: "Produção abaixo da referência e caindo pressiona para cima; acima e subindo, para baixo (a direção indicada pelo especialista). O anúncio de corte ou aumento entra pelos eventos de mercado, no dia da reunião."
     },
     perguntas: [
       "O que pesa mais: o anúncio da reunião (evento) ou a produção efetivamente bombeada (dado mensal, com ~2 meses de atraso)?",
@@ -80,7 +80,7 @@ const DEFINICOES = [
       leitura: "Estoque abaixo da média de 5 anos indica aperto (pressão de alta); acima, sobra (pressão de baixa); dentro de uma faixa neutra (padrão: 3%), sem pressão. Intensidade forte a partir de 10% de desvio. Tendência: se o desvio mudou 2 p.p. ou mais em 4 semanas, o aperto ou a sobra está aumentando ou diminuindo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
     perguntas: [
-      "O \"esperado\" do FEL 1 pode ser lido como o normal da época (a média de 5 anos), deixando de lado a reação do dia da divulgação?",
+      "O \"esperado\" da definição do fator pode ser lido como o normal da época (a média de 5 anos), deixando de lado a reação do dia da divulgação?",
       "Entram Cushing, gasolina e destilados (também coletados), ou só o petróleo sem SPR?"
     ]
   },
@@ -123,7 +123,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para a demanda dos EUA, que o fator calcula. No histórico do FinMind (desde 1990), o crescimento anual do consumo dos EUA anda junto com o preço (correlação de +0,28 com a variação do WTI dos 6 meses anteriores, desde 2010), mas não o antecipa (perto de zero com o WTI 13 ou 26 semanas depois): os dois seguem a economia. Mede a situação, como o FEL 1 descreve. A China, que o FEL 1 cita, ficou de fora: no JODI ela é \"não avaliada\" e caiu ~30% de mar a jun/2026 (de ~17.500 para ~11.700 mil barris/dia) sem explicação; a do JODI também não antecipa o preço."
+          "Suficiente para a demanda dos EUA, que o fator calcula. No histórico do FinMind (desde 1990), o crescimento anual do consumo dos EUA anda junto com o preço (correlação de +0,28 com a variação do WTI dos 6 meses anteriores, desde 2010), mas não o antecipa (perto de zero com o WTI 13 ou 26 semanas depois): os dois seguem a economia. Mede a situação, como o especialista descreve. A China, que o especialista cita, ficou de fora: no JODI ela é \"não avaliada\" e caiu ~30% de mar a jun/2026 (de ~17.500 para ~11.700 mil barris/dia) sem explicação; a do JODI também não antecipa o preço."
       },
       lacunas: [
         "A China (JODI) não entra no cálculo: dado não avaliado pelo próprio JODI, com a queda de 2026 sem explicação, e ~2 meses de atraso. Continua coletada (card do JODI).",
@@ -155,7 +155,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o índice do Fed contra as moedas das economias avançadas é o mais próximo do DXY que o FEL 1 cita. No histórico do FinMind (2006 a 2026), o dólar é o fator com a relação mais forte com o preço do petróleo: o desvio do dólar contra a média das 52 semanas anteriores tem correlação de -0,56 com a variação do WTI dos 6 meses anteriores (andam juntos, em sentidos opostos: a \"correlação inversa\" do FEL 1) e de -0,37 com o WTI 26 semanas depois, desde 2015 (dólar forte antecede petróleo mais fraco). Exemplos: dólar 15,6% acima do normal em out/2008 e 8,4% em dez/2014, nas duas grandes quedas do petróleo."
+          "Suficiente: o índice do Fed contra as moedas das economias avançadas é o mais próximo do DXY que o especialista cita. No histórico do FinMind (2006 a 2026), o dólar é o fator com a relação mais forte com o preço do petróleo: o desvio do dólar contra a média das 52 semanas anteriores tem correlação de -0,56 com a variação do WTI dos 6 meses anteriores (andam juntos, em sentidos opostos: a \"correlação inversa\" indicada pelo especialista) e de -0,37 com o WTI 26 semanas depois, desde 2015 (dólar forte antecede petróleo mais fraco). Exemplos: dólar 15,6% acima do normal em out/2008 e 8,4% em dez/2014, nas duas grandes quedas do petróleo."
       },
       lacunas: [
         "O DXY oficial (ICE) é licenciado e não é coletado; o índice do Fed das economias avançadas é o substituto (mesmas moedas principais, pesos diferentes).",
@@ -170,7 +170,7 @@ const DEFINICOES = [
     },
     perguntas: [
       "O índice do Fed das economias avançadas serve no lugar do DXY? O índice amplo (26 moedas) também é coletado e anda ainda mais junto com o petróleo (-0,63), mas antecipa um pouco menos.",
-      "O dólar é um fator próprio (como no FEL 1, peso Médio) ou um filtro que confirma os outros?"
+      "O dólar é um fator próprio (como na definição, peso Médio) ou um filtro que confirma os outros?"
     ]
   },
   {
@@ -187,7 +187,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para medir a oferta americana. No histórico do FinMind, de 2010 em diante, o crescimento anual da produção anda no sentido contrário do WTI 26 semanas depois (correlação de -0,39; -0,22 em 13 semanas; desde 1990, -0,19): produção crescendo forte antecede preço em queda, a direção do FEL 1. O preço não aparece puxando a produção no mesmo período (o crescimento não acompanha a alta do WTI dos 6 a 12 meses anteriores). Exemplos: recorde e +13% no ano em nov/2014, antes da queda de 2015; recorde e +10% em nov/2019, antes de 2020. A semana isolada é estimativa arredondada da EIA: por isso a medida usa a média de 4 semanas e o crescimento anual."
+          "Suficiente para medir a oferta americana. No histórico do FinMind, de 2010 em diante, o crescimento anual da produção anda no sentido contrário do WTI 26 semanas depois (correlação de -0,39; -0,22 em 13 semanas; desde 1990, -0,19): produção crescendo forte antecede preço em queda, a direção indicada pelo especialista. O preço não aparece puxando a produção no mesmo período (o crescimento não acompanha a alta do WTI dos 6 a 12 meses anteriores). Exemplos: recorde e +13% no ano em nov/2014, antes da queda de 2015; recorde e +10% em nov/2019, antes de 2020. A semana isolada é estimativa arredondada da EIA: por isso a medida usa a média de 4 semanas e o crescimento anual."
       },
       lacunas: [
         "O rig count (Baker Hughes) não é coletado: ele antecipa a produção em alguns meses (um aviso mais cedo), mas não é necessário para medi-la.",
@@ -239,7 +239,7 @@ const DEFINICOES = [
       objetivo: "Medir o posicionamento dos fundos (managed money) no WTI.",
       medida: "Posição líquida (comprado menos vendido) e a variação semanal.",
       comparacao: "Percentil da posição líquida nos últimos 3 anos.",
-      leitura: "Não dá direção sozinho (o FEL 1 diz que amplifica): confirma a direção dos outros fatores; posição em extremo indica risco de reversão."
+      leitura: "Não dá direção sozinho (o especialista diz que amplifica): confirma a direção dos outros fatores; posição em extremo indica risco de reversão."
     },
     perguntas: [
       "COT confirma os outros fatores ou tem direção própria?",
@@ -260,7 +260,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para medir a margem de refino, que a EIA não publica: o FinMind a calcula com os preços à vista que já coleta (gasolina e diesel de Nova York e o Brent), desde 2006 (o diesel S10 começa aí; a média de 5 anos, em 2011). No histórico, a margem acima do normal anda com refinarias mais cheias (correlação de +0,25 com a utilização e +0,20 com o crescimento do petróleo processado), o mecanismo do FEL 1, mas não antecipa o preço do petróleo (-0,08 a -0,15 com o WTI 13 e 26 semanas depois, levemente no sentido contrário). Mede a situação do refino. Com o Brent, e não o WTI: os derivados de Nova York são precificados contra o Brent, e em 2011-2013 o WTI ficou até US$ 20 abaixo dele, o que inflava o crack sem que a margem real subisse."
+          "Suficiente para medir a margem de refino, que a EIA não publica: o FinMind a calcula com os preços à vista que já coleta (gasolina e diesel de Nova York e o Brent), desde 2006 (o diesel S10 começa aí; a média de 5 anos, em 2011). No histórico, a margem acima do normal anda com refinarias mais cheias (correlação de +0,25 com a utilização e +0,20 com o crescimento do petróleo processado), o mecanismo indicado pelo especialista, mas não antecipa o preço do petróleo (-0,08 a -0,15 com o WTI 13 e 26 semanas depois, levemente no sentido contrário). Mede a situação do refino. Com o Brent, e não o WTI: os derivados de Nova York são precificados contra o Brent, e em 2011-2013 o WTI ficou até US$ 20 abaixo dele, o que inflava o crack sem que a margem real subisse."
       },
       lacunas: [
         "A margem de refino não é publicada pela EIA: é calculada pelo FinMind (crack 3-2-1). Só Nova York: os preços da Costa do Golfo não são coletados.",
@@ -275,7 +275,7 @@ const DEFINICOES = [
     },
     perguntas: [
       "Qual crack spread: 3-2-1, 2-1-1, ou gasolina e diesel separados? (Em 2022 e em 2026 a alta veio do diesel.)",
-      "Margem muito alta por falta de derivados (como em 2022 e hoje) deve ser lida como alta para o petróleo, como diz o FEL 1, ou como um problema do refino que não puxa o petróleo?"
+      "Margem muito alta por falta de derivados (como em 2022 e hoje) deve ser lida como alta para o petróleo, como diz o especialista, ou como um problema do refino que não puxa o petróleo?"
     ]
   },
   {
@@ -295,10 +295,10 @@ const DEFINICOES = [
       ]
     },
     proposta: {
-      objetivo: "Medir o crescimento da oferta fora da OPEP+, nos produtores citados pelo FEL 1.",
+      objetivo: "Medir o crescimento da oferta fora da OPEP+, nos produtores citados pelo especialista.",
       medida: "Produção do Brasil (ANP), da Noruega (JODI) e dos EUA (EIA), cada uma com a variação anual.",
       comparacao: "O mesmo mês do ano anterior.",
-      leitura: "Crescimento forte da oferta não-OPEP pressiona para baixo; queda, para cima (a direção do FEL 1)."
+      leitura: "Crescimento forte da oferta não-OPEP pressiona para baixo; queda, para cima (a direção indicada pelo especialista)."
     },
     perguntas: [
       "Os EUA entram aqui ou só no fator de produção dos EUA (para não contar duas vezes)?",

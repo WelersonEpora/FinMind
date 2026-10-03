@@ -144,7 +144,7 @@ async function calcularFator(ativo, codigoFator, { desde, ...opcoes } = {}, deps
       tempoReal: false,
       apresentacao: calculo.apresentacao,
       // A decisão da última semana em passos, com os números dela; o peso fecha a lista (vem do FEL 1).
-      explicacao: ultimo?.decisao ? [...calculo.explicar(ultimo, parametros), `Peso: ${fator.peso}, do FEL 1 (não é calculado).`] : [],
+      explicacao: ultimo?.decisao ? [...calculo.explicar(ultimo, parametros), `Peso: ${fator.peso}, do especialista (não é calculado).`] : [],
       exemplos: calculo.exemplos(todos, parametros),
       pontos
     }

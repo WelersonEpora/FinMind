@@ -157,7 +157,7 @@ function resumoParametros(parametros) {
         <div class="decisao__quadro">
           <span>Peso</span>
           <strong>{{ calculo.peso }}</strong>
-          <small>do FEL 1</small>
+          <small>do especialista</small>
         </div>
       </div>
 

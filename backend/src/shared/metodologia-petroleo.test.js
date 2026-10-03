@@ -162,7 +162,7 @@ for (const codigo of Object.keys(LINHAS_SINTETICAS)) {
     assert.ok(ultimo.decisao);
     assert.deepEqual(apresentacao.parametros.map((parametro) => parametro.chave).sort(), Object.keys(calculo.parametrosPadrao).sort());
     assert.ok(calculo.explicacao.length >= 4);
-    assert.match(calculo.explicacao.at(-1), /do FEL 1/);
+    assert.match(calculo.explicacao.at(-1), /do especialista/);
     assert.ok(apresentacao.rotulosDecisao.tendencia[ultimo.decisao.tendencia ?? "ESTAVEL"]);
     assert.ok(calculo.exemplos.episodios.length > 0 && calculo.exemplos.cenarios.every((c) => c.decisao));
   });

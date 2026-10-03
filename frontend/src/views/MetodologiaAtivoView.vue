@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
@@ -31,6 +31,18 @@ function abrirFator(fator) {
 function fecharFator() {
   fatorSelecionado.value = null
 }
+
+// Esc fecha o modal, como numa janela.
+function fecharComEsc(evento) {
+  if (evento.key === 'Escape') fecharFator()
+}
+
+watch(fatorSelecionado, (fator) => {
+  if (fator) window.addEventListener('keydown', fecharComEsc)
+  else window.removeEventListener('keydown', fecharComEsc)
+})
+
+onBeforeUnmount(() => window.removeEventListener('keydown', fecharComEsc))
 
 function selecionarAtivo(codigo) {
   router.replace(`/dados-mercado/metodologia/${codigo}`)
@@ -66,8 +78,7 @@ watch(ativo, carregar, { immediate: true })
       <header class="metodologia-ativo__cabecalho">
         <h1 class="metodologia-ativo__titulo">Metodologia do Ativo</h1>
         <p class="metodologia-ativo__subtitulo">
-          Como cada fator do FEL 1 é medido, lido e decidido, com os dados que o FinMind já coleta. As propostas são do
-          FinMind, para o especialista e o Comitê validarem.
+          Como cada fator é medido, lido e decidido, com os dados existentes no FinMind.
         </p>
       </header>
 
@@ -80,7 +91,7 @@ watch(ativo, carregar, { immediate: true })
         <section class="metodologia-ativo__contexto">
           <SeletorOpcao :model-value="resposta.ativo.codigo" :opcoes="opcoesAtivo" rotulo="Ativo" @update:model-value="selecionarAtivo" />
           <p v-if="metodologia" class="metodologia-ativo__contexto-resumo">
-            {{ metodologia.fatores.length }} fatores do FEL 1 · proposta v{{ metodologia.versao }} de
+            {{ metodologia.fatores.length }} fatores · proposta v{{ metodologia.versao }} de
             {{ formatarData(metodologia.dataVersao) }}
           </p>
         </section>
@@ -94,8 +105,8 @@ watch(ativo, carregar, { immediate: true })
           <template v-else>
             <div class="alert alert-warning small">
               <strong>Proposta para validação do especialista.</strong>
-              Os fatores, o peso, a direção e o mecanismo são do FEL 1. A forma de medir, ler e decidir cada fator é do
-              FinMind, para abrir a conversa: ainda não alimenta o Centro de Decisão nem a IA.
+              Os fatores, o peso, a direção e o mecanismo são do especialista. A forma de medir, ler e decidir cada fator
+              é do FinMind, para abrir a conversa: ainda não alimenta o Centro de Decisão nem a IA.
             </div>
 
             <div class="metodologia-ativo__cards">
@@ -117,8 +128,9 @@ watch(ativo, carregar, { immediate: true })
                 <p class="metodologia-ativo__objetivo">{{ fator.fel1.direcao }}</p>
 
                 <div class="metodologia-ativo__marcas">
-                  <span class="metodologia-ativo__situacao" :class="`metodologia-ativo__situacao--${fator.proposta.situacao.toLowerCase()}`">
-                    {{ ROTULO_SITUACAO[fator.proposta.situacao] }}
+                  <!-- O aviso do topo já diz que tudo é proposta: no card, só a exceção (fator validado). -->
+                  <span v-if="fator.proposta.situacao === 'VALIDADA'" class="metodologia-ativo__situacao metodologia-ativo__situacao--validada">
+                    {{ ROTULO_SITUACAO.VALIDADA }}
                   </span>
                   <span v-if="fator.dados.avaliacao" class="metodologia-ativo__calculado">
                     <i class="bi" :class="fator.dados.avaliacao.suficiente ? 'bi-check-circle' : 'bi-exclamation-circle'"></i>
@@ -140,16 +152,27 @@ watch(ativo, carregar, { immediate: true })
     <div v-if="fatorSelecionado" class="metodologia-ativo__modal-backdrop" @click.self="fecharFator">
       <div class="metodologia-ativo__modal" role="dialog" aria-modal="true" aria-labelledby="fator-titulo">
         <div class="metodologia-ativo__modal-header">
-          <div>
-            <span class="metodologia-ativo__modal-kicker">Fator do FEL 1 · peso {{ fatorSelecionado.peso }}</span>
+          <div class="metodologia-ativo__modal-titulo">
             <h3 id="fator-titulo">{{ fatorSelecionado.nome }}</h3>
+            <span
+              class="metodologia-ativo__badge"
+              :class="{
+                'metodologia-ativo__badge--alto': fatorSelecionado.peso === 'Alto',
+                'metodologia-ativo__badge--medio': fatorSelecionado.peso === 'Médio'
+              }"
+              :title="`Peso ${fatorSelecionado.peso}`"
+            >
+              Peso {{ fatorSelecionado.peso }}
+            </span>
           </div>
-          <button type="button" class="metodologia-ativo__fechar" @click="fecharFator">Fechar</button>
+          <button type="button" class="metodologia-ativo__fechar" aria-label="Fechar" title="Fechar" @click="fecharFator">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
 
         <div class="metodologia-ativo__modal-body">
           <section class="metodologia-ativo__bloco metodologia-ativo__bloco--fel1">
-            <h4>FEL 1 <small>o que o David escreveu</small></h4>
+            <h4>Definição <small>o que o especialista escreveu</small></h4>
             <ul>
               <li><strong>Tipo:</strong> {{ fatorSelecionado.fel1.tipo }}</li>
               <li><strong>Direção do impacto:</strong> {{ fatorSelecionado.fel1.direcao }}</li>
@@ -177,7 +200,7 @@ watch(ativo, carregar, { immediate: true })
               {{ fatorSelecionado.dados.avaliacao.texto }}
             </p>
             <template v-if="fatorSelecionado.dados.lacunas.length">
-              <p class="metodologia-ativo__subtitulo">Lacunas</p>
+              <p class="metodologia-ativo__lacunas-titulo">Lacunas</p>
               <ul>
                 <li v-for="lacuna in fatorSelecionado.dados.lacunas" :key="lacuna">{{ lacuna }}</li>
               </ul>
@@ -206,7 +229,7 @@ watch(ativo, carregar, { immediate: true })
           />
 
           <section class="metodologia-ativo__bloco metodologia-ativo__bloco--perguntas">
-            <h4>Perguntas ao David</h4>
+            <h4>Pendências <small>o que o especialista ainda decide</small></h4>
             <ol>
               <li v-for="pergunta in fatorSelecionado.perguntas" :key="pergunta">{{ pergunta }}</li>
             </ol>
@@ -352,41 +375,58 @@ watch(ativo, carregar, { immediate: true })
 .metodologia-ativo__modal {
   width: min(1100px, 100%);
   max-height: 90vh;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.2);
 }
 
+/* Barra de título fixa, como numa janela: o corpo rola por baixo dela. */
 .metodologia-ativo__modal-header {
+  flex-shrink: 0;
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 1rem 0.85rem 1.25rem;
   border-bottom: 1px solid rgba(19, 33, 59, 0.1);
 }
 
-.metodologia-ativo__modal-kicker {
-  display: block;
-  font-size: 0.72rem;
-  color: var(--p-text-muted-color);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.metodologia-ativo__modal-titulo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  min-width: 0;
 }
 
 .metodologia-ativo__modal-header h3 {
-  margin: 0.15rem 0 0;
-  font-size: 1.35rem;
+  margin: 0;
+  font-size: 1.25rem;
 }
 
 .metodologia-ativo__fechar {
-  border: 1px solid rgba(19, 33, 59, 0.12);
-  background: #fff;
-  border-radius: 10px;
-  padding: 0.55rem 0.8rem;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--p-text-muted-color);
+  font-size: 1.1rem;
+}
+
+.metodologia-ativo__fechar:hover {
+  background: rgba(19, 33, 59, 0.08);
+  color: inherit;
 }
 
 .metodologia-ativo__modal-body {
+  overflow-y: auto;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -426,7 +466,7 @@ watch(ativo, carregar, { immediate: true })
   color: var(--p-text-muted-color);
 }
 
-.metodologia-ativo__subtitulo {
+.metodologia-ativo__lacunas-titulo {
   margin: 0.75rem 0 0.35rem !important;
   font-weight: 700;
 }
