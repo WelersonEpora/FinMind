@@ -256,6 +256,8 @@ watch(ativo, carregar, { immediate: true })
           <section class="metodologia-ativo__bloco metodologia-ativo__bloco--fel1">
             <h4>Definição <small>o que o especialista escreveu</small></h4>
             <ul>
+              <!-- O título do card diz o dado usado; aqui fica o nome que o especialista deu ao fator, quando difere. -->
+              <li v-if="fatorSelecionado.nomeFel1 !== fatorSelecionado.nome"><strong>Nome no FEL 1:</strong> {{ fatorSelecionado.nomeFel1 }}</li>
               <li><strong>Tipo:</strong> {{ fatorSelecionado.fel1.tipo }}</li>
               <li><strong>Direção do impacto:</strong> {{ fatorSelecionado.fel1.direcao }}</li>
               <li><strong>Mecanismo de transmissão:</strong> {{ fatorSelecionado.fel1.mecanismo }}</li>

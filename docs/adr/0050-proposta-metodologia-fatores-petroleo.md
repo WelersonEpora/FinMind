@@ -181,11 +181,20 @@ Centro de Decisão nem a IA e não gera sinal.
 17. **O texto de cada fator para o prompt** (2026-10-03, decisão do usuário). Os fatores não decidem: são subsídio
     para uma IA que lê os 10 juntos e tenta entender a tendência no curto, médio e longo prazo. Cada fator calculado
     entrega um bloco de texto, montado por uma função genérica (`factors/base/texto-prompt.js`) a partir do que ele já
-    declara: o período do ponto (semana ou mês, não é tempo real), as medidas A e B como a tela as mostra, a decisão
-    sugerida (C) **com a regra e a origem dos parâmetros** (padrão, versão salva ou simulação: a margem até o limiar
-    importa) e a avaliação do dado com a relação histórica com o preço. O texto não diz que os parâmetros não foram
-    validados: a tela inteira já diz que tudo é proposta. A tela mostra o mesmo texto ("Texto exato que vai ao
-    prompt"), como nos fatores de evento: o que se vê é o que a IA recebe.
+    declara: o período do ponto (semana ou mês, não é tempo real) e quatro partes, sempre nesta ordem. **A — Medida**
+    (os dados observados e as variações); **B — Leitura** (a referência, a comparação e a regra aplicada, com a origem
+    dos parâmetros: padrão, versão salva ou simulação, porque a margem até o limiar importa); **C — Leitura do fator**
+    (pressão alta, baixa ou neutra, intensidade e tendência: "leitura", e não "decisão sugerida", para não transmitir
+    ideia de recomendação operacional); **D — Validação histórica** (a relação com o preço no histórico, a avaliação
+    do dado do catálogo), separada de propósito: contextualiza a qualidade da relação e não entra na leitura atual. O
+    texto não diz que os parâmetros não foram validados: a tela inteira já diz que tudo é proposta. A tela mostra o
+    mesmo texto ("Texto exato que vai ao prompt"), como nos fatores de evento: o que se vê é o que a IA recebe.
+    **O título diz o dado usado** (decisão do usuário): quando o dado é mais estreito que o nome do FEL 1, o fator
+    ganha um título próprio (`nome` no catálogo) e o nome do FEL 1 fica no bloco do especialista na tela
+    (`nomeFel1`): "Oferta não-OPEP (Brasil, Noruega e Canadá)" (o FEL 1 diz Brasil, Guiana e Noruega; a Guiana não
+    reporta e não entra no cálculo), "Demanda dos EUA (consumo de derivados)" (FEL 1: demanda global), "Dólar (índice
+    do Fed contra as economias avançadas)" (FEL 1: DXY, licenciado) e "Produção dos EUA" (FEL 1: com o rig count, não
+    coletado). O cálculo não muda.
 18. **Simulação numa data** (2026-10-03, decisão do usuário). A tela escolhe uma data e mostra, em cada card, o que
     o fator mostraria com o que se sabia até o fim dela, e o bloco dos fatores completo (os 10 textos, na ordem do
     catálogo, com um cabeçalho) que iria ao prompt da IA do ativo (`GET /ativos/:ativo/metodologia/simulacao?data=`).

@@ -4,9 +4,14 @@
 // (a `apresentacao`, a decisão da camada C e os parâmetros) e do catálogo (o nome, o peso e a avaliação do dado). A
 // tela mostra este mesmo texto ("Texto exato que vai ao prompt"): o que se vê é o que a IA recebe. Função pura.
 //
-// O bloco tem: o período do ponto (a semana ou o mês, e que não é tempo real), as medidas das camadas A e B como a
-// tela as mostra, a decisão sugerida com a regra e a origem dos parâmetros (a margem até o limiar importa: +3,1% numa
-// faixa de 3% não é +9,8%), e a relação histórica com o preço (a avaliação do dado), quando o fator a tem.
+// O bloco tem o período do ponto (a semana ou o mês, e que não é tempo real) e quatro partes, sempre nesta ordem:
+//   A — Medida: os dados observados e as variações (os quadros da camada A, como a tela os mostra);
+//   B — Leitura: a referência, a comparação (os quadros da camada B) e a regra aplicada, com a origem dos parâmetros
+//       (a margem até o limiar importa: +3,1% numa faixa de 3% não é +9,8%);
+//   C — Leitura do fator: pressão (alta, baixa ou neutra), intensidade e tendência. "Leitura", não "decisão": não é
+//       recomendação operacional;
+//   D — Validação histórica: a relação do fator com o preço no histórico (a avaliação do dado do catálogo). Separada
+//       de propósito: contextualiza a qualidade da relação e não entra na leitura atual.
 
 const ROTULO_ATIVO = { PETROLEO: "PETRÓLEO", OURO: "OURO", MILHO: "MILHO", CAFE: "CAFÉ" };
 
@@ -68,6 +73,13 @@ function origemDosParametros(origem, simulacao) {
 
 // `fator`: do catálogo ({ nome, peso, dados.avaliacao }). `calculo`: { apresentacao, periodicidade, parametros,
 // origemParametros, simulacao }. `ponto`: o último ponto do cálculo (ou null). `ativo`: o código do ativo.
+const PRESSAO = { ALTA: "alta", BAIXA: "baixa", NEUTRA: "neutra" };
+
+// Fecha a frase com um ponto, sem duplicar quando ela já termina em um ("0,25 p.p.").
+function comPonto(frase) {
+  return frase.endsWith(".") ? frase : `${frase}.`;
+}
+
 function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
   const { apresentacao } = calculo;
   const linhas = [`FATOR — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (peso ${fator.peso})`];
@@ -75,29 +87,33 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
     // Numa simulação, o comum é a publicação registrada do dado ser posterior à data (ex.: o histórico do JODI tem a
     // data da 1ª coleta como limite superior, ADR 0042): pela regra point-in-time, ele ainda não era conhecido.
     linhas.push("Sem dado na data: nada do que o fator usa tinha sido publicado até ela, pelo registro de publicação do FinMind.");
-    return linhas.join("\n");
-  }
-
-  linhas.push(`${periodoDoPonto(ponto.observedAt, calculo.periodicidade)}. ${apresentacao.nota}`);
-  for (const camada of ["A", "B"]) {
-    const quadros = apresentacao.quadros.filter((q) => q.camada === camada);
-    if (quadros.length === 0) continue;
-    linhas.push(camada === "A" ? "Medida (A):" : "Leitura (B):", ...quadros.map((q) => linhaQuadro(ponto, q)));
-  }
-
-  const d = ponto.decisao;
-  if (!d) {
-    linhas.push("Decisão sugerida (C): não calculada, o histórico até a data não basta.");
   } else {
-    const r = apresentacao.rotulosDecisao;
-    const tendencia = d.tendencia ? r.tendencia[d.tendencia] : "não calculada";
+    linhas.push(`${periodoDoPonto(ponto.observedAt, calculo.periodicidade)}. ${apresentacao.nota}`);
+    linhas.push("A — Medida:", ...apresentacao.quadros.filter((q) => q.camada === "A").map((q) => linhaQuadro(ponto, q)));
     linhas.push(
-      `Decisão sugerida (C): ${r.direcao[d.direcao]}, intensidade ${r.intensidade[d.intensidade].toLowerCase()}, tendência: ${tendencia}.`,
-      `Regra (${origemDosParametros(calculo.origemParametros, calculo.simulacao)}): ${regraDaDecisao(calculo.parametros, apresentacao)}`.replace(/.?$/, ".")
+      "B — Leitura:",
+      ...apresentacao.quadros.filter((q) => q.camada === "B").map((q) => linhaQuadro(ponto, q)),
+      `- Regra aplicada (${origemDosParametros(calculo.origemParametros, calculo.simulacao)}): ${comPonto(regraDaDecisao(calculo.parametros, apresentacao))}`
     );
+
+    const d = ponto.decisao;
+    if (!d) {
+      linhas.push("C — Leitura do fator: não calculada, o histórico até a data não basta.");
+    } else {
+      const r = apresentacao.rotulosDecisao;
+      linhas.push(
+        "C — Leitura do fator:",
+        `- Pressão: ${PRESSAO[d.direcao]}`,
+        `- Intensidade: ${r.intensidade[d.intensidade].toLowerCase()}`,
+        `- Tendência: ${d.tendencia ? r.tendencia[d.tendencia] : "não calculada"}`
+      );
+    }
   }
 
-  if (fator.dados?.avaliacao?.texto) linhas.push(`Avaliação do dado e relação histórica com o preço: ${fator.dados.avaliacao.texto}`);
+  // A validação histórica vale com ou sem ponto na data: é sobre a relação do fator com o preço, não sobre o dia.
+  if (fator.dados?.avaliacao?.texto) {
+    linhas.push("D — Validação histórica (contexto para avaliar a relação; não entra na leitura acima):", `- ${fator.dados.avaliacao.texto}`);
+  }
   return linhas.join("\n");
 }
 

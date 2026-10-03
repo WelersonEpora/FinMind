@@ -16,6 +16,9 @@ const { FATORES } = require("./fatores-fel1");
 //              corrigido. Fica com `situacao: "PROPOSTA"` até o David validar; aí vira "VALIDADA"
 //              com a data e a referência da validação (no ADR).
 //   perguntas - o que o David precisa decidir para a proposta virar regra.
+//   nome     - (opcional) o título do fator quando o dado usado é mais estreito que o nome da planilha (ex.: o FEL 1
+//              diz "Demanda global", o cálculo usa só os EUA). O título diz exatamente o que entra no cálculo; o nome
+//              do FEL 1 continua na resposta (`nomeFel1`) e no bloco do especialista na tela.
 //   evento   - (opcional) { janelaDias }: FATOR DE EVENTO, sem cálculo. O resultado dele são os eventos aceitos da
 //              leitura diária marcados com ele nessa janela (geopolitica.service.js::obterEventosDoFator), o bloco que
 //              vai ao prompt da IA do ativo como está.
@@ -132,6 +135,7 @@ const DEFINICOES = [
   },
   {
     codigo: "PETROLEO_DEMANDA",
+    nome: "Demanda dos EUA (consumo de derivados)",
     fel1: {
       tipo: "Fundamentalista",
       direcao: "Alta com demanda forte; baixa com recessão",
@@ -164,6 +168,7 @@ const DEFINICOES = [
   },
   {
     codigo: "PETROLEO_DOLAR",
+    nome: "Dólar (índice do Fed contra as economias avançadas)",
     fel1: {
       tipo: "Cambial",
       direcao: "Dólar forte pressiona; dólar fraco favorece",
@@ -196,6 +201,7 @@ const DEFINICOES = [
   },
   {
     codigo: "PETROLEO_PRODUCAO_EUA",
+    nome: "Produção dos EUA",
     fel1: {
       tipo: "Fundamentalista",
       direcao: "Alta com produção menor; baixa com produção recorde",
@@ -324,6 +330,7 @@ const DEFINICOES = [
   },
   {
     codigo: "PETROLEO_OFERTA_NAO_OPEP",
+    nome: "Oferta não-OPEP (Brasil, Noruega e Canadá)",
     fel1: {
       tipo: "Fundamentalista",
       direcao: "Alta com oferta menor; baixa com crescimento de produção",
@@ -345,7 +352,7 @@ const DEFINICOES = [
       ]
     },
     proposta: {
-      objetivo: "Medir o crescimento da oferta fora da OPEP+, nos produtores citados pelo especialista e no Canadá.",
+      objetivo: "Medir o crescimento da oferta de Brasil, Noruega e Canadá, produtores fora da OPEP+.",
       medida: "Produção somada de Brasil (ANP), Noruega e Canadá (JODI), em mil barris/dia, na média de 3 meses. O Canadá, fora do FEL 1, entrou por decisão do usuário (4º produtor do mundo); os EUA ficaram de fora, por decisão do usuário, porque já são o fator de produção dos EUA.",
       comparacao: "A média dos mesmos 3 meses do ano anterior: o crescimento anual, em %.",
       leitura: "Oferta crescendo além de uma faixa (padrão: 3% no ano) pressiona o petróleo para baixo; encolhendo, favorece (pressão de alta). Intensidade forte a partir de 7%. Tendência: se o crescimento mudou 2 p.p. ou mais em 3 meses, a oferta está acelerando ou desacelerando. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
@@ -362,7 +369,8 @@ const FATORES_PETROLEO = DEFINICOES.map((definicao) => {
   if (!fator) throw new Error(`Fator do petróleo ausente no catálogo do FEL 1: ${definicao.codigo}`);
   return {
     codigo: fator.codigo,
-    nome: fator.nome,
+    nome: definicao.nome || fator.nome,
+    nomeFel1: fator.nome,
     peso: fator.peso,
     fel1: definicao.fel1,
     dados: definicao.dados,

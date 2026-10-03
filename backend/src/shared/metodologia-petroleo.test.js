@@ -32,12 +32,24 @@ const semDados = { obterAsOf: async () => [] };
 
 const { fatores } = obterMetodologiaPetroleo();
 
-test("cobre os 10 fatores do petróleo da planilha, na mesma ordem, com nome e peso dela", () => {
+test("cobre os 10 fatores do petróleo da planilha, na mesma ordem, com o nome do FEL 1 e o peso dela", () => {
   const daPlanilha = FATORES.filter((fator) => fator.ativo === "PETROLEO");
   assert.deepEqual(
-    fatores.map(({ codigo, nome, peso }) => ({ codigo, nome, peso })),
+    fatores.map(({ codigo, nomeFel1, peso }) => ({ codigo, nome: nomeFel1, peso })),
     daPlanilha.map(({ codigo, nome, peso }) => ({ codigo, nome, peso }))
   );
+});
+
+test("o título diz o dado usado quando ele é mais estreito que o nome do FEL 1; sem a Guiana, que não entra no cálculo", () => {
+  const titulo = (codigo) => fatores.find((fator) => fator.codigo === codigo).nome;
+  assert.equal(titulo("PETROLEO_OFERTA_NAO_OPEP"), "Oferta não-OPEP (Brasil, Noruega e Canadá)");
+  assert.equal(titulo("PETROLEO_DEMANDA"), "Demanda dos EUA (consumo de derivados)");
+  assert.equal(titulo("PETROLEO_DOLAR"), "Dólar (índice do Fed contra as economias avançadas)");
+  assert.equal(titulo("PETROLEO_PRODUCAO_EUA"), "Produção dos EUA");
+  const oferta = fatores.find((fator) => fator.codigo === "PETROLEO_OFERTA_NAO_OPEP");
+  for (const texto of [oferta.nome, oferta.proposta.objetivo, oferta.proposta.medida, oferta.dados.avaliacao.texto]) {
+    assert.doesNotMatch(texto, /Guiana/);
+  }
 });
 
 test("cada fator traz as 4 colunas do FEL 1 preenchidas", () => {
@@ -212,7 +224,9 @@ for (const codigo of Object.keys(LINHAS_SINTETICAS)) {
     assert.ok(calculo.exemplos.episodios.length > 0 && calculo.exemplos.cenarios.every((c) => c.decisao));
     // O bloco do prompt: o fator, a decisão e a regra; nenhum quadro sem valor vira "undefined".
     assert.match(calculo.textoPrompt, /^FATOR — .* — PETRÓLEO \(peso (Alto|Médio)\)\n/);
-    assert.match(calculo.textoPrompt, /Decisão sugerida \(C\): .*\nRegra \(parâmetros padrão do FinMind\): neutra entre/);
+    assert.match(calculo.textoPrompt, /\n- Regra aplicada \(parâmetros padrão do FinMind\): neutra entre .*\nC — Leitura do fator:\n- Pressão: (alta|baixa|neutra)\n/);
+    assert.match(calculo.textoPrompt, /\nD — Validação histórica \(contexto para avaliar a relação; não entra na leitura acima\):\n- /);
+    assert.doesNotMatch(calculo.textoPrompt, /[Dd]ecisão sugerida/);
     assert.doesNotMatch(calculo.textoPrompt, /undefined|NaN/);
   });
 }

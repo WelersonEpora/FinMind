@@ -219,7 +219,7 @@ const APRESENTACAO = {
   exemplos: { colunaValor: "Crescimento anual" },
   nota:
     "Mensal, não é tempo real: a ANP publica o mês até o fim do mês seguinte e o JODI, com ~2 meses de atraso; o mês " +
-    "só entra com os três países. Sem os EUA (fator próprio) e sem a Guiana (não reporta)."
+    "só entra com os três países. Sem os EUA, que têm fator próprio."
 };
 
 const METODOLOGIA = {

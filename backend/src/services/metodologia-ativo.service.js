@@ -257,8 +257,9 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
   );
   const cabecalho =
     `FATORES DO ${metodologia.nome.toUpperCase()} EM ${dia.split("-").reverse().join("/")}: o que se sabia até o fim deste ` +
-    `dia. Proposta de metodologia do FinMind: cada fator calculado traz a medida, a leitura, uma decisão sugerida com a ` +
-    `regra e a relação histórica com o preço; os fatores de evento trazem os eventos da leitura diária por IA.`;
+    `dia. Proposta de metodologia do FinMind: cada fator calculado traz a medida (A), a leitura com a regra aplicada (B), ` +
+    `a leitura do fator (C) e a validação histórica (D), que contextualiza a relação com o preço e não entra na leitura ` +
+    `atual; os fatores de evento trazem os eventos da leitura diária por IA.`;
   const promptCompleto = [cabecalho, ...fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt)].join("\n\n");
   return { simulacao: { ativo: codigo, data: dia, fatores, promptCompleto } };
 }

@@ -3,7 +3,7 @@ import { formatarMedida, periodoDoFator } from '../../utils/metodologia.js'
 import { formatarData, nivel } from '../../utils/geopolitica.js'
 
 // O resultado de um fator numa simulação (ADR 0050), numa linha do card: a medida da decisão com o período e a
-// decisão sugerida, num fator calculado; a contagem de eventos da janela e o nível do ativo, num fator de evento.
+// leitura do fator (C), num fator calculado; a contagem de eventos da janela e o nível do ativo, num fator de evento.
 defineProps({
   resultado: { type: Object, required: true },
   // A data simulada (AAAA-MM-DD): antes da 1ª leitura diária, o fator de evento não tem informação.
@@ -21,7 +21,7 @@ defineProps({
           {{ resultado.decisao.rotuloDirecao }} · {{ resultado.decisao.rotuloIntensidade
           }}<template v-if="resultado.decisao.rotuloTendencia"> · {{ resultado.decisao.rotuloTendencia }}</template>
         </span>
-        <span v-else class="text-muted">decisão não calculada (histórico curto)</span>
+        <span v-else class="text-muted">leitura não calculada (histórico curto)</span>
       </template>
       <span v-else class="text-muted">Sem dado publicado até esta data.</span>
     </template>

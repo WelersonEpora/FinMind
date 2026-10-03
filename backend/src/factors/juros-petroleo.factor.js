@@ -180,7 +180,7 @@ const APRESENTACAO = {
   exemplos: { colunaValor: "Variação", unidade: "p.p." },
   nota:
     "Semanal, não é tempo real: média dos dias da semana do Treasury de 10 anos (FRED, H.15; o valor de sexta sai na " +
-    "segunda). A meta do Fed é contexto: a decisão usa o juro longo, que embute a expectativa do mercado para o Fed."
+    "segunda). A meta do Fed é contexto: a leitura usa o juro longo, que embute a expectativa do mercado para o Fed."
 };
 
 const METODOLOGIA = {
