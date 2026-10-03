@@ -4,6 +4,7 @@ const { ConflictError, NotFoundError, ValidationError } = require("../shared/err
 const fatorParametroRepository = require("../repositories/fator-parametro.repository");
 const { obterMetodologiaPetroleo } = require("../shared/metodologia-petroleo");
 const { buscarNoCatalogo } = require("./observaveis.service");
+const geopoliticaService = require("./geopolitica.service");
 
 // Metodologia dos fatores por ativo: a proposta para o David validar (ADR 0050). Só o petróleo por enquanto.
 const METODOLOGIAS = {
@@ -56,6 +57,7 @@ function paraResposta(metodologia) {
     fatores: metodologia.fatores.map((fator) => ({
       ...fator,
       calculado: Boolean(CALCULOS[fator.codigo]),
+      deEvento: Boolean(fator.evento),
       dados: {
         ...fator.dados,
         observaveis: fator.dados.observaveis.map((codigo) => ({ codigo, nome: buscarNoCatalogo(codigo)?.nome || codigo }))
@@ -154,6 +156,22 @@ async function calcularFator(ativo, codigoFator, { desde, ...opcoes } = {}, deps
   };
 }
 
+// O dia de hoje em São Paulo (AAAA-MM-DD): a data das leituras de eventos.
+function hojeEmSaoPaulo(agora) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
+}
+
+// O resultado de um fator de evento (ADR 0050): os eventos aceitos da leitura diária marcados com ele, na janela do
+// fator até hoje, e o bloco pronto para o prompt da IA do ativo. Fator sem `evento` no catálogo: 404.
+async function obterEventosFator(ativo, codigoFator, deps = {}) {
+  const codigo = String(ativo || "").trim().toUpperCase();
+  const fator = construtorDoAtivo(codigo)().fatores.find((item) => item.codigo === String(codigoFator || "").toUpperCase());
+  if (!fator?.evento) throw new NotFoundError("Este fator não é um fator de evento.");
+  const servico = deps.geopoliticaService || geopoliticaService;
+  const data = hojeEmSaoPaulo(deps.agora || new Date());
+  return { eventosFator: await servico.obterEventosDoFator(codigo, fator.codigo, data, fator.evento.janelaDias, deps) };
+}
+
 // Histórico dos parâmetros do fator, da versão mais recente para a mais antiga, e os padrões do código.
 async function listarParametros(ativo, codigoFator, deps = {}) {
   const { fator, calculo } = fatorCalculado(ativo, codigoFator);
@@ -190,4 +208,4 @@ async function salvarParametros(ativo, codigoFator, { parametros, motivo } = {},
   }
 }
 
-module.exports = { obterMetodologiaAtivo, calcularFator, listarParametros, salvarParametros };
+module.exports = { obterMetodologiaAtivo, calcularFator, obterEventosFator, listarParametros, salvarParametros };

@@ -12,7 +12,7 @@ const assert = require("node:assert/strict");
 const { FATORES } = require("./fatores-fel1");
 const { SITUACAO, obterMetodologiaPetroleo } = require("./metodologia-petroleo");
 const { buscarNoCatalogo } = require("../services/observaveis.service");
-const { obterMetodologiaAtivo, calcularFator, listarParametros, salvarParametros } = require("../services/metodologia-ativo.service");
+const { obterMetodologiaAtivo, calcularFator, obterEventosFator, listarParametros, salvarParametros } = require("../services/metodologia-ativo.service");
 const { PARAMETROS_PADRAO } = require("../factors/estoques-petroleo-eia.factor");
 
 // Repositório de parâmetros em memória: as versões gravadas, a maior é a vigente.
@@ -293,4 +293,28 @@ test("salvar ao mesmo tempo que outro admin vira 409; o histórico lista as vers
   );
   const { parametros } = await listarParametros("PETROLEO", "PETROLEO_ESTOQUES_EIA", { fatorParametroRepository: repoFalso() });
   assert.deepEqual(parametros, { versoes: [], padrao: PARAMETROS_PADRAO });
+});
+
+test("OPEP+ e geopolítica saem como fatores de evento, sem cálculo; os demais não", () => {
+  const { metodologia } = obterMetodologiaAtivo("PETROLEO");
+  assert.deepEqual(
+    metodologia.fatores.filter((fator) => fator.deEvento).map((fator) => [fator.codigo, fator.evento.janelaDias]),
+    [["PETROLEO_OPEP", 45], ["PETROLEO_GEOPOLITICA", 30]]
+  );
+  for (const fator of metodologia.fatores.filter((item) => item.deEvento)) assert.equal(fator.calculado, false);
+});
+
+test("o resultado de um fator de evento são os eventos dele na janela do fator até hoje (São Paulo); outro fator, 404", async () => {
+  let pedido;
+  const geopoliticaService = {
+    async obterEventosDoFator(...args) {
+      pedido = args.slice(0, 4);
+      return { contexto: "EVENTOS DO FATOR" };
+    }
+  };
+  // 02h UTC de 04/10 ainda é 03/10 em São Paulo.
+  const { eventosFator } = await obterEventosFator("petroleo", "petroleo_opep", { geopoliticaService, agora: new Date("2026-10-04T02:00:00Z") });
+  assert.deepEqual(pedido, ["PETROLEO", "PETROLEO_OPEP", "2026-10-03", 45]);
+  assert.equal(eventosFator.contexto, "EVENTOS DO FATOR");
+  await assert.rejects(obterEventosFator("PETROLEO", "PETROLEO_DOLAR", { geopoliticaService }), (err) => err.statusCode === 404);
 });

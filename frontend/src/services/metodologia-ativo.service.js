@@ -15,6 +15,13 @@ async function getCalculoFator(ativo, fator, { desde, parametros } = {}) {
   return data
 }
 
+// O resultado de um fator de evento (ADR 0050): os eventos da leitura diária marcados com ele, na janela do fator, e o
+// texto que vai ao prompt.
+async function getEventosFator(ativo, fator) {
+  const { data } = await http.get(`/api/v1/ativos/${encodeURIComponent(ativo)}/metodologia/fatores/${encodeURIComponent(fator)}/eventos`)
+  return data
+}
+
 function urlParametros(ativo, fator) {
   return `/api/v1/ativos/${encodeURIComponent(ativo)}/metodologia/fatores/${encodeURIComponent(fator)}/parametros`
 }
@@ -31,4 +38,4 @@ async function salvarParametros(ativo, fator, { parametros, motivo }) {
   return data
 }
 
-export default { getMetodologiaAtivo, getCalculoFator, getParametros, salvarParametros }
+export default { getMetodologiaAtivo, getCalculoFator, getEventosFator, getParametros, salvarParametros }

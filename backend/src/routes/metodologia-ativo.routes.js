@@ -9,6 +9,8 @@ const router = Router();
 
 router.get("/ativos/:ativo/metodologia", requireAuth, metodologiaAtivoController.detalhar);
 router.get("/ativos/:ativo/metodologia/fatores/:fator/calculo", requireAuth, metodologiaAtivoController.calcularFator);
+// Fator de evento (ADR 0050): os eventos da leitura diária marcados com ele, na janela do fator, e o bloco do prompt.
+router.get("/ativos/:ativo/metodologia/fatores/:fator/eventos", requireAuth, metodologiaAtivoController.obterEventosFator);
 // Os parâmetros da camada C em uso no sistema (ADR 0050): o histórico para todos; gravar uma versão nova, só admin.
 router.get("/ativos/:ativo/metodologia/fatores/:fator/parametros", requireAuth, metodologiaAtivoController.listarParametros);
 router.post(

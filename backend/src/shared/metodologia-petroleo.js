@@ -16,6 +16,9 @@ const { FATORES } = require("./fatores-fel1");
 //              corrigido. Fica com `situacao: "PROPOSTA"` até o David validar; aí vira "VALIDADA"
 //              com a data e a referência da validação (no ADR).
 //   perguntas - o que o David precisa decidir para a proposta virar regra.
+//   evento   - (opcional) { janelaDias }: FATOR DE EVENTO, sem cálculo. O resultado dele são os eventos aceitos da
+//              leitura diária marcados com ele nessa janela (geopolitica.service.js::obterEventosDoFator), o bloco que
+//              vai ao prompt da IA do ativo como está.
 //
 // Nada daqui alimenta o Centro de Decisão, o motor ou o prompt da IA, e nada gera sinal (ADR 0050).
 
@@ -33,23 +36,30 @@ const DEFINICOES = [
       mecanismo: "OPEP+ controla parcela relevante da oferta global",
       fonte: "OPEC"
     },
+    evento: { janelaDias: 45 },
     dados: {
       observaveis: ["PETROLEO_PRODUCAO_JODI"],
       eventos: true,
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente como fator de evento: as decisões da OPEP+ chegam pela leitura diária de eventos de mercado (o site da OPEP é fonte autorizada). A produção, não: dos grandes da OPEP+, o JODI perdeu os Emirados e o Irã (2018), a Rússia (2023) e o Iraque (2024); hoje reportam a Arábia Saudita, o Kuwait, o Cazaquistão, a Nigéria, a Argélia, a Venezuela, a Líbia, o Azerbaijão e o México. Sem esses quatro, a soma não mede a OPEP+, e o cumprimento das cotas não é medido."
+      },
       lacunas: [
-        "As cotas (metas) da OPEP+ por membro não são coletadas: o MOMR da OPEP não foi acessível de forma automática (ADR 0042).",
-        "A Rússia para de reportar ao JODI em mar/2023."
+        "O cumprimento das cotas (produção contra a meta de cada membro) não é medido: as cotas não são coletadas (o MOMR da OPEP não foi acessível de forma automática, ADR 0042) e a produção da Rússia, do Iraque, dos Emirados e do Irã não está no JODI.",
+        "A leitura diária registra a decisão da OPEP+ só quando ela é \"extraordinária\" (o tipo Política de oferta do prompt): uma reunião que só mantém as cotas pode não virar evento.",
+        "A data do evento é a da leitura que o registrou (o fato é das 24 a 48 horas anteriores); o evento não diz até quando vale: a janela de 45 dias faz esse papel."
       ]
     },
     proposta: {
-      objetivo: "Medir se a oferta da OPEP+ está subindo ou caindo de fato, não só no anúncio.",
-      medida: "Produção mensal somada dos membros da OPEP+ que reportam ao JODI, e a variação contra o mês anterior.",
-      comparacao: "Média dos 12 meses anteriores.",
-      leitura: "Produção abaixo da referência e caindo pressiona para cima; acima e subindo, para baixo (a direção indicada pelo especialista). O anúncio de corte ou aumento entra pelos eventos de mercado, no dia da reunião."
+      objetivo: "Levar à análise as decisões da OPEP+ que seguem valendo, e não só as do dia.",
+      medida: "Fator de evento, sem cálculo: os eventos aceitos da leitura diária marcados com este fator nos últimos 45 dias, cada um com a data da leitura que o registrou e a idade, o tipo, o resumo (com a data do fato, quando a fonte a dá), o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte autorizada.",
+      comparacao: "Sem comparação numérica: a idade de cada evento e o retrato do ativo na leitura mais recente. Os oito países dos cortes voluntários se reúnem todo mês: 45 dias pegam a última decisão com folga.",
+      leitura: "Fica com a IA do ativo, com os outros fatores: corte de produção pressiona para cima, aumento de cotas para baixo (a direção indicada pelo especialista), e o que move o preço é a surpresa contra o esperado, que só aparece quando a fonte fala dela."
     },
     perguntas: [
-      "O que pesa mais: o anúncio da reunião (evento) ou a produção efetivamente bombeada (dado mensal, com ~2 meses de atraso)?",
-      "Sem as cotas por membro, a produção agregada basta, ou é preciso medir o desvio contra a meta?"
+      "A janela de 45 dias basta como memória da política em vigor, ou a leitura diária deve registrar a vigência de cada decisão (exige mudar o prompt)?",
+      "O cumprimento das cotas é necessário? Sem a produção dos quatro grandes que saíram do JODI, ele só seria medido com uma fonte nova (ex.: o STEO da EIA)."
     ]
   },
   {
@@ -92,18 +102,29 @@ const DEFINICOES = [
       mecanismo: "Conflitos ameaçam rotas e produção",
       fonte: "EIA, IEA"
     },
+    evento: { janelaDias: 30 },
     dados: {
       observaveis: [],
       eventos: true,
-      lacunas: ["A régua dos níveis da leitura diária (o que é \"fora do normal\") é provisória (ADRs 0047 e 0049)."]
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente como fator de evento: a leitura diária por IA (desde 2026-10-02) busca em fontes autorizadas (UKMTO/JMIC, Tesouro dos EUA, AP News, OPEP e outras) e só aceita o evento sustentado por uma página que a pesquisa leu. Não é série: não é reproduzível nem serve para backtest (ADRs 0047 e 0049); o histórico das leituras é guardado para calibrar a régua depois."
+      },
+      lacunas: [
+        "A régua dos níveis da leitura diária (o que é \"fora do normal\") é provisória (ADRs 0047 e 0049).",
+        "A leitura registra o fato novo das últimas 24 a 48 horas: uma situação crônica (uma guerra em curso, uma sanção antiga) só volta a aparecer quando algo muda. A janela de 30 dias guarda os fatos recentes, não o que é crônico.",
+        "A data do evento é a da leitura que o registrou; o evento não diz até quando vale."
+      ]
     },
     proposta: {
-      objetivo: "Capturar o risco de interrupção da oferta ou das rotas por conflito, sanção ou ataque.",
-      medida: "O nível da leitura diária de eventos de mercado do petróleo e os eventos geopolíticos do dia, com o canal de transmissão.",
-      comparacao: "O nível NORMAL da própria leitura.",
-      leitura: "Evento com interrupção material (rota fechada, produção parada) pressiona para cima; ameaça sem efeito material é só atenção."
+      objetivo: "Levar à análise o risco de interrupção da oferta ou das rotas por conflito, sanção ou ataque, com os fatos recentes que seguem pesando.",
+      medida: "Fator de evento, sem cálculo: os eventos aceitos da leitura diária marcados com este fator nos últimos 30 dias, cada um com a data da leitura que o registrou e a idade, o tipo, o resumo (com a data do fato, quando a fonte a dá), o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte autorizada, mais o nível e o resumo do petróleo na leitura mais recente.",
+      comparacao: "Sem comparação numérica: a idade de cada evento e o nível da leitura mais recente (NORMAL a EXCEPCIONAL, escala provisória).",
+      leitura: "Fica com a IA do ativo, com os outros fatores: interrupção material (rota fechada, produção parada) pressiona para cima; ameaça sem efeito material é só atenção (a direção indicada pelo especialista)."
     },
     perguntas: [
+      "A janela de 30 dias basta, ou a leitura diária deve registrar os riscos em curso e a vigência de cada fato (exige mudar o prompt)?",
       "Uma ameaça sem efeito material conta, ou só a interrupção que já aconteceu?",
       "Vale o evento mais grave do dia ou a quantidade de eventos?",
       "A geopolítica é um fator próprio ou um modificador dos fatores de oferta (OPEP+, oferta não-OPEP)?"
@@ -346,7 +367,8 @@ const FATORES_PETROLEO = DEFINICOES.map((definicao) => {
     fel1: definicao.fel1,
     dados: definicao.dados,
     proposta: { situacao: SITUACAO.PROPOSTA, ...definicao.proposta },
-    perguntas: definicao.perguntas
+    perguntas: definicao.perguntas,
+    evento: definicao.evento || null
   };
 });
 

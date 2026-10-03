@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
 import CalculoFator from '../components/metodologia/CalculoFator.vue'
+import EventosFator from '../components/metodologia/EventosFator.vue'
 import metodologiaAtivoService from '../services/metodologia-ativo.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
 
@@ -107,8 +108,9 @@ watch(ativo, carregar, { immediate: true })
 
             <div class="metodologia-ativo__cards">
               <article v-for="(fator, index) in metodologia.fatores" :key="fator.codigo" class="metodologia-ativo__card">
-                <!-- Como na barra do modal: o nome e, logo depois, o peso; o botão de detalhes à direita. -->
-                <div class="metodologia-ativo__card-topo">
+                <!-- Duas colunas: o conteúdo (nome e peso, como na barra do modal; a direção; as marcas) e, à direita,
+                     o botão de detalhes, no meio da altura do card. -->
+                <div class="metodologia-ativo__card-corpo">
                   <div class="metodologia-ativo__card-titulo-grupo">
                     <h2 class="metodologia-ativo__card-titulo">{{ index + 1 }} - {{ fator.nome }}</h2>
                     <span
@@ -121,23 +123,24 @@ watch(ativo, carregar, { immediate: true })
                       Peso {{ fator.peso }}
                     </span>
                   </div>
-                  <button type="button" class="btn btn-outline-primary btn-sm metodologia-ativo__botao" @click="abrirFator(fator)">
-                    Detalhes
-                  </button>
-                </div>
-                <p class="metodologia-ativo__objetivo">{{ fator.fel1.direcao }}</p>
+                  <p class="metodologia-ativo__objetivo">{{ fator.fel1.direcao }}</p>
 
-                <div class="metodologia-ativo__marcas">
-                  <!-- O aviso do topo já diz que tudo é proposta: no card, só a exceção (fator validado). -->
-                  <span v-if="fator.proposta.situacao === 'VALIDADA'" class="metodologia-ativo__situacao metodologia-ativo__situacao--validada">
-                    {{ ROTULO_SITUACAO.VALIDADA }}
-                  </span>
-                  <span v-if="fator.dados.avaliacao" class="metodologia-ativo__calculado">
-                    <i class="bi" :class="fator.dados.avaliacao.suficiente ? 'bi-check-circle' : 'bi-exclamation-circle'"></i>
-                    {{ fator.dados.avaliacao.suficiente ? 'Dado suficiente' : 'Dado insuficiente' }}
-                  </span>
-                  <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> Proposta calculada</span>
+                  <div class="metodologia-ativo__marcas">
+                    <!-- O aviso já diz que tudo é proposta: no card, só a exceção (fator validado). -->
+                    <span v-if="fator.proposta.situacao === 'VALIDADA'" class="metodologia-ativo__situacao metodologia-ativo__situacao--validada">
+                      {{ ROTULO_SITUACAO.VALIDADA }}
+                    </span>
+                    <span v-if="fator.dados.avaliacao" class="metodologia-ativo__calculado">
+                      <i class="bi" :class="fator.dados.avaliacao.suficiente ? 'bi-check-circle' : 'bi-exclamation-circle'"></i>
+                      {{ fator.dados.avaliacao.suficiente ? 'Dado suficiente' : 'Dado insuficiente' }}
+                    </span>
+                    <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> Proposta calculada</span>
+                    <span v-if="fator.deEvento" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Fator de evento</span>
+                  </div>
                 </div>
+                <button type="button" class="btn btn-outline-primary btn-sm metodologia-ativo__botao" @click="abrirFator(fator)">
+                  Detalhes
+                </button>
               </article>
             </div>
 
@@ -218,9 +221,17 @@ watch(ativo, carregar, { immediate: true })
             </h4>
             <ul>
               <li><strong>Objetivo:</strong> {{ fatorSelecionado.proposta.objetivo }}</li>
-              <li><strong>A. Medir:</strong> {{ fatorSelecionado.proposta.medida }}</li>
-              <li><strong>B. Ler (comparar com):</strong> {{ fatorSelecionado.proposta.comparacao }}</li>
-              <li><strong>C. Decidir (simulação; o Comitê ajusta os parâmetros):</strong> {{ fatorSelecionado.proposta.leitura }}</li>
+              <!-- Fator de evento: sem cálculo, os rótulos dizem o que entra, o contexto e quem lê. -->
+              <template v-if="fatorSelecionado.deEvento">
+                <li><strong>O que entra:</strong> {{ fatorSelecionado.proposta.medida }}</li>
+                <li><strong>Contexto:</strong> {{ fatorSelecionado.proposta.comparacao }}</li>
+                <li><strong>Leitura:</strong> {{ fatorSelecionado.proposta.leitura }}</li>
+              </template>
+              <template v-else>
+                <li><strong>A. Medir:</strong> {{ fatorSelecionado.proposta.medida }}</li>
+                <li><strong>B. Ler (comparar com):</strong> {{ fatorSelecionado.proposta.comparacao }}</li>
+                <li><strong>C. Decidir (simulação; o Comitê ajusta os parâmetros):</strong> {{ fatorSelecionado.proposta.leitura }}</li>
+              </template>
             </ul>
           </section>
 
@@ -229,6 +240,7 @@ watch(ativo, carregar, { immediate: true })
             :ativo="metodologia.ativo"
             :fator="fatorSelecionado.codigo"
           />
+          <EventosFator v-else-if="fatorSelecionado.deEvento" :ativo="metodologia.ativo" :fator="fatorSelecionado.codigo" />
 
           <section class="metodologia-ativo__bloco metodologia-ativo__bloco--perguntas">
             <h4>Pendências <small>o que o especialista ainda decide</small></h4>
@@ -318,19 +330,20 @@ watch(ativo, carregar, { immediate: true })
 
 .metodologia-ativo__card {
   display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 1rem;
   padding: 1rem 1.15rem;
   border: 1px solid var(--p-surface-300);
   border-radius: 16px;
   background: var(--p-content-background);
 }
 
-.metodologia-ativo__card-topo {
+.metodologia-ativo__card-corpo {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 .metodologia-ativo__card-titulo-grupo {
@@ -378,13 +391,11 @@ watch(ativo, carregar, { immediate: true })
   gap: 0.35rem 0.75rem;
 }
 
-/* Mais alto que o título de uma linha: as margens negativas evitam que ele afaste a descrição do título. */
 .metodologia-ativo__botao {
   flex-shrink: 0;
-  margin: -0.3rem 0 -0.4rem;
 }
 
-.metodologia-ativo__card-topo + .metodologia-ativo__objetivo {
+.metodologia-ativo__card-titulo-grupo + .metodologia-ativo__objetivo {
   margin-top: -0.25rem;
 }
 

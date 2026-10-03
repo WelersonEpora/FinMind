@@ -79,4 +79,50 @@ async function buscarLeituraPorId(id) {
   return GeopoliticaLeitura.findByPk(id);
 }
 
-module.exports = { existeLeituraDoDia, substituirLeituraDoDia, buscarLeituraComEventos, buscarUltimaLeitura, listarEventos, buscarLeituraPorId };
+// Os eventos ACEITOS de um ativo marcados com um fator, das leituras de uma janela de datas, do mais recente para o mais
+// antigo, com a data da leitura: o resultado de um fator de evento na Metodologia do Ativo (ADR 0050).
+async function listarEventosAceitosDoFator({ ativo, fator, dataInicio, dataFim }) {
+  return GeopoliticaEvento.findAll({
+    where: { ativo, fator, aceito: true },
+    include: [
+      {
+        model: GeopoliticaLeitura,
+        as: "leitura",
+        where: { data_referencia: { [Op.between]: [dataInicio, dataFim] } },
+        attributes: ["data_referencia"]
+      }
+    ],
+    order: [
+      [{ model: GeopoliticaLeitura, as: "leitura" }, "data_referencia", "DESC"],
+      ["ordem", "ASC"]
+    ]
+  });
+}
+
+// As datas com leitura de um ativo numa janela (o nível do ativo preenchido; as leituras anteriores ao ADR 0049 não
+// têm o milho nem o café) e a data da 1ª leitura do ativo (ou null): os dias sem leitura da janela.
+async function listarDatasDeLeitura({ ativo, dataInicio, dataFim }) {
+  const coluna = `nivel_${ativo.toLowerCase()}`;
+  const naJanela = await GeopoliticaLeitura.findAll({
+    where: { data_referencia: { [Op.between]: [dataInicio, dataFim] }, [coluna]: { [Op.ne]: null } },
+    attributes: ["data_referencia"],
+    order: [["data_referencia", "ASC"]]
+  });
+  const primeira = await GeopoliticaLeitura.findOne({
+    where: { [coluna]: { [Op.ne]: null } },
+    attributes: ["data_referencia"],
+    order: [["data_referencia", "ASC"]]
+  });
+  return { datas: naJanela.map((l) => l.data_referencia), primeiraData: primeira?.data_referencia ?? null };
+}
+
+module.exports = {
+  existeLeituraDoDia,
+  substituirLeituraDoDia,
+  buscarLeituraComEventos,
+  buscarUltimaLeitura,
+  listarEventos,
+  buscarLeituraPorId,
+  listarEventosAceitosDoFator,
+  listarDatasDeLeitura
+};

@@ -9,7 +9,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { obterGeopoliticaDoDia, listarEventos, obterUltimaLeitura, obterDetalheIa } = require("./geopolitica.service");
+const { obterGeopoliticaDoDia, obterEventosDoFator, listarEventos, obterUltimaLeitura, obterDetalheIa } = require("./geopolitica.service");
 
 const LEITURA = {
   nivel_ouro: "RELEVANTE",
@@ -258,4 +258,61 @@ test("obterDetalheIa: instrução do sistema, prompt, resposta, buscas e página
   await assert.rejects(obterDetalheIa("99999999-2222-3333-4444-555555555555", { geopoliticaRepository: repo }), /não encontrada/);
   await assert.rejects(obterDetalheIa("abc", { geopoliticaRepository: repo }), /Leitura inválida/);
   assert.equal(consultas.length, 2);
+});
+
+// --- Fator de evento (Metodologia do Ativo) ---
+
+function repoDoFator({ eventos = [], datas = [], primeiraData = null } = {}) {
+  const chamadas = [];
+  return {
+    chamadas,
+    async listarEventosAceitosDoFator(args) {
+      chamadas.push({ eventos: args });
+      return eventos;
+    },
+    async listarDatasDeLeitura(args) {
+      chamadas.push({ datas: args });
+      return { datas, primeiraData };
+    },
+    async buscarLeituraComEventos(data) {
+      return { ...LEITURA, data_referencia: data };
+    }
+  };
+}
+
+const EVENTO_OPEP = {
+  leitura: { data_referencia: "2026-09-20" },
+  titulo: "OPEP+ mantém o corte voluntário até dezembro",
+  tipo: "POLITICA_OFERTA",
+  resumo: "Em 19/09, os oito países...",
+  canal_transmissao: "direto: menos oferta.",
+  pressao: "ALTA",
+  intensidade: "MEDIA",
+  confianca: "ALTA",
+  fontes: [{ nome: "OPEP", url: "https://opec.org/x", origem: "pesquisa" }]
+};
+
+test("fator de evento: os eventos aceitos do fator na janela, com a data da leitura e a idade, e os dias sem leitura", async () => {
+  const repo = repoDoFator({ eventos: [EVENTO_OPEP], datas: ["2026-09-20", "2026-10-01", "2026-10-03"], primeiraData: "2026-09-20" });
+  const r = await obterEventosDoFator("PETROLEO", "PETROLEO_OPEP", "2026-10-03", 45, { geopoliticaRepository: repo });
+  assert.deepEqual(repo.chamadas[0].eventos, { ativo: "PETROLEO", fator: "PETROLEO_OPEP", dataInicio: "2026-08-20", dataFim: "2026-10-03" });
+  assert.equal(r.inicio, "2026-08-20");
+  assert.equal(r.eventos[0].idadeDias, 13);
+  assert.equal(r.diasSemLeitura.length, 14 - 3);
+  assert.equal(r.ultimaLeitura.data, "2026-10-03");
+  assert.match(r.contexto, /EVENTOS DO FATOR — Decisões da OPEP\+ \(cotas de produção\) — PETRÓLEO \(2026-10-03\)/);
+  assert.match(r.contexto, /1\. \[registrado em 2026-09-20, há 13 dia\(s\)\] OPEP\+ mantém o corte/);
+  assert.match(r.contexto, /a leitura diária começou em 2026-09-20/);
+  assert.match(r.contexto, /Dias sem leitura \(sem informação, não calmaria\): 2026-09-21, .* e mais 1\./);
+  assert.match(r.contexto, /Retrato do ativo na leitura mais recente \(2026-10-03\): nível NORMAL\. Nada fora do normal\./);
+  assert.match(r.contexto, /Fontes: OPEP - https:\/\/opec\.org\/x/);
+});
+
+test("fator de evento: sem leitura nenhuma, avisa que a ausência não é situação normal", async () => {
+  const r = await obterEventosDoFator("PETROLEO", "PETROLEO_GEOPOLITICA", "2026-10-03", 30, { geopoliticaRepository: repoDoFator() });
+  assert.deepEqual(r.eventos, []);
+  assert.deepEqual(r.diasSemLeitura, []);
+  assert.match(r.contexto, /a leitura diária ainda não rodou para este ativo/);
+  assert.match(r.contexto, /nenhum evento deste fator nas leituras da janela/);
+  await assert.rejects(obterEventosDoFator("PETROLEO", "PETROLEO_OPEP", "2026-10-03", 0, { geopoliticaRepository: repoDoFator() }), /janela/);
 });

@@ -18,6 +18,14 @@ async function calcularFator(req, res, next) {
   }
 }
 
+async function obterEventosFator(req, res, next) {
+  try {
+    return res.json(await metodologiaAtivoService.obterEventosFator(req.params.ativo, req.params.fator));
+  } catch (err) {
+    return next(err);
+  }
+}
+
 async function listarParametros(req, res, next) {
   try {
     return res.json(await metodologiaAtivoService.listarParametros(req.params.ativo, req.params.fator));
@@ -35,4 +43,4 @@ async function salvarParametros(req, res, next) {
   }
 }
 
-module.exports = { detalhar, calcularFator, listarParametros, salvarParametros };
+module.exports = { detalhar, calcularFator, obterEventosFator, listarParametros, salvarParametros };

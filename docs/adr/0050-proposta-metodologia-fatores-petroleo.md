@@ -163,7 +163,22 @@ Centro de Decisão nem a IA e não gera sinal.
     ~1,9). Com ele, a decisão por faixa e a tela aceitam um fator mensal: a janela da tendência é em meses (a chave
     continua `semanasTendencia`, a das versões gravadas) e os textos de período ("Mês de 07/2026", "meses antes")
     seguem a `periodicidade` do cálculo.
-16. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
+16. **OPEP+ e geopolítica: fatores de evento, sem cálculo** (2026-10-03, decisão do usuário). Os dois não têm o
+    que medir: o resultado deles é o que vem da leitura diária de eventos (ADRs 0047 e 0049), repassado à IA do ativo
+    com pouco tratamento. A produção da OPEP+ não serve: o JODI perdeu os Emirados e o Irã (2018), a Rússia (2023) e
+    o Iraque (2024), e as cotas não são coletadas. **Sem mudar o prompt**, o fator lê os eventos de outro jeito: os
+    aceitos marcados com ele (`PETROLEO_OPEP`, `PETROLEO_GEOPOLITICA`) numa **janela de dias** (45 na OPEP+, cujos
+    oito países dos cortes voluntários se reúnem todo mês; 30 na geopolítica), e não só os do dia. A janela é a memória
+    do que segue valendo (a decisão do mês passado), porque a leitura diária só registra o fato novo das 24 a 48
+    horas e o evento não diz até quando vale. Cada evento vai com a data da leitura que o registrou e a idade em dias
+    (a data exata do fato, quando a fonte a dá, está no resumo), o tipo, o canal, a pressão (leitura da IA), a
+    intensidade, a confiança e a página da fonte; o bloco abre com o nível e o resumo do ativo na leitura mais recente
+    e lista os dias sem leitura (sem informação, não calmaria). `geopolitica.service.js::obterEventosDoFator` monta o
+    bloco; a tela mostra os eventos e o texto exato do prompt (`GET /ativos/:ativo/metodologia/fatores/:fator/eventos`).
+    Limites conhecidos: a reunião da OPEP+ que só mantém as cotas pode não virar evento (o tipo "Política de oferta"
+    pede decisão extraordinária); o mesmo fato pode reaparecer em dias seguintes como desdobramento. Se a falta da
+    data exata ou da vigência atrapalhar, muda-se o prompt (campos de data do fato e vigência).
+17. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
    marcadas.
 
 ## Consequências
