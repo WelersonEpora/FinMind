@@ -216,15 +216,26 @@ const DEFINICOES = [
     dados: {
       observaveis: ["META_FED", "TREASURY_10A", "CPI_EUA"],
       eventos: false,
-      lacunas: ["A expectativa do mercado para os juros (futuros de Fed Funds) não é coletada."]
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente: o Treasury de 10 anos (diário, desde 1962) e a meta do Fed (desde dez/2008) são coletados do FRED. No histórico do FinMind (2010 a 2026), a meta do Fed só se relaciona com o preço por causa da pandemia: sem 2019 a 2021, a correlação dela com o WTI 26 ou 52 semanas depois fica perto de zero. O juro longo, sim: a alta do Treasury em 26 semanas tem correlação de -0,17 com o WTI 26 semanas depois (-0,29 sem a pandemia), e com o juro subindo 1 p.p. ou mais no ano o WTI caiu em 76% dos casos nas 26 semanas seguintes (média de -7%), a direção indicada pelo especialista. O juro também anda com o petróleo dos meses anteriores (+0,25: petróleo alto, inflação, juro). Ressalva: no período houve só dois ciclos de alta (2015-18 e 2022-23)."
+      },
+      lacunas: [
+        "A expectativa do mercado para os juros (futuros de Fed Funds) não é coletada; o Treasury de 10 anos a embute.",
+        "A inflação (CPI) é coletada, mas não entra no cálculo: chega ao petróleo pelo juro."
+      ]
     },
     proposta: {
-      objetivo: "Medir se a política monetária americana está apertando ou afrouxando.",
-      medida: "Meta dos Fed Funds e o rendimento do Treasury de 10 anos.",
-      comparacao: "A direção do último movimento da meta (alta, corte ou manutenção).",
-      leitura: "Ciclo de alta pressiona a demanda (para baixo); ciclo de corte favorece (para cima). Contexto, mais do que pressão direta."
+      objetivo: "Medir se o custo do dinheiro nos EUA está subindo ou caindo, o que pesa na atividade e na demanda por petróleo.",
+      medida: "Rendimento do Treasury de 10 anos, na média da semana; a meta do Fed e a variação dela em 52 semanas (o ciclo) como contexto.",
+      comparacao: "O próprio Treasury 26 semanas antes: a variação em p.p.",
+      leitura: "Juro subindo além de uma faixa (padrão: 0,5 p.p. em 26 semanas) pressiona o petróleo para baixo; caindo, favorece (pressão de alta). Intensidade forte a partir de 1 p.p. Tendência: se a variação mudou 0,25 p.p. ou mais em 4 semanas, a alta (ou a queda) está ganhando força. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: ["Juros entram como fator com direção própria ou só como contexto para a demanda?"]
+    perguntas: [
+      "Juros entram como fator com direção própria ou só como contexto para a demanda? A proposta dá direção, com base no histórico do juro longo.",
+      "O juro longo (Treasury de 10 anos, que o mercado define) serve no lugar da meta do Fed (que o FEL 1 cita)? A meta, sozinha, não mostrou relação com o preço fora da pandemia."
+    ]
   },
   {
     codigo: "PETROLEO_FUNDOS",

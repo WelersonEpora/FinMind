@@ -85,11 +85,11 @@ test("a API devolve o observável com o nome do card", () => {
   assert.deepEqual(estoques.dados.observaveis, [{ codigo: "PETROLEO_ESTOQUES_EIA", nome: "Petróleo EUA - estoques (EIA)" }]);
 });
 
-test("os fatores de estoques, demanda, dólar, produção, fundos e refino saem marcados como calculados; os demais não", () => {
+test("os fatores de estoques, demanda, dólar, produção, juros, fundos e refino saem marcados como calculados; os demais não", () => {
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
   assert.deepEqual(
     metodologia.fatores.filter((fator) => fator.calculado).map((fator) => fator.codigo),
-    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_FUNDOS", "PETROLEO_REFINO"]
+    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_JUROS", "PETROLEO_FUNDOS", "PETROLEO_REFINO"]
   );
 });
 
@@ -101,8 +101,24 @@ const LINHAS_SINTETICAS = {
   PETROLEO_DEMANDA: { serie: "EIA.PETROLEO_FLUXOS.DERIVADOS_FORNECIDOS", base: 20000 },
   PETROLEO_REFINO: { gerar: diasDePrecos },
   PETROLEO_DOLAR: { gerar: diasDoDolar },
-  PETROLEO_FUNDOS: { gerar: semanasDoCot }
+  PETROLEO_FUNDOS: { gerar: semanasDoCot },
+  PETROLEO_JUROS: { gerar: diasDosJuros }
 };
+
+// Os juros leem o Treasury de 10 anos e a meta do Fed, diários: 2 anos de dias úteis.
+function diasDosJuros() {
+  const linhas = [];
+  const inicio = Date.UTC(2022, 0, 3);
+  const linha = (serie, observedAt, value) => ({ seriesCode: serie, observedAt, value, publishedAt: new Date(), publishedAtIsEstimated: true });
+  for (let i = 0; i < 365 * 2; i += 1) {
+    const data = new Date(inicio + i * 86400000);
+    if (data.getUTCDay() === 0 || data.getUTCDay() === 6) continue;
+    const observedAt = data.toISOString().slice(0, 10);
+    linhas.push(linha("FRED.DGS10", observedAt, 2 + i / 300));
+    linhas.push(linha("FRED.DFEDTARU", observedAt, 0.25 + Math.floor(i / 60) * 0.25));
+  }
+  return linhas;
+}
 
 // Os fundos leem o COT do WTI (terças): 4 anos de comprados, vendidos e contratos em aberto.
 function semanasDoCot() {

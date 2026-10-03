@@ -142,7 +142,16 @@ Centro de Decisão nem a IA e não gera sinal.
     primeiro fator sem direção própria no FEL 1: cabe na decisão por faixa sem mudar a tela, e a leitura é pergunta
     ao David. Padrões: faixa de 30 pontos (percentis 20 a 80), forte a partir de 40 (10 e 90), 4 semanas e 15 pontos
     (mediana da mudança em 4 semanas, ~11). O mesmo molde serve ao COT do ouro, do milho e do café.
-14. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
+14. **Sétimo fator calculado: juros** (2026-10-03). A proposta citava a meta do Fed, mas no histórico (2010 a 2026)
+    ela só se relaciona com o preço por causa da pandemia: sem 2019 a 2021, a correlação com o WTI 26 ou 52
+    semanas depois fica perto de zero. A medida passou a ser o **Treasury de 10 anos**, que embute a expectativa do
+    mercado para o Fed (os futuros de Fed Funds não são coletados): a variação em 26 semanas, em p.p., tem -0,17 com
+    o WTI 26 semanas depois (-0,29 sem a pandemia), e com o juro subindo 1 p.p. ou mais no ano o WTI caiu em 76% dos
+    casos nas 26 semanas seguintes. A meta e o ciclo do Fed (variação em 52 semanas) ficam como contexto. Juro
+    subindo é pressão de baixa, a direção do FEL 1. Padrões: faixa de 0,5 p.p., forte a partir de 1 p.p. (percentis
+    ~60 e acima de 80), 4 semanas e 0,25 p.p. (mediana ~0,19). Com ele, a explicação da decisão por faixa mostra o
+    limiar com duas casas quando ele tem (0,25 não vira "0,3").
+15. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
    marcadas.
 
 ## Consequências

@@ -19,7 +19,8 @@ const CALCULOS = {
   PETROLEO_DEMANDA: require("../factors/demanda-petroleo-eua.factor").METODOLOGIA,
   PETROLEO_REFINO: require("../factors/refino-petroleo.factor").METODOLOGIA,
   PETROLEO_DOLAR: require("../factors/dolar-petroleo.factor").METODOLOGIA,
-  PETROLEO_FUNDOS: require("../factors/fundos-petroleo.factor").METODOLOGIA
+  PETROLEO_FUNDOS: require("../factors/fundos-petroleo.factor").METODOLOGIA,
+  PETROLEO_JUROS: require("../factors/juros-petroleo.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
