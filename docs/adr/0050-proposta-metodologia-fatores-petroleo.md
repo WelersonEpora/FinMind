@@ -132,7 +132,17 @@ Centro de Decisão nem a IA e não gera sinal.
     acima do normal é pressão de baixa. Padrões: faixa de 2%, forte a partir de 5%, 4 semanas e 1,5 p.p. A média
     semanal de uma série diária (sábado a sexta) virou o núcleo `factors/base/semana-de-dias.js`, usado pelo
     refino e pelo dólar.
-13. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
+13. **Sexto fator calculado: fundos (COT)** (2026-10-03). A posição líquida dos fundos (managed money) no WTI, em %
+    dos contratos em aberto (o mercado cresceu muito desde 2006), e o percentil dela nas 156 semanas (3 anos)
+    anteriores; a medida da decisão é a **posição relativa**, o percentil menos 50 (de -50 a +50), e a semana é a
+    terça da posição. O FEL 1 só diz que o fator "amplifica"; a proposta lê o **extremo como risco de reversão**
+    (muito comprados = pressão de baixa), e o histórico sustenta isso, não a leitura de seguir os fundos: a posição
+    segue o preço (+0,2 com o WTI das 13 a 26 semanas anteriores), e com os fundos entre os 10% mais vendidos o WTI
+    subiu em 74% dos casos 26 semanas depois (média +12%), contra 44% (média -1%) entre os 10% mais comprados. É o
+    primeiro fator sem direção própria no FEL 1: cabe na decisão por faixa sem mudar a tela, e a leitura é pergunta
+    ao David. Padrões: faixa de 30 pontos (percentis 20 a 80), forte a partir de 40 (10 e 90), 4 semanas e 15 pontos
+    (mediana da mudança em 4 semanas, ~11). O mesmo molde serve ao COT do ouro, do milho e do café.
+14. **`CLAUDE.md`:** a restrição "nunca invente cálculo de mercado" ganha uma exceção explícita para propostas assim
    marcadas.
 
 ## Consequências

@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-02.**
+**Última atualização: 2026-10-03.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -1421,14 +1421,14 @@ o que o FEL 1 diz (tipo, direção, mecanismo, fonte), os dados que já coletamo
 comparação e um esboço da leitura) e as perguntas ao David. Nada disso alimenta o motor, o Centro de Decisão ou a IA,
 e nenhum sinal é gerado.
 
-O conteúdo está na tela **Metodologia do Ativo** (`/dados-mercado/metodologia/PETROLEO`), e não é copiado aqui. Cinco fatores têm a proposta **calculada**: dólar (o índice do Fed das economias avançadas contra a média de 52 semanas; o fator com a relação mais forte com o preço), refino (a margem 3-2-1 com o Brent, calculada pelo FinMind, contra a média de 5 anos, em US$ por barril; hoje extrema, como em 2022), demanda (só os EUA: a China do JODI ficou de fora, "não avaliada" e com uma queda de ~30% em 2026 sem explicação; pergunta ao David), produção dos EUA (o crescimento anual da produção, com a distância do recorde; o dado basta, o rig count não é necessário) e estoques EIA. O de estoques, o piloto: o estoque contra a média da mesma semana nos 5 anos anteriores, no histórico desde 1982, e a **camada C** (direção, intensidade e tendência) com os parâmetros em uso no sistema, guardados no banco com histórico de versões: qualquer usuário simula outros valores na tela, e o admin salva uma versão nova, com o motivo. Em jun/2020 ficou 15% acima da média; em jun/2022, 12,5% abaixo. As
+O conteúdo está na tela **Metodologia do Ativo** (`/dados-mercado/metodologia/PETROLEO`), e não é copiado aqui. Seis fatores têm a proposta **calculada**: fundos (a posição líquida no COT do WTI contra o percentil dos 3 anos anteriores; o extremo lido como risco de reversão, que o histórico sustenta; pergunta ao David), dólar (o índice do Fed das economias avançadas contra a média de 52 semanas; o fator com a relação mais forte com o preço), refino (a margem 3-2-1 com o Brent, calculada pelo FinMind, contra a média de 5 anos, em US$ por barril; hoje extrema, como em 2022), demanda (só os EUA: a China do JODI ficou de fora, "não avaliada" e com uma queda de ~30% em 2026 sem explicação; pergunta ao David), produção dos EUA (o crescimento anual da produção, com a distância do recorde; o dado basta, o rig count não é necessário) e estoques EIA. O de estoques, o piloto: o estoque contra a média da mesma semana nos 5 anos anteriores, no histórico desde 1982, e a **camada C** (direção, intensidade e tendência) com os parâmetros em uso no sistema, guardados no banco com histórico de versões: qualquer usuário simula outros valores na tela, e o admin salva uma versão nova, com o motivo. Em jun/2020 ficou 15% acima da média; em jun/2022, 12,5% abaixo. As
 perguntas que mais destravam:
 
 1. **Estoques EIA (Alto):** "abaixo do esperado" é contra o consenso de analistas (pago, não coletado) ou contra uma
    referência histórica (a média de 5 anos da mesma semana, que a EIA publica)?
 2. **OPEP+ (Alto):** pesa o anúncio da reunião (evento) ou a produção bombeada (mensal, ~2 meses de atraso)?
 3. **Geopolítica (Alto):** ameaça sem efeito material conta, ou só a interrupção que já aconteceu?
-4. **Fundos (COT):** confirmam os outros fatores ou têm direção própria?
+4. **Fundos (COT):** confirmam os outros fatores ou têm direção própria? (A proposta lê o extremo como risco de reversão.)
 
 </details>
 
@@ -1459,6 +1459,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Fator de fundos (COT) calculado | O 6º fator do petróleo: a posição líquida dos fundos no WTI em % dos contratos em aberto, contra o percentil das 156 semanas anteriores (posição relativa = percentil - 50). O FEL 1 diz que "amplifica"; a proposta lê o extremo como risco de reversão (muito comprados = pressão de baixa): com os fundos entre os 10% mais vendidos, o WTI subiu em 74% dos casos 26 semanas depois. Cabe na decisão por faixa sem mudar a tela | ADR 0050, §5c |
 | Fator do dólar calculado | O 5º fator do petróleo: o índice do Fed contra as economias avançadas (o mais próximo do DXY), na média da semana, contra a média das 52 semanas anteriores. Dólar acima do normal é pressão de baixa (FEL 1). O fator com a relação mais forte com o preço: -0,56 com a variação do WTI dos 6 meses anteriores e -0,37 com o WTI 26 semanas depois (desde 2015). A média semanal de série diária virou um núcleo comum com o refino | ADR 0050, §5c |
 | Fator de refino calculado | O 4º fator do petróleo: a margem de refino 3-2-1 calculada pelo FinMind com os preços à vista de Nova York e o Brent (não o WTI, que distorcia o crack em 2011-2013), contra a média da mesma semana nos 5 anos anteriores, em US$ por barril (em %, o desvio explodia). Margem acima do normal é pressão de alta (FEL 1); anda com refinarias mais cheias, mas não antecipa o preço. Hoje está extrema (US$ 52,5 contra US$ 23,4), como em 2022. A média de 5 anos virou um núcleo comum com os estoques, e a decisão por faixa aceita a unidade da medida | ADR 0050, §5c |
 | Fator de demanda calculado (só os EUA) | O 3º fator do petróleo: o consumo médio de 4 semanas dos EUA contra o mesmo período do ano anterior, com a decisão simulada no sentido inverso (demanda crescendo é pressão de alta; faixa de 2%, forte a partir de 5%). A demanda anda junto com o preço, mas não o antecipa. A China (JODI) ficou de fora por decisão do usuário: dado "não avaliado" e queda de ~30% em 2026 sem explicação. A média de 4 semanas e o crescimento anual viraram um núcleo comum com a produção | ADR 0050, §5c |

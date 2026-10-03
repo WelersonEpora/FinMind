@@ -85,11 +85,11 @@ test("a API devolve o observável com o nome do card", () => {
   assert.deepEqual(estoques.dados.observaveis, [{ codigo: "PETROLEO_ESTOQUES_EIA", nome: "Petróleo EUA - estoques (EIA)" }]);
 });
 
-test("os fatores de estoques, demanda, dólar, produção e refino saem marcados como calculados; os demais não", () => {
+test("os fatores de estoques, demanda, dólar, produção, fundos e refino saem marcados como calculados; os demais não", () => {
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
   assert.deepEqual(
     metodologia.fatores.filter((fator) => fator.calculado).map((fator) => fator.codigo),
-    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_REFINO"]
+    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_FUNDOS", "PETROLEO_REFINO"]
   );
 });
 
@@ -100,8 +100,23 @@ const LINHAS_SINTETICAS = {
   PETROLEO_PRODUCAO_EUA: { serie: "EIA.PETROLEO_FLUXOS.PRODUCAO", base: 13000 },
   PETROLEO_DEMANDA: { serie: "EIA.PETROLEO_FLUXOS.DERIVADOS_FORNECIDOS", base: 20000 },
   PETROLEO_REFINO: { gerar: diasDePrecos },
-  PETROLEO_DOLAR: { gerar: diasDoDolar }
+  PETROLEO_DOLAR: { gerar: diasDoDolar },
+  PETROLEO_FUNDOS: { gerar: semanasDoCot }
 };
+
+// Os fundos leem o COT do WTI (terças): 4 anos de comprados, vendidos e contratos em aberto.
+function semanasDoCot() {
+  const linhas = [];
+  const inicio = Date.UTC(2020, 0, 7);
+  const linha = (serie, observedAt, value) => ({ seriesCode: `CFTC.CRUDE_WTI.${serie}`, observedAt, value, publishedAt: new Date(), publishedAtIsEstimated: false });
+  for (let i = 0; i < 52 * 4; i += 1) {
+    const observedAt = new Date(inicio + i * 7 * 86400000).toISOString().slice(0, 10);
+    linhas.push(linha("MM_LONG", observedAt, 300000 + (i % 37) * 1000));
+    linhas.push(linha("MM_SHORT", observedAt, 100000 + (i % 23) * 1000));
+    linhas.push(linha("OPEN_INTEREST", observedAt, 2000000));
+  }
+  return linhas;
+}
 
 // O dólar lê o índice diário do Fed: 3 anos de dias úteis.
 function diasDoDolar() {

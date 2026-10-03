@@ -234,16 +234,28 @@ const DEFINICOES = [
       mecanismo: "Posições especulativas amplificam tendências",
       fonte: "CFTC"
     },
-    dados: { observaveis: ["COT_PETROLEO_WTI"], eventos: false, lacunas: [] },
+    dados: {
+      observaveis: ["COT_PETROLEO_WTI"],
+      eventos: false,
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente: o COT da CFTC traz as posições compradas e vendidas dos fundos (managed money) no WTI da NYMEX, toda semana, desde 2006. No histórico do FinMind (2010 a 2026), a posição líquida em % dos contratos em aberto segue o preço (+0,2 com a variação do WTI das 13 a 26 semanas anteriores: os fundos compram depois da alta, o \"amplifica\" indicado pelo especialista) e, nos extremos, o preço tende a virar: com os fundos entre os 10% mais vendidos dos 3 anos anteriores, o WTI subiu em 74% dos casos 26 semanas depois (média de +12%); entre os 10% mais comprados, em 44% (média de -1%). Fora dos extremos, perto de 50%. Exemplos: muito comprados em jun/2014, antes da queda; muito vendidos em fev/2016 e abr/2025."
+      },
+      lacunas: [
+        "Só futuros e só os fundos (managed money): o relatório que soma opções e as demais categorias (produtores, swap dealers) não é coletado.",
+        "Posição de terça, divulgada na sexta seguinte: atrasa com feriado e atrasou semanas no shutdown de 2025."
+      ]
+    },
     proposta: {
       objetivo: "Medir o posicionamento dos fundos (managed money) no WTI.",
-      medida: "Posição líquida (comprado menos vendido) e a variação semanal.",
-      comparacao: "Percentil da posição líquida nos últimos 3 anos.",
-      leitura: "Não dá direção sozinho (o especialista diz que amplifica): confirma a direção dos outros fatores; posição em extremo indica risco de reversão."
+      medida: "Posição líquida (comprados menos vendidos) em % dos contratos em aberto, com a variação semanal em contratos.",
+      comparacao: "Percentil da posição líquida nas 156 semanas (3 anos) anteriores; a posição relativa é o percentil menos 50 (de -50 a +50).",
+      leitura: "O especialista diz que amplifica; a proposta lê os extremos como risco de reversão: fundos muito comprados (acima do percentil 80, padrão: posição relativa de +30) pressionam para baixo, muito vendidos (abaixo do 20) para cima; forte além do 10 e do 90 (40 pontos). Tendência: se a posição relativa mudou 15 pontos ou mais em 4 semanas, os fundos estão comprando ou vendendo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
     perguntas: [
-      "COT confirma os outros fatores ou tem direção própria?",
-      "O que conta como extremo de posição (percentil, desvio-padrão, máxima histórica)?"
+      "COT confirma os outros fatores ou tem direção própria? A proposta lê o extremo como risco de reversão (o histórico mostra isso, sobretudo do lado vendido); a outra leitura, a de seguir os fundos, o histórico não sustenta.",
+      "O que conta como extremo de posição (percentil, desvio-padrão, máxima histórica)? A proposta usa os percentis 20/80 e 10/90 dos 3 anos anteriores."
     ]
   },
   {
