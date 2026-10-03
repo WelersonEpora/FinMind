@@ -81,6 +81,17 @@ test("evidências: o que foi ao prompt, da entrada GRAVADA, com o nome de cada f
   );
 });
 
+test("os horizontes contam de onde a leitura gravada diz: do último preço (v1, sem o campo) ou da data da análise (v2)", async () => {
+  const v1 = await obterAnaliseDoDia("PETROLEO", "2026-10-03", { analiseDiariaRepository: repo(REGISTRO) });
+  assert.deepEqual(v1.referenciaHorizontes, { tipo: "DATA_DO_ULTIMO_PRECO", data: "2026-09-29" });
+  assert.equal(v1.evidencias.referenciaHorizontes, "DATA_DO_ULTIMO_PRECO");
+
+  const registroV2 = { ...REGISTRO, entrada: { ...REGISTRO.entrada, referenciaHorizontes: "DATA_DA_ANALISE" } };
+  const v2 = await obterAnaliseDoDia("PETROLEO", "2026-10-03", { analiseDiariaRepository: repo(registroV2) });
+  assert.deepEqual(v2.referenciaHorizontes, { tipo: "DATA_DA_ANALISE", data: "2026-10-03" });
+  assert.equal(v2.evidencias.referenciaHorizontes, "DATA_DA_ANALISE");
+});
+
 test("o prompt e a resposta saem só sob demanda, como foram gravados; sem leitura na data, 404", async () => {
   const { analiseEnviada } = await obterPromptEnviado({ ativo: "PETROLEO", data: "2026-10-03" }, { analiseDiariaRepository: repo(REGISTRO) });
   assert.deepEqual(

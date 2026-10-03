@@ -141,8 +141,7 @@ async function copiar() {
       <section v-if="evidencias.preco" class="evidencias__preco">
         <span class="evidencias__preco-valor">
           {{ evidencias.preco.serie }}
-          <strong>US$ {{ formatarValor(evidencias.preco.valor) }}</strong>
-          <span class="text-muted">em {{ formatarData(evidencias.preco.dataReferencia) }}</span>
+          <strong>US$ {{ formatarValor(evidencias.preco.valor) }}</strong> <span class="text-muted">em {{ formatarData(evidencias.preco.dataReferencia) }}</span>
         </span>
         <span class="evidencias__variacoes">
           <span v-for="v in evidencias.preco.variacoes" :key="v.horizonte" class="evidencias__variacao">
@@ -205,7 +204,12 @@ async function copiar() {
           {{ evidencias.preco.serie }} US$ {{ formatarValor(evidencias.preco.valor) }} em
           {{ formatarData(evidencias.preco.dataReferencia) }}, publicado em
           {{ formatarData((evidencias.preco.publicadoEm || '').slice(0, 10))
-          }}{{ evidencias.preco.publicadoEmEstimado ? ' (data estimada)' : '' }}. Os horizontes contam desta data.
+          }}{{ evidencias.preco.publicadoEmEstimado ? ' (data estimada)' : '' }}.
+          {{
+            evidencias.referenciaHorizontes === 'DATA_DA_ANALISE'
+              ? `Os horizontes contam da data da leitura (${formatarData(analise.data)}); o preço depois deste é desconhecido para a IA.`
+              : 'Os horizontes contam desta data.'
+          }}
         </p>
         <p v-else class="small text-muted">Sem preço de referência na data.</p>
 

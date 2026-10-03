@@ -42,6 +42,7 @@ function intervalo(horizonte) {
 const etiqueta = (leitura) => etiquetaLeitura(leitura.tendencia, leitura.faixa)
 
 const proveniencia = computed(() => props.analise.proveniencia || {})
+const contaDaAnalise = computed(() => props.analise.referenciaHorizontes?.tipo === 'DATA_DA_ANALISE')
 </script>
 
 <template>
@@ -50,7 +51,13 @@ const proveniencia = computed(() => props.analise.proveniencia || {})
       <span class="analise__icone"><i class="bi bi-lightbulb"></i></span>
       <div class="analise__titulos">
         <h2>Análise do FinMind</h2>
-        <p v-if="analise.disponivel && analise.precoReferencia" class="analise__referencia">
+        <!-- De onde os horizontes contam, como foi gravado com a leitura (a v1 contava do último preço; ADR 0052). -->
+        <p v-if="analise.disponivel && analise.precoReferencia && contaDaAnalise" class="analise__referencia">
+          Os horizontes contam de <strong>{{ formatarData(analise.referenciaHorizontes.data) }}</strong>, data da leitura. Último
+          preço do {{ analise.precoReferencia.serie }} na base: <strong>US$ {{ formatarValor(analise.precoReferencia.valor) }}</strong>
+          em {{ formatarData(analise.precoReferencia.dataReferencia) }}.
+        </p>
+        <p v-else-if="analise.disponivel && analise.precoReferencia" class="analise__referencia">
           Os horizontes contam de <strong>{{ formatarData(analise.precoReferencia.dataReferencia) }}</strong>, último preço do
           {{ analise.precoReferencia.serie }} na base (<strong>US$ {{ formatarValor(analise.precoReferencia.valor) }}</strong>).
         </p>

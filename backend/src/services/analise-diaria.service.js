@@ -49,6 +49,7 @@ function resumirEvidencias(ativo, entrada) {
       .map((f) => ({ codigo: f.situacao, fator: f.codigo, descricao: `${f.nome}: ${f.situacao === "SEM_DADO" ? "sem dado até a data" : "sem leitura diária na janela"}` }))
   ];
   return {
+    referenciaHorizontes: entrada.referenciaHorizontes || "DATA_DO_ULTIMO_PRECO",
     preco: preco
       ? {
           serie: preco.serie,
@@ -82,6 +83,11 @@ async function obterAnaliseDoDia(ativo, data, deps = {}) {
 
   const entrada = registro.entrada || {};
   const faixasDoHorizonte = new Map((entrada.horizontes || []).map((h) => [h.codigo, h]));
+  // De onde os horizontes contam, como foi gravado com a leitura (a configuração v1 contava do último preço, a v2 conta
+  // da data da análise; shared/analise-diaria-petroleo.js::REFERENCIA_HORIZONTES).
+  const tipoReferencia = entrada.referenciaHorizontes || "DATA_DO_ULTIMO_PRECO";
+  const dataReferenciaHorizontes =
+    tipoReferencia === "DATA_DA_ANALISE" ? registro.data_analise : entrada.precoReferencia?.dataReferencia ?? null;
   return {
     disponivel: true,
     data: registro.data_analise,
@@ -89,6 +95,7 @@ async function obterAnaliseDoDia(ativo, data, deps = {}) {
     precoReferencia: entrada.precoReferencia
       ? { serie: entrada.precoReferencia.serie, dataReferencia: entrada.precoReferencia.dataReferencia, valor: entrada.precoReferencia.valor }
       : null,
+    referenciaHorizontes: { tipo: tipoReferencia, data: dataReferenciaHorizontes },
     horizontes: HORIZONTES.map(({ codigo, rotulo, dias }) => {
       const faixa = faixasDoHorizonte.get(codigo) || {};
       return { codigo, rotulo, dias, t1: faixa.t1 ?? null, t2: faixa.t2 ?? null };

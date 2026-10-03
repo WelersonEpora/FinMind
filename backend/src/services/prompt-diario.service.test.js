@@ -99,7 +99,7 @@ test("os blocos fixos (1, 4, 5 e 6) vão na instrução do sistema; a base e a l
   for (const bloco of ["[2. BASE", "2.1 PREÇO DO WTI", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
     assert.ok(p.prompt.includes(bloco), bloco);
   }
-  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@1");
+  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@2");
   assert.equal(p.versaoMetodologia, "petroleo-v1 (2026-10-02)");
   assert.equal(p.versaoConfiguracao, config.VERSAO);
   assert.match(p.hashEntrada, /^[0-9a-f]{64}$/);
@@ -125,7 +125,10 @@ test("a base traz o preço do WTI com as datas e as variações dos horizontes, 
   assert.deepEqual(d.chamadas.preco, ["WTI", "2026-10-03"]);
   assert.deepEqual(d.chamadas.simular, ["PETROLEO", "2026-10-03"]);
   assert.match(p.prompt, /Último preço: US\$ 96,16 em 29\/09\/2026 \| publicado em 30\/09\/2026 \(data estimada\) \| 4 dia\(s\) antes da data da análise/);
-  assert.match(p.prompt, /Os horizontes da tabela 2\.4 contam a partir de 29\/09\/2026/);
+  assert.match(
+    p.prompt,
+    /Os horizontes da tabela 2\.4 contam a partir de 03\/10\/2026, a data da análise\. O preço depois de 29\/09\/2026 até 03\/10\/2026 NÃO está na BASE: é desconhecido\./
+  );
   assert.match(p.prompt, /1 dia \(pregão anterior\): -3,23% \(desde 28\/09\/2026\) \| 7 dias: -0,26% .* \| 90 dias: SEM DADO/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/barril\): 29\/09\/2026: 96,16; 28\/09\/2026: 99,37/);
   assert.match(p.prompt, /2\.2 CURVA FUTURA DO WTI .*\nSEM DADO: não há fonte da curva futura do WTI/);
@@ -159,7 +162,7 @@ test("a leitura do motor junta os blocos dos fatores na ordem do catálogo; a en
   assert.deepEqual(estoques.leitura, { pressao: "NEUTRA", intensidade: "FRACA", tendencia: "ESTAVEL" });
   assert.equal(p.entrada.fatores.find((f) => f.fator === "PETROLEO_GEOPOLITICA").janelaDias, 30);
   assert.deepEqual(p.entrada.horizontes.map((h) => h.codigo), ["IMEDIATO", "CURTO", "MEDIO", "LONGO"]);
-  assert.equal(p.entrada.referenciaHorizontes, "DATA_DO_ULTIMO_PRECO");
+  assert.equal(p.entrada.referenciaHorizontes, "DATA_DA_ANALISE");
 });
 
 test("o mesmo dia e a mesma base dão o mesmo hash; outro ativo não tem prompt diário", async () => {

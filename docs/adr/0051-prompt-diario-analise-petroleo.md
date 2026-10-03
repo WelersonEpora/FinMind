@@ -71,6 +71,7 @@ EIA sai uma vez por semana.
 - **Referência dos horizontes:** a data do último preço do WTI na base, porque a data da análise não tem preço (a EIA
   publica uma vez por semana). Consequência conhecida: quando o último preço tem vários dias, o horizonte de 1 dia já
   passou ao gerar o prompt. Uma fonte com atraso de ~1 dia (provavelmente a mesma da curva) resolve.
+  **Substituída em 2026-10-03** (ADR 0052, adendo): os horizontes passaram a contar da data da análise.
 - **Defasagem por fator:** não calculada. Os fatores misturam séries com tolerâncias diferentes (ex.: os juros, da meta
   do Fed com 4 dias ao CPI com 75) e o ponto semanal leva a data do fim da semana; criar uma tolerância por fator seria
   regra nova. A IA julga pela idade e pela periodicidade, que a tabela 2.3 dá.

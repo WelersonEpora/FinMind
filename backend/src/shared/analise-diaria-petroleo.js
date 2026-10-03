@@ -7,7 +7,8 @@
 // Parâmetros do PROMPT (horizontes, faixas, preço de referência, histórico) e de VALIDAÇÃO (referência dos horizontes,
 // classificação do realizado). Os parâmetros dos FATORES ficam em cada fator e na tabela fator_parametro (ADR 0050).
 
-const VERSAO = 1;
+// v1 (2026-10-03): horizontes contados da data do último preço. v2 (2026-10-03): da data da análise (REFERENCIA_HORIZONTES).
+const VERSAO = 2;
 
 // Os quatro horizontes, cada um analisado separadamente (decisão do usuário, 2026-10-03). `variacao`: a janela do
 // Centro de Decisão com o mesmo prazo (centro-decisao.service.js::VARIACOES), a que o bloco de preço mostra.
@@ -39,10 +40,14 @@ const TENDENCIA_DA_FAIXA = Object.freeze({
   ALTA_FORTE: "ALTA"
 });
 
-// De onde os horizontes são contados. PROVISÓRIO (2026-10-03): da data do último preço do WTI na BASE. A EIA publica
-// os preços diários uma vez por semana, então o último preço pode ter vários dias; a alternativa (a data da análise)
-// não tem preço. Uma fonte com atraso de ~1 dia (a mesma que traria a curva futura) resolve.
-const REFERENCIA_HORIZONTES = "DATA_DO_ULTIMO_PRECO";
+// De onde os horizontes são contados (ADR 0052, adendo de 2026-10-03): da DATA DA ANÁLISE. A v1 contava da data do
+// último preço do WTI na BASE, mas a EIA publica os preços diários uma vez por semana e a leitura já usa eventos
+// posteriores a esse preço: o horizonte de 1 dia caía num dia que já tinha passado, com notícias de depois dele. Agora
+// a IA lê para frente a partir do dia da leitura e sabe que o preço entre o último pregão da BASE e esse dia é
+// desconhecido. Para comparar com o realizado, a base é o preço do último pregão até a data da análise (conhecido
+// depois) e o fim é o do último pregão até a data da análise + os dias do horizonte.
+// As leituras gravadas com a v1 continuam com "DATA_DO_ULTIMO_PRECO" na entrada, e a tela respeita o que foi gravado.
+const REFERENCIA_HORIZONTES = "DATA_DA_ANALISE";
 
 // O preço de referência: a série do Centro de Decisão (centro-decisao.service.js::ATIVOS) e quantos pregões o
 // histórico do bloco de preço lista.

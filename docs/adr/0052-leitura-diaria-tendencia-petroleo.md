@@ -61,10 +61,32 @@ estavam.
   anteriores). Gerar leituras do passado com o prompt point-in-time seria possível, mas não foi pedido.
 - Custo: uma chamada por dia (duas, se a primeira for recusada), ~27,5 mil tokens.
 - O horizonte de 1 dia continua limitado pelo preço semanal da EIA (ADR 0051): a IA sabe disso pela data do último
-  preço e tende a dar confiança baixa a ele.
+  preço e tende a dar confiança baixa a ele. Desde o adendo abaixo, ele conta da data da análise e não cai mais num dia
+  que já passou.
 
 ## Não implementado (de propósito)
 
 Recomendação de compra ou venda; síntese entre horizontes; comparação automática com o realizado e métrica de acerto
 (a estrutura existe, a avaliação é do Comitê); leitura retroativa; o mesmo para o ouro, o milho e o café (o ouro é o
 próximo, a pedido do David).
+
+## Adendo (2026-10-03): os horizontes contam da data da análise
+
+**Contexto.** A primeira leitura em produção (2026-10-03) contou os horizontes de 29/09, o último preço do WTI na base
+(a EIA publica uma vez por semana), como o ADR 0051 tinha decidido. Mas a leitura já usava eventos de 01 e 02/10: o
+horizonte de 1 dia caía em 30/09, um dia que já tinha passado, lido com notícias posteriores a ele, e na comparação
+com o realizado o preço de uma data seria medido contra a informação de outra. O usuário decidiu trocar a referência
+(2026-10-03). A mudança é de como a leitura é contada, não de estratégia, e vai ao David junto com as respostas por
+escrito.
+
+**Decisão.**
+
+1. Os horizontes contam da **data da análise** (`shared/analise-diaria-petroleo.js::REFERENCIA_HORIZONTES =
+   "DATA_DA_ANALISE"`, configuração v2). A faixa é a variação do WTI entre a data da análise e o fim do horizonte; o
+   preço de cada data é o do último pregão até ela (conhecido depois, na comparação com o realizado).
+2. O prompt (v2) diz que o preço entre o último pregão da base e a data da análise **não está na base e é
+   desconhecido**, e que a IA não o estima; eventos posteriores ao último preço podem já ter movido o preço nesse
+   intervalo, e isso entra na confiança.
+3. Cada leitura guarda a referência na entrada (`referenciaHorizontes`), e a tela mostra a de cada leitura como foi
+   gravada: a de 2026-10-03, feita com a v1, continua dizendo que conta de 29/09 até ser refeita
+   (`ANALISE_DIARIA_REFAZER=1`).

@@ -38,7 +38,7 @@ function diasEntre(inicio, fim) {
 
 // --- 2.1 Preço -----------------------------------------------------------------------------------------------------
 
-function blocoPreco(preco) {
+function blocoPreco(preco, dataAnalise) {
   if (!preco.disponivel) return "Preço do WTI: SEM DADO até a data da análise.";
   const publicado = diaDaPublicacao(preco.publicadoEm);
   const linhas = [
@@ -46,7 +46,12 @@ function blocoPreco(preco) {
     `Último preço: US$ ${fmtNumero(preco.valor)} em ${fmtData(preco.dataReferencia)} | publicado em ${fmtData(publicado)}` +
       `${preco.publicadoEmEstimado ? " (data estimada)" : ""} | ${preco.diasSemDado} dia(s) antes da data da análise` +
       `${preco.defasada ? " | DEFASADO: passou da tolerância da série" : ""}`,
-    `Os horizontes da tabela 2.4 contam a partir de ${fmtData(preco.dataReferencia)}, a data deste preço.`,
+    // Os horizontes contam da data da análise (config.REFERENCIA_HORIZONTES, ADR 0052): o intervalo entre o último
+    // preço e ela é dito como desconhecido, para a IA não o estimar.
+    `Os horizontes da tabela 2.4 contam a partir de ${fmtData(dataAnalise)}, a data da análise.` +
+      (preco.dataReferencia < dataAnalise
+        ? ` O preço depois de ${fmtData(preco.dataReferencia)} até ${fmtData(dataAnalise)} NÃO está na BASE: é desconhecido.`
+        : ""),
     "Aviso: a EIA publica os preços diários uma vez por semana; o último preço pode não refletir fatos posteriores a ele."
   ];
   const variacoes = config.HORIZONTES.map(({ variacao, dias }) => {
@@ -120,7 +125,7 @@ function blocoCobertura(fatores, dataAnalise) {
 
 function blocoFaixas() {
   const linhas = [
-    "Variação do WTI à vista entre a data do último preço (2.1) e o fim de cada horizonte.",
+    "Variação do WTI à vista entre a data da análise e o fim de cada horizonte (o preço de cada data é o do último pregão até ela).",
     "Faixas: LATERAL (de -T1 a +T1, sem os extremos) | ALTA_LEVE (de +T1 a +T2) | ALTA_FORTE (+T2 ou mais) |",
     "        BAIXA_LEVE (de -T2 a -T1) | BAIXA_FORTE (-T2 ou menos)"
   ];
@@ -193,7 +198,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     data_analise: fmtData(dataAnalise),
     versao_metodologia: simulacao.versaoMetodologia,
     versao_configuracao: `analise-diaria-petroleo v${config.VERSAO}`,
-    bloco_preco: blocoPreco(preco),
+    bloco_preco: blocoPreco(preco, dataAnalise),
     bloco_curva: blocoCurva(null),
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
     bloco_faixas: blocoFaixas(),

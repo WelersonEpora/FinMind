@@ -1,6 +1,6 @@
 # Prompt — Análise diária do petróleo (leitura de tendência em quatro horizontes)
 
-**Versão:** 1
+**Versão:** 2
 
 Histórico: v1 (2026-10-03) - formato inicial (ADR 0051): seis blocos, no molde do prompt do milho (`STATUS_DO_PROJETO.md`,
 §5): os fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do sistema; os
@@ -8,8 +8,10 @@ que variam por dia (2. base e 3. leitura do motor) no prompt, montados por `serv
 tendência, não recomenda. Quatro horizontes independentes, sem síntese entre eles. A magnitude é uma faixa da
 metodologia (`shared/analise-diaria-petroleo.js`), nunca um percentual livre. Os números das faixas e dos horizontes
 NÃO são escritos aqui: vêm da configuração, no bloco 2.4.
+v2 (2026-10-03) - os horizontes contam da data da análise, não da data do último preço (ADR 0052, adendo): o item 7 de
+"Como analisar" diz que o preço entre as duas datas é desconhecido e não deve ser estimado.
 
-Este prompt é GERADO e mostrado na tela; não é enviado a nenhuma IA nesta versão (ADR 0051).
+Enviado ao Gemini uma vez por dia pelo coletor `petroleo-analise-ia-diario` (ADR 0052).
 
 ## Instrução do sistema
 
@@ -55,8 +57,9 @@ Para cada horizonte, separadamente:
    exemplo, oferta, estoques e posicionamento) podem parecer se confirmar sem serem evidências independentes: diga
    quando for o caso, sem criar regra de desconto.
 7. Preço. Use o histórico (2.1) para dizer quanto do movimento já aconteceu. Um fator que acompanha o preço pode já
-   estar refletido nele. Se houver eventos posteriores à data do último preço, diga que o preço pode ainda não ter
-   reagido a eles.
+   estar refletido nele. Os horizontes contam da data da análise, não da data do último preço: o preço entre as duas
+   datas é desconhecido. Não o estime. Se houver eventos posteriores ao último preço, diga que o preço pode já ter
+   reagido a eles nesse intervalo, sem saber quanto, e considere isso na confiança.
 8. Curva futura. Use a curva (2.2) só como referência de quanto o mercado paga por cada vencimento. Não a trate como
    previsão, não tire conclusões do formato dela e não associe um vencimento a um horizonte. Se ela estiver SEM DADO,
    registre a lacuna e não a use como argumento.
