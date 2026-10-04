@@ -47,6 +47,7 @@ const CALCULOS = {
   MILHO_SAFRINHA: require("../factors/safrinha-milho.factor").METODOLOGIA,
   MILHO_POLITICA_COMERCIAL: require("../factors/exportacao-milho.factor").METODOLOGIA,
   MILHO_ETANOL: require("../factors/etanol-milho.factor").METODOLOGIA,
+  MILHO_DOLAR_PARIDADE: require("../factors/dolar-paridade-milho.factor").METODOLOGIA,
   MILHO_INSUMOS: require("../factors/insumos-milho.factor").METODOLOGIA
 };
 

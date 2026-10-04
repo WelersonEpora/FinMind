@@ -203,3 +203,32 @@ do IMEA (precisa de ADR com a autorização); o prompt diário e a leitura da IA
   - **Alta:** estoques forte.
   - **Baixa:** fundos forte; etanol e exportações moderada; safrinha fraca.
   - **Neutros:** clima e insumos.
+
+## Adendo (2026-10-04): F4 (dólar e paridade) calculado
+
+- **F4** (`factors/dolar-paridade-milho.factor.js`, versão 1), um ponto por semana, no último dia com paridade.
+  - **A.** A paridade de exportação de MT do IMEA (ADR 0057), a PTAX de venda e o Indicador ESALQ.
+  - **B.** A variação da paridade em 10 pregões, a do dólar nas mesmas datas, a parte do câmbio e a base (ESALQ −
+    paridade).
+  - **C.** A R-CAM-01 v0 e a R-CAM-02 v0 como escritas: subindo 3% ou mais, com 50% ou mais vindo do câmbio e a base
+    negativa, pesa para alta; caindo 3% ou mais com a base positiva, para baixa. Acrescentado pelo FinMind:
+    - forte com 6% ou mais;
+    - sem decisão quando os 10 pregões cruzam a troca do contrato de referência;
+    - sem decisão quando a variação chega a 30%, tratada como quebra da série. É uma trava de qualidade do dado.
+- **Limites, declarados na tela:**
+  - **A parte do câmbio é aproximada:** sem o ZC, ela é a variação do dólar dividida pela da paridade. A conta
+    subestima o câmbio, porque a paridade desconta o frete e o porto em reais.
+  - **A base mistura praças:** Campinas contra MT. Foi negativa em 1 de 251 semanas, com mediana de R$ 26/saca, e a
+    alta quase nunca dispara. Na guerra da Ucrânia (+13,8%) e no dólar acima de R$ 6 (+8%), a leitura fica neutra.
+    O limiar da base é parâmetro, 0 na regra do David. As saídas possíveis ficam como pergunta ao Comitê:
+    - outro limiar da base;
+    - a base contra a própria média;
+    - o preço de MT do mesmo boletim, que pede autorização de coleta.
+  - **A série do IMEA tem ruído e quebras:** o salto de nível de ago/2025 veio três semanas depois do rótulo do
+    contrato, e a semana de 18 a 22/07/2022 está fora da série.
+- **Validação contra o Indicador ESALQ** (223 semanas, 2021 a 2026): fraca, no sentido da regra.
+  - Nas 83 semanas com pressão de baixa, o indicador caiu em média 3,6% em 13 semanas e subiu em 46% delas.
+  - Nas semanas neutras, a média foi −0,2%, com alta em 55%.
+  - A correlação da variação da paridade com o indicador 13 semanas depois é +0,12.
+- **Com isso, os 8 fatores do milho têm cálculo.** Em 2026-09-25 o F4 é neutro: a paridade subiu 1,28% em 10
+  pregões. O milho continua fora da IA até a aprovação do Comitê.

@@ -37,11 +37,11 @@ test("todo observável citado existe no catálogo", () => {
   }
 });
 
-test("calculados: todos menos o F4 (dólar e paridade); sem prompt diário até a aprovação do Comitê", () => {
+test("os 8 fatores calculados; sem prompt diário até a aprovação do Comitê", () => {
   const { metodologia } = obterMetodologiaAtivo("MILHO");
   assert.deepEqual(
     metodologia.fatores.filter((f) => !f.calculado).map((f) => f.codigo),
-    ["MILHO_DOLAR_PARIDADE"]
+    []
   );
   assert.equal(metodologia.promptDiario, false);
   assert.ok(!ATIVOS_COM_PROMPT_DIARIO.includes("MILHO"));

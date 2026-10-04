@@ -211,7 +211,8 @@ function paraSaida(linha) {
     unit: linha.unit,
     publishedAt: linha.published_at,
     publishedAtIsEstimated: Boolean(Number(linha.published_at_is_estimated)),
-    revisionSeq: Number(linha.revision_seq)
+    revisionSeq: Number(linha.revision_seq),
+    ...(linha.metadata === undefined ? {} : { metadata: linha.metadata })
   };
 }
 
@@ -219,14 +220,14 @@ function paraSaida(linha) {
 // (série, período observado) a versão mais recente até esse instante.
 // `estrito: true` = só o que o FinMind já tinha de fato coletado nesse
 // instante (ver repository.buscarAsOf).
-async function obterAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, estrito = false }, deps = {}) {
+async function obterAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, estrito = false, comMetadata = false }, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
 
   const codigos = Array.isArray(seriesCodes) ? seriesCodes : [seriesCodes];
   if (codigos.length === 0 || codigos.some((c) => !c)) throw new Error("obterAsOf: informe ao menos um series_code.");
   if (!(asOf instanceof Date) || Number.isNaN(asOf.getTime())) throw new Error("obterAsOf: asOf deve ser um Date válido.");
 
-  const linhas = await repo.buscarAsOf({ seriesCodes: codigos, asOf, observadoDesde, observadoAte, estrito }, { transaction: deps.transaction });
+  const linhas = await repo.buscarAsOf({ seriesCodes: codigos, asOf, observadoDesde, observadoAte, estrito, comMetadata }, { transaction: deps.transaction });
   return linhas.map(paraSaida);
 }
 

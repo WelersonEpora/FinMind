@@ -133,8 +133,11 @@ async function listarSeriesEInstantes(sourceCode, { transaction } = {}) {
 // `asOf` (published_at estimado só vale a partir de collected_at). Sem
 // `estrito`, uma estimativa por regra documentada vale a partir do
 // published_at estimado - a visão "o que o mercado já podia saber".
-async function buscarAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, estrito = false }, { transaction } = {}) {
+// `comMetadata`: traz também a metadata de cada linha (ex.: o contrato de referência da paridade do IMEA, ADR 0057).
+// Desligado por padrão: a metadata pesa nas séries grandes e quase nenhum fator precisa dela.
+async function buscarAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, estrito = false, comMetadata = false }, { transaction } = {}) {
   const instante = asOf.toISOString();
+  const extra = comMetadata ? ", metadata" : "";
   const replacements = { seriesCodes, asOf: instante };
 
   const filtros = ["series_code IN (:seriesCodes)", "published_at <= :asOf"];
@@ -149,9 +152,9 @@ async function buscarAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, est
   }
 
   return sequelize.query(
-    `SELECT series_code, observed_at, value, unit, published_at, published_at_is_estimated, revision_seq
+    `SELECT series_code, observed_at, value, unit, published_at, published_at_is_estimated, revision_seq${extra}
        FROM (
-         SELECT series_code, observed_at, value, unit, published_at, published_at_is_estimated, revision_seq,
+         SELECT series_code, observed_at, value, unit, published_at, published_at_is_estimated, revision_seq${extra},
                 ROW_NUMBER() OVER (PARTITION BY series_code, observed_at ORDER BY published_at DESC) AS rn
            FROM observation
           WHERE ${filtros.join(" AND ")}

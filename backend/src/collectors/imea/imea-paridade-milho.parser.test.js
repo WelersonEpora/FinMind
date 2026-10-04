@@ -44,6 +44,12 @@ test("ano truncado ou digitado errado: vale o dia e o mês, o ano é o da janela
   assert.equal(resolverData(lerCelulaData("30/12/202"), "2027-01-04"), "2026-12-30");
 });
 
+test("paridade zero (2025-04-25) não é gravada", () => {
+  const r = extrairParidade([pagina(["21/04/2025", "22/04/2025", "23/04/2025", "24/04/2025", "25/04/2025"], ["48,98", "46,70", "45,02", "46,30", "0,00"])], "2025-04-28");
+  assert.equal(r.dias.length, 4);
+  assert.match(r.invalidos[0].motivo, /zero/);
+});
+
 test("data fora da semana anterior ou repetida no cabeçalho: o dia não é gravado", () => {
   const fora = extrairParidade([pagina(["29/11/21", "30/11/21", "01/11/21", "02/11/21", "03/11/21"], ["67,12", "68,45", "67,52", "65,14", "66,40"])], "2021-12-06");
   assert.deepEqual(fora.dias.map((d) => d.data), ["2021-11-29", "2021-11-30"]);

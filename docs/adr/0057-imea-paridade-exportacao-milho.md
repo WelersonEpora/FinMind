@@ -39,6 +39,8 @@ prompt diário, do Centro de Decisão e da IA até a aprovação do Comitê.
     data na semana anterior à edição.
   - **Data fora da semana anterior:** "01/11/21" numa edição de 2021-12-06, e um sábado e um domingo de abril numa
     edição de 2024-05-13. O dia é recusado.
+  - **Paridade zero:** "0,00" em 2025-04-25. O dia é recusado. A regra entrou depois da 1ª carga do servidor, que
+    gravou esse zero (ver o adendo).
   - **A mesma data em duas colunas:** "29/11/22" duas vezes em 2022-12-05. Os dois dias são recusados.
   - **Tabela velha com as datas antigas:** a edição de 2026-02-16 repete a de 2026-02-09. Recusada pela janela de
     datas.
@@ -80,6 +82,20 @@ prompt diário, do Centro de Decisão e da IA até a aprovação do Comitê.
   sobre a praça continua com o Comitê.
 - A troca do contrato de referência é uma quebra na série, uma vez por ano. Qualquer variação calculada que cruze a
   troca mistura dois contratos.
+
+## Adendo (2026-10-04): o zero de 2025-04-25 e a 1ª carga do servidor
+
+A análise do F4 achou mais três defeitos da série:
+- a paridade **0,00** em 2025-04-25;
+- uma semana fora da série (18 a 22/07/2022: cerca de R$ 85 entre semanas em torno de R$ 60);
+- um salto de nível (R$ 28 → R$ 39) em 2025-08-11, três semanas depois de o rótulo mudar para jul/26.
+
+O que mudou:
+- **No leitor:** o zero passou a ser recusado. O dev foi recarregado com 1.199 dias.
+- **No servidor:** a carga rodou antes da correção e gravou os 1.200 dias, com o zero. A camada é append-only, e o
+  F4 já trata o zero como quebra da série, sem decisão.
+- **A semana de 2022 e o salto de 2025 ficam como publicados:** não há como provar o erro. O F4 os trata pela trava
+  de quebra da série (ADR 0056, adendo do F4).
 
 ## Fora do escopo
 

@@ -18,6 +18,7 @@
 //     e o ano é o que põe a data na janela da edição;
 //   - dia fora da janela da edição ("01/11/21" numa edição de 2021-12-06; sábado e domingo de abril numa de
 //     2024-05-13): recusado;
+//   - paridade zero ("0,00" em 2025-04-25): não é um valor de paridade, o dia não é gravado;
 //   - a mesma data em duas colunas ("29/11/22" duas vezes, 2022-12-05): as duas recusadas, não dá para saber
 //     qual é a certa.
 // A janela é de 1 a JANELA_DIAS dias antes da edição: a tabela é a da semana anterior (de 3 a 7 dias nas 1.206
@@ -131,6 +132,8 @@ function extrairParidade(paginas, dataEdicao) {
         invalidos.push({ data: rotulo, motivo: `Data do cabeçalho ("${coluna.texto}") fora da semana anterior à edição: erro de digitação da fonte, dia não gravado.` });
       } else if (contagem.get(coluna.data) > 1) {
         invalidos.push({ data: rotulo, motivo: `Data "${coluna.texto}" repetida no cabeçalho: não dá para saber qual coluna é a do dia, nenhuma gravada.` });
+      } else if (!(valor > 0)) {
+        invalidos.push({ data: rotulo, motivo: `Paridade "${texto(melhor.it.str)}" (zero, negativa ou ilegível): erro da fonte, dia não gravado.` });
       } else dias.push({ data: coluna.data, valor, texto: texto(melhor.it.str) });
     }
     return { contrato, dias, invalidos };
