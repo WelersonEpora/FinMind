@@ -222,3 +222,21 @@ Centro de Decisão nem a IA e não gera sinal.
   as lacunas ficam visíveis em cada fator, e fonte nova continua exigindo demanda específica e autorização (§1 do
   status).
 - Os outros ativos podem seguir o mesmo molde, um arquivo por ativo registrado em `metodologia-ativo.service.js`.
+
+## Adendo (2026-10-04): decisões e pendências do ativo
+
+Algumas decisões e perguntas valem para o ativo inteiro, não para um fator: o preço de referência (o instrumento
+operado), o formato da leitura da IA, o peso e a agregação dos fatores, a validação dos eventos. Até aqui, elas só
+existiam nos ADRs e no documento da conversa com o David (`docs/conversa-david-respostas-fel1.md`). Por pedido do
+usuário (Welerson, 2026-10-04), a metodologia de cada ativo ganha a parte `doAtivo` (`shared/metodologia-base.js`),
+com as mesmas listas dos fatores: `decisoes` (quem decidiu, a data e o ADR) e `perguntas` (o que o especialista ainda
+decide). As duas listas são obrigatórias; uma pergunta respondida vira decisão. Não vai ao prompt, então não muda a
+versão da metodologia.
+
+Na tela, um card **Ativo** fica antes dos fatores, com o selo de pendências e o modal com "Decidido" e "Pendências".
+Assim, a validação das pendências com o David cobre o ativo e os fatores no mesmo lugar. No lançamento:
+
+- **Petróleo:** decididos o Brent e a leitura diária; pendentes o formato da leitura, o peso e a agregação, e a
+  validação dos eventos.
+- **Ouro:** decididos o GLD e a leitura diária; pendentes o instrumento operado, o GLD como aproximação com série
+  contínua, a exportação do XAUUSD, e as mesmas três do petróleo.

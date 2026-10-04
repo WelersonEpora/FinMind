@@ -27,6 +27,11 @@ const { FATORES } = require("./fatores-fel1");
 //              ADR 0054).
 //   decisoes - (opcional) o que o especialista já decidiu sobre o fator, com a data e o ADR: sai das `perguntas`.
 // O cálculo de um fator (camadas A, B e C simulada) fica em `factors/` e é ligado a ele em metodologia-ativo.service.js.
+//
+// Além dos fatores, cada ativo tem o que vale para o ATIVO e não para um fator (`doAtivo`): o preço de referência (o
+// instrumento operado), o formato da leitura da IA, o peso e a agregação dos fatores, a validação dos eventos. Mesmo
+// formato dos fatores: `decisoes` (o que já foi decidido, com quem, a data e o ADR) e `perguntas` (o que o especialista
+// ainda decide). Uma pergunta respondida sai das `perguntas` e vira decisão. Não vai ao prompt: não muda a `versao`.
 
 const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
 
@@ -55,9 +60,19 @@ function montarFatores(ativo, definicoes) {
   });
 }
 
-// A metodologia de um ativo, como o serviço a entrega: `versao` sobe quando uma definição muda (vai com cada prompt).
-function montarMetodologia({ ativo, nome, versao, dataVersao, fatores }) {
-  return { ativo, nome, versao, dataVersao, fatores };
+// O que vale para o ativo inteiro (ver acima). As duas listas são obrigatórias: vazia é "nada decidido" ou "nada
+// pendente", não esquecimento.
+function montarDoAtivo(ativo, doAtivo) {
+  if (!doAtivo || !Array.isArray(doAtivo.decisoes) || !Array.isArray(doAtivo.perguntas)) {
+    throw new Error(`${ativo}: a metodologia precisa de doAtivo com as listas decisoes e perguntas`);
+  }
+  return { decisoes: [...doAtivo.decisoes], perguntas: [...doAtivo.perguntas] };
+}
+
+// A metodologia de um ativo, como o serviço a entrega: `versao` sobe quando uma definição de fator muda (vai com cada
+// prompt).
+function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores }) {
+  return { ativo, nome, versao, dataVersao, doAtivo: montarDoAtivo(ativo, doAtivo), fatores };
 }
 
 module.exports = { SITUACAO, montarFatores, montarMetodologia };

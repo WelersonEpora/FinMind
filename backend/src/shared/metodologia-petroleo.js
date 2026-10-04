@@ -348,8 +348,23 @@ const DEFINICOES = [
 
 const FATORES_PETROLEO = montarFatores("PETROLEO", DEFINICOES);
 
+// O que vale para o ativo, não para um fator (metodologia-base.js): o preço de referência e a leitura da IA. As
+// perguntas vêm das respostas do David ao FEL 1 (ADR 0055) e da conversa marcada com ele
+// (docs/conversa-david-respostas-fel1.md, pontos 2 a 4).
+const DO_ATIVO = {
+  decisoes: [
+    "Preço de referência: o Brent à vista (EIA), o instrumento operado; até 2026-10-03, o WTI. As faixas de variação foram recalibradas no Brent. David, 2026-10-04 (ADR 0052, adendo).",
+    "Leitura diária de tendência da IA no Centro de Decisão: quatro horizontes (1, 7, 30 e 90 dias), contados da data da análise, cada um com uma faixa de variação calibrada no histórico (provisória). Leitura, não recomendação. David, 2026-10-03 (ADRs 0051 e 0052)."
+  ],
+  perguntas: [
+    "Formato da leitura da IA: as faixas calibradas por horizonte (hoje) atendem, ou a IA deve dar uma variação central em % com as 6 classes fixas do prompt do milho (de irrelevante a excepcional)? Os cenários altista, neutro e baixista, sem probabilidade, podem entrar.",
+    "Peso e agregação: o mapa sazonal de pesos e as regras de agregação propostas para o milho (blocos com teto de peso, fundos como multiplicador, conflito entre blocos reduz a confiança) valem também para o petróleo (ex.: a temporada de gasolina dos EUA)? Hoje o peso é o do FEL 1, e a IA explica as forças, sem agregação.",
+    "Validação dos eventos: os eventos da OPEP+ e da geopolítica vão ao prompt sem validação humana, cada um com o link da fonte. A validação humana antes do prompt, pedida no fator 8 do milho, vale também aqui?"
+  ]
+};
+
 function obterMetodologiaPetroleo() {
-  return montarMetodologia({ ativo: "PETROLEO", nome: "Petróleo", versao: VERSAO, dataVersao: DATA_VERSAO, fatores: FATORES_PETROLEO });
+  return montarMetodologia({ ativo: "PETROLEO", nome: "Petróleo", versao: VERSAO, dataVersao: DATA_VERSAO, doAtivo: DO_ATIVO, fatores: FATORES_PETROLEO });
 }
 
 module.exports = { SITUACAO, FATORES_PETROLEO, obterMetodologiaPetroleo };

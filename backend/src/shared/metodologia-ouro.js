@@ -304,8 +304,26 @@ const DEFINICOES = [
 
 const FATORES_OURO = montarFatores("OURO", DEFINICOES);
 
+// O que vale para o ativo, não para um fator (metodologia-base.js): o preço de referência e a leitura da IA. As
+// perguntas vêm das respostas do David ao FEL 1 (ADR 0055) e da conversa marcada com ele
+// (docs/conversa-david-respostas-fel1.md, pontos 1 a 4).
+const DO_ATIVO = {
+  decisoes: [
+    `Preço de referência: o futuro GLD da B3, o vencimento mais próximo negociado, sem emendar contratos. A LBMA fica como histórico (até 2026-09-30), e é contra ela que os fatores foram validados. ${DECISAO_DAVID}.`,
+    `Leitura diária de tendência da IA no Centro de Decisão, no molde do petróleo: quatro horizontes (1, 7, 30 e 90 dias), cada um com uma faixa de variação calibrada no histórico do ouro (provisória). Leitura, não recomendação. ${DECISAO_DAVID}.`
+  ],
+  perguntas: [
+    "Instrumento operado: o ouro operado na Pepperstone é o XAUUSD (à vista) ou um CFD sobre o futuro? E qual o horário do fechamento diário usado? Pela regra da P2 (ADR 0055), o preço de referência é o do instrumento operado; o GLD está a ~0,8% acima do à vista.",
+    "Para a leitura de tendência, o GLD vale como aproximação do à vista? Se valer, com uma série contínua (vencimentos emendados, ajustando a diferença na rolagem), que tira o SEM DADO do horizonte de 90 dias (ADR 0044).",
+    "Para medir o resultado das operações: alguém do Comitê exporta o histórico diário do XAUUSD (Pepperstone ou TradingView) com regularidade? Não há fonte gratuita e oficial do ouro à vista desde que a LBMA fechou o feed (ADR 0044).",
+    "Formato da leitura da IA: as faixas calibradas por horizonte (hoje) atendem, ou a IA deve dar uma variação central em % com as 6 classes fixas do prompt do milho (de irrelevante a excepcional)? Os cenários altista, neutro e baixista, sem probabilidade, podem entrar.",
+    "Peso e agregação: o mapa sazonal de pesos e as regras de agregação propostas para o milho (blocos com teto de peso, fundos como multiplicador, conflito entre blocos reduz a confiança) valem também para o ouro? Hoje o peso é o do FEL 1, e a IA explica as forças, sem agregação.",
+    "Validação dos eventos: os eventos da geopolítica vão ao prompt sem validação humana, cada um com o link da fonte. A validação humana antes do prompt, pedida no fator 8 do milho, vale também aqui?"
+  ]
+};
+
 function obterMetodologiaOuro() {
-  return montarMetodologia({ ativo: "OURO", nome: "Ouro", versao: VERSAO, dataVersao: DATA_VERSAO, fatores: FATORES_OURO });
+  return montarMetodologia({ ativo: "OURO", nome: "Ouro", versao: VERSAO, dataVersao: DATA_VERSAO, doAtivo: DO_ATIVO, fatores: FATORES_OURO });
 }
 
 module.exports = { SITUACAO, FATORES_OURO, obterMetodologiaOuro };

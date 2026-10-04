@@ -20,9 +20,18 @@ const atualizando = ref(false)
 const errorMessage = ref('')
 const resposta = ref(null)
 const fatorSelecionado = ref(null)
+// O modal do que vale para o ativo inteiro (preço de referência, leitura da IA): decisões e pendências.
+const ativoAberto = ref(false)
 
 const ativo = computed(() => (route.params.ativo || 'PETROLEO').toUpperCase())
 const metodologia = computed(() => resposta.value?.metodologia || null)
+// No card do ativo, a 1ª decisão (o preço de referência) até o primeiro ponto final ou dois-pontos de detalhe.
+const resumoDoAtivo = computed(() => {
+  const primeira = metodologia.value?.doAtivo?.decisoes?.[0]
+  if (!primeira) return 'Nada decidido ainda para o ativo.'
+  const fim = primeira.indexOf('. ')
+  return fim > 0 ? primeira.slice(0, fim + 1) : primeira
+})
 const opcoesAtivo = computed(() => (resposta.value?.ativos || []).map((a) => ({ ...a, icone: iconeAtivo(a.codigo) })))
 
 const ROTULO_SITUACAO = { PROPOSTA: 'Proposta, aguardando o David', VALIDADA: 'Validada pelo David' }
@@ -84,11 +93,12 @@ function fecharFator() {
 function fecharComEsc(evento) {
   if (evento.key !== 'Escape') return
   if (promptAberto.value) promptAberto.value = false
+  else if (ativoAberto.value) ativoAberto.value = false
   else fecharFator()
 }
 
-watch([fatorSelecionado, promptAberto], ([fator, prompt]) => {
-  if (fator || prompt) window.addEventListener('keydown', fecharComEsc)
+watch([fatorSelecionado, promptAberto, ativoAberto], ([fator, prompt, doAtivo]) => {
+  if (fator || prompt || doAtivo) window.addEventListener('keydown', fecharComEsc)
   else window.removeEventListener('keydown', fecharComEsc)
 })
 
@@ -108,6 +118,7 @@ async function carregar() {
   else loading.value = true
   errorMessage.value = ''
   fatorSelecionado.value = null
+  ativoAberto.value = false
   // A simulação é de um ativo: trocar de ativo volta para hoje.
   limparSimulacao()
 
@@ -170,6 +181,31 @@ watch(ativo, carregar, { immediate: true })
           </div>
 
           <template v-else>
+            <!-- O que vale para o ativo inteiro, não para um fator: o preço de referência, a leitura da IA e o que o
+                 especialista ainda decide sobre eles. Mesmo formato do card de um fator. -->
+            <div class="metodologia-ativo__secao-cabecalho">
+              <h2 class="metodologia-ativo__secao-titulo">Ativo</h2>
+            </div>
+            <div class="metodologia-ativo__cards metodologia-ativo__cards--ativo">
+              <article class="metodologia-ativo__card">
+                <div class="metodologia-ativo__card-corpo">
+                  <div class="metodologia-ativo__card-titulo-grupo">
+                    <h2 class="metodologia-ativo__card-titulo">{{ metodologia.nome }}: preço de referência e leitura da IA</h2>
+                  </div>
+                  <p class="metodologia-ativo__objetivo">{{ resumoDoAtivo }}</p>
+                </div>
+                <div class="metodologia-ativo__card-lateral">
+                  <span v-if="metodologia.doAtivo.perguntas.length" class="metodologia-ativo__pendencias">
+                    <i class="bi bi-question-circle"></i>
+                    {{ metodologia.doAtivo.perguntas.length === 1 ? '1 pendência' : `${metodologia.doAtivo.perguntas.length} pendências` }}
+                  </span>
+                  <button type="button" class="btn btn-outline-primary btn-sm metodologia-ativo__botao" @click="ativoAberto = true">
+                    Detalhes
+                  </button>
+                </div>
+              </article>
+            </div>
+
             <div class="metodologia-ativo__secao-cabecalho">
               <h2 class="metodologia-ativo__secao-titulo">Fatores</h2>
               <span class="metodologia-ativo__contexto-resumo">
@@ -359,6 +395,32 @@ watch(ativo, carregar, { immediate: true })
         </div>
       </div>
     </div>
+    <div v-if="ativoAberto && metodologia" class="metodologia-ativo__modal-backdrop" @click.self="ativoAberto = false">
+      <div class="metodologia-ativo__modal" role="dialog" aria-modal="true" aria-labelledby="ativo-titulo">
+        <div class="metodologia-ativo__modal-header">
+          <div class="metodologia-ativo__modal-titulo">
+            <h3 id="ativo-titulo">{{ metodologia.nome }}: preço de referência e leitura da IA</h3>
+          </div>
+          <button type="button" class="metodologia-ativo__fechar" aria-label="Fechar" title="Fechar" @click="ativoAberto = false">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="metodologia-ativo__modal-body">
+          <section v-if="metodologia.doAtivo.decisoes.length" class="metodologia-ativo__bloco metodologia-ativo__bloco--decisoes">
+            <h4>Decidido <small>pelo especialista</small></h4>
+            <ul>
+              <li v-for="decisao in metodologia.doAtivo.decisoes" :key="decisao">{{ decisao }}</li>
+            </ul>
+          </section>
+          <section v-if="metodologia.doAtivo.perguntas.length" class="metodologia-ativo__bloco metodologia-ativo__bloco--perguntas">
+            <h4>Pendências <small>o que o especialista ainda decide</small></h4>
+            <ol>
+              <li v-for="pergunta in metodologia.doAtivo.perguntas" :key="pergunta">{{ pergunta }}</li>
+            </ol>
+          </section>
+        </div>
+      </div>
+    </div>
     <!-- O prompt diário da data simulada: o que a IA de tendência receberia (ADR 0051). -->
     <div v-if="promptAberto && simulacao" class="metodologia-ativo__modal-backdrop" @click.self="promptAberto = false">
       <div class="metodologia-ativo__modal" role="dialog" aria-modal="true" aria-labelledby="prompt-titulo">
@@ -512,6 +574,12 @@ watch(ativo, carregar, { immediate: true })
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+/* O card do ativo é um só: largura inteira, com o mesmo espaço antes do título "Fatores". */
+.metodologia-ativo__cards--ativo {
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: 1.5rem;
 }
 
 /* Tela estreita: um card por linha. */
