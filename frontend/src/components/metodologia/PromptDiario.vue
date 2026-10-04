@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import metodologiaAtivoService from '../../services/metodologia-ativo.service.js'
 
 // O prompt diário de análise do ativo numa data (ADR 0051): a instrução do sistema (fixa, versionada) e o prompt do dia
@@ -14,6 +14,21 @@ const loading = ref(true)
 const errorMessage = ref('')
 const prompt = ref(null)
 const copiado = ref(false)
+
+// Uma aba por parte do prompt, como no "Prompt enviado" do Centro de Decisão (EvidenciasAnalise.vue): o prompt do dia
+// primeiro, a instrução do sistema depois. "Copiar" copia a aba aberta.
+const ABAS = [
+  { codigo: 'prompt', rotulo: 'Prompt do dia', campo: 'prompt', descricao: 'a base e a leitura do motor, com o que se sabia até o fim da data' },
+  {
+    codigo: 'instrucao',
+    rotulo: 'Instrução do sistema',
+    campo: 'instrucaoDoSistema',
+    descricao: 'fixa: papel, como analisar, limites e formato da resposta'
+  }
+]
+const aba = ref('prompt')
+const abaAtual = computed(() => ABAS.find((a) => a.codigo === aba.value))
+const textoDaAba = computed(() => (prompt.value ? prompt.value[abaAtual.value.campo] : ''))
 
 async function carregar() {
   loading.value = true
@@ -36,7 +51,7 @@ function textoCompleto() {
 
 async function copiar() {
   try {
-    await navigator.clipboard.writeText(textoCompleto())
+    await navigator.clipboard.writeText(textoDaAba.value)
     copiado.value = true
     setTimeout(() => {
       copiado.value = false
@@ -53,25 +68,35 @@ async function copiar() {
     <div v-else-if="errorMessage && !prompt" class="alert alert-danger mb-0">{{ errorMessage }}</div>
     <template v-else-if="prompt">
       <div v-if="errorMessage" class="alert alert-danger py-2">{{ errorMessage }}</div>
-      <div class="prompt-diario__acoes">
-        <span class="text-muted small">
-          Prompt {{ prompt.versaoPrompt }} · metodologia {{ prompt.versaoMetodologia }} · configuração v{{ prompt.versaoConfiguracao }}
-          · {{ textoCompleto().length.toLocaleString('pt-BR') }} caracteres · hash {{ prompt.hashEntrada.slice(0, 12) }}
-        </span>
-        <button type="button" class="btn btn-outline-secondary btn-sm" @click="copiar">
-          <i class="bi" :class="copiado ? 'bi-check2' : 'bi-clipboard'"></i> {{ copiado ? 'Copiado' : 'Copiar' }}
-        </button>
-      </div>
+      <span class="text-muted small">
+        Prompt {{ prompt.versaoPrompt }} · metodologia {{ prompt.versaoMetodologia }} · configuração v{{ prompt.versaoConfiguracao }}
+        · {{ textoCompleto().length.toLocaleString('pt-BR') }} caracteres · hash {{ prompt.hashEntrada.slice(0, 12) }}
+      </span>
       <p class="prompt-diario__aviso">
         O mesmo prompt que a leitura diária de tendência envia à IA, montado para esta data com o que se sabia até o fim dela.
         A leitura do dia aparece no Centro de Decisão.
       </p>
-
-      <h4 class="prompt-diario__titulo">Instrução do sistema <small>fixa: papel, como analisar, limites e formato da resposta</small></h4>
-      <pre class="prompt-diario__texto">{{ prompt.instrucaoDoSistema }}</pre>
-
-      <h4 class="prompt-diario__titulo">Prompt do dia <small>a base e a leitura do motor, com o que se sabia até o fim da data</small></h4>
-      <pre class="prompt-diario__texto">{{ prompt.prompt }}</pre>
+      <div class="prompt-diario__acoes">
+        <div class="btn-group btn-group-sm" role="tablist">
+          <button
+            v-for="a in ABAS"
+            :key="a.codigo"
+            type="button"
+            role="tab"
+            class="btn"
+            :class="aba === a.codigo ? 'btn-primary' : 'btn-outline-primary'"
+            :aria-selected="aba === a.codigo"
+            @click="aba = a.codigo"
+          >
+            {{ a.rotulo }}
+          </button>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="copiar">
+          <i class="bi" :class="copiado ? 'bi-check2' : 'bi-clipboard'"></i> {{ copiado ? 'Copiado' : 'Copiar' }}
+        </button>
+      </div>
+      <p class="prompt-diario__aviso">{{ abaAtual.rotulo }}: {{ abaAtual.descricao }}.</p>
+      <pre class="prompt-diario__texto">{{ textoDaAba }}</pre>
     </template>
   </div>
 </template>
@@ -97,21 +122,11 @@ async function copiar() {
   color: var(--p-text-muted-color);
 }
 
-.prompt-diario__titulo {
-  margin: 0.5rem 0 0;
-  font-size: 0.95rem;
-}
-
-.prompt-diario__titulo small {
-  margin-left: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: var(--p-text-muted-color);
-}
-
 .prompt-diario__texto {
   margin: 0;
   padding: 0.85rem;
+  max-height: 65vh;
+  overflow: auto;
   white-space: pre-wrap;
   border-radius: 8px;
   background: rgba(19, 33, 59, 0.05);

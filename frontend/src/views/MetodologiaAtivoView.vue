@@ -174,7 +174,7 @@ watch(ativo, carregar, { immediate: true })
               <button v-if="metodologia?.promptDiario" type="button" class="btn btn-outline-primary btn-sm" @click="promptAberto = true">
                 Ver prompt completo
               </button>
-              <button type="button" class="btn btn-link btn-sm" @click="limparSimulacao">Voltar para hoje</button>
+              <button type="button" class="btn btn-link btn-sm" @click="limparSimulacao">Limpar simulação</button>
             </template>
           </form>
         </div>
