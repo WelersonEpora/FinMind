@@ -80,3 +80,26 @@ foi no petróleo (ADR 0052) e no ouro (ADR 0054). Nada gera sinal de compra ou v
 
 Os outros 7 cálculos; o peso por mês e a agregação; a convexidade do peso no F3; o balanço da Conab no F3; a paridade
 do IMEA (precisa de ADR com a autorização); o prompt diário e a leitura da IA do milho; o café.
+
+## Adendo (2026-10-04): F7, posicionamento dos fundos, calculado
+
+- **O molde do COT ganha a janela como parâmetro** (`factors/modelos/fundos-cot.js`, `anosJanela`, padrão 3). Os
+  campos passam a ter nomes genéricos (`percentilJanela`, `p10Janela`, `medianaJanela`, `p90Janela`). Prova de que o
+  petróleo e o ouro não mudaram: o texto do prompt, a explicação e os exemplos dos dois, gerados com o banco de dev em
+  três datas (hoje, 2024-03-12 e 2015-07-07), saíram idênticos antes e depois; só o nome dos campos dos pontos mudou.
+- **F7 do milho** (`factors/fundos-milho.factor.js`, versão 1), no molde, com a R-FUN v0 do David:
+  - a posição do managed money do milho da CBOT contra os **10 anos** anteriores;
+  - leitura de **reversão**: comprados no P90 ou acima pesam para baixa, vendidos no P10 ou abaixo para alta;
+  - a faixa neutra vai até 40 pontos (P10/P90), e a tendência é de 4 semanas;
+  - acrescentados pelo FinMind: o forte no P5/P95 (45 pontos) e a mudança mínima de 15 pontos;
+  - o gatilho de F1, F3 ou F8 cruza fatores e fica para a agregação.
+- **Validação contra o Indicador ESALQ** (417 semanas, 2018 a 2026): a posição relativa de 10 anos tem **−0,44** com o
+  indicador 26 semanas depois (−0,40 em 2018–2021; −0,54 em 2022–2026), contra −0,20 com a janela de 3 anos.
+  - Fundos no P90 ou acima: o indicador subiu em 4 de 38 semanas (média −7,8%).
+  - Fundos no P10 ou abaixo: subiu em 40 de 62 (+20,4%).
+
+  O histórico confirma a leitura e a janela do David, e não o "amplifica" do FEL 1. Ressalva: são poucos episódios
+  independentes (cerca de 6 de vendidos e 4 de comprados).
+- **Em 2026-10-04 os fundos estão no percentil 92,8:** pressão de baixa moderada. O F3 (estoques) dá alta forte no
+  mesmo dia. É o conflito que a agregação proposta pelo David trata (o F7 como regra de risco quando está contra),
+  pendente do Comitê.

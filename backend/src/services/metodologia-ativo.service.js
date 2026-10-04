@@ -41,7 +41,8 @@ const CALCULOS = {
   OURO_ETFS: require("../factors/etfs-ouro.factor").METODOLOGIA,
   OURO_FUNDOS: require("../factors/fundos-ouro.factor").METODOLOGIA,
   OURO_MINERACAO: require("../factors/mineracao-ouro.factor").METODOLOGIA,
-  MILHO_ESTOQUES_WASDE: require("../factors/estoques-milho-wasde.factor").METODOLOGIA
+  MILHO_ESTOQUES_WASDE: require("../factors/estoques-milho-wasde.factor").METODOLOGIA,
+  MILHO_FUNDOS: require("../factors/fundos-milho.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;

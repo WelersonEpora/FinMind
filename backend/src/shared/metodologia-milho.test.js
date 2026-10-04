@@ -37,11 +37,11 @@ test("todo observável citado existe no catálogo", () => {
   }
 });
 
-test("o F3 (estoques) é o único calculado por enquanto; o milho não tem prompt diário até a aprovação do Comitê", () => {
+test("calculados: o F3 (estoques) e o F7 (fundos); o milho não tem prompt diário até a aprovação do Comitê", () => {
   const { metodologia } = obterMetodologiaAtivo("MILHO");
   assert.deepEqual(
     metodologia.fatores.filter((f) => f.calculado).map((f) => f.codigo),
-    ["MILHO_ESTOQUES_WASDE"]
+    ["MILHO_ESTOQUES_WASDE", "MILHO_FUNDOS"]
   );
   assert.equal(metodologia.promptDiario, false);
   assert.ok(!ATIVOS_COM_PROMPT_DIARIO.includes("MILHO"));

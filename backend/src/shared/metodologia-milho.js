@@ -233,8 +233,14 @@ const DEFINICOES = [
     dados: {
       observaveis: ["COT_MILHO"],
       eventos: false,
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente: o COT da CFTC traz o managed money do milho da CBOT toda semana desde 2006, o que dá a janela de 10 anos da proposta a partir de 2016. Contra o Indicador CEPEA/ESALQ (417 semanas, 2018 a 2026), a posição relativa de 10 anos tem -0,44 com o indicador 26 semanas depois (-0,40 em 2018 a 2021; -0,54 em 2022 a 2026), a REVERSÃO da proposta do David (o FEL 1 diz \"amplifica\"): com os fundos no P90 ou acima, o indicador subiu em 4 de 38 semanas (média -7,8% em 26 semanas); no P10 ou abaixo, em 40 de 62 (+20,4%); fora dos extremos, em 112 de 198 (+4,9%). Com a janela de 3 anos do petróleo e do ouro, a relação cai para -0,20. Ressalva: são poucos episódios independentes (cerca de 6 de vendidos e 4 de comprados), e as semanas de um episódio andam juntas."
+      },
       lacunas: [
-        "A posição no CCM por tipo de investidor (B3) não é coletada: o COT mede Chicago, não a B3."
+        "A posição no CCM por tipo de investidor (B3) não é coletada: o COT mede Chicago, não a B3.",
+        "O COT Index de 52 semanas da proposta não é calculado: a posição relativa de 10 anos faz o papel do extremo."
       ]
     },
     proposta: {
@@ -242,14 +248,15 @@ const DEFINICOES = [
       objetivo: "Medir o posicionamento dos fundos em Chicago, como amplificador e termômetro de timing, sem voto próprio.",
       medida: "Posição líquida do managed money (compradas − vendidas), em contratos e em % dos contratos em aberto; a variação em 4 semanas; o COT Index de 52 semanas.",
       comparacao: "O percentil de 10 anos da posição líquida (extremos no P90 e no P10); a velocidade e a inversão de sinal.",
-      leitura: "Vendido em extremo com gatilho de alta de F1, F3 ou F8 pesa para alta; comprado em extremo sem gatilho, ou com a variação de 4 semanas negativa, para baixa. Não vota: multiplica o peso dos fatores que o acionam (×1,25 com o extremo alinhado) e vira regra de risco quando está contra. É como o COT do petróleo e do ouro já são tratados (qualificador).",
+      leitura: "Vendido em extremo (P10 ou abaixo em 10 anos) pesa para alta, a recompra; comprado em extremo (P90 ou acima), para baixa, a liquidação (regra do David, leitura de reversão). O FinMind acrescentou: forte no P5/P95; tendência pela posição de 4 semanas antes. O gatilho de F1, F3 ou F8 da regra cruza fatores e fica para a agregação. Não vota: multiplica o peso dos fatores que o acionam (×1,25 com o extremo alinhado) e vira regra de risco quando está contra, como o COT do petróleo e do ouro (qualificador). Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "R-FUN-01 v0: managed money vendido em extremo (P10 ou abaixo) e, ao mesmo tempo, gatilho de alta vindo de F1, F3 ou F8 → pesa para alta (a recompra de posições amplifica).",
         baixa: "R-FUN-02 v0: managed money comprado em extremo (P90 ou acima) sem gatilho de alta em F1 ou F3, ou com variação em 4 semanas negativa → pesa para baixa (liquidação de posições compradas)."
       }
     },
     perguntas: [
-      "A janela do extremo: o percentil de 10 anos (a proposta) ou os 3 anos do molde do COT já usado no petróleo e no ouro?"
+      "A leitura de reversão da proposta (que o histórico confirma) substitui o \"amplifica\" do FEL 1 na revisão do documento?",
+      "Sem o gatilho de F1, F3 ou F8, o extremo sozinho já é pressão (a v1), ou só vale com o gatilho, como na regra?"
     ]
   },
   {

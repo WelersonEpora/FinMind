@@ -44,7 +44,7 @@ test("A: a posição líquida, a variação semanal e a líquida em % dos contra
   assert.equal(ultimo.liquida, 160000);
   assert.equal(ultimo.variacaoSemanal, -40000);
   assert.equal(ultimo.liquidaPctOi, 8);
-  assert.equal(ultimo.percentil3Anos, null);
+  assert.equal(ultimo.percentilJanela, null);
   assert.equal(ultimo.decisao, null);
   assert.equal(ultimo.disponivelEm.toISOString(), "2026-10-02T19:30:00.000Z");
 });
@@ -52,10 +52,10 @@ test("A: a posição líquida, a variação semanal e a líquida em % dos contra
 test("B: o percentil é contra as 156 semanas anteriores; com menos de 150 delas, nulo", () => {
   const pontos = derivarFundosPetroleo(historico(157, (i) => (i < 156 ? i * 100 : 99999)));
   const ultimo = pontos.at(-1);
-  assert.equal(ultimo.percentil3Anos, 100);
+  assert.equal(ultimo.percentilJanela, 100);
   assert.equal(ultimo.posicaoRelativa, 50);
-  assert.ok(ultimo.p10_3Anos < ultimo.mediana3Anos && ultimo.mediana3Anos < ultimo.p90_3Anos);
-  assert.equal(derivarFundosPetroleo(historico(140, (i) => i * 100)).at(-1).percentil3Anos, null);
+  assert.ok(ultimo.p10Janela < ultimo.medianaJanela && ultimo.medianaJanela < ultimo.p90Janela);
+  assert.equal(derivarFundosPetroleo(historico(140, (i) => i * 100)).at(-1).percentilJanela, null);
 });
 
 test("C: fundos muito comprados é pressão de BAIXA (risco de reversão); muito vendidos, de alta", () => {
