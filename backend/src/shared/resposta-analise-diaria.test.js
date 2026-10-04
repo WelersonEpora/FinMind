@@ -2,7 +2,8 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { validarRespostaAnalise } = require("./resposta-analise-diaria-petroleo");
+const { validarRespostaAnalise } = require("./resposta-analise-diaria");
+const { HORIZONTES } = require("./analise-diaria-petroleo");
 
 const CODIGOS = ["PETROLEO_JUROS", "PETROLEO_REFINO", "PETROLEO_COT", "PETROLEO_OFERTA_NAO_OPEP"];
 
@@ -30,7 +31,7 @@ const respostaValida = (troca = {}) => ({
   leituras: ["IMEDIATO", "CURTO", "MEDIO", "LONGO"].map((h) => leitura(h, troca[h]))
 });
 
-const validar = (obj) => validarRespostaAnalise(typeof obj === "string" ? obj : JSON.stringify(obj), { codigosFator: CODIGOS });
+const validar = (obj) => validarRespostaAnalise(typeof obj === "string" ? obj : JSON.stringify(obj), { horizontes: HORIZONTES, codigosFator: CODIGOS });
 
 test("resposta no formato: as quatro leituras passam, na ordem dos horizontes", () => {
   const { leituras, erros } = validar(respostaValida());
@@ -109,4 +110,20 @@ test("textos obrigatórios e listas fechadas: tese, invalidaSe, papel do COT, or
   for (const trecho of [/"tese" vazio/, /"invalidaSe" vazio/, /papel do COT/, /origem "BLOG"/, /situação "NAO_SEI"/]) {
     assert.ok(erros.some((e) => trecho.test(e)), String(trecho));
   }
+});
+
+test("fator de contexto (a inflação do ouro, ADR 0054): pode ser evidência ou pouco relevante, nunca a favor ou contra", () => {
+  const opcoes = { horizontes: HORIZONTES, codigosFator: [...CODIGOS, "OURO_INFLACAO"], codigosContexto: ["OURO_INFLACAO"] };
+  const comoContexto = respostaValida({
+    CURTO: {
+      fatoresPoucoRelevantes: [{ fator: "OURO_INFLACAO", motivo: "contexto do juro real" }],
+      evidencias: [{ id: "E1", origem: "FATOR", fator: "OURO_INFLACAO", descricao: "...", valorCitado: "+0,9 p.p.", dataReferencia: "2026-09-01" }]
+    }
+  });
+  assert.deepEqual(validarRespostaAnalise(JSON.stringify(comoContexto), opcoes).erros, []);
+
+  const comoVoto = respostaValida({ LONGO: { fatoresAFavor: [{ fator: "OURO_INFLACAO", argumento: "...", evidencias: [] }] } });
+  const { erros } = validarRespostaAnalise(JSON.stringify(comoVoto), opcoes);
+  assert.equal(erros.length, 1);
+  assert.match(erros[0], /OURO_INFLACAO.*fator de contexto/);
 });

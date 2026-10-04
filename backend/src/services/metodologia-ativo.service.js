@@ -7,6 +7,7 @@ const { obterMetodologiaOuro } = require("../shared/metodologia-ouro");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
 const { montarTextoPrompt } = require("../factors/base/texto-prompt");
+const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 
 // Metodologia dos fatores por ativo: a proposta para o David validar (ADRs 0050 e 0053).
 const METODOLOGIAS = {
@@ -14,9 +15,9 @@ const METODOLOGIAS = {
   PETROLEO: obterMetodologiaPetroleo
 };
 
-// Os ativos cujo prompt diário já foi aprovado (ADR 0052): a tela só oferece o prompt para eles, e
-// prompt-diario.service.js só o monta para eles.
-const ATIVOS_COM_PROMPT_DIARIO = ["PETROLEO"];
+// Os ativos cujo prompt diário já foi aprovado (petróleo, ADR 0052; ouro, ADR 0054; shared/analise-diaria.js): a tela
+// só oferece o prompt para eles, e prompt-diario.service.js só o monta para eles.
+const ATIVOS_COM_PROMPT_DIARIO = ATIVOS_COM_ANALISE_DIARIA;
 
 // Propostas já calculadas (camadas A, B e C simulada): fator do FEL 1 -> a METODOLOGIA do módulo em `factors/`
 // (calcular, explicar, exemplos, parâmetros padrão e a apresentação que a tela genérica desenha). Um fator novo é
@@ -280,7 +281,9 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
         peso: fator.peso,
         tipoFel1: fator.fel1.tipo,
         situacaoRegra: fator.proposta.situacao,
-        observaveis: fator.dados.observaveis
+        observaveis: fator.dados.observaveis,
+        // Fator de CONTEXTO de outro (metodologia-base.js): sem leitura própria no prompt.
+        ...(fator.contextoDe ? { contextoDe: fator.contextoDe } : {})
       };
       if (CALCULOS[fator.codigo]) {
         const { calculo } = await calcularFator(codigo, fator.codigo, { data: dia }, deps);

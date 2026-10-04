@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-03.**
+**Última atualização: 2026-10-04.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -56,7 +56,7 @@ quando chegar a vez delas.
 | **1. Decisões de base** | Critérios de aprovação do backtest, preço e orçamento, instrumento e horizontes, medidas dos fatores do milho (só a camada A) e ajustes no FEL 1 | Comitê | **Atual**: reunião feita em 2026-10-01 (perguntas 2, 3 e 8: seguir com o histórico disponível); aguarda o documento do David com as demais respostas |
 | 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | **Proposta pronta** (§5b), aguarda o Comitê |
 | 2b. Entendimento do petróleo | Propor os 10 fatores do petróleo nas três camadas (medida, comparação e um esboço da leitura), ao lado do que o FEL 1 diz e dos dados que já temos, com as perguntas de cada fator | FinMind → David | **Aprovada pelo David em reunião (2026-10-03)**; respostas por escrito a caminho. A cadeia do petróleo roda inteira: leitura diária de tendência da IA no Centro de Decisão (ADR 0052) |
-| 2c. Fatores do ouro | O mesmo tratamento do petróleo nos 8 fatores do ouro, a pedido do David | FinMind → David | **Proposta pronta (2026-10-03)**, aguarda o David: os 8 fatores na tela Metodologia do Ativo, 7 calculados e validados contra a LBMA e a geopolítica como evento, reaproveitando os moldes do petróleo (ADR 0053) |
+| 2c. Fatores do ouro | O mesmo tratamento do petróleo nos 8 fatores do ouro, a pedido do David | FinMind → David | **Aprovada pelo David (2026-10-03)**, com as decisões do preço (GLD), da inflação (contexto do juro real), do COT e dos bancos centrais (ADRs 0053 e 0054). A cadeia do ouro roda inteira: leitura diária de tendência da IA no Centro de Decisão (ADR 0054) |
 | 3. Medidas e dados | Implementar as medidas confirmadas e coletar os dados aprovados que faltam | FinMind | Depende da 1 |
 | 4. Regras | O Comitê define a leitura (B) e a regra (C) de cada fator; o FinMind faz o backtest; o Comitê aprova | Comitê + FinMind | Depende da 3 |
 | 5. IA em simulação | Prompt, registro de cada recomendação e simulação por pelo menos 6 meses (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | Depende da 4 |
@@ -85,7 +85,7 @@ quando chegar a vez delas.
 | Camada point-in-time | Tabela `observation` append-only + `asOf()` — ADR 0008 |
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js`: juro real 10a = `DFII10`, com `DGS10 − T10YIE` como validação cruzada (5.932 de 5.932 datas iguais). Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
-| Centro de Decisão | A tela inicial (`/`), no desenho do AgroMind: para um ativo (ouro, petróleo, milho, café) e uma data, o preço como era conhecido no fim daquele dia (point-in-time, com troca de série, mini-gráfico e variações; futuros pelo vencimento mais próximo, sem emendar) e a leitura de geopolítica da data, com os eventos da semana. No petróleo, o espaço da análise mostra a leitura diária de tendência da IA nos quatro horizontes (ADR 0052); nos outros ativos, fica reservado até as regras do David e do Comitê. Nenhum sinal de compra ou venda é gerado — ADR 0048 |
+| Centro de Decisão | A tela inicial (`/`), no desenho do AgroMind: para um ativo (ouro, petróleo, milho, café) e uma data, o preço como era conhecido no fim daquele dia (point-in-time, com troca de série, mini-gráfico e variações; futuros pelo vencimento mais próximo, sem emendar) e a leitura de geopolítica da data, com os eventos da semana. No petróleo e no ouro, o espaço da análise mostra a leitura diária de tendência da IA nos quatro horizontes (ADRs 0052 e 0054); no milho e no café, fica reservado até as regras do David e do Comitê. Nenhum sinal de compra ou venda é gerado — ADR 0048 |
 | Telas de dados | `/dados-mercado/observaveis` (60 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
@@ -417,7 +417,7 @@ no ADR de cada fonte.
 |---|---|
 | Registrar as respostas do documento do David | Aguarda o documento: cada resposta e a data na §4 e, se for decisão estrutural, num ADR (etapa 1c dos "Próximos passos") |
 | Medidas dos fatores do milho (camada A do motor) | Aguarda o Comitê confirmar o entendimento da §5. Confirmado, a ordem proposta é COT, estoque/uso do WASDE e % boa + excelente do Crop Progress, no molde do juro real 10a |
-| Fatores do ouro | Aguarda o David reagir à proposta na tela Metodologia do Ativo (ADR 0053), como fez com o petróleo; a camada A também foi proposta ao Comitê (§5b) |
+| Série contínua do GLD (ouro) | O horizonte de 90 dias do ouro fica muitas vezes sem a variação de 90 dias, porque cada vencimento do GLD tem pouco histórico e nada é emendado (ADR 0054). Emendar os vencimentos é um cálculo do David (ADR 0044) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): paridade de exportação do IMEA,
 ICO, geada, preço mínimo do café pelas portarias do MAPA, Baker Hughes, OPEP, API internacional da EIA e os derivados
@@ -464,6 +464,12 @@ David vai mandar um **documento respondendo todas as perguntas**; ao chegar, reg
 ADRs 0050 e 0051) e pediu o mesmo para os fatores do **ouro**; ele termina os do milho e depois faz os do café, e vai
 mandar as respostas por escrito. Com isso, o petróleo ganhou a leitura diária de tendência da IA no Centro de Decisão
 (ADR 0052).
+
+**Conversa com o David em 2026-10-03 (relato do Welerson, registrado em 2026-10-04):** o David **deu o sinal verde para
+os fatores do ouro** e decidiu: o preço de referência é o futuro **GLD da B3** (a LBMA fica como histórico); a
+**inflação vira contexto do juro real**; o **COT fica na leitura "amplifica"**, como qualificador; os **bancos centrais**
+usam o **World Gold Council** contra o **ritmo dos 3 anos anteriores**. Com isso, o ouro ganhou a leitura diária de
+tendência da IA no Centro de Decisão (ADR 0054).
 
 **Prioridade da próxima reunião (decidido em 2026-09-22, auditoria da camada de
 dados; a 2 somada em 2026-09-23; a 8 e a ordem, em 2026-09-27):** primeiro o
@@ -1281,7 +1287,7 @@ Hoje nenhuma regra está definida: todos os fatores estão "sem leitura definida
 - **O CCM não substitui Chicago como explicação.** WASDE, COT e Crop Progress movem primeiro o preço de Chicago (ZC,
   pago): sem ele, a IA vê a causa, mas não quanto Chicago já reagiu (pergunta 2 da §4).
 - **No ouro, a curva não entra.** O futuro do ouro é o preço à vista mais os juros e não traz expectativa de
-  mercado. O prompt do ouro levaria o preço do ouro, em US$ e em R$ (com a PTAX), e o histórico recente: o LBMA até 2026-09-30 e, desde então, o futuro GLD da B3 (ADR 0044; qual referência vale é do David).
+  mercado. O prompt do ouro levaria o preço do ouro, em US$ e em R$ (com a PTAX), e o histórico recente: o LBMA até 2026-09-30 e, desde então, o futuro GLD da B3 (ADR 0044). **Decidido em 2026-10-03:** o GLD é a referência e a LBMA fica como histórico (ADR 0054).
 - **É uma ilustração, não uma estratégia.** O que se propõe é a estrutura em 6 blocos, não a redação das frases, e
   os horizontes são do Comitê. **Nenhuma resposta de IA foi gerada**, de propósito: seria uma recomendação sem regra
   validada.
@@ -1433,7 +1439,7 @@ comparação e um esboço da leitura) e as perguntas ao David. **Em 2026-10-03 o
 (as respostas por escrito virão depois): desde então, o prompt diário vai à IA todo dia e a leitura de tendência
 aparece no Centro de Decisão do petróleo (ADR 0052). Nenhum sinal de compra ou venda é gerado.
 
-O conteúdo está na tela **Metodologia do Ativo** (`/dados-mercado/metodologia/PETROLEO`), e não é copiado aqui. Dois fatores, OPEP+ e geopolítica, são **fatores de evento**, sem cálculo: o resultado deles são os eventos da leitura diária marcados com cada um numa janela (45 e 30 dias), com a data, a idade e a fonte, repassados à IA do ativo como estão. Oito fatores têm a proposta **calculada**: oferta não-OPEP (Brasil, Noruega e Canadá somados, mensal; sem os EUA, que têm fator próprio, e com o Canadá, por decisão do usuário; mede a situação, não antecipa o preço), juros (o Treasury de 10 anos contra 26 semanas antes, e não a meta do Fed, que fora da pandemia não mostrou relação com o preço; a meta fica como contexto), fundos (a posição líquida no COT do WTI contra o percentil dos 3 anos anteriores; o extremo lido como risco de reversão, que o histórico sustenta; pergunta ao David), dólar (o índice do Fed das economias avançadas contra a média de 52 semanas; o fator com a relação mais forte com o preço), refino (a margem 3-2-1 com o Brent, calculada pelo FinMind, contra a média de 5 anos, em US$ por barril; hoje extrema, como em 2022), demanda (só os EUA: a China do JODI ficou de fora, "não avaliada" e com uma queda de ~30% em 2026 sem explicação; pergunta ao David), produção dos EUA (o crescimento anual da produção, com a distância do recorde; o dado basta, o rig count não é necessário) e estoques EIA. O de estoques, o piloto: o estoque contra a média da mesma semana nos 5 anos anteriores, no histórico desde 1982, e a **camada C** (direção, intensidade e tendência) com os parâmetros em uso no sistema, guardados no banco com histórico de versões: qualquer usuário simula outros valores na tela, e o admin salva uma versão nova, com o motivo. Em jun/2020 ficou 15% acima da média; em jun/2022, 12,5% abaixo. O **prompt diário de análise** junta os 10 fatores e o WTI à vista numa data, para a IA ler a tendência em 1, 7, 30 e 90 dias (sem recomendar): é mostrado na mesma tela (ADR 0051) e, desde 2026-10-03, enviado ao Gemini uma vez por dia, com a resposta validada, gravada e mostrada no Centro de Decisão (ADR 0052). As
+O conteúdo está na tela **Metodologia do Ativo** (`/dados-mercado/metodologia/PETROLEO`), e não é copiado aqui. Dois fatores, OPEP+ e geopolítica, são **fatores de evento**, sem cálculo: o resultado deles são os eventos da leitura diária marcados com cada um numa janela (45 e 7 dias), com a data, a idade e a fonte, repassados à IA do ativo como estão. Oito fatores têm a proposta **calculada**: oferta não-OPEP (Brasil, Noruega e Canadá somados, mensal; sem os EUA, que têm fator próprio, e com o Canadá, por decisão do usuário; mede a situação, não antecipa o preço), juros (o Treasury de 10 anos contra 26 semanas antes, e não a meta do Fed, que fora da pandemia não mostrou relação com o preço; a meta fica como contexto), fundos (a posição líquida no COT do WTI contra o percentil dos 3 anos anteriores; o extremo lido como risco de reversão, que o histórico sustenta; pergunta ao David), dólar (o índice do Fed das economias avançadas contra a média de 52 semanas; o fator com a relação mais forte com o preço), refino (a margem 3-2-1 com o Brent, calculada pelo FinMind, contra a média de 5 anos, em US$ por barril; hoje extrema, como em 2022), demanda (só os EUA: a China do JODI ficou de fora, "não avaliada" e com uma queda de ~30% em 2026 sem explicação; pergunta ao David), produção dos EUA (o crescimento anual da produção, com a distância do recorde; o dado basta, o rig count não é necessário) e estoques EIA. O de estoques, o piloto: o estoque contra a média da mesma semana nos 5 anos anteriores, no histórico desde 1982, e a **camada C** (direção, intensidade e tendência) com os parâmetros em uso no sistema, guardados no banco com histórico de versões: qualquer usuário simula outros valores na tela, e o admin salva uma versão nova, com o motivo. Em jun/2020 ficou 15% acima da média; em jun/2022, 12,5% abaixo. O **prompt diário de análise** junta os 10 fatores e o WTI à vista numa data, para a IA ler a tendência em 1, 7, 30 e 90 dias (sem recomendar): é mostrado na mesma tela (ADR 0051) e, desde 2026-10-03, enviado ao Gemini uma vez por dia, com a resposta validada, gravada e mostrada no Centro de Decisão (ADR 0052). As
 perguntas que mais destravam:
 
 1. **Estoques EIA (Alto):** "abaixo do esperado" é contra o consenso de analistas (pago, não coletado) ou contra uma
@@ -1466,6 +1472,15 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>7. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-04</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Leitura diária de tendência do ouro | Depois da aprovação do David, a cadeia do petróleo virou genérica por ativo (configuração, prompt, coletor, validação e Centro de Decisão), com o prompt do petróleo idêntico byte a byte, e o ouro ganhou a sua: o prompt com os 8 fatores e o GLD da B3 (o contrato mais próximo, o preço em reais pela PTAX, sem curva), faixas pelo critério do petróleo medidas no ouro da LBMA (cerca de metade das do petróleo) e o coletor `ouro-analise-ia-diario`. As decisões do David na metodologia v2: a inflação como fator de contexto do juro real (sem pressão; a validação recusa a resposta que a conte a favor ou contra), o COT "amplifica" como qualificador e os bancos centrais pelo WGC contra os 3 anos anteriores, mostradas na tela como "Decidido". A geopolítica do ouro passou a 7 dias, como a do petróleo. Os motivos das respostas recusadas passaram a aparecer na tela Execuções. Dev: 1ª leitura em 2026-10-04, refeita e aceita de primeira, ~22 mil tokens | ADR 0054 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-03</summary>

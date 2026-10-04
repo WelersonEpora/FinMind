@@ -29,10 +29,11 @@ critérios de sinal (ver `STATUS_DO_PROJETO.md`, §4).
   "PROPOSTA"`), separada do que vem do FEL 1 e não alimente o motor, o
   Centro de Decisão nem a IA. A direção de um fator pode ser *simulada*
   (camada C), com parâmetros explícitos e ajustáveis pelo Comitê, só na
-  tela de metodologia. **Exceção do petróleo (ADR 0052):** com as decisões
-  dos fatores aprovadas pelo David em 2026-10-03, o prompt diário vai à IA
-  e a leitura de tendência (nunca recomendação de compra ou venda) aparece
-  no Centro de Decisão do petróleo; os outros ativos seguem a regra acima.
+  tela de metodologia. **Exceção do petróleo e do ouro (ADRs 0052 e 0054):**
+  com as decisões dos fatores aprovadas pelo David em 2026-10-03, o prompt
+  diário vai à IA e a leitura de tendência (nunca recomendação de compra ou
+  venda) aparece no Centro de Decisão desses dois ativos; milho e café
+  seguem a regra acima.
 - **Nenhuma execução automática de ordens** existe ou deve ser adicionada
   nesta fase. A arquitetura mantém geração de análise e execução de ordens
   como camadas fisicamente separadas (ver `docs/architecture.md`).
@@ -100,7 +101,7 @@ Vitest/Cypress.
 cd backend && npm run collect
 # eventos de mercado (o coletor da geopolítica): uma leitura por dia (as execuções seguintes pulam a chamada à IA); para trocar a leitura de hoje (ADRs 0047 e 0049):
 cd backend && GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica
-# leitura de tendência do petróleo (roda depois de todos os coletores; uma por dia, ADR 0052); para trocar a de hoje:
+# leitura de tendência do petróleo e do ouro (rodam depois de todos os coletores; uma por ativo e dia, ADRs 0052 e 0054); para trocar a de hoje (as duas, ou uma com --coletor=ouro-analise):
 cd backend && ANALISE_DIARIA_REFAZER=1 npm run collect -- --coletor=analise
 ```
 
@@ -165,7 +166,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FMI (ouro nas reservas dos bancos centrais), World Gold Council (ouro em ETFs e oferta e demanda; uso interno), FRED (juros, índices do dólar, moedas da cesta do DXY, meta do Fed e, pelo ALFRED, o CPI e o preço mensal do café do FMI), CFTC (ouro, milho, café e petróleo WTI), ANP (produção de petróleo por UF), JODI (produção de petróleo e demanda de derivados por país), ICE (estoques certificados do café), Cecafé (resumo diário das exportações de café), B3 (futuros CCM, ICF e o ouro em dólar GLD; a LBMA saiu em 2026-10-01, quando o feed fechou, ADR 0044), B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho, de milho por país de destino e de café), EIA (etanol; e o petróleo: estoques, produção, refino e preços à vista de WTI, Brent, gasolina e diesel), NOAA STAR (saúde da vegetação sobre o milho e o café), WASDE (balanço do milho, com o milho usado para etanol), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage; e os estoques trimestrais do Grain Stocks), USDA FAS (PSD do café, balanço por país), Conab (milho do boletim mensal, café do Boletim da Safra de Café e o custo de produção do café), IMEA (milho de MT por safra, custo de produção, balanço de oferta e demanda e andamento da semeadura e da colheita), com `NASS_API_KEY`, USDA e, com `GEMINI_API_KEY_FREE` e/ou `GEMINI_API_KEY` (a gratuita primeiro, a paga como reserva), a leitura diária de eventos de mercado do ouro, do petróleo, do milho e do café (Gemini com busca na web em fontes autorizadas, sete tipos de evento, a geopolítica entre eles; fora da `observation`: tabelas próprias, uma leitura por dia, entregue ao Motor por `geopolitica.service.js`, ADRs 0047 e 0049) e, por último, a leitura diária de tendência do petróleo (o prompt diário enviado ao Gemini sem busca, resposta em JSON validada, tabela `analise_diaria`, ADR 0052); `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FMI (ouro nas reservas dos bancos centrais), World Gold Council (ouro em ETFs e oferta e demanda; uso interno), FRED (juros, índices do dólar, moedas da cesta do DXY, meta do Fed e, pelo ALFRED, o CPI e o preço mensal do café do FMI), CFTC (ouro, milho, café e petróleo WTI), ANP (produção de petróleo por UF), JODI (produção de petróleo e demanda de derivados por país), ICE (estoques certificados do café), Cecafé (resumo diário das exportações de café), B3 (futuros CCM, ICF e o ouro em dólar GLD; a LBMA saiu em 2026-10-01, quando o feed fechou, ADR 0044), B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho, de milho por país de destino e de café), EIA (etanol; e o petróleo: estoques, produção, refino e preços à vista de WTI, Brent, gasolina e diesel), NOAA STAR (saúde da vegetação sobre o milho e o café), WASDE (balanço do milho, com o milho usado para etanol), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage; e os estoques trimestrais do Grain Stocks), USDA FAS (PSD do café, balanço por país), Conab (milho do boletim mensal, café do Boletim da Safra de Café e o custo de produção do café), IMEA (milho de MT por safra, custo de produção, balanço de oferta e demanda e andamento da semeadura e da colheita), com `NASS_API_KEY`, USDA e, com `GEMINI_API_KEY_FREE` e/ou `GEMINI_API_KEY` (a gratuita primeiro, a paga como reserva), a leitura diária de eventos de mercado do ouro, do petróleo, do milho e do café (Gemini com busca na web em fontes autorizadas, sete tipos de evento, a geopolítica entre eles; fora da `observation`: tabelas próprias, uma leitura por dia, entregue ao Motor por `geopolitica.service.js`, ADRs 0047 e 0049) e, por último, a leitura diária de tendência do petróleo e do ouro (o prompt diário de cada um enviado ao Gemini sem busca, resposta em JSON validada, tabela `analise_diaria`, ADRs 0052 e 0054); `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

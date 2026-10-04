@@ -73,3 +73,10 @@ test('textos da tabela de evidências: medida sem a camada, idade do dado e cont
   assert.equal(contarEventos(1), '1 evento')
   assert.equal(contarEventos(2), '2 eventos')
 })
+
+test('fator de contexto (ADR 0054): sem pressão, o chip diz Contexto, com a tendência', () => {
+  const leitura = leituraDoFator({ papel: 'CONTEXTO', contextoDe: 'OURO_JUROS_REAIS', tendencia: 'CAINDO' })
+  assert.equal(leitura.texto, 'Contexto')
+  assert.equal(leitura.classe, 'lateral')
+  assert.equal(leitura.tendencia, 'caindo')
+})

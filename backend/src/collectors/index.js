@@ -42,7 +42,7 @@ const imeaOfertaDemandaMilhoCollector = require("./imea/imea-oferta-demanda-milh
 const imeaAndamentoMilhoCollector = require("./imea/imea-andamento-milho.collector");
 const { criarColetorVh } = require("./noaa/noaa-vh.collector");
 const geopoliticaIaCollector = require("./geopolitica/geopolitica-ia.collector");
-const analiseDiariaIaCollector = require("./analise/analise-diaria-ia.collector");
+const { COLETORES_ANALISE_DIARIA } = require("./analise/analise-diaria-ia.collector");
 
 function bootstrapCollectors() {
   if (listCollectors().length === 0) {
@@ -114,12 +114,12 @@ function bootstrapCollectors() {
     // Geopolítica do ouro e do petróleo: uma chamada diária ao Gemini com busca na web (ADR 0047).
     if (env.gemini.apiKeyFree || env.gemini.apiKey) {
       registerCollector(geopoliticaIaCollector);
-      // Leitura diária de tendência do petróleo (ADR 0052): por ÚLTIMO, para usar a base do dia já coletada (os fatores
-      // e a leitura de eventos acima).
-      registerCollector(analiseDiariaIaCollector);
+      // Leitura diária de tendência do petróleo e do ouro (ADRs 0052 e 0054): por ÚLTIMO, para usar a base do dia já
+      // coletada (os fatores e a leitura de eventos acima). Uma por ativo, independentes.
+      for (const coletor of COLETORES_ANALISE_DIARIA) registerCollector(coletor);
     } else {
       logger.warn(
-        "GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas - leituras diárias da IA (eventos de mercado e tendência do petróleo) não registradas."
+        "GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas - leituras diárias da IA (eventos de mercado e tendência do petróleo e do ouro) não registradas."
       );
     }
   }

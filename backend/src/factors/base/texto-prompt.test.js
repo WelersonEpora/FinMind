@@ -86,3 +86,21 @@ test("o nome no FEL 1 não entra no texto: o título diz o dado usado", () => {
   });
   assert.doesNotMatch(t, /Nome no FEL 1|Demanda global/);
 });
+
+test("fator de contexto (ADR 0054): A, B e D como os outros; sem a regra da pressão, e C só com o papel e a tendência", () => {
+  const t = montarTextoPrompt({
+    ativo: "OURO",
+    fator: { ...FATOR, codigo: "OURO_INFLACAO", contextoDe: "OURO_JUROS_REAIS" },
+    calculo: { apresentacao: APRESENTACAO, periodicidade: "SEMANAL", parametros: PARAMETROS, origemParametros: null, simulacao: false },
+    ponto: PONTO
+  });
+  assert.match(t, /\nA — Medida:\n/);
+  assert.match(t, /\nB — Leitura:\n- Desvio: \+1,86%/);
+  assert.doesNotMatch(t, /Regra aplicada/);
+  assert.doesNotMatch(t, /Pressão:|Intensidade:/);
+  assert.match(
+    t,
+    /\nC — Papel na análise:\n- CONTEXTO do fator OURO_JUROS_REAIS, por decisão do especialista: sem pressão própria; não conta a favor nem contra\.\n- Tendência: Estável\n/
+  );
+  assert.match(t, /\nD — Validação histórica/);
+});

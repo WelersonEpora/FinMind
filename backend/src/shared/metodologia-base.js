@@ -21,6 +21,11 @@ const { FATORES } = require("./fatores-fel1");
 //   evento   - (opcional) { janelaDias }: FATOR DE EVENTO, sem cálculo. O resultado dele são os eventos aceitos da
 //              leitura diária marcados com ele nessa janela (geopolitica.service.js::obterEventosDoFator), o bloco que
 //              vai ao prompt da IA do ativo como está.
+//   contextoDe - (opcional) o código de outro fator do mesmo ativo: FATOR DE CONTEXTO, por decisão do especialista. O
+//              cálculo (A e B) continua e vai ao prompt, mas sem leitura própria (nem pressão, nem intensidade): ele
+//              explica o outro fator e não conta a favor nem contra (ex.: a inflação do ouro, contexto do juro real,
+//              ADR 0054).
+//   decisoes - (opcional) o que o especialista já decidiu sobre o fator, com a data e o ADR: sai das `perguntas`.
 // O cálculo de um fator (camadas A, B e C simulada) fica em `factors/` e é ligado a ele em metodologia-ativo.service.js.
 
 const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
@@ -31,6 +36,9 @@ function montarFatores(ativo, definicoes) {
   return definicoes.map((definicao) => {
     const fator = FATORES.find((item) => item.codigo === definicao.codigo);
     if (!fator || fator.ativo !== ativo) throw new Error(`Fator ausente no catálogo do FEL 1 para ${ativo}: ${definicao.codigo}`);
+    if (definicao.contextoDe && !definicoes.some((outra) => outra.codigo === definicao.contextoDe && !outra.contextoDe)) {
+      throw new Error(`${definicao.codigo}: contexto de um fator que não está no ativo (ou que também é contexto): ${definicao.contextoDe}`);
+    }
     return {
       codigo: fator.codigo,
       nome: definicao.nome || fator.nome,
@@ -40,7 +48,9 @@ function montarFatores(ativo, definicoes) {
       dados: definicao.dados,
       proposta: { situacao: SITUACAO.PROPOSTA, ...definicao.proposta },
       perguntas: definicao.perguntas,
-      evento: definicao.evento || null
+      decisoes: definicao.decisoes || [],
+      evento: definicao.evento || null,
+      contextoDe: definicao.contextoDe || null
     };
   });
 }

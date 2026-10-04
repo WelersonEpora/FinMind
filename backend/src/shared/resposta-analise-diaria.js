@@ -1,9 +1,9 @@
 "use strict";
 
-const { HORIZONTES, CODIGOS_FAIXA, TENDENCIA_DA_FAIXA } = require("./analise-diaria-petroleo");
+const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA } = require("./analise-diaria-base");
 
-// Validação da resposta da leitura diária de tendência do petróleo (ADR 0052), no formato do bloco 6 do prompt
-// (ai/prompts/petroleo-analise-diaria.md). Determinística: ou a resposta inteira passa, ou nada é gravado (a execução
+// Validação da resposta da leitura diária de tendência de um ativo (petróleo, ADR 0052; ouro, ADR 0054), no formato do
+// bloco 6 do prompt (ai/prompts/<ativo>-analise-diaria.md, o mesmo formato nos dois). Determinística: ou a resposta inteira passa, ou nada é gravado (a execução
 // falha com os motivos). É estrita no que a tela e a comparação futura com o realizado usam (horizonte, tendência,
 // faixa, confiança e a coerência entre elas), no que não pode ser inventado (o código de um fator, a referência a uma
 // evidência) e nos textos que a leitura precisa ter (tese, condição que a invalida). Listas vazias são aceitas: dizer
@@ -30,7 +30,7 @@ function lerJson(texto) {
   }
 }
 
-function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidencia }, erros) {
+function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidencia, codigosContexto }, erros) {
   if (lista === undefined) return;
   if (!Array.isArray(lista)) {
     erros.push(`${prefixo}: "${campo}" deve ser uma lista.`);
@@ -39,13 +39,15 @@ function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidenc
   lista.forEach((item, i) => {
     const onde = `${prefixo}.${campo}[${i}]`;
     if (!item || !codigosFator.has(item.fator)) erros.push(`${onde}: fator "${item?.fator}" não está entre os fatores do prompt.`);
+    // Um fator de CONTEXTO (ex.: a inflação do ouro, ADR 0054) não tem leitura própria: não conta a favor nem contra.
+    else if (codigosContexto && codigosContexto.has(item.fator)) erros.push(`${onde}: "${item.fator}" é fator de contexto, não conta a favor nem contra.`);
     for (const id of item?.evidencias || []) {
       if (!idsEvidencia.has(id)) erros.push(`${onde}: cita a evidência "${id}", que não está em "evidencias".`);
     }
   });
 }
 
-function validarLeitura(leitura, horizonteEsperado, codigosFator, erros) {
+function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosContexto }, erros) {
   const prefixo = `leituras[${horizonteEsperado}]`;
   if (!leitura || typeof leitura !== "object") {
     erros.push(`${prefixo}: ausente.`);
@@ -87,10 +89,10 @@ function validarLeitura(leitura, horizonteEsperado, codigosFator, erros) {
     }
   });
 
-  const contexto = { codigosFator, idsEvidencia };
-  validarListaDeFatores(leitura.fatoresAFavor, "fatoresAFavor", prefixo, contexto, erros);
-  validarListaDeFatores(leitura.fatoresContra, "fatoresContra", prefixo, contexto, erros);
-  validarListaDeFatores(leitura.fatoresPoucoRelevantes, "fatoresPoucoRelevantes", prefixo, contexto, erros);
+  const votos = { codigosFator, idsEvidencia, codigosContexto };
+  validarListaDeFatores(leitura.fatoresAFavor, "fatoresAFavor", prefixo, votos, erros);
+  validarListaDeFatores(leitura.fatoresContra, "fatoresContra", prefixo, votos, erros);
+  validarListaDeFatores(leitura.fatoresPoucoRelevantes, "fatoresPoucoRelevantes", prefixo, { codigosFator, idsEvidencia }, erros);
 
   if (leitura.posicionamentoCot != null && !PAPEIS_COT.includes(leitura.posicionamentoCot.papel)) {
     erros.push(`${prefixo}: papel do COT "${leitura.posicionamentoCot.papel}" fora da lista.`);
@@ -103,19 +105,20 @@ function validarLeitura(leitura, horizonteEsperado, codigosFator, erros) {
   }
 }
 
-// `texto`: a resposta da IA. `codigosFator`: os códigos dos fatores que foram no prompt. -> { leituras, erros }: com
+// `texto`: a resposta da IA. `horizontes`: os da configuração do ativo, na ordem. `codigosFator`: os códigos dos
+// fatores que foram no prompt; `codigosContexto`: os dos fatores de contexto entre eles. -> { leituras, erros }: com
 // algum erro, `leituras` é null.
-function validarRespostaAnalise(texto, { codigosFator }) {
+function validarRespostaAnalise(texto, { horizontes, codigosFator, codigosContexto = [] }) {
   const json = lerJson(texto);
   if (json.erroDeLeitura) return { leituras: null, erros: [json.erroDeLeitura] };
 
   const erros = [];
-  const codigos = new Set(codigosFator);
+  const codigos = { codigosFator: new Set(codigosFator), codigosContexto: new Set(codigosContexto) };
   if (!Array.isArray(json.leituras)) return { leituras: null, erros: ['A resposta não tem a lista "leituras".'] };
-  if (json.leituras.length !== HORIZONTES.length) {
-    erros.push(`São ${HORIZONTES.length} leituras, uma por horizonte; vieram ${json.leituras.length}.`);
+  if (json.leituras.length !== horizontes.length) {
+    erros.push(`São ${horizontes.length} leituras, uma por horizonte; vieram ${json.leituras.length}.`);
   }
-  HORIZONTES.forEach((horizonte, i) => validarLeitura(json.leituras[i], horizonte.codigo, codigos, erros));
+  horizontes.forEach((horizonte, i) => validarLeitura(json.leituras[i], horizonte.codigo, codigos, erros));
   return erros.length > 0 ? { leituras: null, erros } : { leituras: json.leituras, erros };
 }
 

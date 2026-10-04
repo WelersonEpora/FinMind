@@ -27,6 +27,11 @@ const opcoesAtivo = computed(() => (resposta.value?.ativos || []).map((a) => ({ 
 
 const ROTULO_SITUACAO = { PROPOSTA: 'Proposta, aguardando o David', VALIDADA: 'Validada pelo David' }
 
+// O nome de um fator do ativo pelo código (o fator de que outro é contexto, ADR 0054).
+function nomeDoFator(codigo) {
+  return metodologia.value?.fatores.find((f) => f.codigo === codigo)?.nome || codigo
+}
+
 // --- Simulação numa data (ADR 0050): o resultado de cada fator com o que se sabia até o fim dela e o prompt completo.
 function hojeLocal() {
   const d = new Date()
@@ -207,6 +212,9 @@ watch(ativo, carregar, { immediate: true })
                     </span>
                     <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> Proposta calculada</span>
                     <span v-if="fator.deEvento" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Fator de evento</span>
+                    <span v-if="fator.contextoDe" class="metodologia-ativo__calculado">
+                      <i class="bi bi-info-circle"></i> Contexto de {{ nomeDoFator(fator.contextoDe) }}
+                    </span>
                   </div>
 
                   <!-- O resultado do fator na data simulada, numa linha. -->
@@ -321,7 +329,15 @@ watch(ativo, carregar, { immediate: true })
             :data="simulacao?.data || ''"
           />
 
-          <section class="metodologia-ativo__bloco metodologia-ativo__bloco--perguntas">
+          <!-- O que o especialista já decidiu sobre o fator, com a data e o ADR (ex.: as decisões do ouro, ADR 0054). -->
+          <section v-if="fatorSelecionado.decisoes?.length" class="metodologia-ativo__bloco metodologia-ativo__bloco--decisoes">
+            <h4>Decidido <small>pelo especialista</small></h4>
+            <ul>
+              <li v-for="decisao in fatorSelecionado.decisoes" :key="decisao">{{ decisao }}</li>
+            </ul>
+          </section>
+
+          <section v-if="fatorSelecionado.perguntas.length" class="metodologia-ativo__bloco metodologia-ativo__bloco--perguntas">
             <h4>Pendências <small>o que o especialista ainda decide</small></h4>
             <ol>
               <li v-for="pergunta in fatorSelecionado.perguntas" :key="pergunta">{{ pergunta }}</li>
@@ -686,6 +702,11 @@ watch(ativo, carregar, { immediate: true })
 .metodologia-ativo__bloco--perguntas {
   border-color: rgba(214, 60, 60, 0.25);
   background: rgba(214, 60, 60, 0.03);
+}
+
+.metodologia-ativo__bloco--decisoes {
+  border-color: rgba(25, 135, 84, 0.25);
+  background: rgba(25, 135, 84, 0.04);
 }
 
 .metodologia-ativo__situacao {

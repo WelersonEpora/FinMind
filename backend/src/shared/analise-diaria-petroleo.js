@@ -1,5 +1,7 @@
 "use strict";
 
+const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./analise-diaria-base");
+
 // Configuração do prompt diário de análise do petróleo (ADR 0051): o que a metodologia define e o prompt só MOSTRA.
 // Nada daqui é escrito à mão no texto do prompt (ai/prompts/petroleo-analise-diaria.md): o serviço monta as tabelas
 // a partir destes valores. Mudar um valor = versão nova desta configuração (VERSAO), registrada em cada prompt gerado.
@@ -31,15 +33,6 @@ const FAIXAS = Object.freeze({
   LONGO: { t1: 8, t2: 20 }
 });
 
-const CODIGOS_FAIXA = Object.freeze(["BAIXA_FORTE", "BAIXA_LEVE", "LATERAL", "ALTA_LEVE", "ALTA_FORTE"]);
-const TENDENCIA_DA_FAIXA = Object.freeze({
-  BAIXA_FORTE: "BAIXA",
-  BAIXA_LEVE: "BAIXA",
-  LATERAL: "LATERAL",
-  ALTA_LEVE: "ALTA",
-  ALTA_FORTE: "ALTA"
-});
-
 // De onde os horizontes são contados (ADR 0052, adendo de 2026-10-03): da DATA DA ANÁLISE. A v1 contava da data do
 // último preço do WTI na BASE, mas a EIA publica os preços diários uma vez por semana e a leitura já usa eventos
 // posteriores a esse preço: o horizonte de 1 dia caía num dia que já tinha passado, com notícias de depois dele. Agora
@@ -49,28 +42,43 @@ const TENDENCIA_DA_FAIXA = Object.freeze({
 // As leituras gravadas com a v1 continuam com "DATA_DO_ULTIMO_PRECO" na entrada, e a tela respeita o que foi gravado.
 const REFERENCIA_HORIZONTES = "DATA_DA_ANALISE";
 
-// O preço de referência: a série do Centro de Decisão (centro-decisao.service.js::ATIVOS) e quantos pregões o
-// histórico do bloco de preço lista.
-const PRECO = Object.freeze({ serie: "WTI", pregoesNoHistorico: 10 });
+// O preço de referência: a série do Centro de Decisão (centro-decisao.service.js::ATIVOS), quantos pregões o histórico
+// do bloco de preço lista e os textos do bloco que dependem do ativo (o nome curto, a unidade da lista de pregões, o
+// que a tabela 2.4 mede e os avisos da fonte). `emReais`: uma linha com o preço convertido pela PTAX (só no ouro).
+const PRECO = Object.freeze({
+  serie: "WTI",
+  pregoesNoHistorico: 10,
+  rotulo: "WTI",
+  unidadeHistorico: "US$/barril",
+  descricaoFaixas: "WTI à vista",
+  avisos: Object.freeze(["Aviso: a EIA publica os preços diários uma vez por semana; o último preço pode não refletir fatos posteriores a ele."]),
+  emReais: false
+});
 
 // A curva futura do WTI: sem fonte (o futuro é pago e a EIA deixou de publicar a NYMEX em 2024-04, ADR 0040). Quando
 // houver, `fonte` diz qual é e o serviço passa a lê-la; até lá, o prompt diz SEM DADO e a resposta registra a lacuna.
-const CURVA = Object.freeze({ fonte: null });
+// `aplica: false` num ativo em que a curva não entra no prompt (o ouro, ADR 0054).
+const CURVA = Object.freeze({
+  aplica: true,
+  fonte: null,
+  semDado: "SEM DADO: não há fonte da curva futura do WTI na base (o futuro é pago; a EIA deixou de publicar os vencimentos da NYMEX em 2024).",
+  lacuna: "Curva futura do WTI sem fonte na base"
+});
 
-// A faixa de uma variação realizada (%), para comparar depois com a faixa da leitura. Bordas: |v| < T1 é LATERAL;
-// T1 <= |v| < T2 é LEVE; |v| >= T2 é FORTE. Só classifica: não pontua nada.
-function classificarVariacao(variacaoPct, horizonte) {
-  const faixa = FAIXAS[horizonte];
-  if (!faixa) throw new Error(`Horizonte desconhecido: ${horizonte}`);
-  if (variacaoPct === null || variacaoPct === undefined || !Number.isFinite(variacaoPct)) return null;
-  const absoluto = Math.abs(variacaoPct);
-  if (absoluto < faixa.t1) return "LATERAL";
-  const lado = variacaoPct > 0 ? "ALTA" : "BAIXA";
-  return absoluto < faixa.t2 ? `${lado}_LEVE` : `${lado}_FORTE`;
-}
+// O texto fixo do prompt (ai/prompts/), o coletor que o envia à IA uma vez por dia (ADR 0052) e o nome desta
+// configuração (vai com a versão em cada prompt).
+const NOME = "analise-diaria-petroleo";
+const ARQUIVO_PROMPT = "petroleo-analise-diaria.md";
+const COLETOR = "petroleo-analise-ia-diario";
+
+// A faixa de uma variação realizada (%), para comparar depois com a faixa da leitura (analise-diaria-base.js).
+const classificarVariacao = criarClassificador(FAIXAS);
 
 module.exports = {
   VERSAO,
+  NOME,
+  ARQUIVO_PROMPT,
+  COLETOR,
   HORIZONTES,
   FAIXAS,
   CODIGOS_FAIXA,

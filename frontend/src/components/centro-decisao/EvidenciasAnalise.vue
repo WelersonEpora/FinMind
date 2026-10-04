@@ -140,7 +140,7 @@ async function copiar() {
     <template v-else>
       <section v-if="evidencias.preco" class="evidencias__preco">
         <span class="evidencias__preco-valor">
-          {{ evidencias.preco.serie }}
+          {{ evidencias.preco.serie }}<template v-if="evidencias.preco.contrato"> ({{ evidencias.preco.contrato.ticker }})</template>
           <strong>US$ {{ formatarValor(evidencias.preco.valor) }}</strong> <span class="text-muted">em {{ formatarData(evidencias.preco.dataReferencia) }}</span>
         </span>
         <span class="evidencias__variacoes">
@@ -201,7 +201,8 @@ async function copiar() {
 
         <h4>Preço de referência</h4>
         <p v-if="evidencias.preco" class="small">
-          {{ evidencias.preco.serie }} US$ {{ formatarValor(evidencias.preco.valor) }} em
+          {{ evidencias.preco.serie }}<template v-if="evidencias.preco.contrato"> ({{ evidencias.preco.contrato.ticker }})</template>
+          US$ {{ formatarValor(evidencias.preco.valor) }} em
           {{ formatarData(evidencias.preco.dataReferencia) }}, publicado em
           {{ formatarData((evidencias.preco.publicadoEm || '').slice(0, 10))
           }}{{ evidencias.preco.publicadoEmEstimado ? ' (data estimada)' : '' }}.

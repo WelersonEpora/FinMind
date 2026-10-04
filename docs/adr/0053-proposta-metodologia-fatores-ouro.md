@@ -99,3 +99,10 @@ depois da aprovação do David, como no petróleo.
 
 O prompt diário, a leitura de tendência e o Centro de Decisão do ouro (só depois da aprovação do David); a escolha do
 preço de referência do ouro; uma medida nova de inflação (fonte nova); a reciclagem na oferta.
+
+## Adendo (2026-10-04): aprovação do David
+
+O David deu o sinal verde para os fatores do ouro (2026-10-03) e decidiu as perguntas principais: o preço de
+referência é o futuro GLD da B3; a inflação vira contexto do juro real; o COT fica na leitura "amplifica", como
+qualificador; os bancos centrais usam o World Gold Council contra o ritmo dos 3 anos anteriores. O prompt diário, a
+leitura de tendência e o Centro de Decisão do ouro vieram com o ADR 0054, que registra as decisões e a metodologia v2.

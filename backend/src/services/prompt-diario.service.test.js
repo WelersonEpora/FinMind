@@ -41,7 +41,7 @@ const EVENTO = {
   situacaoRegra: "PROPOSTA",
   tipo: "EVENTO",
   eventos: 2,
-  janelaDias: 30,
+  janelaDias: 7,
   primeiraLeitura: "2026-10-02",
   ultimaLeitura: { data: "2026-10-02", nivel: "RELEVANTE" },
   textoPrompt: "EVENTOS DO FATOR — Geopolítica\nCódigo: PETROLEO_GEOPOLITICA"
@@ -144,7 +144,7 @@ test("sem preço na data, o bloco diz SEM DADO", async () => {
 
 test("a situação dos dados só traz fatos: referência, publicação, idade, SEM DADO e SEM LEITURA", async () => {
   const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps());
-  assert.match(p.prompt, /1\. PETROLEO_GEOPOLITICA — Geopolítica e conflitos \(peso Alto\) \| fator de evento \| última leitura em 02\/10\/2026 \| 2 evento\(s\) na janela de 30 dias/);
+  assert.match(p.prompt, /1\. PETROLEO_GEOPOLITICA — Geopolítica e conflitos \(peso Alto\) \| fator de evento \| última leitura em 02\/10\/2026 \| 2 evento\(s\) na janela de 7 dias/);
   assert.match(p.prompt, /2\. PETROLEO_ESTOQUES_EIA — .* \| semanal \| referência 25\/09\/2026 \| publicado em 30\/09\/2026 \(data estimada\) \| idade: 8 dia\(s\)/);
   assert.match(p.prompt, /3\. PETROLEO_OFERTA_NAO_OPEP — .* \| mensal \| SEM DADO até a data/);
   assert.doesNotMatch(p.prompt, /DEFASADO/);
@@ -160,7 +160,7 @@ test("a leitura do motor junta os blocos dos fatores na ordem do catálogo; a en
   assert.equal(estoques.factorId, "estoques_petroleo_eia");
   assert.equal(estoques.situacaoRegra, "PROPOSTA");
   assert.deepEqual(estoques.leitura, { pressao: "NEUTRA", intensidade: "FRACA", tendencia: "ESTAVEL" });
-  assert.equal(p.entrada.fatores.find((f) => f.fator === "PETROLEO_GEOPOLITICA").janelaDias, 30);
+  assert.equal(p.entrada.fatores.find((f) => f.fator === "PETROLEO_GEOPOLITICA").janelaDias, 7);
   assert.deepEqual(p.entrada.horizontes.map((h) => h.codigo), ["IMEDIATO", "CURTO", "MEDIO", "LONGO"]);
   assert.equal(p.entrada.referenciaHorizontes, "DATA_DA_ANALISE");
 });
@@ -182,4 +182,55 @@ test("faixas: quatro horizontes com T1 < T2; a classificação do realizado segu
   assert.equal(config.classificarVariacao(-t2, "CURTO"), "BAIXA_FORTE");
   assert.equal(config.classificarVariacao(null, "CURTO"), null);
   for (const codigo of config.CODIGOS_FAIXA) assert.ok(config.TENDENCIA_DA_FAIXA[codigo]);
+});
+
+test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem bloco de curva; a inflação vai como contexto", async () => {
+  const precoGld = {
+    ...PRECO,
+    nome: "Futuro B3 (GLD)",
+    unidade: "US$/oz",
+    fonte: "B3 - Up2Data",
+    contrato: { ticker: "GLDZ26", rotulo: "GLDZ26 (dez/2026)" },
+    valor: 4177.5,
+    dataReferencia: "2026-10-02",
+    diasSemDado: 1
+  };
+  const inflacao = {
+    ...CALCULADO,
+    codigo: "OURO_INFLACAO",
+    nome: "Inflação dos EUA (CPI) contra a meta do Fed",
+    contextoDe: "OURO_JUROS_REAIS",
+    decisao: { direcao: "ALTA", intensidade: "MODERADA", tendencia: "DESACELERANDO" },
+    textoPrompt: "FATOR — Inflação"
+  };
+  const d = deps({ fatores: [inflacao], preco: precoGld });
+  const ptaxPedidas = [];
+  d.marketQuoteRepository = {
+    async buscarHistorico(filtros) {
+      ptaxPedidas.push(filtros);
+      return { registros: [{ reference_date: "2026-10-02", value: "5.4000" }], total: 1 };
+    }
+  };
+  const { promptDiario: p } = await montarPromptDiario("OURO", { data: "2026-10-03" }, d);
+
+  assert.deepEqual(d.chamadas.preco, ["GLD", "2026-10-03"]);
+  assert.equal(ptaxPedidas[0].dataFim, "2026-10-02");
+  assert.equal(p.versaoPrompt, "ouro-analise-diaria@1");
+  assert.match(p.prompt, /Contrato: GLDZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
+  assert.match(p.prompt, /Em reais: R\$ 22\.558,50 por onça, pela PTAX de venda de 02\/10\/2026 \(R\$ 5,4000 por US\$\)/);
+  assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/onça\)/);
+  assert.match(p.prompt, /2\.2 CURVA FUTURA — não se aplica ao ouro/);
+  assert.doesNotMatch(p.prompt, /SEM DADO: não há fonte da curva/);
+  assert.match(p.prompt, /IMEDIATO \(Imediato, 1 dia\): T1 = 0,4% \| T2 = 1,2%/);
+  assert.match(p.prompt, /1\. OURO_INFLACAO — .* \| CONTEXTO de OURO_JUROS_REAIS, sem leitura própria \|/);
+  assert.match(p.instrucaoDoSistema, /Nunca o liste em "fatoresAFavor" nem em "fatoresContra"/);
+  assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
+
+  const entrada = p.entrada.fatores[0];
+  assert.equal(entrada.contextoDe, "OURO_JUROS_REAIS");
+  assert.deepEqual(entrada.leitura, { papel: "CONTEXTO", contextoDe: "OURO_JUROS_REAIS", tendencia: "DESACELERANDO" });
+  assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.4 });
+  assert.equal(p.entrada.precoReferencia.contrato.ticker, "GLDZ26");
+
+  await assert.rejects(montarPromptDiario("MILHO", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
 });

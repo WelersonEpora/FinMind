@@ -1,23 +1,25 @@
 "use strict";
 
 const analiseDiariaRepository = require("../repositories/analise-diaria.repository");
-const { HORIZONTES } = require("../shared/analise-diaria-petroleo");
+const { ATIVOS_COM_ANALISE_DIARIA, configuracaoDoAtivo } = require("../shared/analise-diaria");
 const { FATORES_PETROLEO } = require("../shared/metodologia-petroleo");
+const { FATORES_OURO } = require("../shared/metodologia-ouro");
 const { NotFoundError, ValidationError } = require("../shared/errors");
 
-// Leitura diária de tendência da IA (ADR 0052), como o Centro de Decisão a mostra: a leitura feita NA data escolhida
+// Leitura diária de tendência da IA (petróleo, ADR 0052; ouro, ADR 0054), como o Centro de Decisão a mostra: a leitura feita NA data escolhida
 // (nunca a de outro dia no lugar dela) e as evidências que formaram o prompt dela. Tudo sai da leitura GRAVADA (a
 // entrada estruturada, o prompt e a resposta como foram): nada é recalculado agora, então um parâmetro que mude depois
 // não altera o que a tela diz que a IA recebeu naquele dia. Só os ativos com leitura diária têm o bloco.
-const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO };
-const ATIVOS_COM_ANALISE = Object.keys(CATALOGO_POR_ATIVO);
+const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO, OURO: FATORES_OURO };
+const ATIVOS_COM_ANALISE = ATIVOS_COM_ANALISE_DIARIA;
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 
 // O resumo do que foi ao prompt: o preço de referência com as variações dos horizontes, a curva, cada fator (com o
-// nome do catálogo) e as lacunas. As lacunas são só fatos da entrada (curva sem fonte, fator sem dado ou sem leitura),
-// não um julgamento.
+// nome do catálogo) e as lacunas. As lacunas são só fatos da entrada (curva sem fonte, num ativo em que ela entra no
+// prompt; fator sem dado ou sem leitura), não um julgamento.
 function resumirEvidencias(ativo, entrada) {
+  const config = configuracaoDoAtivo(ativo);
   const nomes = new Map(CATALOGO_POR_ATIVO[ativo].map((f) => [f.codigo, f.nome]));
   const preco = entrada.precoReferencia;
   const fatores = (entrada.fatores || []).map((f) => ({
@@ -27,6 +29,7 @@ function resumirEvidencias(ativo, entrada) {
     tipo: f.tipo,
     tipoFel1: f.tipoFel1,
     situacaoRegra: f.situacaoRegra,
+    contextoDe: f.contextoDe ?? null,
     situacao: f.situacao,
     dataReferencia: f.dataReferencia ?? null,
     publicadoEm: f.publicadoEm ?? null,
@@ -42,7 +45,7 @@ function resumirEvidencias(ativo, entrada) {
     ultimaLeitura: f.ultimaLeitura ?? null
   }));
   const lacunas = [
-    ...(entrada.curva ? [] : [{ codigo: "CURVA_SEM_DADO", fator: null, descricao: "Curva futura do WTI sem fonte na base" }]),
+    ...(entrada.curva || !config.CURVA.aplica ? [] : [{ codigo: "CURVA_SEM_DADO", fator: null, descricao: config.CURVA.lacuna }]),
     ...(preco ? [] : [{ codigo: "PRECO_SEM_DADO", fator: null, descricao: "Sem preço de referência na data" }]),
     ...fatores
       .filter((f) => f.situacao === "SEM_DADO" || f.situacao === "SEM_LEITURA")
@@ -53,11 +56,13 @@ function resumirEvidencias(ativo, entrada) {
     preco: preco
       ? {
           serie: preco.serie,
+          contrato: preco.contrato ?? null,
+          ptax: preco.ptax ?? null,
           valor: preco.valor,
           dataReferencia: preco.dataReferencia,
           publicadoEm: preco.publicadoEm,
           publicadoEmEstimado: preco.publicadoEmEstimado,
-          variacoes: HORIZONTES.map(({ codigo, dias, variacao }) => ({
+          variacoes: config.HORIZONTES.map(({ codigo, dias, variacao }) => ({
             horizonte: codigo,
             dias,
             percentual: preco.variacoes?.[variacao]?.percentual ?? null,
@@ -96,7 +101,7 @@ async function obterAnaliseDoDia(ativo, data, deps = {}) {
       ? { serie: entrada.precoReferencia.serie, dataReferencia: entrada.precoReferencia.dataReferencia, valor: entrada.precoReferencia.valor }
       : null,
     referenciaHorizontes: { tipo: tipoReferencia, data: dataReferenciaHorizontes },
-    horizontes: HORIZONTES.map(({ codigo, rotulo, dias }) => {
+    horizontes: configuracaoDoAtivo(ativo).HORIZONTES.map(({ codigo, rotulo, dias }) => {
       const faixa = faixasDoHorizonte.get(codigo) || {};
       return { codigo, rotulo, dias, t1: faixa.t1 ?? null, t2: faixa.t2 ?? null };
     }),

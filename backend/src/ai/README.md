@@ -9,11 +9,12 @@ sendo o padrão de tudo que ainda não tem definição: falha explicitamente, nu
 fica versionado em `prompts/geopolitica-diaria.md` (carregado por `carregar-prompt.js`) e quem interpreta a resposta é o
 parser do coletor `collectors/geopolitica/`. A leitura é **contexto** para o prompt do ativo, não regra nem sinal.
 
-**E a leitura diária de tendência do petróleo** (ADRs 0051 e 0052): o prompt `prompts/petroleo-analise-diaria.md`,
-montado por `services/prompt-diario.service.js` com os 10 fatores e o WTI na data, vai ao Gemini **sem busca** e com a
-resposta em JSON (`gemini-search.provider.js::gerarJson`), pelo coletor `collectors/analise/`. A resposta é validada
-por `shared/resposta-analise-diaria-petroleo.js` (fora do formato, nada é gravado) e aparece no Centro de Decisão do
-petróleo: **leitura de tendência em quatro horizontes, não recomendação**.
+**E a leitura diária de tendência do petróleo e do ouro** (ADRs 0051, 0052 e 0054): o prompt de cada ativo
+(`prompts/petroleo-analise-diaria.md`, com os 10 fatores e o WTI; `prompts/ouro-analise-diaria.md`, com os 8 fatores e
+o GLD), montado por `services/prompt-diario.service.js` com a configuração do ativo (`shared/analise-diaria.js`), vai
+ao Gemini **sem busca** e com a resposta em JSON (`gemini-search.provider.js::gerarJson`), por um coletor por ativo
+(`collectors/analise/`). A resposta é validada por `shared/resposta-analise-diaria.js` (fora do formato, nada é
+gravado) e aparece no Centro de Decisão do ativo: **leitura de tendência em quatro horizontes, não recomendação**.
 
 Para qualquer outro uso, continuam faltando as definições do especialista David: como avaliar a saída da IA e em que
 condições ela pode influenciar um sinal operacional (ver `STATUS_DO_PROJETO.md`, §4). Uma resposta de IA nunca deve

@@ -2,24 +2,22 @@
 
 const crypto = require("node:crypto");
 const { carregarPrompt } = require("../ai/carregar-prompt");
-const { NotFoundError } = require("../shared/errors");
-const config = require("../shared/analise-diaria-petroleo");
+const { configuracaoDoAtivo } = require("../shared/analise-diaria");
 const metodologiaAtivoService = require("./metodologia-ativo.service");
 const centroDecisaoService = require("./centro-decisao.service");
+const marketQuoteRepository = require("../repositories/market-quote.repository");
 
-// Prompt diário de análise do petróleo (ADR 0051): monta, para uma data, o prompt que a IA de tendência receberia,
-// com o que se sabia até o fim daquele dia. Não chama nenhuma IA: o prompt é gerado e mostrado (as propostas de fator
-// não alimentam a IA enquanto o envio não for decidido, CLAUDE.md e ADR 0050).
+// Prompt diário de análise de um ativo (ADR 0051; o petróleo, e o ouro desde o ADR 0054): monta, para uma data, o
+// prompt que a IA de tendência recebe, com o que se sabia até o fim daquele dia. Não chama nenhuma IA: a tela mostra o
+// prompt e o coletor da leitura diária (collectors/analise/) o envia.
 //
 // Reaproveita o que já existe, sem lógica própria de cálculo:
-//   - os 10 fatores na data: metodologia-ativo.service.js::simularFatores (os textos A/B/C/D e os blocos de evento);
-//   - o preço do WTI: centro-decisao.service.js::lerPreco (point-in-time, variações de 1, 7, 30 e 90 dias);
-//   - o texto fixo e a versão: ai/prompts/petroleo-analise-diaria.md, por carregarPrompt (o mesmo da geopolítica);
-//   - os horizontes e as faixas: shared/analise-diaria-petroleo.js (configuração explícita, versionada).
+//   - os fatores na data: metodologia-ativo.service.js::simularFatores (os textos A/B/C/D e os blocos de evento);
+//   - o preço de referência: centro-decisao.service.js::lerPreco (point-in-time, variações de 1, 7, 30 e 90 dias);
+//   - o texto fixo e a versão: ai/prompts/<ativo>-analise-diaria.md, por carregarPrompt (o mesmo da geopolítica);
+//   - os horizontes, as faixas e os textos do preço: shared/analise-diaria-<ativo>.js (configuração explícita, versionada).
 // O que a IA recebeu fica reconstituível pela versão do prompt, da metodologia e da configuração, pelos parâmetros de
-// cada fator e pelo hash da entrada (ADR 0010); a gravação de cada execução vem com o envio à IA.
-
-const ARQUIVO_PROMPT = "petroleo-analise-diaria.md";
+// cada fator e pelo hash da entrada (ADR 0010).
 
 const fmtData = (iso) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "-");
 const fmtNumero = (n, casas = 2) => n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
@@ -37,22 +35,53 @@ function diasEntre(inicio, fim) {
 
 // --- 2.1 Preço -----------------------------------------------------------------------------------------------------
 
-function blocoPreco(preco, dataAnalise) {
-  if (!preco.disponivel) return "Preço do WTI: SEM DADO até a data da análise.";
+// A PTAX de venda do dia do preço (ou do último dia útil antes dele), para o preço em reais (só referência). A PTAX
+// sai à tarde do próprio dia: no fim do dia da análise, a do dia do preço já era conhecida.
+async function lerPtax(dataReferencia, deps = {}) {
+  const repo = deps.marketQuoteRepository || marketQuoteRepository;
+  const { registros } = await repo.buscarHistorico({
+    instrumentCode: "USD_BRL",
+    modality: "venda",
+    dataFim: dataReferencia,
+    pagina: 1,
+    tamanhoPagina: 1,
+    ordem: "DESC"
+  });
+  const registro = registros[0];
+  return registro ? { data: String(registro.reference_date).slice(0, 10), valor: Number(registro.value) } : null;
+}
+
+function linhaEmReais(preco, ptax) {
+  if (!ptax) return `Em reais: SEM DADO (sem PTAX até ${fmtData(preco.dataReferencia)}).`;
+  return (
+    `Em reais: R$ ${fmtNumero(preco.valor * ptax.valor)} por onça, pela PTAX de venda de ${fmtData(ptax.data)} ` +
+    `(R$ ${fmtNumero(ptax.valor, 4)} por US$). Só referência: as faixas da tabela 2.4 são sobre o preço em US$.`
+  );
+}
+
+function blocoPreco(preco, dataAnalise, config, ptax = null) {
+  if (!preco.disponivel) return `Preço do ${config.PRECO.rotulo}: SEM DADO até a data da análise.`;
   const publicado = diaDaPublicacao(preco.publicadoEm);
-  const linhas = [
-    `Série: ${preco.nome}, ${preco.unidade} | Fonte: ${preco.fonte}`,
+  const linhas = [`Série: ${preco.nome}, ${preco.unidade} | Fonte: ${preco.fonte}`];
+  // Futuro (o GLD do ouro): o contrato do preço, o vencimento mais próximo negociado (centro-decisao.service.js::lerFuturo).
+  if (preco.contrato) {
+    linhas.push(`Contrato: ${preco.contrato.rotulo}, o vencimento mais próximo negociado até a data`);
+  }
+  linhas.push(
     `Último preço: US$ ${fmtNumero(preco.valor)} em ${fmtData(preco.dataReferencia)} | publicado em ${fmtData(publicado)}` +
       `${preco.publicadoEmEstimado ? " (data estimada)" : ""} | ${preco.diasSemDado} dia(s) antes da data da análise` +
-      `${preco.defasada ? " | DEFASADO: passou da tolerância da série" : ""}`,
+      `${preco.defasada ? " | DEFASADO: passou da tolerância da série" : ""}`
+  );
+  if (config.PRECO.emReais) linhas.push(linhaEmReais(preco, ptax));
+  linhas.push(
     // Os horizontes contam da data da análise (config.REFERENCIA_HORIZONTES, ADR 0052): o intervalo entre o último
     // preço e ela é dito como desconhecido, para a IA não o estimar.
     `Os horizontes da tabela 2.4 contam a partir de ${fmtData(dataAnalise)}, a data da análise.` +
       (preco.dataReferencia < dataAnalise
         ? ` O preço depois de ${fmtData(preco.dataReferencia)} até ${fmtData(dataAnalise)} NÃO está na BASE: é desconhecido.`
         : ""),
-    "Aviso: a EIA publica os preços diários uma vez por semana; o último preço pode não refletir fatos posteriores a ele."
-  ];
+    ...config.PRECO.avisos
+  );
   const variacoes = config.HORIZONTES.map(({ variacao, dias }) => {
     const v = preco.variacoes[variacao];
     const rotulo = dias === 1 ? "1 dia (pregão anterior)" : `${dias} dias`;
@@ -69,7 +98,10 @@ function blocoPreco(preco, dataAnalise) {
         `US$ ${fmtNumero(maximo.valor)} (${fmtData(maximo.data)})`
     );
     const ultimos = pontos.slice(-config.PRECO.pregoesNoHistorico).reverse();
-    linhas.push(`Últimos ${ultimos.length} pregões (data: US$/barril): ${ultimos.map((p) => `${fmtData(p.data)}: ${fmtNumero(p.valor)}`).join("; ")}`);
+    linhas.push(
+      `Últimos ${ultimos.length} pregões (data: ${config.PRECO.unidadeHistorico}): ` +
+        ultimos.map((p) => `${fmtData(p.data)}: ${fmtNumero(p.valor)}`).join("; ")
+    );
   }
   return linhas.join("\n");
 }
@@ -77,11 +109,9 @@ function blocoPreco(preco, dataAnalise) {
 // --- 2.2 Curva futura ----------------------------------------------------------------------------------------------
 
 // Sem fonte (CURVA.fonte null), o prompt diz SEM DADO. Quando houver, a curva entra aqui como vencimento -> preço, sem
-// leitura do formato.
-function blocoCurva(curva) {
-  if (!curva) {
-    return "SEM DADO: não há fonte da curva futura do WTI na base (o futuro é pago; a EIA deixou de publicar os vencimentos da NYMEX em 2024).";
-  }
+// leitura do formato. Num ativo sem curva no prompt (CURVA.aplica false, o ouro), o bloco não existe.
+function blocoCurva(curva, config) {
+  if (!curva) return config.CURVA.semDado;
   return [
     ...curva.vencimentos.map((v) => `${v.vencimento}: US$ ${fmtNumero(v.preco)}`),
     `Fonte: ${curva.fonte} | referência: ${fmtData(curva.dataReferencia)}`
@@ -114,17 +144,22 @@ function situacaoDoFator(fator, dataAnalise) {
   };
 }
 
+// Um fator de CONTEXTO (metodologia-base.js, `contextoDe`) diz de qual fator é contexto: não tem leitura própria.
 function blocoCobertura(fatores, dataAnalise) {
   return fatores
-    .map((f, i) => `${i + 1}. ${f.codigo} — ${f.nome} (peso ${f.peso}) | ${situacaoDoFator(f, dataAnalise).texto}`)
+    .map(
+      (f, i) =>
+        `${i + 1}. ${f.codigo} — ${f.nome} (peso ${f.peso})` +
+        `${f.contextoDe ? ` | CONTEXTO de ${f.contextoDe}, sem leitura própria` : ""} | ${situacaoDoFator(f, dataAnalise).texto}`
+    )
     .join("\n");
 }
 
 // --- 2.4 Horizontes e faixas ---------------------------------------------------------------------------------------
 
-function blocoFaixas() {
+function blocoFaixas(config) {
   const linhas = [
-    "Variação do WTI à vista entre a data da análise e o fim de cada horizonte (o preço de cada data é o do último pregão até ela).",
+    `Variação do ${config.PRECO.descricaoFaixas} entre a data da análise e o fim de cada horizonte (o preço de cada data é o do último pregão até ela).`,
     "Faixas: LATERAL (de -T1 a +T1, sem os extremos) | ALTA_LEVE (de +T1 a +T2) | ALTA_FORTE (+T2 ou mais) |",
     "        BAIXA_LEVE (de -T2 a -T1) | BAIXA_FORTE (-T2 ou menos)"
   ];
@@ -137,18 +172,28 @@ function blocoFaixas() {
 
 // --- Montagem ------------------------------------------------------------------------------------------------------
 
+// A leitura do motor de um fator calculado, como foi ao prompt. Um fator de CONTEXTO não leva pressão nem intensidade
+// (o texto dele também não, factors/base/texto-prompt.js): só o papel e a tendência.
+function leituraDoFator(f) {
+  if (!f.decisao) return null;
+  if (f.contextoDe) return { papel: "CONTEXTO", contextoDe: f.contextoDe, tendencia: f.decisao.tendencia };
+  return { pressao: f.decisao.direcao, intensidade: f.decisao.intensidade, tendencia: f.decisao.tendencia };
+}
+
 // O que entrou no prompt, estruturado: para guardar com a resposta da IA e reconstituir a entrada (ADR 0010).
-function entradaEstruturada({ simulacao, preco, dataAnalise }) {
+function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config }) {
   return {
     precoReferencia: preco.disponivel
       ? {
           serie: config.PRECO.serie,
+          ...(preco.contrato ? { contrato: preco.contrato } : {}),
           dataReferencia: preco.dataReferencia,
           valor: preco.valor,
           publicadoEm: preco.publicadoEm,
           publicadoEmEstimado: preco.publicadoEmEstimado,
           defasado: preco.defasada,
-          variacoes: preco.variacoes
+          variacoes: preco.variacoes,
+          ...(config.PRECO.emReais ? { ptax } : {})
         }
       : null,
     curva: null,
@@ -160,6 +205,7 @@ function entradaEstruturada({ simulacao, preco, dataAnalise }) {
       peso: f.peso,
       tipoFel1: f.tipoFel1,
       situacaoRegra: f.situacaoRegra,
+      ...(f.contextoDe ? { contextoDe: f.contextoDe } : {}),
       ...situacaoDoFator(f, dataAnalise),
       ...(f.tipo === "CALCULADO"
         ? {
@@ -170,7 +216,7 @@ function entradaEstruturada({ simulacao, preco, dataAnalise }) {
             dataReferencia: f.observedAt,
             publicadoEm: f.publicadoEm,
             medida: f.medida,
-            leitura: f.decisao ? { pressao: f.decisao.direcao, intensidade: f.decisao.intensidade, tendencia: f.decisao.tendencia } : null
+            leitura: leituraDoFator(f)
           }
         : { janelaDias: f.janelaDias, eventos: f.eventos, ultimaLeitura: f.ultimaLeitura })
     }))
@@ -178,10 +224,10 @@ function entradaEstruturada({ simulacao, preco, dataAnalise }) {
 }
 
 // GET /ativos/:ativo/metodologia/prompt-diario?data= : o prompt da data (hoje, sem `data`), com o que se sabia até o
-// fim dela.
+// fim dela. Ativo sem leitura diária: 404.
 async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
   const codigo = String(ativo || "").trim().toUpperCase();
-  if (!metodologiaAtivoService.ATIVOS_COM_PROMPT_DIARIO.includes(codigo)) throw new NotFoundError("Não há prompt diário para este ativo.");
+  const config = configuracaoDoAtivo(codigo);
   const agora = deps.agora || new Date();
   const dataAnalise = data || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
 
@@ -192,15 +238,16 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     metodologia.simularFatores(codigo, { data: dataAnalise }, deps),
     centro.lerPreco(serie, { data: dataAnalise, agora }, deps)
   ]);
+  const ptax = config.PRECO.emReais && preco.disponivel ? await lerPtax(preco.dataReferencia, deps) : null;
 
-  const carregado = carregarPrompt(ARQUIVO_PROMPT, {
+  const carregado = carregarPrompt(config.ARQUIVO_PROMPT, {
     data_analise: fmtData(dataAnalise),
     versao_metodologia: simulacao.versaoMetodologia,
-    versao_configuracao: `analise-diaria-petroleo v${config.VERSAO}`,
-    bloco_preco: blocoPreco(preco, dataAnalise),
-    bloco_curva: blocoCurva(null),
+    versao_configuracao: `${config.NOME} v${config.VERSAO}`,
+    bloco_preco: blocoPreco(preco, dataAnalise, config, ptax),
+    ...(config.CURVA.aplica ? { bloco_curva: blocoCurva(null, config) } : {}),
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
-    bloco_faixas: blocoFaixas(),
+    bloco_faixas: blocoFaixas(config),
     blocos_fatores: simulacao.fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt).join("\n\n")
   });
 
@@ -215,9 +262,9 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
       hashEntrada,
       instrucaoDoSistema: carregado.instrucaoDoSistema,
       prompt: carregado.prompt,
-      entrada: entradaEstruturada({ simulacao, preco, dataAnalise })
+      entrada: entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config })
     }
   };
 }
 
-module.exports = { montarPromptDiario, blocoPreco, blocoCurva, blocoCobertura, blocoFaixas, situacaoDoFator };
+module.exports = { montarPromptDiario, blocoPreco, blocoCurva, blocoCobertura, blocoFaixas, situacaoDoFator, lerPtax };

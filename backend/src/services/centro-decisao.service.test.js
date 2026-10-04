@@ -41,6 +41,9 @@ function repoCom(linhas, contratos = []) {
   };
 }
 
+// Nenhuma leitura de tendência gravada: o ouro (o 1º ativo, ADR 0054) e o petróleo têm leitura diária e consultariam o banco.
+const SEM_ANALISE = { buscarAnaliseDoDia: async () => null };
+
 function geopoliticaFalsa() {
   const chamadas = [];
   return {
@@ -74,7 +77,7 @@ test("sem filtros: 1º ativo, hoje em São Paulo e a 1ª série; preço como era
     [linha("B3.GLD.GLDZ26.SETTLE", "2026-09-30", 3800), linha("B3.GLD.GLDZ26.SETTLE", "2026-10-01", 3838)],
     ["GLDZ26", "GLDG27"]
   );
-  const { centroDecisao } = await obterCentroDecisao({}, { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa() });
+  const { centroDecisao } = await obterCentroDecisao({}, { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa(), analiseDiariaRepository: SEM_ANALISE });
 
   assert.equal(centroDecisao.data, "2026-10-02");
   assert.equal(centroDecisao.ativo.codigo, "OURO");
@@ -104,7 +107,7 @@ test("futuro: o vencimento mais próximo que negociou no último pregão até a 
   );
   const { centroDecisao } = await obterCentroDecisao(
     { ativo: "OURO", data: "2026-09-30" },
-    { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa() }
+    { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa(), analiseDiariaRepository: SEM_ANALISE }
   );
 
   assert.equal(centroDecisao.preco.contrato.ticker, "GLDZ26");
@@ -134,7 +137,7 @@ test("série sem dado até a data: disponivel false, sem inventar valor", async 
   const repo = repoCom([], ["GLDZ26"]);
   const { centroDecisao } = await obterCentroDecisao(
     { ativo: "OURO", data: "2025-01-10" },
-    { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa() }
+    { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa(), analiseDiariaRepository: SEM_ANALISE }
   );
   assert.equal(centroDecisao.preco.disponivel, false);
   assert.equal(centroDecisao.preco.valor, undefined);
@@ -144,7 +147,7 @@ test("série encerrada: o último valor aparece com o aviso de defasagem e a dat
   const repo = repoCom([linha("LBMA.GOLD_PM.USD", "2026-09-30", 3810)]);
   const { centroDecisao } = await obterCentroDecisao(
     { ativo: "OURO", serie: "LBMA", data: "2026-10-02" },
-    { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa() }
+    { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa(), analiseDiariaRepository: SEM_ANALISE }
   );
   assert.equal(centroDecisao.preco.encerradaEm, "2026-10-01");
   assert.equal(centroDecisao.preco.valor, 3810);
@@ -172,7 +175,7 @@ test("eventos: os aceitos da semana que termina na data, do ativo escolhido", as
   );
 });
 
-test("leitura de tendência da IA (ADR 0052): só no petróleo, a da data escolhida", async () => {
+test("leitura de tendência da IA (ADRs 0052 e 0054): no petróleo e no ouro, a da data escolhida", async () => {
   const pedidas = [];
   const analiseDiariaRepository = {
     buscarAnaliseDoDia: async (ativo, data) => {
@@ -212,14 +215,16 @@ test("leitura de tendência da IA (ADR 0052): só no petróleo, a da data escolh
   const { centroDecisao: semLeitura } = await obterCentroDecisao({ ativo: "PETROLEO", data: "2026-10-01" }, deps);
   assert.deepEqual(semLeitura.analise, { disponivel: false, data: "2026-10-01" });
 
-  // Ativo sem leitura diária: null, e o repositório nem é consultado.
-  const { centroDecisao: ouro } = await obterCentroDecisao({ ativo: "OURO", data: "2026-10-02" }, deps);
-  assert.equal(ouro.analise, null);
-  assert.deepEqual(pedidas, [["PETROLEO", "2026-10-02"], ["PETROLEO", "2026-10-01"]]);
+  // O ouro também tem leitura diária (ADR 0054); o milho não: null, e o repositório nem é consultado.
+  const { centroDecisao: ouro } = await obterCentroDecisao({ ativo: "OURO", data: "2026-10-01" }, deps);
+  assert.deepEqual(ouro.analise, { disponivel: false, data: "2026-10-01" });
+  const { centroDecisao: milho } = await obterCentroDecisao({ ativo: "MILHO", data: "2026-10-02" }, deps);
+  assert.equal(milho.analise, null);
+  assert.deepEqual(pedidas, [["PETROLEO", "2026-10-02"], ["PETROLEO", "2026-10-01"], ["OURO", "2026-10-01"]]);
 });
 
 test("filtros inválidos: ativo, série e data futura", async () => {
-  const deps = { agora: AGORA, observationRepository: repoCom([]), geopoliticaService: geopoliticaFalsa() };
+  const deps = { agora: AGORA, observationRepository: repoCom([]), geopoliticaService: geopoliticaFalsa(), analiseDiariaRepository: SEM_ANALISE };
   await assert.rejects(obterCentroDecisao({ ativo: "SOJA" }, deps), /ativo/);
   await assert.rejects(obterCentroDecisao({ ativo: "OURO", serie: "WTI" }, deps), /serie/);
   await assert.rejects(obterCentroDecisao({ data: "2026-10-03" }, deps), /futura/);

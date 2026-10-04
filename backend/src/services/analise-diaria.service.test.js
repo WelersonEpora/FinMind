@@ -41,7 +41,7 @@ const REGISTRO = {
         parametros: { limiarModeradoPct: 0.5 }
       },
       { fator: "PETROLEO_OFERTA_NAO_OPEP", tipo: "CALCULADO", peso: "Médio", situacao: "SEM_DADO" },
-      { fator: "PETROLEO_GEOPOLITICA", tipo: "EVENTO", peso: "Alto", situacao: "COM_LEITURA", janelaDias: 30, eventos: 2, ultimaLeitura: { data: "2026-10-02", nivel: "RELEVANTE" } },
+      { fator: "PETROLEO_GEOPOLITICA", tipo: "EVENTO", peso: "Alto", situacao: "COM_LEITURA", janelaDias: 7, eventos: 2, ultimaLeitura: { data: "2026-10-02", nivel: "RELEVANTE" } },
       { fator: "PETROLEO_OPEP", tipo: "EVENTO", peso: "Alto", situacao: "SEM_LEITURA", janelaDias: 45, eventos: 0, ultimaLeitura: null }
     ]
   },
@@ -105,6 +105,35 @@ test("o prompt e a resposta saem só sob demanda, como foram gravados; sem leitu
   assert.equal("respostaBruta" in resumo, false);
 
   await assert.rejects(obterPromptEnviado({ ativo: "PETROLEO", data: "2026-10-01" }, { analiseDiariaRepository: repo(null) }), /Não há leitura/);
-  await assert.rejects(obterPromptEnviado({ ativo: "OURO", data: "2026-10-03" }, { analiseDiariaRepository: repo(REGISTRO) }), /ativo/);
+  await assert.rejects(obterPromptEnviado({ ativo: "MILHO", data: "2026-10-03" }, { analiseDiariaRepository: repo(REGISTRO) }), /ativo/);
   await assert.rejects(obterPromptEnviado({ ativo: "PETROLEO", data: "03/10/2026" }, { analiseDiariaRepository: repo(REGISTRO) }), /AAAA-MM-DD/);
+});
+
+test("ouro (ADR 0054): sem curva no prompt, a falta dela não é lacuna; o contrato do GLD, a PTAX e o fator de contexto vão às evidências", async () => {
+  const registroOuro = {
+    ...REGISTRO,
+    ativo: "OURO",
+    entrada: {
+      precoReferencia: {
+        serie: "GLD",
+        contrato: { ticker: "GLDZ26", rotulo: "dez/2026" },
+        dataReferencia: "2026-10-02",
+        valor: 4177.5,
+        ptax: { data: "2026-10-02", valor: 5.4 },
+        variacoes: { d1: { percentual: -1.03, desde: "2026-10-01" } }
+      },
+      curva: null,
+      referenciaHorizontes: "DATA_DA_ANALISE",
+      horizontes: [{ codigo: "IMEDIATO", dias: 1, t1: 0.4, t2: 1.2 }],
+      fatores: [
+        { fator: "OURO_INFLACAO", tipo: "CALCULADO", peso: "Alto", contextoDe: "OURO_JUROS_REAIS", situacao: "PUBLICADO", leitura: { papel: "CONTEXTO", contextoDe: "OURO_JUROS_REAIS", tendencia: "SUBINDO" } }
+      ]
+    }
+  };
+  const analise = await obterAnaliseDoDia("OURO", "2026-10-03", { analiseDiariaRepository: repo(registroOuro) });
+  assert.deepEqual(analise.evidencias.lacunas, []);
+  assert.equal(analise.evidencias.preco.contrato.ticker, "GLDZ26");
+  assert.equal(analise.evidencias.preco.ptax.valor, 5.4);
+  assert.equal(analise.evidencias.fatores[0].contextoDe, "OURO_JUROS_REAIS");
+  assert.equal(analise.horizontes[0].t1, 0.4);
 });

@@ -313,7 +313,13 @@ onMounted(carregar)
           </template>
           <template v-if="execucaoDetalhe.detalhes.ia.respostasRecusadas">
             <dt class="col-5 fw-normal">Respostas recusadas na validação</dt>
-            <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.respostasRecusadas }}</dd>
+            <dd class="col-7">
+              {{ execucaoDetalhe.detalhes.ia.respostasRecusadas }}
+              <!-- Os motivos da resposta recusada que foi trocada por uma nova chamada (leitura de tendência, ADR 0054). -->
+              <ul v-if="execucaoDetalhe.detalhes.ia.motivosRecusa?.length" class="small mb-0 ps-3">
+                <li v-for="motivo in execucaoDetalhe.detalhes.ia.motivosRecusa" :key="motivo">{{ motivo }}</li>
+              </ul>
+            </dd>
           </template>
           <!-- Quais fontes autorizadas a pesquisa leu (ADR 0049): é por aqui que se vê se a lista está grande demais. -->
           <!-- Chamada repetida porque um ativo veio NORMAL sem o mínimo de pesquisa (ADR 0049, item 14). -->

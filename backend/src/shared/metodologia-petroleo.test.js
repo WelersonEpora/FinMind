@@ -317,7 +317,7 @@ test("OPEP+ e geopolítica saem como fatores de evento, sem cálculo; os demais 
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
   assert.deepEqual(
     metodologia.fatores.filter((fator) => fator.deEvento).map((fator) => [fator.codigo, fator.evento.janelaDias]),
-    [["PETROLEO_OPEP", 45], ["PETROLEO_GEOPOLITICA", 30]]
+    [["PETROLEO_OPEP", 45], ["PETROLEO_GEOPOLITICA", 7]]
   );
   for (const fator of metodologia.fatores.filter((item) => item.deEvento)) assert.equal(fator.calculado, false);
 });

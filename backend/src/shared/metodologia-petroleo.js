@@ -87,7 +87,7 @@ const DEFINICOES = [
       mecanismo: "Conflitos ameaçam rotas e produção",
       fonte: "EIA, IEA"
     },
-    evento: { janelaDias: 30 },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: [],
       eventos: true,
@@ -98,18 +98,18 @@ const DEFINICOES = [
       },
       lacunas: [
         "A régua dos níveis da leitura diária (o que é \"fora do normal\") é provisória (ADRs 0047 e 0049).",
-        "A leitura registra o fato novo das últimas 24 a 48 horas: uma situação crônica (uma guerra em curso, uma sanção antiga) só volta a aparecer quando algo muda. A janela de 30 dias guarda os fatos recentes, não o que é crônico.",
+        "A leitura registra o fato novo das últimas 24 a 48 horas: uma situação crônica (uma guerra em curso, uma sanção antiga) só volta a aparecer quando algo muda. A janela de 7 dias guarda os fatos recentes, não o que é crônico.",
         "A data do evento é a da leitura que o registrou; o evento não diz até quando vale."
       ]
     },
     proposta: {
       objetivo: "Levar à análise o risco de interrupção da oferta ou das rotas por conflito, sanção ou ataque, com os fatos recentes que seguem pesando.",
-      medida: "Fator de evento, sem cálculo: os eventos aceitos da leitura diária marcados com este fator nos últimos 30 dias, cada um com a data da leitura que o registrou e a idade, o tipo, o resumo (com a data do fato, quando a fonte a dá), o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte autorizada, mais o nível e o resumo do petróleo na leitura mais recente.",
+      medida: "Fator de evento, sem cálculo: os eventos aceitos da leitura diária marcados com este fator nos últimos 7 dias, cada um com a data da leitura que o registrou e a idade, o tipo, o resumo (com a data do fato, quando a fonte a dá), o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte autorizada, mais o nível e o resumo do petróleo na leitura mais recente.",
       comparacao: "Sem comparação numérica: a idade de cada evento e o nível da leitura mais recente (NORMAL a EXCEPCIONAL, escala provisória).",
       leitura: "Fica com a IA do ativo, com os outros fatores: interrupção material (rota fechada, produção parada) pressiona para cima; ameaça sem efeito material é só atenção (a direção indicada pelo especialista)."
     },
     perguntas: [
-      "A janela de 30 dias basta, ou a leitura diária deve registrar os riscos em curso e a vigência de cada fato (exige mudar o prompt)?",
+      "A leitura diária deve registrar a vigência de cada fato (exige mudar o prompt)?",
       "Uma ameaça sem efeito material conta, ou só a interrupção que já aconteceu?",
       "Vale o evento mais grave do dia ou a quantidade de eventos?",
       "A geopolítica é um fator próprio ou um modificador dos fatores de oferta (OPEP+, oferta não-OPEP)?"

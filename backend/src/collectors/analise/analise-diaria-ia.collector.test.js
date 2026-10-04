@@ -2,7 +2,9 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const collector = require("./analise-diaria-ia.collector");
+const { criarColetorAnaliseDiaria, COLETORES_ANALISE_DIARIA } = require("./analise-diaria-ia.collector");
+
+const collector = criarColetorAnaliseDiaria("PETROLEO");
 
 const PROMPT_DIARIO = {
   ativo: "PETROLEO",
@@ -83,6 +85,7 @@ test("envia o prompt diário do petróleo da data, sem busca, e grava as quatro 
     modelo: "gemini-x",
     tokens: 1000,
     respostasRecusadas: 0,
+    motivosRecusa: [],
     versaoPrompt: "petroleo-analise-diaria@1",
     versaoMetodologia: "petroleo-v1 (2026-10-02)",
     hashEntrada: PROMPT_DIARIO.hashEntrada
@@ -131,4 +134,42 @@ test("recusada duas vezes: nada é gravado e os motivos vão para a execução",
   assert.ok(invalidos.length > 0);
   assert.ok(invalidos.every((i) => /PETROLEO_GUIANA/.test(i.motivo)));
   assert.equal(detalhes.ia.modelo, "gemini-x");
+});
+
+test("um coletor por ativo com leitura diária: petróleo e ouro, com o código de cada um", () => {
+  assert.deepEqual(
+    COLETORES_ANALISE_DIARIA.map((c) => [c.ATIVO, c.codigo]),
+    [
+      ["PETROLEO", "petroleo-analise-ia-diario"],
+      ["OURO", "ouro-analise-ia-diario"]
+    ]
+  );
+  assert.throws(() => criarColetorAnaliseDiaria("MILHO"), /Não há prompt diário/);
+});
+
+test("ouro: recusa a inflação (fator de contexto) como voto a favor e chama de novo", async () => {
+  const ouro = criarColetorAnaliseDiaria("OURO");
+  const promptOuro = {
+    ...PROMPT_DIARIO,
+    ativo: "OURO",
+    entrada: { horizontes: [], fatores: [{ fator: "OURO_JUROS_REAIS" }, { fator: "OURO_INFLACAO", contextoDe: "OURO_JUROS_REAIS" }] }
+  };
+  const leituraOuro = (h, fator) => ({ ...leitura(h), fatoresAFavor: [{ fator, argumento: "...", evidencias: [] }], evidencias: [] });
+  const comVoto = JSON.stringify({ leituras: ["IMEDIATO", "CURTO", "MEDIO", "LONGO"].map((h) => leituraOuro(h, "OURO_INFLACAO")) });
+  const semVoto = JSON.stringify({ leituras: ["IMEDIATO", "CURTO", "MEDIO", "LONGO"].map((h) => leituraOuro(h, "OURO_JUROS_REAIS")) });
+  const { deps, provedor, montados } = depsCom({ textos: [comVoto, semVoto] });
+  deps.promptDiarioService = {
+    montarPromptDiario: async (ativo, opcoes) => {
+      montados.push([ativo, opcoes.data]);
+      return { promptDiario: promptOuro };
+    }
+  };
+  const baixado = await ouro.download({}, deps);
+  assert.deepEqual(montados, [["OURO", "2026-10-03"]]);
+  assert.equal(provedor.chamadas.length, 2);
+  assert.equal(baixado.recusadas, 1);
+  const { validos, detalhes } = ouro.normalize(ouro.parse(baixado));
+  assert.ok(detalhes.ia.motivosRecusa.every((m) => /OURO_INFLACAO.*fator de contexto/.test(m)));
+  assert.equal(detalhes.ia.motivosRecusa.length, 4);
+  assert.equal(validos[0].analise.ativo, "OURO");
 });

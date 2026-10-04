@@ -23,7 +23,8 @@ test("os 8 fatores do ouro do FEL 1, na ordem da planilha, todos como proposta",
   );
   for (const fator of fatores) {
     assert.equal(fator.proposta.situacao, SITUACAO.PROPOSTA, fator.codigo);
-    assert.ok(fator.perguntas.length > 0, fator.codigo);
+    // Cada fator tem o que falta decidir ou o que o David já decidiu (ADR 0054).
+    assert.ok(fator.perguntas.length + fator.decisoes.length > 0, fator.codigo);
     assert.ok(fator.dados.avaliacao?.texto, fator.codigo);
   }
 });
@@ -34,9 +35,10 @@ test("todo observável citado existe no catálogo", () => {
   }
 });
 
-test("a geopolítica é o fator de evento; os outros sete são calculados; o ouro ainda não tem prompt diário", () => {
+test("a geopolítica é o fator de evento (janela de 7 dias); os outros sete são calculados; o ouro tem prompt diário (ADR 0054)", () => {
   const { metodologia } = obterMetodologiaAtivo("OURO");
-  assert.equal(metodologia.promptDiario, false);
+  assert.equal(metodologia.promptDiario, true);
+  assert.equal(metodologia.fatores.find((f) => f.codigo === "OURO_GEOPOLITICA").evento.janelaDias, 7);
   assert.equal(obterMetodologiaAtivo("PETROLEO").metodologia.promptDiario, true);
   assert.deepEqual(
     metodologia.fatores.filter((f) => f.deEvento).map((f) => f.codigo),
@@ -46,4 +48,16 @@ test("a geopolítica é o fator de evento; os outros sete são calculados; o our
     metodologia.fatores.filter((f) => !f.calculado && !f.deEvento).map((f) => f.codigo),
     []
   );
+});
+
+test("decisões do David (ADR 0054): a inflação é contexto do juro real; o COT e os bancos centrais saem das perguntas", () => {
+  const { fatores, versao } = obterMetodologiaOuro();
+  const fator = (codigo) => fatores.find((f) => f.codigo === codigo);
+  assert.equal(versao, 2);
+  assert.equal(fator("OURO_INFLACAO").contextoDe, "OURO_JUROS_REAIS");
+  assert.deepEqual(fatores.filter((f) => f.contextoDe).map((f) => f.codigo), ["OURO_INFLACAO"]);
+  for (const codigo of ["OURO_FUNDOS", "OURO_BANCOS_CENTRAIS"]) {
+    assert.equal(fator(codigo).perguntas.length, 0, codigo);
+    assert.ok(fator(codigo).decisoes.every((d) => d.includes("ADR 0054")), codigo);
+  }
 });

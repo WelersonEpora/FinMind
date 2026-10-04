@@ -77,7 +77,8 @@ module.exports = {
   geopolitica: {
     refazer: process.env.GEOPOLITICA_REFAZER === "1"
   },
-  // Leitura diária de tendência do petróleo (ADR 0052): a mesma regra, uma por dia. Para trocar a de hoje:
+  // Leitura diária de tendência do petróleo e do ouro (ADRs 0052 e 0054): a mesma regra, uma por ativo e dia. Para
+  // trocar a de hoje (as duas; --coletor=ouro-analise ou --coletor=petroleo-analise para uma só):
   //   ANALISE_DIARIA_REFAZER=1 npm run collect -- --coletor=analise
   analiseDiaria: {
     refazer: process.env.ANALISE_DIARIA_REFAZER === "1"

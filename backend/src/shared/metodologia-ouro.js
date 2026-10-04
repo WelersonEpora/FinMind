@@ -7,14 +7,18 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // tabela "Fatores de Influência de Preço: Ouro", v1.1.
 //
 // A validação histórica de cada fator é contra o ouro da LBMA (PM, em US$, diário), o histórico mais longo na base; a
-// LBMA saiu em 2026-10-01 (ADR 0044), então o histórico vai até 2026-09-28. O preço de referência do dia a dia é uma
-// pergunta ao David.
+// LBMA saiu em 2026-10-01 (ADR 0044), então o histórico vai até 2026-09-28.
 //
-// Os fatores ainda não vão ao prompt diário nem ao Centro de Decisão: isso vem depois da aprovação do David, como no
-// petróleo (ADR 0052). Nada daqui gera sinal de compra ou venda.
+// Aprovação do David (2026-10-03, ADR 0054): os fatores vão ao prompt diário do ouro e a leitura de tendência da IA
+// aparece no Centro de Decisão, como no petróleo (ADR 0052). Com as decisões: o preço de referência é o futuro GLD da B3
+// (a LBMA só como histórico, shared/analise-diaria-ouro.js), a inflação vira CONTEXTO do juro real, o COT fica na
+// leitura "amplifica" e é tratado como qualificador, e os bancos centrais usam o World Gold Council contra o ritmo dos
+// 3 anos anteriores. Nada daqui gera sinal de compra ou venda.
 
-const VERSAO = 1;
-const DATA_VERSAO = "2026-10-03";
+// v1 (2026-10-03): a proposta (ADR 0053). v2 (2026-10-04): as decisões do David (ADR 0054).
+const VERSAO = 2;
+const DATA_VERSAO = "2026-10-04";
+const DECISAO_DAVID = "David, 2026-10-03 (ADR 0054)";
 
 const DEFINICOES = [
   {
@@ -109,10 +113,13 @@ const DEFINICOES = [
       objetivo: "Medir se a inflação dos EUA está acima ou abaixo do que o Fed persegue.",
       medida: "Inflação anual do CPI cheio dos EUA (sem ajuste sazonal, contra o mesmo mês do ano anterior); a do núcleo como contexto.",
       comparacao: "A meta de 2% do Fed: a distância, em p.p.",
-      leitura: "Inflação acima da meta além de uma faixa (padrão: 0,75 p.p.) favorece o ouro (pressão de alta, como o FEL 1 diz); abaixo, pressiona. Intensidade forte a partir de 2 p.p. Tendência: se a distância mudou 0,5 p.p. ou mais em 3 meses, a inflação está acelerando ou desacelerando. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
+      leitura: "Contexto do juro real (decisão do David): na análise, a inflação não tem pressão própria e não conta a favor nem contra; ela explica o movimento do juro real, por onde o efeito dela passa. A simulação da camada C continua na tela (acima da meta além de 0,75 p.p. = alta; forte a partir de 2 p.p.; tendência com 0,5 p.p. em 3 meses), só como referência para o Comitê; a tendência (acelerando ou desacelerando) vai ao prompt."
     },
+    contextoDe: "OURO_JUROS_REAIS",
+    decisoes: [
+      `A inflação deixa de ser fator próprio e vira contexto do juro real (OURO_JUROS_REAIS), porque a relação do FEL 1 não aparece no histórico e o efeito dela passa pelo juro real. ${DECISAO_DAVID}.`
+    ],
     perguntas: [
-      "Com a relação ausente no histórico (desde 1970, e negativa em 2023-2026, pelo juro real), a inflação continua um fator próprio de peso Alto, ou o efeito dela já está no juro real e ela vira contexto do fator de juros reais?",
       "A medida é a inflação realizada (CPI, a proposta) ou a esperada (a inflação implícita de 10 anos, também coletada)?",
       "Comparar com a meta de 2% do Fed serve, sendo a meta do PCE e não do CPI?"
     ]
@@ -125,7 +132,7 @@ const DEFINICOES = [
       mecanismo: "Busca por ativo seguro em momentos de tensão",
       fonte: "World Gold Council"
     },
-    evento: { janelaDias: 30 },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: [],
       eventos: true,
@@ -136,18 +143,20 @@ const DEFINICOES = [
       },
       lacunas: [
         "A régua dos níveis da leitura diária (o que é \"fora do normal\") é provisória (ADRs 0047 e 0049).",
-        "A leitura registra o fato novo das últimas 24 a 48 horas: uma crise crônica só volta a aparecer quando algo muda. A janela de 30 dias guarda os fatos recentes, não o que é crônico.",
+        "A leitura registra o fato novo das últimas 24 a 48 horas: uma crise crônica só volta a aparecer quando algo muda. A janela de 7 dias guarda os fatos recentes, não o que é crônico.",
         "O \"risco sistêmico\" do FEL 1 (uma crise bancária, por exemplo) entra só quando a IA o classifica como evento: a leitura diária foi desenhada para geopolítica e política de oferta."
       ]
     },
     proposta: {
       objetivo: "Levar à análise as crises que levam à busca pelo ouro como ativo seguro, com os fatos recentes que seguem pesando.",
-      medida: "Fator de evento, sem cálculo: os eventos aceitos da leitura diária marcados com este fator nos últimos 30 dias, cada um com a data da leitura que o registrou e a idade, o tipo, o resumo, o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte autorizada, mais o nível e o resumo do ouro na leitura mais recente. O mesmo tratamento da geopolítica do petróleo.",
+      medida: "Fator de evento, sem cálculo: os eventos aceitos da leitura diária marcados com este fator nos últimos 7 dias, cada um com a data da leitura que o registrou e a idade, o tipo, o resumo, o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte autorizada, mais o nível e o resumo do ouro na leitura mais recente. O mesmo tratamento da geopolítica do petróleo.",
       comparacao: "Sem comparação numérica: a idade de cada evento e o nível da leitura mais recente (NORMAL a EXCEPCIONAL, escala provisória).",
       leitura: "Fica com a IA do ativo, com os outros fatores: crise que aumenta a incerteza favorece o ouro (a direção indicada pelo especialista)."
     },
+    decisoes: [
+      `A janela é de 7 dias, como na geopolítica do petróleo: eventos em dias seguidos costumam ser desdobramentos do mesmo fato, não acúmulo independente. Welerson, 2026-10-04, o mesmo ajuste do petróleo (ADRs 0050 e 0054).`
+    ],
     perguntas: [
-      "A janela de 30 dias basta, como no petróleo?",
       "O risco sistêmico (crise bancária, de dívida) deve ser um tipo de evento próprio na leitura diária (exige mudar o prompt)?"
     ]
   },
@@ -182,10 +191,11 @@ const DEFINICOES = [
       comparacao: "A média das compras de 4 trimestres nos 3 anos anteriores (12 trimestres): o desvio, em toneladas.",
       leitura: "Compras acima do ritmo dos 3 anos anteriores além de uma faixa (padrão: 100 t) favorecem o ouro (pressão de alta); abaixo dele, pressionam. Intensidade forte a partir de 300 t. Tendência: se o desvio mudou 100 t ou mais em 2 trimestres, as compras estão acelerando ou desacelerando. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: [
-      "A medida é a estimativa do World Gold Council, com as não declaradas (a proposta, a única com relação para frente no histórico), ou só o declarado ao FMI (oficial, mensal, mas sem relação com o preço)?",
-      "O fator compara as compras com o ritmo dos 3 anos anteriores (a proposta: com as compras altas desde 2022, comprar 800 t por ano hoje lê como pressão de baixa) ou com zero (comprando ou vendendo)?"
-    ]
+    decisoes: [
+      `A medida é a estimativa do World Gold Council, com as não declaradas (a única com relação para frente no histórico); o declarado ao FMI fica como contexto. ${DECISAO_DAVID}.`,
+      `O fator compara as compras com o ritmo dos 3 anos anteriores, não com zero. O prompt diz as duas coisas: compras historicamente altas abaixo do ritmo recorde são desaceleração, não venda. ${DECISAO_DAVID}.`
+    ],
+    perguntas: []
   },
   {
     codigo: "OURO_ETFS",
@@ -249,10 +259,11 @@ const DEFINICOES = [
       comparacao: "O percentil da posição entre as das 156 semanas anteriores, menos 50: a posição relativa, de -50 a +50.",
       leitura: "Pela direção do FEL 1 (amplifica), ao contrário do petróleo: fundos muito comprados além de uma faixa (padrão: 30 pontos, acima do percentil 80) favorecem o ouro (pressão de alta); muito vendidos, pressionam. Intensidade forte a partir de 40 pontos (acima do percentil 90). Tendência: se a posição relativa mudou 15 pontos ou mais em 4 semanas, os fundos estão comprando ou vendendo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: [
-      "A leitura no ouro é a do FEL 1 (amplifica: fundos comprados = alta), a proposta, ou a de reversão do petróleo? O histórico favorece a primeira, mas muda de regime.",
-      "O COT é um fator próprio ou só qualifica a leitura dos outros (confirma, excesso, risco de reversão), como o prompt do petróleo o trata?"
-    ]
+    decisoes: [
+      `A leitura é a do FEL 1 (amplifica: fundos comprados = alta), a que o histórico favorece. ${DECISAO_DAVID}.`,
+      `O COT qualifica a leitura dos outros fatores (confirma, excesso, risco de reversão, enfraquece), como no petróleo: não é um voto de alta ou de baixa. ${DECISAO_DAVID}.`
+    ],
+    perguntas: []
   },
   {
     codigo: "OURO_MINERACAO",

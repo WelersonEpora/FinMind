@@ -169,7 +169,9 @@ Centro de Decisão nem a IA e não gera sinal.
     com pouco tratamento. A produção da OPEP+ não serve: o JODI perdeu os Emirados e o Irã (2018), a Rússia (2023) e
     o Iraque (2024), e as cotas não são coletadas. **Sem mudar o prompt**, o fator lê os eventos de outro jeito: os
     aceitos marcados com ele (`PETROLEO_OPEP`, `PETROLEO_GEOPOLITICA`) numa **janela de dias** (45 na OPEP+, cujos
-    oito países dos cortes voluntários se reúnem todo mês; 30 na geopolítica), e não só os do dia. A janela é a memória
+    oito países dos cortes voluntários se reúnem todo mês; 7 na geopolítica — ajustado de 30 para 7 em 2026-10-04, David:
+    eventos geopolíticos recorrentes em dias consecutivos são desdobramentos do mesmo fato, não acúmulo independente),
+    e não só os do dia. A janela é a memória
     do que segue valendo (a decisão do mês passado), porque a leitura diária só registra o fato novo das 24 a 48
     horas e o evento não diz até quando vale. Cada evento vai com a data da leitura que o registrou e a idade em dias
     (a data exata do fato, quando a fonte a dá, está no resumo), o tipo, o canal, a pressão (leitura da IA), a
