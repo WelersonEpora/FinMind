@@ -31,8 +31,8 @@ const ATIVOS = [
     codigo: "PETROLEO",
     nome: "Petróleo",
     series: [
-      { codigo: "WTI", nome: "WTI à vista (EIA)", observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.WTI" },
-      { codigo: "BRENT", nome: "Brent à vista (EIA)", observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.BRENT" }
+      { codigo: "BRENT", nome: "Brent à vista (EIA)", observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.BRENT" },
+      { codigo: "WTI", nome: "WTI à vista (EIA)", observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.WTI" }
     ]
   },
   {

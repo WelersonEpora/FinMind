@@ -120,7 +120,7 @@ test("futuro: o vencimento mais próximo que negociou no último pregão até a 
 });
 
 test("data passada: o que foi publicado depois não aparece (point-in-time)", async () => {
-  const repo = repoCom([linha("EIA.PETROLEO_PRECOS.WTI", "2026-09-22", 70), { ...linha("EIA.PETROLEO_PRECOS.WTI", "2026-09-23", 71), published_at: new Date("2026-09-30T15:00:00Z") }]);
+  const repo = repoCom([linha("EIA.PETROLEO_PRECOS.BRENT", "2026-09-22", 70), { ...linha("EIA.PETROLEO_PRECOS.BRENT", "2026-09-23", 71), published_at: new Date("2026-09-30T15:00:00Z") }]);
   const { centroDecisao } = await obterCentroDecisao(
     { ativo: "PETROLEO", data: "2026-09-25" },
     { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa(), analiseDiariaRepository: { buscarAnaliseDoDia: async () => null } }

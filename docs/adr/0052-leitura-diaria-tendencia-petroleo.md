@@ -90,3 +90,41 @@ escrito.
 3. Cada leitura guarda a referência na entrada (`referenciaHorizontes`), e a tela mostra a de cada leitura como foi
    gravada: a de 2026-10-03, feita com a v1, continua dizendo que conta de 29/09 até ser refeita
    (`ANALISE_DIARIA_REFAZER=1`).
+
+## Adendo (2026-10-04): o preço de referência passa do WTI ao Brent
+
+**Contexto.** Nas respostas por escrito ao FEL 1 (ADR 0055, P2), o David fixou a regra: o preço de referência é o do
+**instrumento operado**, porque é contra ele que o resultado é medido. Na P3, ele cita a Pepperstone para "ouro e
+Brent". O usuário (Welerson) confirmou com o David em 2026-10-04 que o petróleo operado é o **Brent** e autorizou a
+troca. A leitura usava o WTI desde o ADR 0051.
+
+**Decisão.**
+
+1. **Preço de referência: o Brent à vista da EIA** (`EIA.PETROLEO_PRECOS.BRENT`, desde 1987-05-20, coletado desde o ADR
+   0040). Não é fonte nova. A defasagem é a mesma do WTI: a EIA publica os preços diários uma vez por semana.
+   Configuração v3 (`shared/analise-diaria-petroleo.js`: série, rótulos e o texto da curva).
+2. **Faixas recalibradas no Brent**, pelo mesmo critério do ADR 0051: percentis 40 e 80 da variação absoluta de 2010 a
+   2026-09-29 (banco de dev), com a regra de variação do Centro de Decisão.
+
+   | Horizonte | Brent (percentis 40 e 80) | Faixa (T1 e T2) | Antes, no WTI |
+   |---|---|---|---|
+   | 1 dia | 0,87% / 2,47% | 1% / 2,5% | igual |
+   | 7 dias | 2,10% / 5,75% | 2% / 6% | igual |
+   | 30 dias | 4,81% / 12,32% | 5% / 12% | igual |
+   | 90 dias | 7,16% / 20,83% | **7% / 21%** | 8% / 20% |
+
+   O mesmo cálculo no WTI reproduziu as faixas da v2 (0,93/2,59; 2,15/5,78; 5,00/12,03; 7,78/20,27).
+   As faixas continuam provisórias.
+3. **Prompt v3** (`ai/prompts/petroleo-analise-diaria.md`): o preço analisado é o Brent. O papel avisa que alguns
+   fatores são medidos no WTI ou validados contra ele (o COT dos fundos, na NYMEX, e as validações históricas da parte
+   D), e que a IA os usa como estão, sem converter.
+4. **Centro de Decisão:** o Brent passa a ser a primeira série do petróleo, a que o card de preço abre, e o WTI fica
+   como a segunda.
+
+**O que não muda.**
+- **Os fatores ficam como estão.** Medem o mercado global de petróleo (estoques, OPEP+, refino, dólar, juros).
+- **O COT continua sendo o do WTI** (CFTC, NYMEX): o do Brent é da ICE Futures Europe, que seria fonte nova.
+- **As validações históricas (parte D) continuam medidas contra o WTI.** O WTI e o Brent andam juntos, e refazê-las
+  contra o Brent não foi pedido.
+- **As leituras já gravadas continuam como foram feitas**, com o WTI e a configuração v2: a tela mostra o que foi
+  gravado. A leitura de um dia só passa ao Brent quando é feita ou refeita (`ANALISE_DIARIA_REFAZER=1`) com a v3.

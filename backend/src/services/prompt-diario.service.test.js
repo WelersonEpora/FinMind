@@ -49,7 +49,7 @@ const EVENTO = {
 
 const PRECO = {
   disponivel: true,
-  nome: "WTI à vista (EIA)",
+  nome: "Brent à vista (EIA)",
   unidade: "US$/barril",
   fonte: "EIA - preços à vista (spot)",
   valor: 96.16,
@@ -96,10 +96,10 @@ test("os blocos fixos (1, 4, 5 e 6) vão na instrução do sistema; a base e a l
   for (const bloco of ["[1. PAPEL E OBJETIVO]", "[4. COMO ANALISAR]", "[5. LIMITES]", "[6. FORMATO DA RESPOSTA — JSON]"]) {
     assert.ok(p.instrucaoDoSistema.includes(bloco), bloco);
   }
-  for (const bloco of ["[2. BASE", "2.1 PREÇO DO WTI", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
+  for (const bloco of ["[2. BASE", "2.1 PREÇO DO BRENT", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
     assert.ok(p.prompt.includes(bloco), bloco);
   }
-  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@2");
+  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@3");
   assert.equal(p.versaoMetodologia, "petroleo-v1 (2026-10-02)");
   assert.equal(p.versaoConfiguracao, config.VERSAO);
   assert.match(p.hashEntrada, /^[0-9a-f]{64}$/);
@@ -119,10 +119,10 @@ test("a instrução não esconde números da metodologia nem recomenda: as faixa
   }
 });
 
-test("a base traz o preço do WTI com as datas e as variações dos horizontes, e a curva sem fonte como SEM DADO", async () => {
+test("a base traz o preço do Brent com as datas e as variações dos horizontes, e a curva sem fonte como SEM DADO", async () => {
   const d = deps();
   const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, d);
-  assert.deepEqual(d.chamadas.preco, ["WTI", "2026-10-03"]);
+  assert.deepEqual(d.chamadas.preco, ["BRENT", "2026-10-03"]);
   assert.deepEqual(d.chamadas.simular, ["PETROLEO", "2026-10-03"]);
   assert.match(p.prompt, /Último preço: US\$ 96,16 em 29\/09\/2026 \| publicado em 30\/09\/2026 \(data estimada\) \| 4 dia\(s\) antes da data da análise/);
   assert.match(
@@ -131,14 +131,14 @@ test("a base traz o preço do WTI com as datas e as variações dos horizontes, 
   );
   assert.match(p.prompt, /1 dia \(pregão anterior\): -3,23% \(desde 28\/09\/2026\) \| 7 dias: -0,26% .* \| 90 dias: SEM DADO/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/barril\): 29\/09\/2026: 96,16; 28\/09\/2026: 99,37/);
-  assert.match(p.prompt, /2\.2 CURVA FUTURA DO WTI .*\nSEM DADO: não há fonte da curva futura do WTI/);
+  assert.match(p.prompt, /2\.2 CURVA FUTURA DO BRENT .*\nSEM DADO: não há fonte da curva futura do Brent/);
   assert.equal(p.entrada.curva, null);
   assert.equal(p.entrada.precoReferencia.dataReferencia, "2026-09-29");
 });
 
 test("sem preço na data, o bloco diz SEM DADO", async () => {
   const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps({ preco: { disponivel: false } }));
-  assert.match(p.prompt, /2\.1 PREÇO DO WTI .*\nPreço do WTI: SEM DADO até a data da análise\./);
+  assert.match(p.prompt, /2\.1 PREÇO DO BRENT .*\nPreço do Brent: SEM DADO até a data da análise\./);
   assert.equal(p.entrada.precoReferencia, null);
 });
 
