@@ -206,7 +206,12 @@ watch(ativo, carregar, { immediate: true })
                     <span v-if="fator.proposta.situacao === 'VALIDADA'" class="metodologia-ativo__situacao metodologia-ativo__situacao--validada">
                       {{ ROTULO_SITUACAO.VALIDADA }}
                     </span>
-                    <span v-if="fator.dados.avaliacao" class="metodologia-ativo__calculado">
+                    <!-- Dado insuficiente em vermelho, como etiqueta: é um alerta, não uma marca como as outras. -->
+                    <span
+                      v-if="fator.dados.avaliacao"
+                      class="metodologia-ativo__calculado"
+                      :class="{ 'metodologia-ativo__insuficiente': !fator.dados.avaliacao.suficiente }"
+                    >
                       <i class="bi" :class="fator.dados.avaliacao.suficiente ? 'bi-check-circle' : 'bi-exclamation-circle'"></i>
                       {{ fator.dados.avaliacao.suficiente ? 'Dado suficiente' : 'Dado insuficiente' }}
                     </span>
@@ -220,9 +225,17 @@ watch(ativo, carregar, { immediate: true })
                   <!-- O resultado do fator na data simulada, numa linha. -->
                   <ResultadoSimulacao v-if="resultadoDoFator(fator.codigo)" :resultado="resultadoDoFator(fator.codigo)" :data="simulacao.data" />
                 </div>
-                <button type="button" class="btn btn-outline-primary btn-sm metodologia-ativo__botao" @click="abrirFator(fator)">
-                  Detalhes
-                </button>
+                <!-- Coluna da direita: as pendências no canto superior, o botão de detalhes no meio da altura do card. -->
+                <div class="metodologia-ativo__card-lateral">
+                  <!-- O que o especialista ainda decide neste fator: visível no card, sem abrir o modal. -->
+                  <span v-if="fator.perguntas.length" class="metodologia-ativo__pendencias">
+                    <i class="bi bi-question-circle"></i>
+                    {{ fator.perguntas.length === 1 ? '1 pendência' : `${fator.perguntas.length} pendências` }}
+                  </span>
+                  <button type="button" class="btn btn-outline-primary btn-sm metodologia-ativo__botao" @click="abrirFator(fator)">
+                    Detalhes
+                  </button>
+                </div>
               </article>
             </div>
           </template>
@@ -575,6 +588,20 @@ watch(ativo, carregar, { immediate: true })
   flex-shrink: 0;
 }
 
+/* A coluna da direita ocupa a altura do card: as pendências no topo, o botão centrado no espaço que sobra. */
+.metodologia-ativo__card-lateral {
+  align-self: stretch;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.metodologia-ativo__card-lateral .metodologia-ativo__botao {
+  margin: auto 0;
+}
+
 .metodologia-ativo__card-titulo-grupo + .metodologia-ativo__objetivo {
   margin-top: -0.25rem;
 }
@@ -741,6 +768,27 @@ watch(ativo, carregar, { immediate: true })
 .metodologia-ativo__calculado {
   font-size: 0.72rem;
   color: #8a5f00;
+}
+
+.metodologia-ativo__pendencias {
+  white-space: nowrap;
+  padding: 0.05rem 0.4rem;
+  /* O mesmo vermelho claro do bloco "Pendências" do modal (.metodologia-ativo__bloco--perguntas). */
+  border: 1px solid rgba(214, 60, 60, 0.25);
+  border-radius: 999px;
+  background: rgba(214, 60, 60, 0.06);
+  color: #b02a2a;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.metodologia-ativo__insuficiente {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid rgba(214, 60, 60, 0.35);
+  border-radius: 999px;
+  background: rgba(214, 60, 60, 0.1);
+  color: #b02a2a;
+  font-weight: 600;
 }
 
 .metodologia-ativo__situacao--proposta {
