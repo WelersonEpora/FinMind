@@ -1,32 +1,13 @@
 "use strict";
 
-const { FATORES } = require("./fatores-fel1");
+const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-base");
 
-// Metodologia dos 10 fatores do petróleo: uma PROPOSTA para o David validar, não uma regra (ADR 0050).
-//
-// Cada fator separa três origens, e a tela mostra cada uma com o seu rótulo:
-//   fel1     - o que o David escreveu no FEL 1 (tabela "Fatores de Influência de Preço: Petróleo", v1.1), sem
-//              reescrever: tipo, direção do impacto, mecanismo de transmissão e fonte. O nome e o peso vêm de
-//              `fatores-fel1.js` (a planilha).
-//   dados    - o que o FinMind já coleta para o fator (cards do catálogo de observáveis) e as lacunas conhecidas.
-//              É fato, não proposta. `avaliacao` (opcional): se o dado basta para o fator, com a evidência do histórico
-//              (o FEL 1 foi escrito com apoio de IA: um requisito dele pode não ser necessário).
-//   proposta - um rascunho do fator nas três camadas do motor (STATUS_DO_PROJETO.md, §5): a medida (A. Medir), a
-//              comparação (B. Ler) e um esboço da leitura (C. Decidir, só o Comitê), escrito para abrir caminho e ser
-//              corrigido. Fica com `situacao: "PROPOSTA"` até o David validar; aí vira "VALIDADA"
-//              com a data e a referência da validação (no ADR).
-//   perguntas - o que o David precisa decidir para a proposta virar regra.
-//   nome     - (opcional) o título do fator quando o dado usado é mais estreito que o nome da planilha (ex.: o FEL 1
-//              diz "Demanda global", o cálculo usa só os EUA). O título diz exatamente o que entra no cálculo; o nome
-//              do FEL 1 continua na resposta (`nomeFel1`) e no bloco do especialista na tela.
-//   evento   - (opcional) { janelaDias }: FATOR DE EVENTO, sem cálculo. O resultado dele são os eventos aceitos da
-//              leitura diária marcados com ele nessa janela (geopolitica.service.js::obterEventosDoFator), o bloco que
-//              vai ao prompt da IA do ativo como está.
+// Metodologia dos 10 fatores do petróleo: só as definições (o formato de cada uma está em metodologia-base.js). Uma
+// PROPOSTA para o David validar, não uma regra (ADR 0050). Fonte do FEL 1: a tabela "Fatores de Influência de Preço:
+// Petróleo", v1.1.
 //
 // Desde a aprovação do David (2026-10-03), a leitura dos fatores vai ao prompt diário e a leitura de tendência da IA
 // aparece no Centro de Decisão (ADR 0052). Nada daqui gera sinal de compra ou venda.
-
-const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
 
 const VERSAO = 1;
 const DATA_VERSAO = "2026-10-02";
@@ -365,30 +346,10 @@ const DEFINICOES = [
   }
 ];
 
-const FATORES_PETROLEO = DEFINICOES.map((definicao) => {
-  const fator = FATORES.find((item) => item.codigo === definicao.codigo);
-  if (!fator) throw new Error(`Fator do petróleo ausente no catálogo do FEL 1: ${definicao.codigo}`);
-  return {
-    codigo: fator.codigo,
-    nome: definicao.nome || fator.nome,
-    nomeFel1: fator.nome,
-    peso: fator.peso,
-    fel1: definicao.fel1,
-    dados: definicao.dados,
-    proposta: { situacao: SITUACAO.PROPOSTA, ...definicao.proposta },
-    perguntas: definicao.perguntas,
-    evento: definicao.evento || null
-  };
-});
+const FATORES_PETROLEO = montarFatores("PETROLEO", DEFINICOES);
 
 function obterMetodologiaPetroleo() {
-  return {
-    ativo: "PETROLEO",
-    nome: "Petróleo",
-    versao: VERSAO,
-    dataVersao: DATA_VERSAO,
-    fatores: FATORES_PETROLEO
-  };
+  return montarMetodologia({ ativo: "PETROLEO", nome: "Petróleo", versao: VERSAO, dataVersao: DATA_VERSAO, fatores: FATORES_PETROLEO });
 }
 
 module.exports = { SITUACAO, FATORES_PETROLEO, obterMetodologiaPetroleo };

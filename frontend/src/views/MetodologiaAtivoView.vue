@@ -148,7 +148,10 @@ watch(ativo, carregar, { immediate: true })
               {{ simulando ? 'Simulando...' : 'Simular' }}
             </button>
             <template v-if="simulacao">
-              <button type="button" class="btn btn-outline-primary btn-sm" @click="promptAberto = true">Ver prompt completo</button>
+              <!-- O prompt só existe para o ativo com o prompt diário aprovado (ADR 0052). -->
+              <button v-if="metodologia?.promptDiario" type="button" class="btn btn-outline-primary btn-sm" @click="promptAberto = true">
+                Ver prompt completo
+              </button>
               <button type="button" class="btn btn-link btn-sm" @click="limparSimulacao">Voltar para hoje</button>
             </template>
           </form>
@@ -157,8 +160,8 @@ watch(ativo, carregar, { immediate: true })
 
         <div class="metodologia-ativo__conteudo" :class="{ 'metodologia-ativo__conteudo--atualizando': atualizando }">
           <div v-if="!metodologia" class="alert alert-light">
-            A metodologia do {{ resposta.ativo.nome.toLowerCase() }} ainda não foi montada. O petróleo é o primeiro
-            ativo: os outros seguem o mesmo molde depois de o especialista reagir a ele.
+            A metodologia do {{ resposta.ativo.nome.toLowerCase() }} ainda não foi montada: segue o molde do petróleo e do
+            ouro, depois de o especialista reagir a eles.
           </div>
 
           <template v-else>

@@ -1,12 +1,10 @@
 "use strict";
 
-const pointInTimeService = require("../services/point-in-time.service");
 const faixa = require("./base/decisao-por-faixa");
-const { somarDias, mediaSemanal } = require("./base/semana-de-dias");
+const { criarFatorJuroVariacao } = require("./modelos/juro-variacao-semanal");
 
-// FATOR (PROPOSTA, ADR 0050): juros, fator "Juros e expectativas macro" do FEL 1 para o petróleo. Mesmo molde dos
-// outros: camadas A e B calculadas, C simulada pela decisão por faixa com parâmetros que o Comitê ajusta; o peso é o
-// do FEL 1; não alimenta o motor, o Centro de Decisão nem a IA.
+// FATOR (PROPOSTA, ADR 0050): juros, fator "Juros e expectativas macro" do FEL 1 para o petróleo. O cálculo é o
+// molde comum dos juros (modelos/juro-variacao-semanal.js); aqui ficam as séries, os textos e a apresentação.
 //
 // OBSERVÁVEL → FATOR (ver ADR 0008):
 //   observáveis (tabela observation), diários, na média da semana (sábado a sexta):
@@ -31,10 +29,6 @@ const FACTOR_VERSION = 1;
 
 const SERIES = { treasury10a: "FRED.DGS10", metaFed: "FRED.DFEDTARU" };
 
-const DIAS_SEMANA = 7;
-const SEMANAS_VARIACAO = 26;
-const SEMANAS_CICLO = 52;
-
 // Padrões do FinMind (2026-10-03), do histórico do banco de dev desde 2010: |variação em 26 semanas| tem percentis
 // 40/60/80 de 0,28 / 0,47 / 0,79 p.p.; a mudança dela em 4 semanas tem mediana de 0,19 p.p. O Comitê ajusta.
 const PARAMETROS_PADRAO = Object.freeze({
@@ -48,57 +42,9 @@ const ACIMA_PRESSIONA = faixa.DIRECAO.BAIXA;
 const ROTULOS_TENDENCIA = { SUBINDO: "Juro acelerando a alta", CAINDO: "Juro acelerando a queda", ESTAVEL: "Estável" };
 const UNIDADE = " p.p.";
 
-function arredondar(n, casas) {
-  const f = 10 ** casas;
-  return Math.round(n * f) / f;
-}
-
-// Função PURA: recebe as linhas de obterAsOf() e devolve um ponto por semana (a sexta), as semanas do Treasury.
-function derivarJurosPetroleo(linhasAsOf, { parametros = PARAMETROS_PADRAO } = {}) {
-  const treasury = mediaSemanal(linhasAsOf, SERIES.treasury10a);
-  const meta = mediaSemanal(linhasAsOf, SERIES.metaFed);
-  const metaEm = (data) => meta.get(data)?.media;
-
-  const variacoes = new Map();
-  const pontos = [];
-  for (const observedAt of [...treasury.keys()].sort()) {
-    const semana = treasury.get(observedAt);
-    const antes = treasury.get(somarDias(observedAt, -DIAS_SEMANA * SEMANAS_VARIACAO))?.media;
-    const variacao = antes === undefined ? null : arredondar(semana.media - antes, 2);
-    variacoes.set(observedAt, variacao);
-    const metaAgora = metaEm(observedAt);
-    const metaAntes = metaEm(somarDias(observedAt, -DIAS_SEMANA * SEMANAS_CICLO));
-    const anterior = variacoes.get(somarDias(observedAt, -DIAS_SEMANA * parametros.semanasTendencia));
-    const metaSemana = meta.get(observedAt);
-    const disponivelEm = metaSemana && metaSemana.disponivelEm > semana.disponivelEm ? metaSemana.disponivelEm : semana.disponivelEm;
-    pontos.push({
-      factorId: FACTOR_ID,
-      factorVersion: FACTOR_VERSION,
-      observedAt,
-      treasury10a: arredondar(semana.media, 2),
-      diasNaSemana: semana.dias,
-      metaFed: metaAgora === undefined ? null : arredondar(metaAgora, 2),
-      variacaoMeta52Semanas: metaAgora === undefined || metaAntes === undefined ? null : arredondar(metaAgora - metaAntes, 2),
-      treasury10a26SemanasAntes: antes === undefined ? null : arredondar(antes, 2),
-      variacao26Semanas: variacao,
-      decisao: faixa.decidirPorFaixa(variacao, anterior ?? null, parametros, ACIMA_PRESSIONA),
-      disponivelEm,
-      disponivelEmEhEstimado: semana.estimado || Boolean(metaSemana?.estimado)
-    });
-  }
-  return pontos;
-}
-
-async function calcularJurosPetroleo({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {
-  const servico = deps.pointInTimeService || pointInTimeService;
-  const linhas = await servico.obterAsOf({ seriesCodes: Object.values(SERIES), asOf }, deps);
-  return derivarJurosPetroleo(linhas, { parametros });
-}
-
 // --- Camada C: explicação e exemplos (decisão por faixa) ---------------------------------------------------------
 
 const TEXTOS = {
-  campo: "variacao26Semanas",
   primeiroPasso: (p) =>
     `O Treasury de 10 anos ficou em ${faixa.fmt(p.treasury10a)}% na semana, contra ${faixa.fmt(p.treasury10a26SemanasAntes)}% ` +
     `26 semanas antes: ${faixa.comSinal(p.variacao26Semanas)}${UNIDADE} (B).` +
@@ -127,19 +73,6 @@ const CENARIOS = [
   { valor: -0.7, valorAnterior: -0.3, rotulo: "Juro caindo e acelerando a queda" },
   { valor: -1.4, valorAnterior: -1.6, rotulo: "Juro caindo forte, perdendo ritmo" }
 ];
-
-function explicarJuros(ponto, parametros = PARAMETROS_PADRAO) {
-  return faixa.explicarPorFaixa(ponto, parametros, TEXTOS);
-}
-
-function exemplosJuros(pontosTodos, parametros = PARAMETROS_PADRAO) {
-  return faixa.exemplosPorFaixa(pontosTodos, parametros, {
-    campo: TEXTOS.campo,
-    episodios: EPISODIOS,
-    cenarios: CENARIOS,
-    acimaPressiona: ACIMA_PRESSIONA
-  });
-}
 
 const APRESENTACAO = {
   unidade: "p.p.",
@@ -183,25 +116,33 @@ const APRESENTACAO = {
     "segunda). A meta do Fed é contexto: a leitura usa o juro longo, que embute a expectativa do mercado para o Fed."
 };
 
-const METODOLOGIA = {
+const fator = criarFatorJuroVariacao({
   factorId: FACTOR_ID,
   factorVersion: FACTOR_VERSION,
   parametrosPadrao: PARAMETROS_PADRAO,
-  periodicidade: "SEMANAL",
-  calcular: calcularJurosPetroleo,
-  explicar: explicarJuros,
-  exemplos: exemplosJuros,
+  series: { principal: SERIES.treasury10a, contexto: SERIES.metaFed },
+  campos: {
+    principal: "treasury10a",
+    contexto: "metaFed",
+    variacaoContexto: "variacaoMeta52Semanas",
+    principalAntes: "treasury10a26SemanasAntes",
+    variacao: "variacao26Semanas"
+  },
+  acimaPressiona: ACIMA_PRESSIONA,
+  textos: TEXTOS,
+  episodios: EPISODIOS,
+  cenarios: CENARIOS,
   apresentacao: APRESENTACAO
-};
+});
 
 module.exports = {
   FACTOR_ID,
   FACTOR_VERSION,
   SERIES,
   PARAMETROS_PADRAO,
-  METODOLOGIA,
-  derivarJurosPetroleo,
-  calcularJurosPetroleo,
-  explicarJuros,
-  exemplosJuros
+  METODOLOGIA: fator.METODOLOGIA,
+  derivarJurosPetroleo: fator.derivar,
+  calcularJurosPetroleo: fator.calcular,
+  explicarJuros: fator.explicar,
+  exemplosJuros: fator.exemplos
 };

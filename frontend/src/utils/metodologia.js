@@ -61,10 +61,16 @@ export function linhaSecundaria(ponto, quadro) {
   return [s.prefixo, formatarQuadro(ponto?.[s.campo], s), s.sufixo].filter(Boolean).join(' ')
 }
 
-// O período de um ponto do fator, pela periodicidade do cálculo: a semana (padrão) ou o mês num fator mensal.
+// O período de um ponto do fator, pela periodicidade do cálculo: a semana (padrão), o mês ou o trimestre.
 const PERIODOS_DO_FATOR = {
   SEMANAL: { unidade: 'Semana', janela: 'semanas', referencia: (iso) => `Semana encerrada em ${dataBrCompleta(iso)}`, data: dataBrCompleta },
-  MENSAL: { unidade: 'Mês', janela: 'meses', referencia: (iso) => `Mês de ${mesAno(iso)}`, data: mesAno }
+  MENSAL: { unidade: 'Mês', janela: 'meses', referencia: (iso) => `Mês de ${mesAno(iso)}`, data: mesAno },
+  TRIMESTRAL: { unidade: 'Trimestre', janela: 'trimestres', referencia: (iso) => `Trimestre de ${trimestre(iso)}`, data: trimestre }
+}
+
+// "3º/2026": o trimestre de uma data do 1º dia do trimestre (AAAA-MM-01).
+function trimestre(iso) {
+  return iso ? `${Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1}º/${iso.slice(0, 4)}` : '-'
 }
 
 function dataBrCompleta(iso) {

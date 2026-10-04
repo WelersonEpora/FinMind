@@ -20,7 +20,6 @@ const centroDecisaoService = require("./centro-decisao.service");
 // cada fator e pelo hash da entrada (ADR 0010); a gravação de cada execução vem com o envio à IA.
 
 const ARQUIVO_PROMPT = "petroleo-analise-diaria.md";
-const ATIVOS_COM_PROMPT = ["PETROLEO"];
 
 const fmtData = (iso) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "-");
 const fmtNumero = (n, casas = 2) => n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
@@ -182,7 +181,7 @@ function entradaEstruturada({ simulacao, preco, dataAnalise }) {
 // fim dela.
 async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
   const codigo = String(ativo || "").trim().toUpperCase();
-  if (!ATIVOS_COM_PROMPT.includes(codigo)) throw new NotFoundError("Não há prompt diário para este ativo.");
+  if (!metodologiaAtivoService.ATIVOS_COM_PROMPT_DIARIO.includes(codigo)) throw new NotFoundError("Não há prompt diário para este ativo.");
   const agora = deps.agora || new Date();
   const dataAnalise = data || new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
 

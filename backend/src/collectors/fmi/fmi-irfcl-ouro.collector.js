@@ -3,6 +3,7 @@
 const env = require("../../config/env");
 const { UpstreamServiceError } = require("../../shared/errors");
 const { persistirObservacoes, baixar } = require("../base/persist-observations");
+const { FATOR_FAIXA, paresForaDaFaixa } = require("../../shared/fmi-ouro-conferencia");
 
 // FMI - reservas de ouro dos bancos centrais, pelo IRFCL (International Reserves and Foreign Currency Liquidity, o
 // "Reserves Data Template" que cada banco central reporta ao FMI todo mês). Ouro, fator "Demanda de bancos centrais
@@ -47,10 +48,6 @@ const INDICADORES = {
 };
 // A única escala conferida (todas as séries em 2026-10-01). Outra vira item inválido, para não gravar fora de escala.
 const ESCALA_ESPERADA = 6;
-// Preço implícito fora de [mediana / FATOR, mediana × FATOR] no mesmo mês = volume (ou valor) fora da escala.
-const FATOR_FAIXA = 3;
-// Abaixo disso, a mediana do mês não é confiável e o mês não é conferido.
-const MINIMO_PAISES_NO_MES = 5;
 const REGEX_PERIODO = /^(\d{4})-M(\d{2})$/;
 
 function download({ signal }) {
@@ -92,13 +89,7 @@ function parse(raw) {
   return itens;
 }
 
-function mediana(numeros) {
-  const ordenados = [...numeros].sort((a, b) => a - b);
-  const meio = Math.floor(ordenados.length / 2);
-  return ordenados.length % 2 ? ordenados[meio] : (ordenados[meio - 1] + ordenados[meio]) / 2;
-}
-
-// { "<pais>|<mes>" -> { precoImplicito, mediana } } dos pares fora da faixa.
+// { "<pais>|<mes>" -> { precoImplicito, mediana } } dos pares fora da faixa (a regra em shared/fmi-ouro-conferencia.js).
 function conferirPrecos(validos) {
   const pares = new Map();
   for (const v of validos) {
@@ -106,22 +97,7 @@ function conferirPrecos(validos) {
     if (!pares.has(chave)) pares.set(chave, {});
     pares.get(chave)[v.metadata.campo] = v.value;
   }
-  const porMes = new Map();
-  for (const [chave, par] of pares) {
-    if (!(par.VOLUME_MI_OZT > 0 && par.VALOR_MI_USD > 0)) continue;
-    const mes = chave.split("|")[1];
-    if (!porMes.has(mes)) porMes.set(mes, []);
-    porMes.get(mes).push({ chave, preco: par.VALOR_MI_USD / par.VOLUME_MI_OZT });
-  }
-  const fora = new Map();
-  for (const lista of porMes.values()) {
-    if (lista.length < MINIMO_PAISES_NO_MES) continue;
-    const m = mediana(lista.map((p) => p.preco));
-    for (const { chave, preco } of lista) {
-      if (preco < m / FATOR_FAIXA || preco > m * FATOR_FAIXA) fora.set(chave, { precoImplicito: preco, mediana: m });
-    }
-  }
-  return fora;
+  return paresForaDaFaixa(pares);
 }
 
 function normalize(rawItems) {

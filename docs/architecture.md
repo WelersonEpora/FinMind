@@ -45,6 +45,7 @@ FinMind/
       collectors/bcb/         # coletores reais: dólar e Selic (SGS) -> market_quote
       collectors/fred|cftc|usda|b3|.../  # ouro/milho/café/petróleo -> observation (point-in-time, ADR 0008/0009); lbma/ encerrado (ADR 0044)
       factors/               # fatores derivados (funções determinísticas sobre asOf(); ADR 0008)
+      factors/modelos/       # moldes de fator comuns a vários ativos (COT, dólar, juros): o ativo dá séries e textos (ADR 0053)
       analytics-engine/      # contrato do motor de regras (placeholder)
       ai/                     # contrato de provedor de IA (placeholder)
     database/

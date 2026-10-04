@@ -3,14 +3,20 @@
 const { ConflictError, NotFoundError, ValidationError } = require("../shared/errors");
 const fatorParametroRepository = require("../repositories/fator-parametro.repository");
 const { obterMetodologiaPetroleo } = require("../shared/metodologia-petroleo");
+const { obterMetodologiaOuro } = require("../shared/metodologia-ouro");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
 const { montarTextoPrompt } = require("../factors/base/texto-prompt");
 
-// Metodologia dos fatores por ativo: a proposta para o David validar (ADR 0050). Só o petróleo por enquanto.
+// Metodologia dos fatores por ativo: a proposta para o David validar (ADRs 0050 e 0053).
 const METODOLOGIAS = {
+  OURO: obterMetodologiaOuro,
   PETROLEO: obterMetodologiaPetroleo
 };
+
+// Os ativos cujo prompt diário já foi aprovado (ADR 0052): a tela só oferece o prompt para eles, e
+// prompt-diario.service.js só o monta para eles.
+const ATIVOS_COM_PROMPT_DIARIO = ["PETROLEO"];
 
 // Propostas já calculadas (camadas A, B e C simulada): fator do FEL 1 -> a METODOLOGIA do módulo em `factors/`
 // (calcular, explicar, exemplos, parâmetros padrão e a apresentação que a tela genérica desenha). Um fator novo é
@@ -23,7 +29,14 @@ const CALCULOS = {
   PETROLEO_DOLAR: require("../factors/dolar-petroleo.factor").METODOLOGIA,
   PETROLEO_FUNDOS: require("../factors/fundos-petroleo.factor").METODOLOGIA,
   PETROLEO_JUROS: require("../factors/juros-petroleo.factor").METODOLOGIA,
-  PETROLEO_OFERTA_NAO_OPEP: require("../factors/oferta-nao-opep-petroleo.factor").METODOLOGIA
+  PETROLEO_OFERTA_NAO_OPEP: require("../factors/oferta-nao-opep-petroleo.factor").METODOLOGIA,
+  OURO_JUROS_REAIS: require("../factors/juros-reais-ouro.factor").METODOLOGIA,
+  OURO_DOLAR: require("../factors/dolar-ouro.factor").METODOLOGIA,
+  OURO_INFLACAO: require("../factors/inflacao-ouro.factor").METODOLOGIA,
+  OURO_BANCOS_CENTRAIS: require("../factors/bancos-centrais-ouro.factor").METODOLOGIA,
+  OURO_ETFS: require("../factors/etfs-ouro.factor").METODOLOGIA,
+  OURO_FUNDOS: require("../factors/fundos-ouro.factor").METODOLOGIA,
+  OURO_MINERACAO: require("../factors/mineracao-ouro.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -73,6 +86,7 @@ function lerParametros(padrao, valores = {}) {
 function paraResposta(metodologia) {
   return {
     ...metodologia,
+    promptDiario: ATIVOS_COM_PROMPT_DIARIO.includes(metodologia.ativo),
     fatores: metodologia.fatores.map((fator) => ({
       ...fator,
       calculado: Boolean(CALCULOS[fator.codigo]),
@@ -322,4 +336,4 @@ async function salvarParametros(ativo, codigoFator, { parametros, motivo } = {},
   }
 }
 
-module.exports = { obterMetodologiaAtivo, calcularFator, obterEventosFator, simularFatores, listarParametros, salvarParametros };
+module.exports = { ATIVOS_COM_PROMPT_DIARIO, obterMetodologiaAtivo, calcularFator, obterEventosFator, simularFatores, listarParametros, salvarParametros };

@@ -56,7 +56,7 @@ quando chegar a vez delas.
 | **1. Decisões de base** | Critérios de aprovação do backtest, preço e orçamento, instrumento e horizontes, medidas dos fatores do milho (só a camada A) e ajustes no FEL 1 | Comitê | **Atual**: reunião feita em 2026-10-01 (perguntas 2, 3 e 8: seguir com o histórico disponível); aguarda o documento do David com as demais respostas |
 | 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | **Proposta pronta** (§5b), aguarda o Comitê |
 | 2b. Entendimento do petróleo | Propor os 10 fatores do petróleo nas três camadas (medida, comparação e um esboço da leitura), ao lado do que o FEL 1 diz e dos dados que já temos, com as perguntas de cada fator | FinMind → David | **Aprovada pelo David em reunião (2026-10-03)**; respostas por escrito a caminho. A cadeia do petróleo roda inteira: leitura diária de tendência da IA no Centro de Decisão (ADR 0052) |
-| 2c. Fatores do ouro | O mesmo tratamento do petróleo nos 8 fatores do ouro, a pedido do David | FinMind → David | **Próxima** |
+| 2c. Fatores do ouro | O mesmo tratamento do petróleo nos 8 fatores do ouro, a pedido do David | FinMind → David | **Proposta pronta (2026-10-03)**, aguarda o David: os 8 fatores na tela Metodologia do Ativo, 7 calculados e validados contra a LBMA e a geopolítica como evento, reaproveitando os moldes do petróleo (ADR 0053) |
 | 3. Medidas e dados | Implementar as medidas confirmadas e coletar os dados aprovados que faltam | FinMind | Depende da 1 |
 | 4. Regras | O Comitê define a leitura (B) e a regra (C) de cada fator; o FinMind faz o backtest; o Comitê aprova | Comitê + FinMind | Depende da 3 |
 | 5. IA em simulação | Prompt, registro de cada recomendação e simulação por pelo menos 6 meses (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | Depende da 4 |
@@ -417,7 +417,7 @@ no ADR de cada fonte.
 |---|---|
 | Registrar as respostas do documento do David | Aguarda o documento: cada resposta e a data na §4 e, se for decisão estrutural, num ADR (etapa 1c dos "Próximos passos") |
 | Medidas dos fatores do milho (camada A do motor) | Aguarda o Comitê confirmar o entendimento da §5. Confirmado, a ordem proposta é COT, estoque/uso do WASDE e % boa + excelente do Crop Progress, no molde do juro real 10a |
-| Medidas dos fatores do ouro (camada A) | Aguarda o Comitê confirmar a proposta da §5b |
+| Fatores do ouro | Aguarda o David reagir à proposta na tela Metodologia do Ativo (ADR 0053), como fez com o petróleo; a camada A também foi proposta ao Comitê (§5b) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): paridade de exportação do IMEA,
 ICO, geada, preço mínimo do café pelas portarias do MAPA, Baker Hughes, OPEP, API internacional da EIA e os derivados
@@ -1351,6 +1351,11 @@ versão e sem auditoria.
 <details>
 <summary>5b. Confirmar entendimento — Motor do Ouro</summary>
 
+**Atualizada pelo ADR 0053 (2026-10-03):** a proposta dos 8 fatores nas três camadas, com o FMI e o World Gold Council
+já coletados e o histórico de cada fator contra a LBMA, está na tela **Metodologia do Ativo** (ouro). Esta seção fica
+como o registro da proposta da camada A ao Comitê; onde as duas diferem (ex.: o dólar, aqui o índice amplo, lá o das
+economias avançadas, como no petróleo), vale a da tela, com a pergunta ao David.
+
 **Para o Comitê confirmar (etapa 2 dos "Próximos passos").** O mesmo exercício da §5 do milho, para os **8 fatores do
 ouro** da planilha `controle_fatores.xlsx` (aba "Controle de Fatores"): nome, peso e fonte vêm da planilha, e propomos
 a coluna "Resumo (cálculo)", que está vazia. O motor é o mesmo (camadas A, B e C, e a IA no fim), descrito na §5; aqui
@@ -1467,6 +1472,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Metodologia dos fatores do ouro | A pedido do David, os 8 fatores do ouro no molde do petróleo, na tela Metodologia do Ativo: o FEL 1, os dados, a proposta nas três camadas e as perguntas de cada um. Sete calculados (juros reais, dólar, inflação, bancos centrais, ETFs, fundos e mineração) e a geopolítica como evento, cada um com a validação contra o ouro da LBMA (2006 a 2026): andam com o preço, nenhum antecipa de forma estável; a inflação não mostra a relação do FEL 1 (nem desde 1970; pergunta ao David se vira contexto do juro real), o COT favorece a leitura "amplifica" e os bancos centrais usam o World Gold Council (com as não declaradas, a única medida com relação para frente), com o FMI como contexto. Antes, o que se repete virou molde (COT, dólar, juros e a estrutura da metodologia), com o petróleo idêntico byte a byte. Sem prompt diário até a aprovação do David | ADR 0053 |
 | Leitura diária de tendência do petróleo | Depois da aprovação do David, o prompt diário vai ao Gemini uma vez por dia (sem busca, resposta em JSON), no fim da coleta: a resposta é validada (horizontes, escalas, faixa coerente com a tendência, fatores e evidências citados existentes; fora do formato, uma nova chamada e, recusada de novo, nada é gravado) e gravada com o prompt, as versões e o hash. No Centro de Decisão do petróleo, os quatro horizontes em linha do tempo (tendência com a intensidade, faixa em %, confiança e tese) e o detalhe de cada um; ao lado do preço, as evidências que formaram o prompt (preço, cada fator com a leitura do motor, lacunas), com a tabela completa e o prompt e a resposta da IA como foram gravados. Leitura de tendência, não recomendação. 1ª leitura em dev: alta no imediato e no curto, lateral no médio, baixa leve no longo. Desde 2026-10-03, os horizontes contam da data da análise, não do último preço da EIA (adendo do ADR 0052) | ADR 0052 |
 | Prompt diário de análise do petróleo | O prompt que a IA de tendência receberia, em seis blocos no molde do milho: leitura de tendência (não recomendação) em quatro horizontes independentes (1, 7, 30 e 90 dias), com faixa de magnitude da metodologia (provisória: percentis 40 e 80 da variação do WTI), confiança, fatores a favor e contra, evidências, lacunas e invalidação, em JSON. A base traz o WTI à vista com as variações dos horizontes, a curva futura (SEM DADO: o futuro é pago), a situação dos dados de cada fator e as faixas; a leitura do motor, os 10 blocos com o código de cada fator. Gerado e mostrado na tela, com as versões e o hash da entrada | ADR 0051 |
 

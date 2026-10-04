@@ -68,6 +68,10 @@ test('periodoDoFator: semana por padrão; mês num fator mensal', () => {
   assert.equal(mensal.referencia('2026-07-01'), 'Mês de 07/2026')
   assert.equal(mensal.data('2019-06-01'), '06/2019')
   assert.equal(mensal.janela, 'meses')
+  const trimestral = periodoDoFator('TRIMESTRAL')
+  assert.equal(trimestral.referencia('2026-04-01'), 'Trimestre de 2º/2026')
+  assert.equal(trimestral.data('2025-10-01'), '4º/2025')
+  assert.equal(trimestral.janela, 'trimestres')
 })
 
 test('parametrosAlterados e descreverOrigemParametros', () => {

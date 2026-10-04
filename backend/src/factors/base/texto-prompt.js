@@ -39,8 +39,14 @@ function dataBr(iso) {
   return iso.split("-").reverse().join("/");
 }
 
+// "3º/2026": o trimestre de uma data do 1º dia do trimestre (AAAA-MM-01).
+function trimestre(iso) {
+  return `${Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1}º/${iso.slice(0, 4)}`;
+}
+
 function periodoDoPonto(observedAt, periodicidade) {
   if (periodicidade === "MENSAL") return `Mês de ${dataBr(observedAt).slice(3)}`;
+  if (periodicidade === "TRIMESTRAL") return `Trimestre de ${trimestre(observedAt)}`;
   return `Semana encerrada em ${dataBr(observedAt)}`;
 }
 
