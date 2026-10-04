@@ -149,10 +149,10 @@ const DEFINICOES = [
       fonte: "Cepea, Comex Stat"
     },
     dados: {
-      observaveis: ["USD_BRL", "MILHO_CEPEA_ESALQ", "COMEX_MILHO_VOLUME"],
+      observaveis: ["USD_BRL", "IMEA_MILHO_PARIDADE", "MILHO_CEPEA_ESALQ", "COMEX_MILHO_VOLUME"],
       eventos: false,
       lacunas: [
-        "A paridade de exportação do IMEA não é coletada: aprovada pelo David (P16, ADR 0055), falta o ADR com a autorização da coleta.",
+        "A paridade de exportação do IMEA (P16, ADR 0055) é coletada desde 2026-10-04 (ADR 0057), com a tabela diária desde 31/05/2021: cerca de 5 anos, não os 10 da comparação proposta. É a paridade de MT, e o contrato de referência muda uma vez por ano (quebra na série).",
         "O ZC (CME) é pago; o prêmio de exportação em Paranaguá e o frete não são coletados. A fórmula da paridade da proposta depende dos três."
       ]
     },

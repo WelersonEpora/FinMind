@@ -35,6 +35,7 @@
     "backfill:conab-cafe": "node scripts/backfill-conab-cafe.js",
     "backfill:imea-andamento": "node scripts/backfill-imea-andamento.js",
     "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",
+    "backfill:imea-paridade": "node scripts/backfill-imea-paridade.js",
     "backfill:noaa-vh": "node scripts/backfill-noaa-vh.js",
     "backfill:noaa-vh-cafe": "node scripts/backfill-noaa-vh.js --cultura=cafe",
     "backfill:ice-cafe-estoques": "node scripts/backfill-ice-cafe-estoques.js"

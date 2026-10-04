@@ -40,6 +40,7 @@ const imeaMilhoSafraCollector = require("./imea/imea-milho-safra.collector");
 const imeaCustoMilhoCollector = require("./imea/imea-custo-milho.collector");
 const imeaOfertaDemandaMilhoCollector = require("./imea/imea-oferta-demanda-milho.collector");
 const imeaAndamentoMilhoCollector = require("./imea/imea-andamento-milho.collector");
+const imeaParidadeMilhoCollector = require("./imea/imea-paridade-milho.collector");
 const { criarColetorVh } = require("./noaa/noaa-vh.collector");
 const geopoliticaIaCollector = require("./geopolitica/geopolitica-ia.collector");
 const { COLETORES_ANALISE_DIARIA } = require("./analise/analise-diaria-ia.collector");
@@ -93,6 +94,7 @@ function bootstrapCollectors() {
     registerCollector(imeaCustoMilhoCollector);
     registerCollector(imeaOfertaDemandaMilhoCollector);
     registerCollector(imeaAndamentoMilhoCollector);
+    registerCollector(imeaParidadeMilhoCollector);
     registerCollector(criarColetorVh("milho"));
     registerCollector(criarColetorVh("cafe"));
 

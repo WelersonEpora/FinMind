@@ -1595,6 +1595,32 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- Paridade de exportação do milho de MT, calculada pelo IMEA (Boletim Semanal; ADR 0057) ---
+  {
+    instrumentCode: "IMEA_MILHO_PARIDADE",
+    origem: "observation",
+    nome: "Milho de MT - paridade de exportação (IMEA)",
+    unidade: "R$/saca",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    // O boletim sai na segunda com os dias da semana anterior: antes do próximo, o último ponto é a sexta de ~10 dias atrás.
+    toleranciaDias: 12,
+    fonte: "IMEA - Boletim Semanal - Milho",
+    fonteCollectorCode: "imea-paridade-milho",
+    series: [{ modalidade: "mt", seriesCode: "IMEA.MILHO.PARIDADE_EXPORTACAO" }],
+    modalidadePrincipal: "mt",
+    fonteDetalhe: {
+      descricao:
+        "Paridade de exportação do milho em Mato Grosso, em R$ por saca, calculada e publicada pelo IMEA: o preço de Chicago do contrato de referência (julho do ano seguinte), mais o prêmio no porto, menos o frete rodoviário até o porto e o custo portuário, tudo em reais. É o preço que a exportação pagaria pelo milho na fazenda em MT. O valor é o da fonte, não um cálculo do FinMind.",
+      metodologia:
+        "Um valor por dia útil, desde 31/05/2021, lido da tabela diária do Boletim Semanal - Milho (toda segunda, com os dias da semana anterior). A data de publicação é a REAL da edição, do catálogo de arquivos do IMEA (só a data; vale o fim do dia). A série é do contrato de referência, que muda uma vez por ano (de jul/22 para jul/23 em maio de 2022, por exemplo): cada troca é uma quebra na série. O contrato vai na metadata como a tabela o escreve, e o rótulo pode estar atrasado (em set/2026 a tabela ainda dizia jul/26 com os valores do jul/27). Defeitos da fonte tratados sem adivinhar: dia com data errada no cabeçalho não é gravado; a semana republicada com os valores da anterior e datas novas não é gravada (3 vezes desde 2021); 3 edições com o cabeçalho em outra página ficam de fora. Lido por coordenada do PDF, como o balanço do IMEA (ADR 0019).",
+      escopo:
+        "só a paridade de exportação de MT. Não coletados: o diferencial de base (a unidade muda entre edições: cUS$/bu, US$/bu e R$/sc), o prêmio portuário (de Santos, atribuído à Esalq), os fretes e o resto do boletim. Antes de jun/2021 a paridade só aparece num gráfico, sem número legível. É a paridade de MT, não a de Campinas, onde o CCM liquida.",
+      formatoOrigem: "PDF (Boletim Semanal - Milho, do catálogo de arquivos do IMEA, lido por coordenada)",
+      urlOficial: "https://www.imea.com.br/imea-site/relatorios-mercado"
+    }
+  },
+
   // --- Indicador do Milho CEPEA/ESALQ, divulgado pela B3 (ADR 0021) ---
   // O número é o da CEPEA; a ORIGEM do dado é a B3 (arquivo `Indic`), e o card diz isso.
   {
