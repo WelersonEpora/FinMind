@@ -42,7 +42,8 @@ const CALCULOS = {
   OURO_FUNDOS: require("../factors/fundos-ouro.factor").METODOLOGIA,
   OURO_MINERACAO: require("../factors/mineracao-ouro.factor").METODOLOGIA,
   MILHO_ESTOQUES_WASDE: require("../factors/estoques-milho-wasde.factor").METODOLOGIA,
-  MILHO_FUNDOS: require("../factors/fundos-milho.factor").METODOLOGIA
+  MILHO_FUNDOS: require("../factors/fundos-milho.factor").METODOLOGIA,
+  MILHO_CLIMA_SAFRA_EUA: require("../factors/clima-milho-eua.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -69,7 +70,8 @@ const MOTIVO_MAX = 500;
 const SEMANAS_TENDENCIA_MAX = 26;
 
 // Parâmetros da camada C (simulação): os padrões do fator, trocados pelos que vierem na query. Só números de 0 a 100;
-// o limiar moderado abaixo do forte; a tendência em semanas inteiras, de 1 a 26.
+// nos fatores da decisão por faixa, o limiar moderado abaixo do forte; a tendência em semanas inteiras, de 1 a 26. Um
+// fator com regra própria (ex.: o clima do milho, com limiares de alta e de baixa diferentes) só tem as chaves dele.
 function lerParametros(padrao, valores = {}) {
   const parametros = { ...padrao };
   for (const chave of Object.keys(padrao)) {
@@ -78,12 +80,15 @@ function lerParametros(padrao, valores = {}) {
     if (!Number.isFinite(valor) || valor < 0 || valor > 100) throw new ValidationError(`"${chave}" deve ser um número entre 0 e 100.`);
     parametros[chave] = valor;
   }
-  if (!(parametros.limiarModeradoPct < parametros.limiarFortePct)) {
+  if ("limiarModeradoPct" in padrao && "limiarFortePct" in padrao && !(parametros.limiarModeradoPct < parametros.limiarFortePct)) {
     throw new ValidationError('"limiarModeradoPct" deve ser menor que "limiarFortePct".');
   }
-  const semanas = parametros.semanasTendencia;
-  if (!Number.isInteger(semanas) || semanas < 1 || semanas > SEMANAS_TENDENCIA_MAX) {
-    throw new ValidationError(`"semanasTendencia" deve ser um inteiro de 1 a ${SEMANAS_TENDENCIA_MAX}.`);
+  for (const chave of ["semanasTendencia", "semanasSeguidas"]) {
+    if (!(chave in padrao)) continue;
+    const semanas = parametros[chave];
+    if (!Number.isInteger(semanas) || semanas < 1 || semanas > SEMANAS_TENDENCIA_MAX) {
+      throw new ValidationError(`"${chave}" deve ser um inteiro de 1 a ${SEMANAS_TENDENCIA_MAX}.`);
+    }
   }
   return parametros;
 }

@@ -5,6 +5,7 @@ import {
   desdeDoPeriodo,
   seriesDoGrafico,
   seriesComFaixas,
+  rotulosDasFaixas,
   formatarQuadro,
   linhaSecundaria,
   parametrosAlterados,
@@ -47,6 +48,17 @@ test('seriesDoGrafico: as séries da apresentação, só onde existe o campo exi
 test('seriesComFaixas: a medida e os quatro limiares, só onde há medida', () => {
   const linhas = seriesComFaixas([{ observedAt: '2026-09-25', desvioPct: 1.86 }, { observedAt: '2026-09-18', desvioPct: null }], 'desvioPct', PARAMS)
   assert.deepEqual(linhas.map((l) => l.valor), [1.86, 10, 3, -3, -10])
+})
+
+test('seriesComFaixas e rotulosDasFaixas: um fator com regra própria desenha só os limiares dele (o clima do milho)', () => {
+  const limiares = [
+    { chave: 'limiarBaixaPp', sinal: 1, rotulo: 'Limiar de baixa' },
+    { chave: 'limiarAltaPp', sinal: -1, rotulo: 'Limiar de alta' }
+  ]
+  const linhas = seriesComFaixas([{ observedAt: '2026-07-19', desvioPp: -8 }], 'desvioPp', { limiarBaixaPp: 3, limiarAltaPp: 5 }, limiares)
+  assert.deepEqual(linhas.map((l) => [l.serie, l.valor]), [['medida', -8], ['limiar0', 3], ['limiar1', -5]])
+  assert.deepEqual(rotulosDasFaixas('Desvio (B)', limiares), { medida: 'Desvio (B)', limiar0: 'Limiar de baixa', limiar1: 'Limiar de alta' })
+  assert.equal(rotulosDasFaixas('Desvio (B)').neutraAcima, 'Faixa neutra (acima)')
 })
 
 test('formatarQuadro e linhaSecundaria: casas, sinal, unidade e o valor de baixo', () => {

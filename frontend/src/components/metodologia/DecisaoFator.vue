@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import LineChart from '../charts/LineChart.vue'
 import metodologiaAtivoService from '../../services/metodologia-ativo.service.js'
 import { useAuthStore } from '../../stores/auth.js'
-import { descreverOrigemParametros, parametrosAlterados, periodoDoFator, seriesComFaixas } from '../../utils/metodologia.js'
+import { descreverOrigemParametros, parametrosAlterados, periodoDoFator, rotulosDasFaixas, seriesComFaixas } from '../../utils/metodologia.js'
 
 // Camada C de um fator (ADR 0050): a direção, a intensidade e a tendência, com os parâmetros EM USO NO SISTEMA (a
 // última versão salva, ou o padrão do código). Qualquer um pode simular outros valores (nada é gravado); só o admin
@@ -24,13 +24,7 @@ const ehAdmin = computed(() => auth.state.user?.role === 'admin')
 const apresentacao = computed(() => props.calculo.apresentacao)
 // Semana ou mês: os textos de período seguem a periodicidade do fator.
 const periodoFator = computed(() => periodoDoFator(props.calculo.periodicidade))
-const seriesLabels = computed(() => ({
-  medida: apresentacao.value.graficoC.rotulo,
-  forteAcima: 'Forte (acima)',
-  neutraAcima: 'Faixa neutra (acima)',
-  neutraAbaixo: 'Faixa neutra (abaixo)',
-  forteAbaixo: 'Forte (abaixo)'
-}))
+const seriesLabels = computed(() => rotulosDasFaixas(apresentacao.value.graficoC.rotulo, apresentacao.value.graficoC.limiares))
 
 const formulario = reactive({})
 watch(
@@ -43,7 +37,9 @@ const ultimo = computed(() => props.calculo.pontos.at(-1) || null)
 const editados = computed(() => parametrosAlterados(formulario, props.calculo.parametros))
 const diferenteDoSistema = computed(() => parametrosAlterados(formulario, props.calculo.parametrosSistema))
 const origem = computed(() => descreverOrigemParametros(props.calculo.origemParametros))
-const linhas = computed(() => seriesComFaixas(props.calculo.pontos, apresentacao.value.graficoC.campo, props.calculo.parametros))
+const linhas = computed(() =>
+  seriesComFaixas(props.calculo.pontos, apresentacao.value.graficoC.campo, props.calculo.parametros, apresentacao.value.graficoC.limiares)
+)
 
 function rotulo(tipo, valor) {
   return valor ? apresentacao.value.rotulosDecisao[tipo][valor] : '-'

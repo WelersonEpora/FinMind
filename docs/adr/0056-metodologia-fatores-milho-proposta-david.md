@@ -103,3 +103,30 @@ do IMEA (precisa de ADR com a autorização); o prompt diário e a leitura da IA
 - **Em 2026-10-04 os fundos estão no percentil 92,8:** pressão de baixa moderada. O F3 (estoques) dá alta forte no
   mesmo dia. É o conflito que a agregação proposta pelo David trata (o F7 como regra de risco quando está contra),
   pendente do Comitê.
+
+## Adendo (2026-10-04): F1, clima e safra nos EUA, calculado
+
+- **Fator com regra própria na tela genérica.** A R-CLI v0 do David não é uma faixa simétrica: o limiar de alta
+  (−5 p.p.) é diferente do de baixa (+3 p.p.), e a baixa pede semanas seguidas. Três extensões opcionais, sem mudar
+  os fatores existentes:
+  - a validação dos parâmetros (`lerParametros`) só exige "moderado menor que forte" quando o fator tem os dois, e
+    valida `semanasTendencia` e `semanasSeguidas` só quando existem;
+  - o texto do prompt aceita a regra do fator (`apresentacao.regra`, com os parâmetros entre chaves; as janelas em
+    semanas saem sem casa decimal);
+  - o gráfico da camada C aceita os limiares do fator (`graficoC.limiares`, em `utils/metodologia.js::seriesComFaixas`
+    e `rotulosDasFaixas`).
+- **F1 do milho** (`factors/clima-milho-eua.factor.js`, versão 1), semanal, com a condição da lavoura do USDA desde
+  1986:
+  - **A.** Boa + excelente, a variação na semana e a polinização.
+  - **B.** A média da mesma semana nos 5 anos anteriores, o desvio e o percentil de 10 anos (contexto).
+  - **C.** A R-CLI v0, só de junho a agosto: alta com o desvio de −5 p.p. ou pior, ou queda de 3 p.p. na semana;
+    baixa com +3 p.p. por 3 semanas seguidas.
+  - **Fica de fora:** a condição da previsão do NOAA/CPC, porque o dado não é coletado. Está declarada no texto e na
+    tela.
+  - **Acrescentados pelo FinMind:** alta forte com as duas condições; baixa forte com a polinização concluída (90%, o
+    "sobe para Alto" do David); alta e baixa juntas dão neutra; tendência por 2 semanas.
+  - O peso do mês do David vai no ponto como texto, fora da conta.
+- **Validação contra o Indicador ESALQ** (115 semanas de junho a agosto, 2018 a 2026): **sem relação**. O desvio tem
+  +0,15 com o indicador 13 semanas depois, o sentido contrário. Nas semanas de pressão de baixa, o indicador subiu em
+  25 de 26 (+13,6%), puxado por 2024 e 2025. São só 9 safras, e o efeito chega ao CCM por Chicago e pela paridade,
+  atenuado pela safrinha. A validação que falta é contra o ZC (Fase 2 da P8); vai como pergunta ao David.

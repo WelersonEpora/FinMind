@@ -33,18 +33,36 @@ export function seriesDoGrafico(pontos = [], grafico) {
 }
 
 // A medida da decisão (camada C) e as faixas dela, no formato do LineChart: a medida e os quatro limiares como linhas.
-export function seriesComFaixas(pontos = [], campo, parametros) {
+// `limiares` (opcional, `graficoC.limiares` do fator): as linhas de um fator com regra própria, cada uma
+// { chave, sinal, rotulo } (o parâmetro, +1 acima ou -1 abaixo de zero), no lugar dos quatro simétricos.
+export function seriesComFaixas(pontos = [], campo, parametros, limiares = null) {
   const linhas = []
   const { limiarModeradoPct: mod, limiarFortePct: forte } = parametros
   for (const p of pontos) {
     if (p[campo] === null || p[campo] === undefined) continue
     linhas.push({ data: p.observedAt, valor: p[campo], serie: 'medida' })
+    if (limiares) {
+      limiares.forEach((l, i) => linhas.push({ data: p.observedAt, valor: l.sinal * parametros[l.chave], serie: `limiar${i}` }))
+      continue
+    }
     linhas.push({ data: p.observedAt, valor: forte, serie: 'forteAcima' })
     linhas.push({ data: p.observedAt, valor: mod, serie: 'neutraAcima' })
     linhas.push({ data: p.observedAt, valor: -mod, serie: 'neutraAbaixo' })
     linhas.push({ data: p.observedAt, valor: -forte, serie: 'forteAbaixo' })
   }
   return linhas
+}
+
+// Os rótulos das linhas de seriesComFaixas: os quatro simétricos, ou os de `limiares`.
+export function rotulosDasFaixas(rotuloMedida, limiares = null) {
+  if (limiares) return { medida: rotuloMedida, ...Object.fromEntries(limiares.map((l, i) => [`limiar${i}`, l.rotulo])) }
+  return {
+    medida: rotuloMedida,
+    forteAcima: 'Forte (acima)',
+    neutraAcima: 'Faixa neutra (acima)',
+    neutraAbaixo: 'Faixa neutra (abaixo)',
+    forteAbaixo: 'Forte (abaixo)'
+  }
 }
 
 // Um valor de quadro, como a apresentação pede: casas decimais, sinal (+/-) e unidade colada (ex.: "%").

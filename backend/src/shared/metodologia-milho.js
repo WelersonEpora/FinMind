@@ -35,6 +35,11 @@ const DEFINICOES = [
     dados: {
       observaveis: ["USDA_MILHO_CONDICAO", "USDA_MILHO_PROGRESSO", "NOAA_VH_MILHO"],
       eventos: false,
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente para medir o fator: a condição da lavoura do USDA é semanal desde 1986, o que dá a média de 5 anos da mesma semana desde 1991 e o percentil de 10 anos desde 1996; os episódios conhecidos aparecem (a seca de 2012, -36 p.p. contra a média; a seca-relâmpago de junho de 2023, -17 p.p.). Contra o Indicador CEPEA/ESALQ (115 semanas de junho a agosto, 2018 a 2026), não há relação: o desvio tem +0,15 com o indicador 13 semanas depois (o sentido contrário ao do FEL 1), e nas semanas com pressão de baixa o indicador subiu em 25 de 26 (média +13,6%), puxado por 2024 e 2025. São só 9 safras, e o efeito do clima americano chega ao CCM por Chicago e pela paridade, atenuado pela colheita da safrinha (o que a proposta do especialista já diz). Sem o ZC, não há como validar onde o efeito é direto."
+      },
       lacunas: [
         "As previsões do NOAA/CPC (6 a 10 e 8 a 14 dias) e o U.S. Drought Monitor, que a regra de alta usa, não são coletados (fonte nova).",
         "A expectativa dos analistas antes do Crop Progress (a surpresa) não é coletada."
@@ -45,14 +50,15 @@ const DEFINICOES = [
       objetivo: "Medir se o clima está tirando ou somando produção nos EUA, na fase em que isso pesa (a polinização, em julho).",
       medida: "Índice boa + excelente (% da lavoura) e a variação semanal em p.p.; % da área de milho em seca (D1 ou pior); % da lavoura em polinização.",
       comparacao: "Boa + excelente contra a média de 5 anos da mesma semana (desvio em p.p.) e o percentil de 10 anos da mesma semana; a surpresa contra a expectativa dos analistas. A fase da lavoura define o peso.",
-      leitura: "Abaixo da média de 5 anos (ou caindo rápido) com previsão de calor e seca pesa para alta; acima da média por 3 semanas sem previsão adversa, para baixa. Peso por mês: Alto em julho, Médio em junho e agosto, Baixo de setembro em diante; no CCM o sinal chega por Chicago e perde força com a colheita da safrinha acima de 50%.",
+      leitura: "De junho a agosto: boa + excelente 5 p.p. ou mais abaixo da média de 5 anos, ou caindo 3 p.p. em uma semana, pesa para alta; 3 p.p. ou mais acima da média por 3 semanas seguidas, para baixa (regra do David; a condição da previsão do CPC não é aplicada, sem o dado). O FinMind acrescentou: alta forte com as duas condições; baixa forte com a polinização concluída (90%); alta e baixa juntas dão neutra; tendência por 2 semanas. Peso por mês (do David, fora da conta): Alto em julho, Médio em junho e agosto, Baixo de setembro em diante; no CCM o sinal chega por Chicago e perde força com a colheita da safrinha acima de 50%. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "R-CLI-01 v0 (jun–ago): G/E 5 p.p. ou mais abaixo da média de 5 anos, ou queda de 3 p.p. ou mais em uma semana, com previsão CPC de calor acima e chuva abaixo do normal em 8–14 dias → pesa para alta.",
         baixa: "R-CLI-02 v0 (jun–ago): G/E 3 p.p. ou mais acima da média de 5 anos por 3 semanas seguidas, sem previsão adversa → pesa para baixa."
       }
     },
     perguntas: [
-      "Sem a previsão do CPC na base, a regra de alta pode rodar só com o boa + excelente (sem a condição da previsão), declarando a lacuna, ou a previsão é condição necessária?"
+      "Sem a previsão do CPC na base, a regra de alta pode rodar só com o boa + excelente (sem a condição da previsão), declarando a lacuna, ou a previsão é condição necessária?",
+      "No preço em reais o fator não mostrou relação (9 safras): ele fica como está, à espera de uma validação contra Chicago (o ZC, Fase 2 da P8), ou entra com peso reduzido no CCM?"
     ]
   },
   {

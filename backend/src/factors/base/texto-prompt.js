@@ -60,9 +60,17 @@ function comUnidade(valor, unidade) {
   return unidade === "%" ? `${limiar(valor)}%` : `${limiar(valor)} ${unidade}`;
 }
 
-// `apresentacao.regraAdicional` (opcional): uma condição a mais do fator além da faixa (ex.: a revisão do estoque no
-// milho), em texto, com os parâmetros entre chaves ("{limiarRevisaoPct}"), preenchidos com os em uso.
+// Um texto com os parâmetros entre chaves ("{limiarRevisaoPct}"), preenchidos com os em uso. As janelas em semanas
+// ("semanas...") são contagens: sem casa decimal.
+function preencher(texto, parametros) {
+  return texto.replace(/\{(\w+)\}/g, (_, chave) => (chave.startsWith("semanas") ? String(parametros[chave]) : limiar(parametros[chave])));
+}
+
+// A regra da decisão por faixa. Opcionais da `apresentacao`: `regra`, a regra própria de um fator que não é por faixa
+// (ex.: o clima do milho), no lugar dela; `regraAdicional`, uma condição a mais além da faixa (ex.: a revisão do
+// estoque no milho). Os dois em texto, com os parâmetros entre chaves.
 function regraDaDecisao(parametros, apresentacao) {
+  if (apresentacao.regra) return preencher(apresentacao.regra, parametros);
   const unidade = (chave) => apresentacao.parametros.find((p) => p.chave === chave)?.unidade || "";
   const u = unidade("limiarModeradoPct");
   const mod = parametros.limiarModeradoPct;
@@ -71,7 +79,7 @@ function regraDaDecisao(parametros, apresentacao) {
     `tendência em ${parametros.semanasTendencia} ${unidade("semanasTendencia")}, mudança mínima de ` +
     `${comUnidade(parametros.limiarTendenciaPp, unidade("limiarTendenciaPp"))}`;
   if (!apresentacao.regraAdicional) return regra;
-  return `${regra}; ${apresentacao.regraAdicional.replace(/\{(\w+)\}/g,(_, chave) => limiar(parametros[chave]))}`;
+  return `${regra}; ${preencher(apresentacao.regraAdicional, parametros)}`;
 }
 
 function origemDosParametros(origem, simulacao) {
