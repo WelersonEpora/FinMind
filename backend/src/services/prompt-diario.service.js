@@ -61,6 +61,8 @@ function linhaEmReais(preco, ptax) {
 
 function blocoPreco(preco, dataAnalise, config, ptax = null) {
   if (!preco.disponivel) return `Preço do ${config.PRECO.rotulo}: SEM DADO até a data da análise.`;
+  // A moeda do preço: US$ no petróleo e no ouro, R$ no milho (o CCM).
+  const moeda = config.PRECO.moeda || "US$";
   const publicado = diaDaPublicacao(preco.publicadoEm);
   const linhas = [`Série: ${preco.nome}, ${preco.unidade} | Fonte: ${preco.fonte}`];
   // Futuro (o GLD do ouro): o contrato do preço, o vencimento mais próximo negociado (centro-decisao.service.js::lerFuturo).
@@ -68,7 +70,7 @@ function blocoPreco(preco, dataAnalise, config, ptax = null) {
     linhas.push(`Contrato: ${preco.contrato.rotulo}, o vencimento mais próximo negociado até a data`);
   }
   linhas.push(
-    `Último preço: US$ ${fmtNumero(preco.valor)} em ${fmtData(preco.dataReferencia)} | publicado em ${fmtData(publicado)}` +
+    `Último preço: ${moeda} ${fmtNumero(preco.valor)} em ${fmtData(preco.dataReferencia)} | publicado em ${fmtData(publicado)}` +
       `${preco.publicadoEmEstimado ? " (data estimada)" : ""} | ${preco.diasSemDado} dia(s) antes da data da análise` +
       `${preco.defasada ? " | DEFASADO: passou da tolerância da série" : ""}`
   );
@@ -94,8 +96,8 @@ function blocoPreco(preco, dataAnalise, config, ptax = null) {
     const minimo = pontos.reduce((a, b) => (b.valor < a.valor ? b : a));
     const maximo = pontos.reduce((a, b) => (b.valor > a.valor ? b : a));
     linhas.push(
-      `Mínimo e máximo dos últimos 90 dias: US$ ${fmtNumero(minimo.valor)} (${fmtData(minimo.data)}) e ` +
-        `US$ ${fmtNumero(maximo.valor)} (${fmtData(maximo.data)})`
+      `Mínimo e máximo dos últimos 90 dias: ${moeda} ${fmtNumero(minimo.valor)} (${fmtData(minimo.data)}) e ` +
+        `${moeda} ${fmtNumero(maximo.valor)} (${fmtData(maximo.data)})`
     );
     const ultimos = pontos.slice(-config.PRECO.pregoesNoHistorico).reverse();
     linhas.push(
@@ -216,7 +218,9 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config }) {
             dataReferencia: f.observedAt,
             publicadoEm: f.publicadoEm,
             medida: f.medida,
-            leitura: leituraDoFator(f)
+            leitura: leituraDoFator(f),
+            // Calculado e com eventos (o milho, ADR 0058): os eventos da janela que foram ao prompt.
+            ...(f.eventos !== undefined ? { janelaDias: f.janelaDias, eventos: f.eventos, ultimaLeitura: f.ultimaLeitura } : {})
           }
         : { janelaDias: f.janelaDias, eventos: f.eventos, ultimaLeitura: f.ultimaLeitura })
     }))

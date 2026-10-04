@@ -156,8 +156,13 @@ test("série encerrada: o último valor aparece com o aviso de defasagem e a dat
 test("milho e café também têm a leitura de eventos de mercado (ADR 0049)", async () => {
   const geo = geopoliticaFalsa();
   const repo = repoCom([linha("B3.MILHO_ESALQ.AVISTA_BRL", "2026-10-01", 65.4)]);
-  const { centroDecisao } = await obterCentroDecisao({ ativo: "MILHO" }, { agora: AGORA, observationRepository: repo, geopoliticaService: geo });
+  const { centroDecisao } = await obterCentroDecisao(
+    { ativo: "MILHO", serie: "CEPEA" },
+    { agora: AGORA, observationRepository: repo, geopoliticaService: geo, analiseDiariaRepository: SEM_ANALISE }
+  );
   assert.equal(centroDecisao.preco.unidade, "R$/saca");
+  // O CCM é a 1ª série do milho: o preço de referência aprovado pelo Comitê (ADR 0058).
+  assert.equal(centroDecisao.series[0].codigo, "CCM");
   assert.deepEqual(geo.chamadas.find((c) => c.obterGeopoliticaDoDia).obterGeopoliticaDoDia, ["MILHO", "2026-10-02"]);
   assert.equal(centroDecisao.geopolitica.nivel, "ATENCAO");
 });
@@ -175,7 +180,7 @@ test("eventos: os aceitos da semana que termina na data, do ativo escolhido", as
   );
 });
 
-test("leitura de tendência da IA (ADRs 0052 e 0054): no petróleo e no ouro, a da data escolhida", async () => {
+test("leitura de tendência da IA (ADRs 0052, 0054 e 0058): no petróleo, no ouro e no milho, a da data escolhida", async () => {
   const pedidas = [];
   const analiseDiariaRepository = {
     buscarAnaliseDoDia: async (ativo, data) => {
@@ -215,12 +220,14 @@ test("leitura de tendência da IA (ADRs 0052 e 0054): no petróleo e no ouro, a 
   const { centroDecisao: semLeitura } = await obterCentroDecisao({ ativo: "PETROLEO", data: "2026-10-01" }, deps);
   assert.deepEqual(semLeitura.analise, { disponivel: false, data: "2026-10-01" });
 
-  // O ouro também tem leitura diária (ADR 0054); o milho não: null, e o repositório nem é consultado.
+  // O ouro (ADR 0054) e o milho (ADR 0058) também têm leitura diária; o café não: null, e o repositório nem é consultado.
   const { centroDecisao: ouro } = await obterCentroDecisao({ ativo: "OURO", data: "2026-10-01" }, deps);
   assert.deepEqual(ouro.analise, { disponivel: false, data: "2026-10-01" });
-  const { centroDecisao: milho } = await obterCentroDecisao({ ativo: "MILHO", data: "2026-10-02" }, deps);
-  assert.equal(milho.analise, null);
-  assert.deepEqual(pedidas, [["PETROLEO", "2026-10-02"], ["PETROLEO", "2026-10-01"], ["OURO", "2026-10-01"]]);
+  const { centroDecisao: milho } = await obterCentroDecisao({ ativo: "MILHO", data: "2026-10-01" }, deps);
+  assert.deepEqual(milho.analise, { disponivel: false, data: "2026-10-01" });
+  const { centroDecisao: cafe } = await obterCentroDecisao({ ativo: "CAFE", data: "2026-10-02" }, deps);
+  assert.equal(cafe.analise, null);
+  assert.deepEqual(pedidas, [["PETROLEO", "2026-10-02"], ["PETROLEO", "2026-10-01"], ["OURO", "2026-10-01"], ["MILHO", "2026-10-01"]]);
 });
 
 test("filtros inválidos: ativo, série e data futura", async () => {

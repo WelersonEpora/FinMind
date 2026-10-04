@@ -37,18 +37,19 @@ test("todo observável citado existe no catálogo", () => {
   }
 });
 
-test("os 8 fatores calculados; sem prompt diário até a aprovação do Comitê", () => {
+test("os 8 fatores calculados; com prompt diário desde a aprovação do Comitê (ADR 0058)", () => {
   const { metodologia } = obterMetodologiaAtivo("MILHO");
   assert.deepEqual(
     metodologia.fatores.filter((f) => !f.calculado).map((f) => f.codigo),
     []
   );
-  assert.equal(metodologia.promptDiario, false);
-  assert.ok(!ATIVOS_COM_PROMPT_DIARIO.includes("MILHO"));
+  assert.equal(metodologia.promptDiario, true);
+  assert.ok(ATIVOS_COM_PROMPT_DIARIO.includes("MILHO"));
 });
 
-test("o ativo: o CCM como preço de referência decidido; a aprovação do Comitê entre as pendências", () => {
+test("o ativo: o CCM como preço de referência e a aprovação do Comitê entre as decisões (ADR 0058)", () => {
   const { doAtivo } = obterMetodologiaMilho();
   assert.ok(doAtivo.decisoes.some((d) => d.startsWith("Preço de referência: o CCM")));
-  assert.ok(doAtivo.perguntas.some((p) => p.startsWith("Aprovação do Comitê")));
+  assert.ok(doAtivo.decisoes.some((d) => d.startsWith("Aprovação do Comitê")));
+  assert.ok(!doAtivo.perguntas.some((p) => p.startsWith("Aprovação do Comitê")));
 });

@@ -92,8 +92,10 @@ A análise do F4 achou mais três defeitos da série:
 
 O que mudou:
 - **No leitor:** o zero passou a ser recusado. O dev foi recarregado com 1.199 dias.
-- **No servidor:** a carga rodou antes da correção e gravou os 1.200 dias, com o zero. A camada é append-only, e o
-  F4 já trata o zero como quebra da série, sem decisão.
+- **No servidor:** a carga rodou antes da correção e gravou os 1.200 dias, com o zero. O usuário apagou essa
+  linha em 2026-10-04, com um `DELETE` só dela, conferido antes por um `SELECT` que trouxe 1 linha. A exceção à
+  regra append-only se justifica porque o zero era um não-valor lido da fonte, não uma revisão. O servidor ficou com
+  os mesmos 1.199 dias do dev.
 - **A semana de 2022 e o salto de 2025 ficam como publicados:** não há como provar o erro. O F4 os trata pela trava
   de quebra da série (ADR 0056, adendo do F4).
 

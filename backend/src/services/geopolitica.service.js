@@ -164,7 +164,9 @@ function formatarEventoDoFator(evento, indice) {
 function formatarEventosDoFator(r) {
   const linhas = [
     `EVENTOS DO FATOR — ${r.fatorNome} — ${ROTULO_ATIVO[r.ativo]} (${r.dataReferencia})`,
-    `Fator de evento: não é calculado. Eventos aceitos (sustentados por página de fonte autorizada) da leitura diária ` +
+    (r.comCalculo
+      ? `Eventos do fator, além do cálculo acima (o cálculo não os usa): os aceitos (sustentados por página de fonte autorizada) da leitura diária `
+      : `Fator de evento: não é calculado. Eventos aceitos (sustentados por página de fonte autorizada) da leitura diária `) +
       `por IA marcados com este fator, nos últimos ${r.janelaDias} dias (${r.inicio} a ${r.dataReferencia}), do mais ` +
       `recente para o mais antigo. A data é a da leitura que registrou o evento: o fato é das 24 a 48 horas anteriores, ` +
       `salvo quando o resumo diz a data. A pressão é leitura da IA sobre o fato isolado; a escala é provisória.`
@@ -190,8 +192,10 @@ function formatarEventosDoFator(r) {
 }
 
 // { ativo, fator, fatorNome, dataReferencia, janelaDias, inicio, primeiraLeitura, leiturasNaJanela, diasSemLeitura,
-//   eventos, contexto } - `contexto` é o bloco pronto para o prompt.
-async function obterEventosDoFator(ativo, fator, dataReferencia, janelaDias, deps = {}) {
+//   eventos, contexto } - `contexto` é o bloco pronto para o prompt. `janela`: os dias, ou { janelaDias, comCalculo } num
+// fator CALCULADO que também recebe eventos (o milho, ADR 0058): o bloco diz que os eventos complementam o cálculo.
+async function obterEventosDoFator(ativo, fator, dataReferencia, janela, deps = {}) {
+  const { janelaDias, comCalculo = false } = typeof janela === "object" && janela !== null ? janela : { janelaDias: janela };
   validar(ativo, dataReferencia);
   if (!Number.isInteger(janelaDias) || janelaDias < 1) throw new ValidationError("A janela do fator deve ser um número inteiro de dias.");
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
@@ -211,6 +215,7 @@ async function obterEventosDoFator(ativo, fator, dataReferencia, janelaDias, dep
     fatorNome: nomeDoFator(fator),
     dataReferencia,
     janelaDias,
+    comCalculo,
     inicio,
     primeiraLeitura: leituras.primeiraData,
     ultimaLeitura: ultima ? { data: ultimaData, nivel: ultima[`nivel_${coluna}`], resumo: ultima[`resumo_${coluna}`] } : null,

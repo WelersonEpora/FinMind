@@ -106,7 +106,10 @@ function paraResposta(metodologia) {
     fatores: metodologia.fatores.map((fator) => ({
       ...fator,
       calculado: Boolean(CALCULOS[fator.codigo]),
-      deEvento: Boolean(fator.evento),
+      // Fator de evento: só eventos, sem cálculo. Com eventos: calculado e também com os eventos da leitura diária marcados
+      // com ele (o milho, ADR 0058).
+      deEvento: Boolean(fator.evento) && !CALCULOS[fator.codigo],
+      comEventos: Boolean(fator.evento) && Boolean(CALCULOS[fator.codigo]),
       dados: {
         ...fator.dados,
         observaveis: fator.dados.observaveis.map((codigo) => ({ codigo, nome: buscarNoCatalogo(codigo)?.nome || codigo }))
@@ -225,14 +228,18 @@ async function obterEventosFator(ativo, codigoFator, { data } = {}, deps = {}) {
   const servico = deps.geopoliticaService || geopoliticaService;
   const agora = deps.agora || new Date();
   const dia = data === undefined || data === "" ? hojeEmSaoPaulo(agora) : validarDataSimulada(data, agora);
-  const eventosFator = await servico.obterEventosDoFator(codigo, fator.codigo, dia, fator.evento.janelaDias, deps);
+  // Um fator CALCULADO que também recebe eventos (o milho, ADR 0058): o bloco diz que os eventos complementam o cálculo.
+  const janela = { janelaDias: fator.evento.janelaDias, comCalculo: Boolean(CALCULOS[fator.codigo]) };
+  const eventosFator = await servico.obterEventosDoFator(codigo, fator.codigo, dia, janela, deps);
   // Logo abaixo do título, a identificação do fator no catálogo, como nos fatores calculados: o código (o que a IA cita
-  // na resposta), o peso e o tipo no FEL 1. O serviço de eventos não conhece o catálogo da metodologia.
+  // na resposta), o peso e o tipo no FEL 1. O serviço de eventos não conhece o catálogo da metodologia. Num fator
+  // calculado, o bloco vai logo depois do texto do cálculo, que já identifica o fator.
   const identificacao =
     `Código: ${fator.codigo} | Peso no FEL 1: ${fator.peso} | Tipo no FEL 1: ${fator.fel1.tipo} | ` +
     `Regra: fator de evento (janela de ${fator.evento.janelaDias} dias)`;
   const [titulo, ...resto] = eventosFator.contexto.split("\n");
-  return { eventosFator: { ...eventosFator, contexto: [titulo, identificacao, ...resto].join("\n") } };
+  const linhas = janela.comCalculo ? [titulo, ...resto] : [titulo, identificacao, ...resto];
+  return { eventosFator: { ...eventosFator, contexto: linhas.join("\n") } };
 }
 
 // --- Simulação numa data (ADR 0050) -------------------------------------------------------------------------------
@@ -302,7 +309,19 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
       };
       if (CALCULOS[fator.codigo]) {
         const { calculo } = await calcularFator(codigo, fator.codigo, { data: dia }, deps);
-        return { ...base, ...resumoCalculado(calculo) };
+        const calculado = { ...base, ...resumoCalculado(calculo) };
+        if (!fator.evento) return calculado;
+        // Calculado e com eventos (o milho, ADR 0058): o bloco dos eventos do fator vai depois do texto do cálculo.
+        const { eventosFator } = await obterEventosFator(codigo, fator.codigo, { data: dia }, deps);
+        const eventos = resumoEvento(eventosFator);
+        return {
+          ...calculado,
+          eventos: eventos.eventos,
+          janelaDias: eventos.janelaDias,
+          primeiraLeitura: eventos.primeiraLeitura,
+          ultimaLeitura: eventos.ultimaLeitura,
+          textoPrompt: [calculado.textoPrompt, eventos.textoPrompt].filter(Boolean).join("\n\n")
+        };
       }
       if (fator.evento) {
         const { eventosFator } = await obterEventosFator(codigo, fator.codigo, { data: dia }, deps);

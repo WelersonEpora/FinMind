@@ -4,13 +4,14 @@ const analiseDiariaRepository = require("../repositories/analise-diaria.reposito
 const { ATIVOS_COM_ANALISE_DIARIA, configuracaoDoAtivo } = require("../shared/analise-diaria");
 const { FATORES_PETROLEO } = require("../shared/metodologia-petroleo");
 const { FATORES_OURO } = require("../shared/metodologia-ouro");
+const { FATORES_MILHO } = require("../shared/metodologia-milho");
 const { NotFoundError, ValidationError } = require("../shared/errors");
 
 // Leitura diária de tendência da IA (petróleo, ADR 0052; ouro, ADR 0054), como o Centro de Decisão a mostra: a leitura feita NA data escolhida
 // (nunca a de outro dia no lugar dela) e as evidências que formaram o prompt dela. Tudo sai da leitura GRAVADA (a
 // entrada estruturada, o prompt e a resposta como foram): nada é recalculado agora, então um parâmetro que mude depois
 // não altera o que a tela diz que a IA recebeu naquele dia. Só os ativos com leitura diária têm o bloco.
-const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO, OURO: FATORES_OURO };
+const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO, OURO: FATORES_OURO, MILHO: FATORES_MILHO };
 const ATIVOS_COM_ANALISE = ATIVOS_COM_ANALISE_DIARIA;
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;

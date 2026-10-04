@@ -32,6 +32,7 @@ const DEFINICOES = [
       mecanismo: "EUA é maior exportador; condições de lavoura definem oferta",
       fonte: "USDA/NASS, NOAA"
     },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["USDA_MILHO_CONDICAO", "USDA_MILHO_PROGRESSO", "NOAA_VH_MILHO"],
       eventos: false,
@@ -69,6 +70,7 @@ const DEFINICOES = [
       mecanismo: "Brasil é grande exportador; safrinha define oferta local e exportável",
       fonte: "Conab, IMEA"
     },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["CONAB_MILHO_SAFRA", "IMEA_MILHO_SAFRA", "IMEA_MILHO_ANDAMENTO"],
       eventos: false,
@@ -108,6 +110,7 @@ const DEFINICOES = [
       mecanismo: "Relação estoque/uso é o driver clássico de preço de grãos",
       fonte: "USDA/FAS"
     },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["WASDE_MILHO_EUA", "WASDE_MILHO_PAISES", "CONAB_MILHO_BALANCO"],
       eventos: false,
@@ -148,6 +151,7 @@ const DEFINICOES = [
       mecanismo: "Preço interno reflete paridade de exportação em R$",
       fonte: "Cepea, Comex Stat"
     },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["USD_BRL", "IMEA_MILHO_PARIDADE", "MILHO_CEPEA_ESALQ", "COMEX_MILHO_VOLUME"],
       eventos: false,
@@ -187,6 +191,7 @@ const DEFINICOES = [
       mecanismo: "Milho é matéria-prima de etanol nos EUA; disputa com uso alimentar",
       fonte: "EIA, USDA"
     },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["ETANOL_EUA_EIA", "WASDE_MILHO_EUA"],
       eventos: false,
@@ -223,6 +228,7 @@ const DEFINICOES = [
       mecanismo: "Custo de produção pressiona preço mínimo de equilíbrio",
       fonte: "Conab, IMEA"
     },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["IMEA_CUSTO_MILHO_MES", "IMEA_CUSTO_MILHO_SAFRA", "MILHO_CEPEA_ESALQ"],
       eventos: false,
@@ -261,6 +267,7 @@ const DEFINICOES = [
       mecanismo: "Posições de fundos amplificam tendências",
       fonte: "CFTC (COT), CME"
     },
+    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["COT_MILHO"],
       eventos: false,
@@ -298,6 +305,7 @@ const DEFINICOES = [
       mecanismo: "Fluxos de comércio global de grãos",
       fonte: "Comex Stat, USDA"
     },
+    evento: { janelaDias: 30 },
     dados: {
       observaveis: ["EXPORTACAO_MILHO_DESTINO", "COMEX_MILHO_VOLUME"],
       eventos: true,
@@ -340,13 +348,17 @@ const DO_ATIVO = {
     `Preço de referência: o CCM da B3 (R$/saca), o instrumento operado, que liquida pelo Indicador CEPEA/ESALQ (Campinas); o ZC de Chicago entra como fator, não como substituto, se houver orçamento. ${DECISAO_DAVID}, P2.`,
     `Perfil especulativo, não hedge: swing trade de 7 a 21 dias, com risco × retorno mínimo de 2:1. ${DECISAO_DAVID}.`,
     `Backtest em duas fases: a Fase 1 no CCM (2022+), declarando a limitação; a Fase 2 no ZC, se houver orçamento. ${DECISAO_DAVID}, P8.`,
+    "Aprovação do Comitê (2026-10-04, ADR 0058): o Motor do Milho v0 como está na tela, com as regras do David, os limiares v0 e os acréscimos do FinMind; ajustes daqui em diante pelos parâmetros. O milho entra no prompt diário, na leitura de tendência da IA e no Centro de Decisão.",
+    "Formato da leitura da IA: tendência por horizonte, com as faixas calibradas (como no petróleo e no ouro), não recomendação de compra ou venda. Comitê, 2026-10-04 (ADR 0058).",
+    "Preço de referência no prompt e no Centro de Decisão: o CCM, o vencimento mais próximo negociado, sem emendar contratos. Comitê, 2026-10-04 (ADR 0058).",
+    "Eventos sem validação humana, por ora: cada fator recebe os eventos que a leitura diária por IA marca com ele, como chegam (7 dias de janela; 30 no F8). Pode ser revisto. Comitê, 2026-10-04 (ADR 0058).",
+    "Base do F4 (Campinas − paridade de MT): fica como está por ora, com o limiar 0 da regra do David. Comitê, 2026-10-04 (ADR 0058).",
     `Medidas da camada A confirmadas: COT em managed money (contratos e % dos contratos em aberto), estoque/uso dos EUA e do mundo com a revisão, safrinha em nível e revisão (Conab e IMEA), boa + excelente com o VHI, insumos pelo IMEA na v1. ${DECISAO_DAVID}, §5.`
   ],
   perguntas: [
-    "Aprovação do Comitê: o milho só vai ao prompt diário, à IA e ao Centro de Decisão depois de o Comitê deliberar a proposta v0 (camadas A, B e C), como foi com o petróleo e o ouro.",
-    "Vencimentos do CCM por horizonte: qual vencimento vale como referência em cada prazo, e qual a liquidez mínima (contratos em aberto) para valer?",
-    "Peso por mês e agregação (Seção 4 da proposta): aprovar ou ajustar o mapa sazonal (fator × mês), o bloco de oferta (F1, F2 e F3 com teto de peso), os fundos como multiplicador, o F3 como filtro de confirmação e o conflito entre blocos reduzindo a confiança.",
-    "Formato da leitura da IA: faixas calibradas por horizonte (como no petróleo e no ouro) ou a variação central em % com as 6 classes fixas do prompt da proposta (de irrelevante a excepcional)?",
+    "Vencimentos do CCM por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima (contratos em aberto), e a curva dos vencimentos no prompt?",
+    "Peso por mês e agregação (Seção 4 da proposta): o mapa sazonal (fator × mês) não está no motor. O prompt da IA já leva, como orientação, o bloco de oferta como um argumento só, os fundos como contexto e não voto, o F3 como filtro e o conflito entre blocos reduzindo a confiança: a agregação em código continua para o Comitê.",
+    "Faixas da leitura da IA: hoje são os percentis 40 e 80 do Indicador ESALQ (2018 a 2026), por horizonte. As 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%) substituem?",
     "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto e F6 para Baixo-Médio): entram no FEL 1 revisado (até 2026-10-15)?",
     "Fatores ausentes propostos (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio): entram na v1, ou depois?"
   ]

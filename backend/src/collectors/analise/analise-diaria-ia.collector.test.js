@@ -136,15 +136,16 @@ test("recusada duas vezes: nada é gravado e os motivos vão para a execução",
   assert.equal(detalhes.ia.modelo, "gemini-x");
 });
 
-test("um coletor por ativo com leitura diária: petróleo e ouro, com o código de cada um", () => {
+test("um coletor por ativo com leitura diária: petróleo, ouro e milho, com o código de cada um", () => {
   assert.deepEqual(
     COLETORES_ANALISE_DIARIA.map((c) => [c.ATIVO, c.codigo]),
     [
       ["PETROLEO", "petroleo-analise-ia-diario"],
-      ["OURO", "ouro-analise-ia-diario"]
+      ["OURO", "ouro-analise-ia-diario"],
+      ["MILHO", "milho-analise-ia-diario"]
     ]
   );
-  assert.throws(() => criarColetorAnaliseDiaria("MILHO"), /Não há prompt diário/);
+  assert.throws(() => criarColetorAnaliseDiaria("CAFE"), /Não há prompt diário/);
 });
 
 test("ouro: recusa a inflação (fator de contexto) como voto a favor e chama de novo", async () => {

@@ -105,7 +105,7 @@ test("o prompt e a resposta saem só sob demanda, como foram gravados; sem leitu
   assert.equal("respostaBruta" in resumo, false);
 
   await assert.rejects(obterPromptEnviado({ ativo: "PETROLEO", data: "2026-10-01" }, { analiseDiariaRepository: repo(null) }), /Não há leitura/);
-  await assert.rejects(obterPromptEnviado({ ativo: "MILHO", data: "2026-10-03" }, { analiseDiariaRepository: repo(REGISTRO) }), /ativo/);
+  await assert.rejects(obterPromptEnviado({ ativo: "CAFE", data: "2026-10-03" }, { analiseDiariaRepository: repo(REGISTRO) }), /ativo/);
   await assert.rejects(obterPromptEnviado({ ativo: "PETROLEO", data: "03/10/2026" }, { analiseDiariaRepository: repo(REGISTRO) }), /AAAA-MM-DD/);
 });
 
@@ -136,4 +136,19 @@ test("ouro (ADR 0054): sem curva no prompt, a falta dela não é lacuna; o contr
   assert.equal(analise.evidencias.preco.ptax.valor, 5.4);
   assert.equal(analise.evidencias.fatores[0].contextoDe, "OURO_JUROS_REAIS");
   assert.equal(analise.horizontes[0].t1, 0.4);
+});
+
+test("milho (ADR 0058): a leitura gravada abre com o nome de cada fator do catálogo do milho", async () => {
+  const registroMilho = {
+    ...REGISTRO,
+    entrada: {
+      ...REGISTRO.entrada,
+      precoReferencia: { serie: "CCM", contrato: { ticker: "CCMX26", rotulo: "CCMX26 (nov/2026)" }, dataReferencia: "2026-10-02", valor: 71.67, variacoes: {} },
+      fatores: [{ fator: "MILHO_FUNDOS", tipo: "CALCULADO", peso: "Médio", situacao: "PUBLICADO", eventos: 0, janelaDias: 7 }]
+    }
+  };
+  const analise = await obterAnaliseDoDia("MILHO", "2026-10-03", { analiseDiariaRepository: repo(registroMilho) });
+  assert.equal(analise.disponivel, true);
+  assert.equal(analise.evidencias.fatores[0].nome, "Especulação e posicionamento de fundos");
+  assert.equal(analise.evidencias.fatores[0].eventos, 0);
 });

@@ -169,7 +169,7 @@ test("o mesmo dia e a mesma base dão o mesmo hash; outro ativo não tem prompt 
   const a = (await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps())).promptDiario.hashEntrada;
   const b = (await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps())).promptDiario.hashEntrada;
   assert.equal(a, b);
-  await assert.rejects(montarPromptDiario("MILHO", {}, deps()), (err) => err.statusCode === 404);
+  await assert.rejects(montarPromptDiario("CAFE", {}, deps()), (err) => err.statusCode === 404);
 });
 
 test("faixas: quatro horizontes com T1 < T2; a classificação do realizado segue as bordas da tabela 2.4", () => {
@@ -232,5 +232,37 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.4 });
   assert.equal(p.entrada.precoReferencia.contrato.ticker, "GLDZ26");
 
-  await assert.rejects(montarPromptDiario("MILHO", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
+  await assert.rejects(montarPromptDiario("CAFE", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
+});
+
+test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os eventos usados como chegam", async () => {
+  const precoCcm = {
+    ...PRECO,
+    nome: "Futuro B3 (CCM)",
+    unidade: "R$/saca",
+    fonte: "B3 - Up2Data",
+    contrato: { ticker: "CCMX26", rotulo: "CCMX26 (nov/2026)" },
+    valor: 71.67,
+    dataReferencia: "2026-10-02",
+    diasSemDado: 2
+  };
+  const d = deps({ fatores: [{ ...CALCULADO, codigo: "MILHO_FUNDOS", textoPrompt: "FATOR — Fundos" }], preco: precoCcm });
+  d.marketQuoteRepository = {
+    async buscarHistorico() {
+      throw new Error("o milho não converte pela PTAX");
+    }
+  };
+  const { promptDiario: p } = await montarPromptDiario("MILHO", { data: "2026-10-03" }, d);
+
+  assert.deepEqual(d.chamadas.preco, ["CCM", "2026-10-03"]);
+  assert.equal(p.versaoPrompt, "milho-analise-diaria@1");
+  assert.match(p.prompt, /Contrato: CCMX26 \(nov\/2026\), o vencimento mais próximo negociado/);
+  assert.match(p.prompt, /Último preço: R\$ 71,67 em 02\/10\/2026/);
+  assert.doesNotMatch(p.prompt, /US\$|Em reais:/);
+  assert.match(p.prompt, /2\.2 CURVA FUTURA — fora desta versão/);
+  assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 6,0% \| T2 = 19,0%/);
+  assert.match(p.instrucaoDoSistema, /não passou por validação humana/);
+  assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
+  assert.equal(p.entrada.precoReferencia.serie, "CCM");
+  assert.equal(p.entrada.precoReferencia.ptax, undefined);
 });

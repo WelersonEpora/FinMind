@@ -39,8 +39,9 @@ const ATIVOS = [
     codigo: "MILHO",
     nome: "Milho",
     series: [
-      { codigo: "CEPEA", nome: "Indicador CEPEA/ESALQ", observavel: "MILHO_CEPEA_ESALQ", seriesCode: "B3.MILHO_ESALQ.AVISTA_BRL" },
-      { codigo: "CCM", nome: "Futuro B3 (CCM)", observavel: "CCM_PRECOS", futuro: { prefixo: "B3.CCM", campo: "SETTLE" } }
+      // O CCM primeiro: o preço de referência aprovado pelo Comitê (2026-10-04, ADR 0058).
+      { codigo: "CCM", nome: "Futuro B3 (CCM)", observavel: "CCM_PRECOS", futuro: { prefixo: "B3.CCM", campo: "SETTLE" } },
+      { codigo: "CEPEA", nome: "Indicador CEPEA/ESALQ", observavel: "MILHO_CEPEA_ESALQ", seriesCode: "B3.MILHO_ESALQ.AVISTA_BRL" }
     ]
   },
   {

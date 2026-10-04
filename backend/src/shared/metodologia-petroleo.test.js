@@ -332,7 +332,7 @@ test("o resultado de um fator de evento são os eventos dele na janela do fator 
   };
   // 02h UTC de 04/10 ainda é 03/10 em São Paulo.
   const { eventosFator } = await obterEventosFator("petroleo", "petroleo_opep", {}, { geopoliticaService, agora: new Date("2026-10-04T02:00:00Z") });
-  assert.deepEqual(pedido, ["PETROLEO", "PETROLEO_OPEP", "2026-10-03", 45]);
+  assert.deepEqual(pedido, ["PETROLEO", "PETROLEO_OPEP", "2026-10-03", { janelaDias: 45, comCalculo: false }]);
   // Logo abaixo do título, a identificação do fator no catálogo (o código que a IA cita, o peso e o tipo no FEL 1).
   assert.equal(
     eventosFator.contexto,
@@ -348,7 +348,7 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   const geopoliticaService = {
     async obterEventosDoFator(ativo, fator, data, janela) {
       datasEventos.push(data);
-      return { eventos: [], janelaDias: janela, primeiraLeitura: null, ultimaLeitura: null, contexto: `EVENTOS DO FATOR ${fator}` };
+      return { eventos: [], janelaDias: janela.janelaDias, primeiraLeitura: null, ultimaLeitura: null, contexto: `EVENTOS DO FATOR ${fator}` };
     }
   };
   const deps = { pointInTimeService, geopoliticaService, fatorParametroRepository: repoFalso(), agora: new Date("2026-10-03T12:00:00Z") };

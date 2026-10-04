@@ -259,6 +259,7 @@ watch(ativo, carregar, { immediate: true })
                     </span>
                     <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> Proposta calculada</span>
                     <span v-if="fator.deEvento" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Fator de evento</span>
+                    <span v-if="fator.comEventos" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Com eventos</span>
                     <span v-if="fator.contextoDe" class="metodologia-ativo__calculado">
                       <i class="bi bi-info-circle"></i> Contexto de {{ nomeDoFator(fator.contextoDe) }}
                     </span>
@@ -390,6 +391,13 @@ watch(ativo, carregar, { immediate: true })
           />
           <EventosFator
             v-else-if="fatorSelecionado.deEvento"
+            :ativo="metodologia.ativo"
+            :fator="fatorSelecionado.codigo"
+            :data="simulacao?.data || ''"
+          />
+          <!-- Calculado e com eventos (o milho, ADR 0058): os eventos marcados com o fator, depois do cálculo. -->
+          <EventosFator
+            v-if="fatorSelecionado.comEventos"
             :ativo="metodologia.ativo"
             :fator="fatorSelecionado.codigo"
             :data="simulacao?.data || ''"
