@@ -154,3 +154,22 @@ do IMEA (precisa de ADR com a autorização); o prompt diário e a leitura da IA
   limiares, com viés de baixa fraco pela revisão de +0,99%. É a leitura dele.
 - **Sem validação histórica:** 15 levantamentos não testam o fator contra o preço. A avaliação diz "não basta para
   validar". A validação mais longa depende da aproximação pelo WASDE (o Brasil desde 2011, P5), ainda não calculada.
+
+## Adendo (2026-10-04): F8, a parte numérica (exportações), calculada
+
+- **F8 do milho** (`factors/exportacao-milho.factor.js`, versão 1), mensal, com o Comex Stat desde 2005:
+  - **A.** O milho exportado no mês e a participação da China (código 160), com a variação contra o mesmo mês do ano
+    anterior, a medida que o David pediu na P12.
+  - **B.** O ritmo: o acumulado do ano comercial (fevereiro a janeiro, o da Conab) contra a média do mesmo trecho nos
+    5 anos anteriores.
+  - **C.** A parte dos embarques da R-POL v0: ±10% contra a média de 5 anos. Acrescentados pelo FinMind: o forte a
+    partir de 25% e a tendência por 3 meses.
+- **Os eventos não entram na conta.** Tarifas, habilitações e embargos vêm da leitura diária por IA (ADR 0049), e o
+  David pediu validação humana antes do prompt (pendência).
+- **Por que o acumulado e não o mês.** O mês sozinho contra a média do mesmo mês salta na entressafra: +67% em
+  mar/2026 e −35% em mai/2026, sobre volumes pequenos. O David pede o "ritmo de embarque contra a média de 5 anos da
+  mesma época" e lista o "acumulado do ano comercial" como medida. A escolha vai como pergunta para ele.
+- **Validação contra o Indicador ESALQ** (97 meses, 2018 a 2026, contados da publicação de cada mês): **sem relação
+  estável.** −0,06 com o indicador 3 meses depois no período todo; +0,35 em 2018–2021 (o sentido do FEL 1) e −0,31 em
+  2022–2026 (o contrário). As exportações seguem a competitividade do milho brasileiro, e a relação troca de regime.
+- **Em agosto de 2026**, o ano comercial vai 23,6% abaixo do ritmo dos 5 anos anteriores: pressão de baixa moderada.

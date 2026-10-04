@@ -37,11 +37,11 @@ test("todo observável citado existe no catálogo", () => {
   }
 });
 
-test("calculados: o F1 (clima), o F2 (safrinha), o F3 (estoques) e o F7 (fundos); o milho não tem prompt diário até a aprovação do Comitê", () => {
+test("calculados: F1 (clima), F2 (safrinha), F3 (estoques), F7 (fundos) e F8 (exportações); sem prompt diário até a aprovação do Comitê", () => {
   const { metodologia } = obterMetodologiaAtivo("MILHO");
   assert.deepEqual(
     metodologia.fatores.filter((f) => f.calculado).map((f) => f.codigo),
-    ["MILHO_CLIMA_SAFRA_EUA", "MILHO_SAFRINHA", "MILHO_ESTOQUES_WASDE", "MILHO_FUNDOS"]
+    ["MILHO_CLIMA_SAFRA_EUA", "MILHO_SAFRINHA", "MILHO_ESTOQUES_WASDE", "MILHO_FUNDOS", "MILHO_POLITICA_COMERCIAL"]
   );
   assert.equal(metodologia.promptDiario, false);
   assert.ok(!ATIVOS_COM_PROMPT_DIARIO.includes("MILHO"));

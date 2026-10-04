@@ -284,6 +284,11 @@ const DEFINICOES = [
     dados: {
       observaveis: ["EXPORTACAO_MILHO_DESTINO", "COMEX_MILHO_VOLUME"],
       eventos: true,
+      avaliacao: {
+        suficiente: true,
+        texto:
+          "Suficiente para medir o ritmo: o Comex Stat tem a exportação de milho mensal desde 2005, com o destino (a China, código 160). O ritmo é o acumulado do ano comercial (fevereiro a janeiro) contra a média do mesmo trecho nos 5 anos anteriores: o mês sozinho salta na entressafra (+67% e -35% em mar e mai/2026, sobre volumes pequenos). Contra o Indicador CEPEA/ESALQ (97 meses, 2018 a 2026, contados da publicação de cada mês), não há relação estável: -0,06 com o indicador 3 meses depois no período todo, +0,35 em 2018 a 2021 (o sentido do FEL 1) e -0,31 em 2022 a 2026 (o contrário). As exportações seguem a competitividade do milho brasileiro, e a relação troca de regime. A parte de eventos (tarifas, habilitações) não entra na conta e não tem validação no passado (P12: buscar eventos antigos hoje repete o problema do vintage)."
+      },
       lacunas: [
         "USDA Export Sales, ANEC e o Secex semanal não são coletados: o ritmo de embarque é mensal (Comex Stat).",
         "Os eventos (tarifas, habilitações) vêm da leitura diária por IA (ADR 0049), sem validação humana antes do prompt."
@@ -294,7 +299,7 @@ const DEFINICOES = [
       objetivo: "Medir o fluxo de exportação do milho brasileiro e os atos oficiais que o abrem ou fecham.",
       medida: "Volume exportado (mil t/mês) e o acumulado do ano comercial; a participação da China no total (P12: com a variação contra o mesmo mês do ano anterior); cada evento oficial com data, tipo, países, direção e volume estimado.",
       comparacao: "O ritmo de embarque contra a média de 5 anos da mesma época; a janela de efeito do evento e o decaimento; o preço afetado (Chicago ou o prêmio no porto).",
-      leitura: "Evento oficial que amplia o acesso ao milho brasileiro, ou embarques 10% ou mais acima da média de 5 anos, pesa para alta; evento que restringe, ou embarques 10% ou mais abaixo, para baixa. Peso: Médio; Alto se o destino é grande (China) e o ato está confirmado. Evento só entra com confirmação oficial e validação humana.",
+      leitura: "Evento oficial que amplia o acesso ao milho brasileiro, ou embarques 10% ou mais acima da média de 5 anos, pesa para alta; evento que restringe, ou embarques 10% ou mais abaixo, para baixa (regra do David). O cálculo faz a parte dos embarques; os eventos vêm da leitura diária por IA, fora da conta. O FinMind acrescentou: o ritmo pelo acumulado do ano comercial (fevereiro a janeiro), não pelo mês sozinho; forte a partir de 25%; tendência por 3 meses. Peso: Médio; Alto se o destino é grande (China) e o ato está confirmado. Evento só entra com confirmação oficial e validação humana. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "R-POL-01 v0: evento oficial que reduz a oferta concorrente ou amplia o acesso ao milho brasileiro (tarifa ao milho dos EUA, restrição de exportação na Argentina ou na Ucrânia, nova habilitação sanitária), com volume estimado relevante (limiar a definir), ou embarques 10% ou mais acima da média de 5 anos → pesa para alta.",
         baixa: "R-POL-02 v0: evento oficial que restringe o milho brasileiro (embargo sanitário, tarifa de grande comprador, cancelamento de compras), acordo que devolve compras de milho dos EUA a mercados asiáticos, imposto ou restrição à exportação no Brasil, ou embarques 10% ou mais abaixo da média de 5 anos → pesa para baixa."
@@ -302,7 +307,8 @@ const DEFINICOES = [
     },
     perguntas: [
       "A validação humana dos eventos antes do prompt: como (uma tela de aprovação?) e por quem?",
-      "Qual o \"volume estimado relevante\" que torna um evento uma pressão?"
+      "Qual o \"volume estimado relevante\" que torna um evento uma pressão?",
+      "O ritmo de embarque pelo acumulado do ano comercial (o cálculo) atende, ou o especialista quer o mês contra a média do mesmo mês (que salta na entressafra)?"
     ]
   }
 ];
