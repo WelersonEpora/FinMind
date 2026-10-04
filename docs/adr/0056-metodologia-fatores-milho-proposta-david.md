@@ -173,3 +173,33 @@ do IMEA (precisa de ADR com a autorização); o prompt diário e a leitura da IA
   estável.** −0,06 com o indicador 3 meses depois no período todo; +0,35 em 2018–2021 (o sentido do FEL 1) e −0,31 em
   2022–2026 (o contrário). As exportações seguem a competitividade do milho brasileiro, e a relação troca de regime.
 - **Em agosto de 2026**, o ano comercial vai 23,6% abaixo do ritmo dos 5 anos anteriores: pressão de baixa moderada.
+
+## Adendo (2026-10-04): F5 (etanol, só os EUA) e F6 (insumos, só a margem) calculados
+
+- **F5** (`factors/etanol-milho.factor.js`, versão 1), semanal, com a produção de etanol da EIA desde 2010.
+  - **A.** A produção e a moagem implícita de milho (× 42 ÷ 2,8 galões por bushel, o rendimento da proposta).
+  - **B.** O desvio contra a média das 4 semanas anteriores e, como contexto, contra a mesma semana do ano anterior.
+  - **C.** A parte da EIA da R-ETA-02 v0: 3% ou mais abaixo da média de 4 semanas → pressão de baixa. Acrescentado
+    pelo FinMind: forte com a semana também 3% abaixo do ano anterior.
+  - **Fica de fora:** a regra de alta e o resto da de baixa pedem a margem do etanol de milho e o Brasil (UNEM, ANP,
+    Cepea), que não são coletados. O fator só dá baixa.
+  - **Validação contra o Indicador ESALQ** (432 semanas): fraca, no sentido da regra. Nas semanas com pressão de
+    baixa, o indicador caiu em média 1,4% em 13 semanas (subiu em 44% delas); nas neutras, subiu em média 3,5% (60%).
+- **F6** (`factors/insumos-milho.factor.js`, versão 1), semanal (o último pregão).
+  - **A.** O custo total e o operacional efetivo por saca da média de MT (IMEA, R$/ha ÷ sc/ha), da safra mais nova
+    que o IMEA tinha publicado até o pregão, e o Indicador ESALQ.
+  - **B.** A margem sobre o custo total.
+  - **C.** A parte da margem da R-INS-01 v0: margem de 0% ou menos → pressão de alta (o piso). Acrescentado pelo
+    FinMind: forte com o preço no custo operacional efetivo ou abaixo.
+  - **Fica de fora:** a relação de troca e a regra de baixa pedem o preço do fertilizante, que não é coletado. O
+    fator só dá alta.
+- **Dois limites do F6, declarados na tela:**
+  - O custo é de MT, e o preço é de Campinas: a margem fica maior que a do produtor de MT.
+  - O custo por safra só é conhecido na base desde a 1ª coleta (2026-09-15): point-in-time, o fator tem poucas semanas.
+    Como leitura dos números, fora do point-in-time: em meados de 2024 o indicador (~R$ 57) estava no custo da safra
+    2023/24 (R$ 58,60) antes da alta para ~R$ 74; em 2023 o aperto de MT não aparece no preço de Campinas.
+- **Com isso, o milho tem 7 dos 8 fatores calculados.** Falta o F4 (dólar e paridade), que depende da paridade do
+  IMEA (P16) e de um ADR com a autorização da coleta. A simulação de 2026-09-30:
+  - **Alta:** estoques forte.
+  - **Baixa:** fundos forte; etanol e exportações moderada; safrinha fraca.
+  - **Neutros:** clima e insumos.

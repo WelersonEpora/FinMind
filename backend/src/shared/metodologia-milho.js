@@ -184,6 +184,11 @@ const DEFINICOES = [
     dados: {
       observaveis: ["ETANOL_EUA_EIA", "WASDE_MILHO_EUA"],
       eventos: false,
+      avaliacao: {
+        suficiente: false,
+        texto:
+          "Basta para a parte dos EUA, não para o fator inteiro: a produção semanal de etanol da EIA é coletada desde 2010 e os episódios conhecidos aparecem (a pandemia, -19% contra a média de 4 semanas em abr/2020; o frio extremo no Texas, -29% em fev/2021). A margem do etanol de milho e a moagem do Brasil (UNEM, ANP, Cepea), de que dependem a regra de alta e boa parte da de baixa, não são coletadas: o fator só dá pressão de baixa. Contra o Indicador CEPEA/ESALQ (432 semanas, 2018 a 2026), a relação é fraca, no sentido da regra: nas 64 semanas com pressão de baixa o indicador caiu em média 1,4% nas 13 semanas seguintes (subiu em 44% delas), contra +3,5% nas semanas neutras (60%); o desvio tem +0,12 com o indicador 13 semanas depois."
+      },
       lacunas: [
         "O etanol de milho do Brasil (UNEM, ANP, Cepea etanol hidratado) não é coletado: a margem e a moagem brasileiras da proposta dependem dele.",
         "A expectativa semanal antes da EIA não é coletada."
@@ -194,7 +199,7 @@ const DEFINICOES = [
       objetivo: "Medir se a demanda de milho para etanol está firme ou fraca, nos EUA e no Brasil.",
       medida: "EUA: moagem implícita (produção de etanol × 42 ÷ ~2,8 gal/bu). Brasil: milho consumido por etanol e a margem do etanol de milho (R$/saca).",
       comparacao: "O percentil de 10 anos da margem; a moagem contra o mesmo período do ano anterior e contra a capacidade; a surpresa semanal da EIA.",
-      leitura: "Margem no P70 ou acima com moagem crescendo pesa para alta; margem no P30 ou abaixo, ou moagem semanal 3% ou mais abaixo da média de 4 semanas, para baixa. Peso: Médio; Alto na base de MT durante a colheita (jun–set).",
+      leitura: "Margem no P70 ou acima com moagem crescendo pesa para alta; margem no P30 ou abaixo, ou moagem semanal 3% ou mais abaixo da média de 4 semanas, para baixa (regra do David). O cálculo faz só a parte da EIA: a produção semanal dos EUA 3% ou mais abaixo da média de 4 semanas pesa para baixa; sem a margem, não há direção de alta. O FinMind acrescentou: forte com a semana também 3% ou mais abaixo do ano anterior; tendência por 4 semanas. Peso: Médio; Alto na base de MT durante a colheita (jun–set). Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "R-ETA-01 v0: margem no percentil 70 ou acima, e moagem ou capacidade instalada crescendo contra o ano anterior (nova planta confirmada pela UNEM) → pesa para alta (demanda local firme).",
         baixa: "R-ETA-02 v0: margem no percentil 30 ou abaixo, ou moagem semanal (EIA) 3% ou mais abaixo da média de 4 semanas, ou paradas de plantas → pesa para baixa."
@@ -215,7 +220,13 @@ const DEFINICOES = [
     dados: {
       observaveis: ["IMEA_CUSTO_MILHO_MES", "IMEA_CUSTO_MILHO_SAFRA", "MILHO_CEPEA_ESALQ"],
       eventos: false,
+      avaliacao: {
+        suficiente: false,
+        texto:
+          "Basta para a margem de hoje, não para validar: o custo por safra do IMEA (média de MT, 5 safras, 2021/22 a 2025/26) só é conhecido na base desde a 1ª coleta, em 2026-09-15, então o fator (point-in-time) tem poucas semanas. Fora do point-in-time, só como leitura dos números: a safra 2023/24 custou R$ 58,60 por saca em MT, e o Indicador ESALQ (Campinas) estava em ~R$ 57 em meados de 2024, no custo, antes da alta para ~R$ 74 em jan/2025; em 2023, com o produtor de MT no prejuízo, o indicador de Campinas (~R$ 55) ficou acima do custo de R$ 48,10 da safra 2022/23 (o frete separa as duas praças). Sem o preço do fertilizante, não há relação de troca nem direção de baixa."
+      },
       lacunas: [
+        "O preço do milho em MT não é coletado: a margem usa o Indicador ESALQ (Campinas), acima do preço de MT pelo frete.",
         "O custo é só de Mato Grosso e agregado; o preço isolado de fertilizante (Banco Mundial, importação pelo Comex Stat) e o diesel (ANP) não são coletados.",
         "O custo de produção de milho da Conab não é coletado (só o do café, ADR 0043)."
       ]
@@ -225,7 +236,7 @@ const DEFINICOES = [
       objetivo: "Medir se o custo do produtor serve de piso para o preço, e o efeito defasado sobre a área da safra seguinte.",
       medida: "Margem do produtor = preço do milho − custo total por saca; a relação de troca (sacas por tonelada de adubo); a variação dos insumos em 3 e 6 meses.",
       comparacao: "O percentil de 10 anos da relação de troca; a margem contra a média de 5 anos.",
-      leitura: "Relação de troca pior que o P75 por 2 meses, ou margem do produtor ≤ 0, pesa para alta (piso e menos área depois); adubo barato com margem confortável, para baixa. Peso: Baixo no horizonte do sistema; Médio para vencimentos a 6 meses ou mais. Sinal defasado de 6 a 12 meses.",
+      leitura: "Relação de troca pior que o P75 por 2 meses, ou margem do produtor ≤ 0, pesa para alta (piso e menos área depois); adubo barato com margem confortável, para baixa (regra do David). O cálculo faz a parte da margem: o Indicador ESALQ contra o custo total por saca do IMEA (MT), e margem de 0% ou menos pesa para alta; sem o preço do fertilizante, não há relação de troca nem direção de baixa. O FinMind acrescentou: forte com o preço no custo operacional efetivo ou abaixo (o caixa); tendência por 4 semanas. Peso: Baixo no horizonte do sistema; Médio para vencimentos a 6 meses ou mais. Sinal defasado de 6 a 12 meses. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "R-INS-01 v0: relação de troca pior que o percentil 75 por 2 meses ou mais, ou preço do milho igual ou abaixo do custo total por saca (margem ≤ 0) → pesa para alta (retenção de oferta e menor área futura).",
         baixa: "R-INS-02 v0: relação de troca melhor que o percentil 25 (adubo barato) e margem do produtor confortável (limiar a definir) → pesa para baixa (incentivo a mais área e tecnologia na safra seguinte)."

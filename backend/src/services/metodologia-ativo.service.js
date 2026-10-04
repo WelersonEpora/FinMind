@@ -45,7 +45,9 @@ const CALCULOS = {
   MILHO_FUNDOS: require("../factors/fundos-milho.factor").METODOLOGIA,
   MILHO_CLIMA_SAFRA_EUA: require("../factors/clima-milho-eua.factor").METODOLOGIA,
   MILHO_SAFRINHA: require("../factors/safrinha-milho.factor").METODOLOGIA,
-  MILHO_POLITICA_COMERCIAL: require("../factors/exportacao-milho.factor").METODOLOGIA
+  MILHO_POLITICA_COMERCIAL: require("../factors/exportacao-milho.factor").METODOLOGIA,
+  MILHO_ETANOL: require("../factors/etanol-milho.factor").METODOLOGIA,
+  MILHO_INSUMOS: require("../factors/insumos-milho.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
