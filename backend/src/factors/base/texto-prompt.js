@@ -60,10 +60,11 @@ function comUnidade(valor, unidade) {
   return unidade === "%" ? `${limiar(valor)}%` : `${limiar(valor)} ${unidade}`;
 }
 
-// Um texto com os parâmetros entre chaves ("{limiarRevisaoPct}"), preenchidos com os em uso. As janelas em semanas
-// ("semanas...") são contagens: sem casa decimal.
+// Um texto com os parâmetros entre chaves ("{limiarRevisaoPct}"), preenchidos com os em uso. As janelas em semanas ou
+// levantamentos ("semanas...", "levantamentos...") são contagens: sem casa decimal.
+const CONTAGEM = /^(semanas|levantamentos)/;
 function preencher(texto, parametros) {
-  return texto.replace(/\{(\w+)\}/g, (_, chave) => (chave.startsWith("semanas") ? String(parametros[chave]) : limiar(parametros[chave])));
+  return texto.replace(/\{(\w+)\}/g, (_, chave) => (CONTAGEM.test(chave) ? String(parametros[chave]) : limiar(parametros[chave])));
 }
 
 // A regra da decisão por faixa. Opcionais da `apresentacao`: `regra`, a regra própria de um fator que não é por faixa

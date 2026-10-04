@@ -72,8 +72,14 @@ const DEFINICOES = [
     dados: {
       observaveis: ["CONAB_MILHO_SAFRA", "IMEA_MILHO_SAFRA", "IMEA_MILHO_ANDAMENTO"],
       eventos: false,
+      avaliacao: {
+        suficiente: false,
+        texto:
+          "Basta para medir a safra atual, não para validar a regra. A base tem os levantamentos da Conab desde fev/2025 (15, sem mar a jun/2025 e jan/2026, que a fonte não publicou): a comparação no mesmo levantamento só existe na safra 2025/26 e em 4 meses (fev, jul, ago e set/2026), e a 1ª estimativa, a partir dela. Não há histórico para testar o fator contra o preço. Os números batem com o exemplo do especialista: no 12º levantamento de 2025/26, +0,09% contra o mesmo levantamento de 2024/25 e +1,51% de revisão acumulada, abaixo dos limiares, com viés de baixa fraco pela revisão para cima. Em fev/2026, +13,8% contra o mesmo levantamento de 2025 (a estimativa de 2024/25 começou baixa): pressão de baixa. A validação mais longa depende da aproximação pelo WASDE (o Brasil no WASDE, desde 2011), aceita pelo especialista na P5 e ainda não calculada."
+      },
       lacunas: [
         "As revisões da Conab só existem desde fev/2025; antes, a aproximação pelo WASDE (o Brasil no WASDE), validada pelo David na P5 (ADR 0055).",
+        "A revisão contra o levantamento anterior atravessa os meses sem levantamento na base (ex.: fev a jul/2025).",
         "Chuva e temperatura (INMET/CPTEC) e a expectativa das consultorias (StoneX, AgRural, Safras) não são coletadas."
       ]
     },
@@ -82,14 +88,16 @@ const DEFINICOES = [
       objetivo: "Medir se a safrinha está vindo maior ou menor, separando o tamanho (nível) da mudança de estimativa (revisão).",
       medida: "Produção (mil t), área (mil ha) e produtividade (kg/ha) da 2ª safra; a revisão contra o levantamento anterior e a acumulada contra a 1ª estimativa; % do plantio na janela ideal e % colhido.",
       comparacao: "A safra anterior no MESMO levantamento (não o número final dela); o tamanho das revisões em desvios-padrão das revisões da Conab; o desvio contra a tendência de 10 anos.",
-      leitura: "Produção 3% ou mais abaixo da safra anterior (mesmo estágio), ou revisões de −2% ou pior em 2 levantamentos, ou alerta climático pesa para alta; o simétrico, com plantio na janela e sem alerta, para baixa. Peso por mês: Alto de março a julho, Médio em agosto e setembro, Baixo depois (o fator passa ao F3).",
+      leitura: "Produção 3% ou mais abaixo da safra anterior no mesmo levantamento, ou revisão acumulada contra a 1ª estimativa de −2% ou pior em 2 levantamentos seguidos, pesa para alta; o simétrico, para baixa; abaixo dos limiares, uma revisão para cima dá viés de baixa fraco (regra do David; o alerta agroclimático e o plantio na janela ficam fora, sem o dado). O FinMind acrescentou: forte com nível e revisão no mesmo sentido; neutra com os dois opostos. Peso por mês (do David, fora da conta): Alto de março a julho, Médio em agosto e setembro, Baixo depois (o fator passa ao F3). Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "R-SAF-01 v0: produção 3% ou mais abaixo da safra anterior (mesmo estágio), ou revisão acumulada de −2% ou pior em 2 levantamentos seguidos, ou alerta agroclimático (déficit hídrico em mar–mai; geada em jun–jul em PR, MS e SP) → pesa para alta.",
         baixa: "R-SAF-02 v0: produção 3% ou mais acima da safra anterior (mesmo estágio), ou revisão acumulada de +2% ou mais em 2 levantamentos seguidos, com plantio na janela e sem alerta climático → pesa para baixa."
       }
     },
     perguntas: [
-      "Sem dado de clima brasileiro na base, o alerta agroclimático fica fora da regra na v1 (declarado), ou vira fonte nova?"
+      "Sem dado de clima brasileiro na base, o alerta agroclimático fica fora da regra na v1 (declarado), ou vira fonte nova?",
+      "\"Revisão acumulada de −2% em 2 levantamentos seguidos\" é a acumulada contra a 1ª estimativa passando do limiar em 2 levantamentos seguidos (como no exemplo do especialista, que usou a acumulada contra a 1ª estimativa)? É a leitura do cálculo.",
+      "O viés de baixa fraco vale com qualquer revisão para cima abaixo dos limiares (o cálculo), ou só com revisões seguidas (no exemplo, 3)?"
     ]
   },
   {

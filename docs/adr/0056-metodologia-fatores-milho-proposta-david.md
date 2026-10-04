@@ -130,3 +130,27 @@ do IMEA (precisa de ADR com a autorização); o prompt diário e a leitura da IA
   +0,15 com o indicador 13 semanas depois, o sentido contrário. Nas semanas de pressão de baixa, o indicador subiu em
   25 de 26 (+13,6%), puxado por 2024 e 2025. São só 9 safras, e o efeito chega ao CCM por Chicago e pela paridade,
   atenuado pela safrinha. A validação que falta é contra o ZC (Fase 2 da P8); vai como pergunta ao David.
+
+## Adendo (2026-10-04): F2, safrinha, calculado
+
+- **F2 do milho** (`factors/safrinha-milho.factor.js`, versão 1), um ponto por levantamento da Conab, lido de todas as
+  versões (`obterVersoesAsOf`).
+  - **A.** A produção, a área e a produtividade da 2ª safra; a revisão contra o levantamento anterior; a revisão
+    acumulada contra a 1ª estimativa (a de outubro, o 1º levantamento).
+  - **B.** A safra anterior no MESMO levantamento (o mesmo mês, um ano antes; o número do levantamento vem do mês) e
+    a variação contra ela.
+  - **C.** A R-SAF v0 do David: 3% contra a safra anterior, ou a acumulada de 2% em 2 levantamentos seguidos. Abaixo
+    dos limiares, uma revisão para cima dá viés de baixa fraco, como ele escreveu.
+  - **Fora da conta, sem o dado:** o alerta agroclimático e o plantio na janela.
+  - **Acrescentados pelo FinMind:** forte com nível e revisão no mesmo sentido; neutra com os dois opostos.
+  - **Novo parâmetro:** `levantamentosSeguidos`, validado como inteiro.
+- **A leitura de "revisão acumulada em 2 levantamentos seguidos"** é a acumulada contra a 1ª estimativa passando do
+  limiar em 2 levantamentos seguidos. É o que o exemplo do David usa (+1,5% contra a 1ª estimativa, "abaixo de +2%").
+  Vai como pergunta para ele confirmar.
+- **Um levantamento que a base não tem** (a fonte não publicou: mar a jun/2025 e jan/2026) não vira "mesmo estágio":
+  a comparação fica sem dado. A comparação só existe na safra 2025/26, em 4 meses: fev (+13,8%, baixa), jul (+4,7%,
+  baixa), ago (+1,3%) e set/2026 (+0,09%).
+- **Confere com o exemplo do David:** no 12º levantamento de 2025/26, nível +0,09% e acumulada +1,51%, abaixo dos
+  limiares, com viés de baixa fraco pela revisão de +0,99%. É a leitura dele.
+- **Sem validação histórica:** 15 levantamentos não testam o fator contra o preço. A avaliação diz "não basta para
+  validar". A validação mais longa depende da aproximação pelo WASDE (o Brasil desde 2011, P5), ainda não calculada.

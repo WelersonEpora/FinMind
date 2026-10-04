@@ -43,7 +43,8 @@ const CALCULOS = {
   OURO_MINERACAO: require("../factors/mineracao-ouro.factor").METODOLOGIA,
   MILHO_ESTOQUES_WASDE: require("../factors/estoques-milho-wasde.factor").METODOLOGIA,
   MILHO_FUNDOS: require("../factors/fundos-milho.factor").METODOLOGIA,
-  MILHO_CLIMA_SAFRA_EUA: require("../factors/clima-milho-eua.factor").METODOLOGIA
+  MILHO_CLIMA_SAFRA_EUA: require("../factors/clima-milho-eua.factor").METODOLOGIA,
+  MILHO_SAFRINHA: require("../factors/safrinha-milho.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -83,7 +84,7 @@ function lerParametros(padrao, valores = {}) {
   if ("limiarModeradoPct" in padrao && "limiarFortePct" in padrao && !(parametros.limiarModeradoPct < parametros.limiarFortePct)) {
     throw new ValidationError('"limiarModeradoPct" deve ser menor que "limiarFortePct".');
   }
-  for (const chave of ["semanasTendencia", "semanasSeguidas"]) {
+  for (const chave of ["semanasTendencia", "semanasSeguidas", "levantamentosSeguidos"]) {
     if (!(chave in padrao)) continue;
     const semanas = parametros[chave];
     if (!Number.isInteger(semanas) || semanas < 1 || semanas > SEMANAS_TENDENCIA_MAX) {
