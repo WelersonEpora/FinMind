@@ -36,6 +36,12 @@ const opcoesAtivo = computed(() => (resposta.value?.ativos || []).map((a) => ({ 
 
 const ROTULO_SITUACAO = { PROPOSTA: 'Proposta, aguardando o David', VALIDADA: 'Validada pelo David' }
 
+// A situação da proposta de um fator. A do próprio especialista (o milho, ADR 0055) aguarda o Comitê, não ele.
+function rotuloSituacao(proposta) {
+  if (proposta.situacao === 'PROPOSTA' && proposta.autoria) return 'Proposta do especialista, aguardando o Comitê'
+  return ROTULO_SITUACAO[proposta.situacao]
+}
+
 // O nome de um fator do ativo pelo código (o fator de que outro é contexto, ADR 0054).
 function nomeDoFator(codigo) {
   return metodologia.value?.fatores.find((f) => f.codigo === codigo)?.nome || codigo
@@ -343,9 +349,12 @@ watch(ativo, carregar, { immediate: true })
             <h4>
               Como medir
               <span class="metodologia-ativo__situacao" :class="`metodologia-ativo__situacao--${fatorSelecionado.proposta.situacao.toLowerCase()}`">
-                {{ ROTULO_SITUACAO[fatorSelecionado.proposta.situacao] }}
+                {{ rotuloSituacao(fatorSelecionado.proposta) }}
               </span>
             </h4>
+            <p v-if="fatorSelecionado.proposta.autoria" class="metodologia-ativo__autoria">
+              Proposta de {{ fatorSelecionado.proposta.autoria }}. O que o FinMind acrescentou para o cálculo está dito na leitura.
+            </p>
             <ul>
               <li><strong>Objetivo:</strong> {{ fatorSelecionado.proposta.objetivo }}</li>
               <!-- Fator de evento: sem cálculo, os rótulos dizem o que entra, o contexto e quem lê. -->
@@ -360,6 +369,14 @@ watch(ativo, carregar, { immediate: true })
                 <li><strong>C. Decidir (simulação; o Comitê ajusta os parâmetros):</strong> {{ fatorSelecionado.proposta.leitura }}</li>
               </template>
             </ul>
+            <!-- As regras como o especialista as escreveu, sem reescrever (o milho, Motor do Milho v0). -->
+            <template v-if="fatorSelecionado.proposta.regrasEspecialista">
+              <p class="metodologia-ativo__lacunas-titulo">Regras do especialista, como escritas</p>
+              <ul>
+                <li><strong>Alta:</strong> {{ fatorSelecionado.proposta.regrasEspecialista.alta }}</li>
+                <li><strong>Baixa:</strong> {{ fatorSelecionado.proposta.regrasEspecialista.baixa }}</li>
+              </ul>
+            </template>
           </section>
 
           <p v-if="simulacao" class="metodologia-ativo__simulando mb-0">
@@ -574,6 +591,13 @@ watch(ativo, carregar, { immediate: true })
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+}
+
+/* De quem é a proposta, quando não é do FinMind (o milho): uma linha discreta logo abaixo do título do bloco. */
+.metodologia-ativo__autoria {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color, #6c757d);
 }
 
 /* O card do ativo é um só: largura inteira, com o mesmo espaço antes do título "Fatores". */

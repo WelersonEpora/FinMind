@@ -82,12 +82,12 @@ test("todo observável citado existe no catálogo", () => {
 test("a API aceita o ativo sem diferenciar maiúsculas; ativo do FEL 1 sem metodologia vem nulo; fora do FEL 1, 404", () => {
   assert.equal(obterMetodologiaAtivo("petroleo").metodologia.ativo, "PETROLEO");
   assert.throws(() => obterMetodologiaAtivo("SOJA"), (err) => err.statusCode === 404);
-  const milho = obterMetodologiaAtivo("milho");
-  assert.equal(milho.metodologia, null);
-  assert.deepEqual(milho.ativo, { codigo: "MILHO", nome: "Milho" });
+  const cafe = obterMetodologiaAtivo("cafe");
+  assert.equal(cafe.metodologia, null);
+  assert.deepEqual(cafe.ativo, { codigo: "CAFE", nome: "Café" });
   assert.deepEqual(
-    milho.ativos.map((a) => `${a.codigo}:${a.disponivel}`),
-    ["OURO:true", "PETROLEO:true", "MILHO:false", "CAFE:false"]
+    cafe.ativos.map((a) => `${a.codigo}:${a.disponivel}`),
+    ["OURO:true", "PETROLEO:true", "MILHO:true", "CAFE:false"]
   );
 });
 

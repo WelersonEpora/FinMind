@@ -4,13 +4,16 @@ const { ConflictError, NotFoundError, ValidationError } = require("../shared/err
 const fatorParametroRepository = require("../repositories/fator-parametro.repository");
 const { obterMetodologiaPetroleo } = require("../shared/metodologia-petroleo");
 const { obterMetodologiaOuro } = require("../shared/metodologia-ouro");
+const { obterMetodologiaMilho } = require("../shared/metodologia-milho");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
 const { montarTextoPrompt } = require("../factors/base/texto-prompt");
 const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 
-// Metodologia dos fatores por ativo: a proposta para o David validar (ADRs 0050 e 0053).
+// Metodologia dos fatores por ativo: a proposta para o David validar (ADRs 0050 e 0053); no milho, a proposta v0 do
+// próprio David (ADR 0055).
 const METODOLOGIAS = {
+  MILHO: obterMetodologiaMilho,
   OURO: obterMetodologiaOuro,
   PETROLEO: obterMetodologiaPetroleo
 };
@@ -37,7 +40,8 @@ const CALCULOS = {
   OURO_BANCOS_CENTRAIS: require("../factors/bancos-centrais-ouro.factor").METODOLOGIA,
   OURO_ETFS: require("../factors/etfs-ouro.factor").METODOLOGIA,
   OURO_FUNDOS: require("../factors/fundos-ouro.factor").METODOLOGIA,
-  OURO_MINERACAO: require("../factors/mineracao-ouro.factor").METODOLOGIA
+  OURO_MINERACAO: require("../factors/mineracao-ouro.factor").METODOLOGIA,
+  MILHO_ESTOQUES_WASDE: require("../factors/estoques-milho-wasde.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;

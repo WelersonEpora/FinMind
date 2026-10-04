@@ -60,15 +60,18 @@ function comUnidade(valor, unidade) {
   return unidade === "%" ? `${limiar(valor)}%` : `${limiar(valor)} ${unidade}`;
 }
 
+// `apresentacao.regraAdicional` (opcional): uma condição a mais do fator além da faixa (ex.: a revisão do estoque no
+// milho), em texto, com os parâmetros entre chaves ("{limiarRevisaoPct}"), preenchidos com os em uso.
 function regraDaDecisao(parametros, apresentacao) {
   const unidade = (chave) => apresentacao.parametros.find((p) => p.chave === chave)?.unidade || "";
   const u = unidade("limiarModeradoPct");
   const mod = parametros.limiarModeradoPct;
-  return (
+  const regra =
     `neutra entre -${comUnidade(mod, u)} e +${comUnidade(mod, u)}, forte a partir de ${comUnidade(parametros.limiarFortePct, u)}; ` +
     `tendência em ${parametros.semanasTendencia} ${unidade("semanasTendencia")}, mudança mínima de ` +
-    `${comUnidade(parametros.limiarTendenciaPp, unidade("limiarTendenciaPp"))}`
-  );
+    `${comUnidade(parametros.limiarTendenciaPp, unidade("limiarTendenciaPp"))}`;
+  if (!apresentacao.regraAdicional) return regra;
+  return `${regra}; ${apresentacao.regraAdicional.replace(/\{(\w+)\}/g,(_, chave) => limiar(parametros[chave]))}`;
 }
 
 function origemDosParametros(origem, simulacao) {

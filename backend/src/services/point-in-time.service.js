@@ -230,4 +230,18 @@ async function obterAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, estr
   return linhas.map(paraSaida);
 }
 
-module.exports = { registrarObservacoes, obterAsOf, montarVersao, mesmoValor };
+// Todas as versões publicadas até `asOf`, em ordem de publicação: "o que cada edição dizia". Para fatores de REVISÃO
+// (o WASDE edição a edição); para "o que se sabia em asOf", use obterAsOf. A observation só ganha linha quando o valor
+// muda: o que uma edição disse de uma série é a última versão publicada até ela.
+async function obterVersoesAsOf({ seriesCodes, asOf, estrito = false }, deps = {}) {
+  const repo = deps.observationRepository || observationRepository;
+
+  const codigos = Array.isArray(seriesCodes) ? seriesCodes : [seriesCodes];
+  if (codigos.length === 0 || codigos.some((c) => !c)) throw new Error("obterVersoesAsOf: informe ao menos um series_code.");
+  if (!(asOf instanceof Date) || Number.isNaN(asOf.getTime())) throw new Error("obterVersoesAsOf: asOf deve ser um Date válido.");
+
+  const linhas = await repo.buscarVersoesAsOf({ seriesCodes: codigos, asOf, estrito }, { transaction: deps.transaction });
+  return linhas.map(paraSaida);
+}
+
+module.exports = { registrarObservacoes, obterAsOf, obterVersoesAsOf, montarVersao, mesmoValor };

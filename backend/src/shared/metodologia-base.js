@@ -13,7 +13,9 @@ const { FATORES } = require("./fatores-fel1");
 //   proposta - um rascunho do fator nas três camadas do motor (STATUS_DO_PROJETO.md, §5): a medida (A. Medir), a
 //              comparação (B. Ler) e um esboço da leitura (C. Decidir, só o Comitê), escrito para abrir caminho e ser
 //              corrigido. Fica com `situacao: "PROPOSTA"` até o David validar; aí vira "VALIDADA"
-//              com a data e a referência da validação (no ADR).
+//              com a data e a referência da validação (no ADR). Opcionais: `autoria` (de quem é a proposta, quando não
+//              é do FinMind: ex.: o Motor do Milho v0 do David) e `regrasEspecialista` ({ alta, baixa }: as regras como
+//              o especialista as escreveu, sem reescrever).
 //   perguntas - o que o David precisa decidir para a proposta virar regra.
 //   nome     - (opcional) o título do fator quando o dado usado é mais estreito que o nome da planilha (ex.: o FEL 1
 //              diz "Demanda global", o cálculo usa só os EUA). O título diz exatamente o que entra no cálculo; o nome

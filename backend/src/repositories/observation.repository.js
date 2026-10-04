@@ -162,6 +162,20 @@ async function buscarAsOf({ seriesCodes, asOf, observadoDesde, observadoAte, est
   );
 }
 
+// Todas as versões publicadas até `asOf` (published_at <= asOf), não só a vigente: um fator que lê REVISÕES (o WASDE
+// edição a edição, ex.: o estoque/uso do milho) reconstrói o que cada edição dizia. Mesma regra de `estrito` do buscarAsOf.
+async function buscarVersoesAsOf({ seriesCodes, asOf, estrito = false }, { transaction } = {}) {
+  const filtros = ["series_code IN (:seriesCodes)", "published_at <= :asOf"];
+  if (estrito) filtros.push("(published_at_is_estimated = FALSE OR collected_at <= :asOf)");
+  return sequelize.query(
+    `SELECT series_code, observed_at, value, unit, published_at, published_at_is_estimated, revision_seq
+       FROM observation
+      WHERE ${filtros.join(" AND ")}
+      ORDER BY published_at, series_code, observed_at`,
+    { replacements: { seriesCodes, asOf: asOf.toISOString() }, type: QueryTypes.SELECT, transaction }
+  );
+}
+
 // Última observação (período mais recente) de uma série, na versão vigente
 // hoje - alimenta o "valor atual" da tela de Observáveis.
 async function buscarMaisRecente(seriesCode, { transaction } = {}) {
@@ -277,4 +291,4 @@ async function resumirSeries(seriesCodes, { transaction } = {}) {
   );
 }
 
-module.exports = { TAMANHO_MAXIMO, inserirVersoes, buscarUltimasVersoes, buscarVersoes, listarSeriesEInstantes, buscarAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, listarUltimasDatasItens, resumirSeries };
+module.exports = { TAMANHO_MAXIMO, inserirVersoes, buscarUltimasVersoes, buscarVersoes, listarSeriesEInstantes, buscarAsOf, buscarVersoesAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, listarUltimasDatasItens, resumirSeries };
