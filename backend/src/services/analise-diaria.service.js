@@ -107,13 +107,16 @@ function leituraGravada(ativo, registro) {
         }
       : null,
     referenciaHorizontes: { tipo: tipoReferencia, data: dataReferenciaHorizontes },
-    horizontes: (entrada.horizontes || []).map(({ codigo, dias, t1, t2 }) => ({
+    horizontes: (entrada.horizontes || []).map(({ codigo, dias, t1, t2, contrato, seriesCode, dataReferencia, valor }) => ({
       codigo,
       rotulo: rotulos.get(codigo) || codigo,
       dias,
       t1: t1 ?? null,
       t2: t2 ?? null,
-      dataAlvo: dataReferenciaHorizontes && Number.isInteger(dias) ? somarDias(dataReferenciaHorizontes, dias) : null
+      dataAlvo: dataReferenciaHorizontes && Number.isInteger(dias) ? somarDias(dataReferenciaHorizontes, dias) : null,
+      // O contrato do horizonte (o milho e o café desde a configuração v3, ADR 0078): a avaliação usa o dele. Nas
+      // leituras antigas, o da leitura (precoReferencia).
+      ...(seriesCode ? { contrato: contrato ?? null, seriesCode, precoRecebido: { valor, dataReferencia } } : {})
     })),
     leituras: registro.leituras,
     // A leitura agregada do motor que foi ao prompt (o café, ADR 0066), como ficou gravada; null nos outros ativos e nas

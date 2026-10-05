@@ -6,6 +6,7 @@ const { configuracaoDoAtivo } = require("../shared/analise-diaria");
 const metodologiaAtivoService = require("./metodologia-ativo.service");
 const centroDecisaoService = require("./centro-decisao.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
+const { somarDias } = require("../shared/utils/date-utils");
 
 // Prompt diário de análise de um ativo (ADR 0051; o petróleo, e o ouro desde o ADR 0054): monta, para uma data, o
 // prompt que a IA de tendência recebe, com o que se sabia até o fim daquele dia. Não chama nenhuma IA: a tela mostra o
@@ -111,13 +112,58 @@ function blocoPreco(preco, dataAnalise, config, ptax = null) {
 // --- 2.2 Curva futura ----------------------------------------------------------------------------------------------
 
 // Sem fonte (CURVA.fonte null), o prompt diz SEM DADO. Quando houver, a curva entra aqui como vencimento -> preço, sem
-// leitura do formato. Num ativo sem curva no prompt (CURVA.aplica false, o ouro), o bloco não existe.
+// leitura do formato. Num ativo sem curva no prompt (CURVA.aplica false, o ouro), o bloco não existe. Num futuro da B3
+// com contrato por horizonte (o milho e o café, ADR 0078), cada vencimento com o ajuste e os contratos negociados.
 function blocoCurva(curva, config) {
   if (!curva) return config.CURVA.semDado;
+  const moeda = config.PRECO.moeda || "US$";
+  const liquidez = (v) =>
+    v.contratosNegociados === null || v.contratosNegociados === undefined
+      ? "contratos negociados: SEM DADO"
+      : `${fmtNumero(v.contratosNegociados, 0)} contratos negociados${v.contratosNegociados < config.CURVA.liquidezMinima ? ` (POUCA LIQUIDEZ: menos de ${config.CURVA.liquidezMinima})` : ""}`;
   return [
-    ...curva.vencimentos.map((v) => `${v.vencimento}: US$ ${fmtNumero(v.preco)}`),
-    `Fonte: ${curva.fonte} | referência: ${fmtData(curva.dataReferencia)}`
+    `Ajuste de cada vencimento no pregão de ${fmtData(curva.dataReferencia)}, do mais próximo ao mais distante. Só fatos:`,
+    "a inclinação da curva não é sinal por si.",
+    ...curva.vencimentos.map((v) =>
+      v.contratosNegociados === undefined ? `${v.vencimento}: ${moeda} ${fmtNumero(v.preco)}` : `${v.rotulo}: ${moeda} ${fmtNumero(v.preco)} | ${liquidez(v)}`
+    ),
+    `Fonte: ${config.CURVA.fonte || curva.fonte}`
   ].join("\n");
+}
+
+// O contrato de cada horizonte (ADR 0078): o vencimento mais próximo que ainda vale depois da data-alvo, com o preço e as
+// variações dele (centro-decisao.service.js::lerPreco, `vencimentoApos`) e a liquidez no dia (da curva). -> { CODIGO:
+// { dataAlvo, preco (o de lerPreco), contratosNegociados } }.
+async function lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config }, centro, deps) {
+  const lidos = await Promise.all(
+    config.HORIZONTES.map(async ({ codigo, dias }) => {
+      const dataAlvo = somarDias(dataAnalise, dias);
+      const preco = await centro.lerPreco(serie, { data: dataAnalise, agora, vencimentoApos: dataAlvo }, deps);
+      const naCurva = preco.disponivel ? curva?.vencimentos.find((v) => v.ticker === preco.contrato?.ticker) : null;
+      return [codigo, { dataAlvo, preco, contratosNegociados: naCurva ? naCurva.contratosNegociados : null }];
+    })
+  );
+  return Object.fromEntries(lidos);
+}
+
+// A coluna do contrato na tabela 2.4: o contrato do horizonte, o preço, a liquidez e as variações dele (as mesmas
+// janelas do bloco 2.1, no contrato do horizonte).
+function linhaContratoDoHorizonte(h, porHorizonte, config) {
+  const { dataAlvo, preco, contratosNegociados } = porHorizonte[h.codigo];
+  if (!preco.disponivel) return `   Contrato: SEM DADO (nenhum vencimento negociado vale até ${fmtData(dataAlvo)})`;
+  const moeda = config.PRECO.moeda || "US$";
+  const liquidez =
+    contratosNegociados === null
+      ? "contratos negociados: SEM DADO"
+      : `${fmtNumero(contratosNegociados, 0)} contratos negociados no dia${contratosNegociados < config.CURVA.liquidezMinima ? ` (POUCA LIQUIDEZ: menos de ${config.CURVA.liquidezMinima}; preço menos confiável)` : ""}`;
+  const variacoes = config.HORIZONTES.map(({ variacao, dias }) => {
+    const v = preco.variacoes[variacao];
+    return `${dias} dia${dias > 1 ? "s" : ""} ${v ? fmtPct(v.percentual) : "SEM DADO"}`;
+  }).join(", ");
+  return (
+    `   Contrato: ${preco.contrato.rotulo}, negocia depois da data-alvo (${fmtData(dataAlvo)}) | ${moeda} ${fmtNumero(preco.valor)} em ` +
+    `${fmtData(preco.dataReferencia)} | ${liquidez} | variação até ${fmtData(preco.dataReferencia)}: ${variacoes}`
+  );
 }
 
 // --- 2.3 Situação dos dados dos fatores -----------------------------------------------------------------------------
@@ -159,15 +205,23 @@ function blocoCobertura(fatores, dataAnalise) {
 
 // --- 2.4 Horizontes e faixas ---------------------------------------------------------------------------------------
 
-function blocoFaixas(config) {
+// `porHorizonte` (um futuro com contrato por horizonte, ADR 0078): cada horizonte ganha a linha do contrato dele.
+function blocoFaixas(config, porHorizonte = null) {
   const linhas = [
     `Variação do ${config.PRECO.descricaoFaixas} entre a data da análise e o fim de cada horizonte (o preço de cada data é o do último pregão até ela).`,
     "Faixas: LATERAL (de -T1 a +T1, sem os extremos) | ALTA_LEVE (de +T1 a +T2) | ALTA_FORTE (+T2 ou mais) |",
     "        BAIXA_LEVE (de -T2 a -T1) | BAIXA_FORTE (-T2 ou menos)"
   ];
+  if (porHorizonte) {
+    linhas.push(
+      "Contrato: cada horizonte é lido e avaliado no vencimento mais próximo que ainda negocia depois da data-alvo (um",
+      "contrato que vence antes não tem preço no fim do horizonte). A variação do horizonte é a desse contrato."
+    );
+  }
   for (const h of config.HORIZONTES) {
     const { t1, t2 } = config.FAIXAS[h.codigo];
     linhas.push(`${h.codigo} (${h.rotulo}, ${h.dias} dia${h.dias > 1 ? "s" : ""}): T1 = ${fmtNumero(t1, 1)}% | T2 = ${fmtNumero(t2, 1)}%`);
+    if (porHorizonte) linhas.push(linhaContratoDoHorizonte(h, porHorizonte, config));
   }
   return linhas.join("\n");
 }
@@ -285,7 +339,23 @@ function leituraDoFator(f) {
 }
 
 // O que entrou no prompt, estruturado: para guardar com a resposta da IA e reconstituir a entrada (ADR 0010).
-function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao = null }) {
+// O contrato de um horizonte, como fica gravado (ADR 0078): a avaliação usa o `seriesCode`, e a Persistência da Qualidade
+// da IA, as variações que a IA recebeu desse contrato.
+function contratoParaEntrada(doHorizonte) {
+  if (!doHorizonte) return {};
+  const { preco, contratosNegociados } = doHorizonte;
+  if (!preco.disponivel) return { contrato: null };
+  return {
+    contrato: preco.contrato,
+    seriesCode: preco.seriesCode,
+    dataReferencia: preco.dataReferencia,
+    valor: preco.valor,
+    contratosNegociados,
+    variacoes: preco.variacoes
+  };
+}
+
+function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao = null, curva = null, porHorizonte = null }) {
   return {
     // A leitura agregada do motor que foi ao prompt (o café, ADR 0066).
     ...(agregacao ? { agregacaoMotor: agregacaoParaEntrada(agregacao) } : {}),
@@ -304,9 +374,14 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
           ...(config.PRECO.emReais ? { ptax } : {})
         }
       : null,
-    curva: null,
+    curva,
     referenciaHorizontes: config.REFERENCIA_HORIZONTES,
-    horizontes: config.HORIZONTES.map(({ codigo, dias }) => ({ codigo, dias, ...config.FAIXAS[codigo] })),
+    horizontes: config.HORIZONTES.map(({ codigo, dias }) => ({
+      codigo,
+      dias,
+      ...config.FAIXAS[codigo],
+      ...(porHorizonte ? contratoParaEntrada(porHorizonte[codigo]) : {})
+    })),
     fatores: simulacao.fatores.map((f) => ({
       fator: f.codigo,
       tipo: f.tipo,
@@ -349,6 +424,10 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     centro.lerPreco(serie, { data: dataAnalise, agora }, deps)
   ]);
   const ptax = config.PRECO.emReais && preco.disponivel ? await lerPtax(preco.dataReferencia, deps) : null;
+  // A curva e o contrato de cada horizonte (o milho e o café, ADR 0078).
+  const curva = config.CURVA.porHorizonte && serie.futuro ? await centro.lerCurva(serie.futuro, { data: dataAnalise, agora }, deps) : null;
+  const porHorizonte =
+    config.CURVA.porHorizonte && serie.futuro ? await lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config }, centro, deps) : null;
   // A agregação em código (o café, ADR 0066), sobre os mesmos fatores do prompt.
   const agregacao = config.AGREGACAO ? config.AGREGACAO.calcular(simulacao.fatores, { dataAnalise }) : null;
 
@@ -357,9 +436,9 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     versao_metodologia: simulacao.versaoMetodologia,
     versao_configuracao: `${config.NOME} v${config.VERSAO}`,
     bloco_preco: blocoPreco(preco, dataAnalise, config, ptax),
-    ...(config.CURVA.aplica ? { bloco_curva: blocoCurva(null, config) } : {}),
+    ...(config.CURVA.aplica ? { bloco_curva: blocoCurva(curva, config) } : {}),
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
-    bloco_faixas: blocoFaixas(config),
+    bloco_faixas: blocoFaixas(config, porHorizonte),
     ...(simulacao.pesos ? { bloco_pesos: blocoPesos(simulacao.pesos) } : {}),
     blocos_fatores: simulacao.fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt).join("\n\n"),
     ...(agregacao ? { bloco_agregacao: blocoAgregacao(agregacao) } : {})
@@ -376,7 +455,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
       hashEntrada,
       instrucaoDoSistema: carregado.instrucaoDoSistema,
       prompt: carregado.prompt,
-      entrada: entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao })
+      entrada: entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao, curva, porHorizonte })
     }
   };
 }
@@ -385,6 +464,7 @@ module.exports = {
   montarPromptDiario,
   blocoPreco,
   blocoCurva,
+  lerContratosPorHorizonte,
   blocoCobertura,
   blocoFaixas,
   blocoPesos,

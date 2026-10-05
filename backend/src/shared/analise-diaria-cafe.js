@@ -10,7 +10,8 @@ const { agregarCafe } = require("../factors/agregacao/agregacao-cafe");
 // v1 (2026-10-05): a primeira, com a aprovação do Motor do Café v1 pelo Comitê.
 // v2 (2026-10-05): a leitura agregada do motor (AGREGACAO, ADR 0066) vai ao prompt, no bloco 3B. Horizontes e faixas não
 // mudam; a versão separa, na Qualidade da IA, as leituras com e sem a agregação.
-const VERSAO = 2;
+// v3 (2026-10-05): cada horizonte com o vencimento do ICF que ainda vale depois da data-alvo, e a curva no prompt (ADR 0078).
+const VERSAO = 3;
 
 // Os mesmos quatro horizontes do petróleo, do ouro e do milho, em dias corridos contados da data da análise. O estudo do
 // David conta em pregões (1, 7, 30 e 90): os dias corridos mantêm a régua dos outros ativos e a variação do Centro de
@@ -51,7 +52,7 @@ const PRECO = Object.freeze({
   rotulo: "café arábica (ICF)",
   unidadeHistorico: "US$/saca",
   unidadeEmReais: "por saca",
-  descricaoFaixas: "café arábica no futuro ICF da B3 (o vencimento mais próximo negociado)",
+  descricaoFaixas: "café arábica no futuro ICF da B3, no vencimento de cada horizonte (a linha \"Contrato\" de cada um)",
   avisos: Object.freeze([
     "Aviso: o ICF é o futuro de café arábica da B3 (US$ por saca de 60 kg). O KC da ICE (Nova York, centavos de US$ por libra-peso) não está na BASE: o COT e os estoques certificados dos fatores são de Nova York.",
     "Aviso: cada vencimento é uma série própria e nada é emendado: as variações usam só o histórico do contrato atual. Um contrato com pouco histórico, ou que não negociou na data de comparação, deixa a variação SEM DADO."
@@ -59,9 +60,18 @@ const PRECO = Object.freeze({
   emReais: true
 });
 
-// Sem curva nesta versão: os vencimentos do ICF por horizonte, com a liquidez mínima, não foram definidos (como o CCM no
-// milho). A falta da curva não é lacuna.
-const CURVA = Object.freeze({ aplica: false, fonte: null, semDado: null, lacuna: null });
+// A curva do ICF e o vencimento de cada horizonte (decisão do usuário, 2026-10-05, ADR 0078), como no milho: cada
+// horizonte usa o vencimento mais próximo que ainda vale depois da data-alvo, e a curva vai ao bloco 2.2. Com o mais
+// próximo para todos, o contrato vencia antes da data-alvo em 78% dos dias no horizonte de 90 dias. O ICF é pouco
+// líquido: o aviso de menos de 100 contratos no dia sai em cerca de um quarto dos dias.
+const CURVA = Object.freeze({
+  aplica: true,
+  porHorizonte: true,
+  fonte: "B3 (ajuste e contratos negociados de cada vencimento do ICF)",
+  liquidezMinima: 100,
+  semDado: "SEM DADO: nenhum vencimento do ICF negociou até a data.",
+  lacuna: "Curva do ICF sem dado na data"
+});
 
 // A agregação determinística dos fatores (ADR 0066): calculada em código sobre os mesmos fatores do prompt, vai ao
 // prompt (bloco 3B) e fica gravada na entrada de cada leitura (o Centro de Decisão e a Qualidade da IA a leem de lá).

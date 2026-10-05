@@ -8,7 +8,8 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 
 // v1 (2026-10-04): a primeira, com a aprovação do Motor do Milho v0 pelo Comitê.
 // v2 (2026-10-05): as faixas recalibradas no próprio CCM, o preço que a leitura mede (decisão do usuário, ADR 0058, adendo).
-const VERSAO = 2;
+// v3 (2026-10-05): cada horizonte com o vencimento do CCM que ainda vale depois da data-alvo, e a curva no prompt (ADR 0078).
+const VERSAO = 3;
 
 // Os mesmos quatro horizontes do petróleo e do ouro, que são também os do prompt do David (Motor do Milho v0, §6).
 const HORIZONTES = Object.freeze([
@@ -48,7 +49,7 @@ const PRECO = Object.freeze({
   pregoesNoHistorico: 10,
   rotulo: "milho (CCM)",
   unidadeHistorico: "R$/saca",
-  descricaoFaixas: "milho no futuro CCM da B3 (o vencimento mais próximo negociado)",
+  descricaoFaixas: "milho no futuro CCM da B3, no vencimento de cada horizonte (a linha \"Contrato\" de cada um)",
   avisos: Object.freeze([
     "Aviso: o CCM é o futuro de milho da B3 (R$ por saca de 60 kg), liquidado pelo Indicador CEPEA/ESALQ (Campinas); perto do vencimento ele converge para o indicador.",
     "Aviso: cada vencimento é uma série própria e nada é emendado: as variações usam só o histórico do contrato atual. Um contrato com pouco histórico, ou que não negociou na data de comparação, deixa a variação SEM DADO."
@@ -56,9 +57,19 @@ const PRECO = Object.freeze({
   emReais: false
 });
 
-// Sem curva nesta versão: quais vencimentos do CCM servem a cada horizonte, com a liquidez mínima, é pergunta do ativo
-// ao Comitê (metodologia-milho.js, "Vencimentos do CCM"). A falta da curva não é lacuna.
-const CURVA = Object.freeze({ aplica: false, fonte: null, semDado: null, lacuna: null });
+// A curva do CCM e o vencimento de cada horizonte (decisão do usuário, 2026-10-05, ADR 0078): cada horizonte usa o
+// vencimento mais próximo que ainda vale depois da data-alvo (centro-decisao.service.js::lerFuturo, `vencimentoApos`), e a
+// leitura e a avaliação dele usam esse contrato; a curva inteira (ajuste e contratos negociados de cada vencimento) vai
+// ao bloco 2.2. Com o mais próximo para todos, o horizonte de 90 dias nunca era avaliável (o contrato vencia antes).
+// Abaixo de `liquidezMinima` contratos negociados no dia, o contrato é o mesmo, com aviso (número do FinMind).
+const CURVA = Object.freeze({
+  aplica: true,
+  porHorizonte: true,
+  fonte: "B3 (ajuste e contratos negociados de cada vencimento do CCM)",
+  liquidezMinima: 100,
+  semDado: "SEM DADO: nenhum vencimento do CCM negociou até a data.",
+  lacuna: "Curva do CCM sem dado na data"
+});
 
 const NOME = "analise-diaria-milho";
 const ARQUIVO_PROMPT = "milho-analise-diaria.md";

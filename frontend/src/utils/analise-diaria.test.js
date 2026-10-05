@@ -128,3 +128,10 @@ test('leituraDoMotor: a leitura agregada de um horizonte, se diverge da IA e o q
   assert.equal(leituraDoMotor(agregacao, 'LONGO'), null)
   assert.equal(leituraDoMotor(null, 'CURTO'), null)
 })
+
+test('realizado com contrato próprio no horizonte (ADR 0078): a nota diz o contrato quando não é o da leitura', () => {
+  const fmt = (d) => d.split('-').reverse().join('/')
+  const leitura = 'B3.CCM.CCMX26.SETTLE'
+  assert.equal(realizadoDoHorizonte({ situacao: 'A_APURAR', dataAlvo: '2026-12-31', seriesCode: 'B3.CCM.CCMF27.SETTLE' }, fmt, leitura).nota, 'apura em 31/12/2026 no CCMF27')
+  assert.equal(realizadoDoHorizonte({ situacao: 'A_APURAR', dataAlvo: '2026-10-09', seriesCode: leitura }, fmt, leitura).nota, 'apura em 09/10/2026')
+})

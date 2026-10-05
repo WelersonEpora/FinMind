@@ -39,7 +39,11 @@ const horizontes = computed(() =>
       ...h,
       leitura,
       motor: leituraDoMotor(props.analise.agregacaoMotor, h.codigo, leitura),
-      realizado: realizadoDoHorizonte((props.analise.realizado?.horizontes || []).find((r) => r.horizonte === h.codigo), formatarData)
+      realizado: realizadoDoHorizonte(
+        (props.analise.realizado?.horizontes || []).find((r) => r.horizonte === h.codigo),
+        formatarData,
+        props.analise.realizado?.seriesCode
+      )
     }
   })
 )

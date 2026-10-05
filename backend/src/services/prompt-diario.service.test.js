@@ -71,7 +71,8 @@ const PRECO = {
   ]
 };
 
-function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = null } = {}) {
+// `precoPorAlvo(dataAlvo)`: o preço do contrato de um horizonte (ADR 0078; null = o mesmo `preco`); `curva`: a de lerCurva.
+function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = null, precoPorAlvo = null, curva = null } = {}) {
   const chamadas = {};
   return {
     chamadas,
@@ -87,8 +88,13 @@ function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = 
     centroDecisaoService: {
       ATIVOS,
       async lerPreco(serie, opcoes) {
-        chamadas.preco = [serie.codigo, opcoes.data];
-        return preco;
+        if (!opcoes.vencimentoApos) chamadas.preco = [serie.codigo, opcoes.data];
+        else (chamadas.alvos ||= []).push(opcoes.vencimentoApos);
+        return (opcoes.vencimentoApos && precoPorAlvo && precoPorAlvo(opcoes.vencimentoApos)) || preco;
+      },
+      async lerCurva(futuro, opcoes) {
+        chamadas.curva = [futuro.prefixo, opcoes.data];
+        return curva;
       }
     }
   };
@@ -241,7 +247,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   await assert.rejects(montarPromptDiario("SOJA", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
 });
 
-test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os eventos usados como chegam", async () => {
+test("milho (ADRs 0058 e 0078): o CCM em reais, sem PTAX, com o contrato de cada horizonte e a curva; os eventos usados como chegam", async () => {
   const precoCcm = {
     ...PRECO,
     nome: "Futuro B3 (CCM)",
@@ -252,10 +258,20 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
     dataReferencia: "2026-10-02",
     diasSemDado: 2
   };
+  const precoF27 = { ...precoCcm, seriesCode: "B3.CCM.CCMF27.SETTLE", contrato: { ticker: "CCMF27", rotulo: "CCMF27 (jan/2027)" }, valor: 76.26 };
   const d = deps({
     fatores: [{ ...CALCULADO, codigo: "MILHO_FUNDOS", textoPrompt: "FATOR — Fundos" }],
     preco: precoCcm,
-    pesos: obterMetodologiaMilho().pesos
+    pesos: obterMetodologiaMilho().pesos,
+    // O CCMX26 vale até 15/11/2026: o horizonte de 90 dias (alvo 01/01/2027) vai ao CCMF27.
+    precoPorAlvo: (alvo) => (alvo > "2026-11-15" ? precoF27 : null),
+    curva: {
+      dataReferencia: "2026-10-02",
+      vencimentos: [
+        { ticker: "CCMX26", rotulo: "CCMX26 (nov/2026)", vencimento: "2026-11", seriesCode: "B3.CCM.CCMX26.SETTLE", preco: 71.67, contratosNegociados: 8153 },
+        { ticker: "CCMF27", rotulo: "CCMF27 (jan/2027)", vencimento: "2027-01", seriesCode: "B3.CCM.CCMF27.SETTLE", preco: 76.26, contratosNegociados: 60 }
+      ]
+    }
   });
   d.marketQuoteRepository = {
     async buscarHistorico() {
@@ -265,7 +281,9 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
   const { promptDiario: p } = await montarPromptDiario("MILHO", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["CCM", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "milho-analise-diaria@5");
+  assert.equal(p.versaoPrompt, "milho-analise-diaria@6");
+  assert.deepEqual(d.chamadas.alvos, ["2026-10-04", "2026-10-10", "2026-11-02", "2027-01-01"]);
+  assert.deepEqual(d.chamadas.curva, ["B3.CCM", "2026-10-03"]);
   // O calendário de pesos como tabela fixa (ADR 0065): em outubro, o F1 é Baixo e o F4 é Alto.
   assert.match(p.prompt, /2\.5 PESO DE CADA FATOR POR MÊS/);
   assert.match(p.prompt, /F1 MILHO_CLIMA_SAFRA_EUA +\| Alto +\| Baixo† +\|/);
@@ -280,9 +298,20 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
   assert.match(p.prompt, /Contrato: CCMX26 \(nov\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Último preço: R\$ 71,67 em 02\/10\/2026/);
   assert.doesNotMatch(p.prompt, /US\$|Em reais:/);
-  assert.match(p.prompt, /2\.2 CURVA FUTURA — fora desta versão/);
-  // As faixas da v2, recalibradas no próprio CCM (ADR 0058, adendo).
-  assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 3,0% \| T2 = 8,0%/);
+  // A curva (ADR 0078): cada vencimento com o ajuste e os contratos negociados; o pouco líquido, com aviso.
+  assert.match(p.prompt, /2\.2 CURVA FUTURA DO CCM/);
+  assert.match(p.prompt, /CCMX26 \(nov\/2026\): R\$ 71,67 \| 8\.153 contratos negociados\n/);
+  assert.match(p.prompt, /CCMF27 \(jan\/2027\): R\$ 76,26 \| 60 contratos negociados \(POUCA LIQUIDEZ: menos de 100\)/);
+  // As faixas da v2, recalibradas no próprio CCM (ADR 0058, adendo), com o contrato de cada horizonte.
+  assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 3,0% \| T2 = 8,0%\n {3}Contrato: CCMF27 \(jan\/2027\), negocia depois da data-alvo \(01\/01\/2027\) \| R\$ 76,26 em 02\/10\/2026 \| 60 contratos negociados no dia \(POUCA LIQUIDEZ/);
+  assert.match(p.prompt, /MEDIO \(Médio, 30 dias\): T1 = 2,0% \| T2 = 5,0%\n {3}Contrato: CCMX26 \(nov\/2026\), negocia depois da data-alvo \(02\/11\/2026\)/);
+  assert.match(p.instrucaoDoSistema, /Cada horizonte tem o seu contrato/);
+  // O contrato de cada horizonte fica na entrada: a avaliação o usa.
+  const longo = p.entrada.horizontes.find((h) => h.codigo === "LONGO");
+  assert.equal(longo.seriesCode, "B3.CCM.CCMF27.SETTLE");
+  assert.equal(longo.contratosNegociados, 60);
+  assert.equal(p.entrada.horizontes.find((h) => h.codigo === "CURTO").contrato.ticker, "CCMX26");
+  assert.equal(p.entrada.curva.vencimentos.length, 2);
   assert.match(p.instrucaoDoSistema, /não passou por validação humana/);
   assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
   assert.equal(p.entrada.precoReferencia.serie, "CCM");
@@ -308,7 +337,7 @@ test("pesos (ADR 0065): o mês não definido sai com o FEL 1 e *, o fator sem pe
   assert.match(texto, /\* mês que a proposta não define: vale o peso do FEL 1\./);
 });
 
-test("café (ADRs 0062 e 0066): o ICF com o contrato e o preço em reais por saca, sem curva, com a leitura agregada do motor", async () => {
+test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais por saca, o contrato de cada horizonte e a leitura agregada do motor", async () => {
   const precoIcf = {
     ...PRECO,
     nome: "Futuro B3 (ICF)",
@@ -328,14 +357,16 @@ test("café (ADRs 0062 e 0066): o ICF com o contrato e o preço em reais por sac
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@2");
-  assert.equal(p.versaoConfiguracao, 2);
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@3");
+  assert.equal(p.versaoConfiguracao, 3);
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Último preço: US\$ 351,90 em 02\/10\/2026/);
   assert.match(p.prompt, /Em reais: R\$ 1\.829,88 por saca, pela PTAX de venda de 02\/10\/2026/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/saca\)/);
-  assert.match(p.prompt, /2\.2 CURVA FUTURA — fora desta versão/);
+  // Sem curva na base: SEM DADO, e a liquidez de cada horizonte também.
+  assert.match(p.prompt, /2\.2 CURVA FUTURA DO ICF — os vencimentos negociados no último pregão\nSEM DADO: nenhum vencimento do ICF negociou até a data\./);
+  assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), negocia depois da data-alvo \(01\/01\/2027\) \| US\$ 351,90 em 02\/10\/2026 \| contratos negociados: SEM DADO/);
   assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 11,0% \| T2 = 25,0%/);
   assert.match(p.instrucaoDoSistema, /modificador de risco, sem voto próprio/);
   assert.match(p.instrucaoDoSistema, /não\s+passou por validação humana/);

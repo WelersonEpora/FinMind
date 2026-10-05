@@ -34,7 +34,8 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v12 (2026-10-05): as perguntas do F8 viram decisões; a validação contra Chicago (ADR 0076).
 // v13 (2026-10-05): o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio); o ajuste do F1 pela
 // colheita da safrinha, com o andamento de MT no F2 (ADR 0077).
-const VERSAO = 13;
+// v14 (2026-10-05): o vencimento do CCM de cada horizonte e a curva no prompt; a pergunta sai (ADR 0078).
+const VERSAO = 14;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -379,6 +380,7 @@ const DO_ATIVO = {
     "Aprovação do Comitê (2026-10-04, ADR 0058): o Motor do Milho v0 como está na tela, com as regras do David, os limiares v0 e os acréscimos do FinMind; ajustes daqui em diante pelos parâmetros. O milho entra no prompt diário, na leitura de tendência da IA e no Centro de Decisão.",
     "Formato da leitura da IA: tendência por horizonte, com as faixas calibradas (como no petróleo e no ouro), não recomendação de compra ou venda. Comitê, 2026-10-04 (ADR 0058).",
     "Preço de referência no prompt e no Centro de Decisão: o CCM, o vencimento mais próximo negociado, sem emendar contratos. Comitê, 2026-10-04 (ADR 0058).",
+    "Vencimento de cada horizonte: o mais próximo que ainda negocia depois da data-alvo (vale até o dia 15 do mês de vencimento), e a leitura e a avaliação do horizonte usam esse contrato; a curva (ajuste e contratos negociados de cada vencimento) vai ao prompt. Com o mais próximo para todos, o contrato vencia antes da data-alvo em todos os dias no horizonte de 90 dias e na metade deles no de 30. Liquidez mínima de 100 contratos negociados no dia, só com aviso (os contratos em aberto não vêm mais da B3). Usuário (Welerson), 2026-10-05 (ADR 0078).",
     "Eventos sem validação humana, por ora: cada fator recebe os eventos que a leitura diária por IA marca com ele, como chegam (7 dias de janela; 30 no F8). Comitê, 2026-10-04 (ADR 0058); confirmado pelo usuário (Welerson), 2026-10-05: não haverá validação humana.",
     "Base do F4 (Campinas − paridade de MT): fica como está por ora, com o limiar 0 da regra do David. Comitê, 2026-10-04 (ADR 0058).",
     `Medidas da camada A confirmadas: COT em managed money (contratos e % dos contratos em aberto), estoque/uso dos EUA e do mundo com a revisão, safrinha em nível e revisão (Conab e IMEA), boa + excelente com o VHI, insumos pelo IMEA na v1. ${DECISAO_DAVID}, §5.`,
@@ -388,7 +390,6 @@ const DO_ATIVO = {
     "Calendário de pesos nos meses que a proposta não define: o F1 de janeiro a maio, Baixo (o fator não tem leitura nesses meses); o F2 em janeiro e fevereiro, Médio (o plantio). Usuário (Welerson), 2026-10-05 (ADR 0077)."
   ],
   perguntas: [
-    "Vencimentos do CCM por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima (contratos em aberto), e a curva dos vencimentos no prompt?",
     "Agregação em código (Seção 4 da proposta): o teto do bloco de oferta e a paridade líquida (Chicago × câmbio) só existem como orientação no prompt. O Comitê quer a agregação calculada pelo motor, com o backtest?",
     "Faixas da leitura da IA: hoje são os percentis 40 e 80 da variação do próprio CCM (2022 a 2026), por horizonte, provisórias (ADR 0058, adendo). As 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%) substituem?",
     "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto, F6 para Baixo-Médio e, no F7, a reversão nos extremos no lugar de \"amplifica\", ADR 0075): entram no FEL 1 revisado (até 2026-10-15)?",

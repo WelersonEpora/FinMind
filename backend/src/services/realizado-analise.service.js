@@ -21,7 +21,9 @@ const { classificarNaFaixa } = require("../shared/analise-diaria-base");
 //     vista chega com atraso, como o Brent da EIA, semanal); num futuro, também quando a data-alvo passou há mais que a
 //     tolerância da série, porque um contrato vencido nunca terá dado depois dela;
 //   - preço longe da data (mais que a tolerância) não serve: SEM_BASE na base, SEM_PRECO no alvo (num futuro, o
-//     contrato venceu ou não negociou); nenhum preço novo depois da base (feriado, fim de semana): SEM_PREGAO.
+//     contrato venceu ou não negociou); nenhum preço novo depois da base (feriado, fim de semana): SEM_PREGAO;
+//   - um horizonte com contrato próprio (o milho e o café desde a configuração v3, ADR 0078) é apurado nele, com a base
+//     dele; cada horizonte devolve a série e a base que usou.
 
 const SITUACOES = Object.freeze(["APURADO", "A_APURAR", "AGUARDANDO_DADO", "SEM_PRECO", "SEM_PREGAO", "SEM_BASE"]);
 
@@ -112,7 +114,11 @@ function semBase(analise) {
 async function apurarRealizadosComPontos(analises, { agora = new Date(), diasDePreco = 0 } = {}, deps = {}) {
   const hoje = hojeEmSaoPaulo(agora);
   const series = analises.map((a) => (a.precoReferencia?.valor ? resolverSerie(a.precoReferencia) : null));
-  const codigos = [...new Set(series.filter(Boolean).map((s) => s.seriesCode))];
+  // A série de cada horizonte (ADR 0078): a do contrato gravado com ele ou, sem ele, a da leitura.
+  const seriesDosHorizontes = analises.map((a, i) =>
+    a.horizontes.map((h) => (series[i] && h.seriesCode ? { ...series[i], seriesCode: h.seriesCode } : series[i]))
+  );
+  const codigos = [...new Set(seriesDosHorizontes.flat().concat(series).filter(Boolean).map((s) => s.seriesCode))];
   if (codigos.length === 0) return { realizados: analises.map(semBase), pontosPorSerie: new Map(), hoje };
 
   const desde = analises
@@ -125,13 +131,27 @@ async function apurarRealizadosComPontos(analises, { agora = new Date(), diasDeP
   for (const l of linhas) pontosPorSerie.get(l.series_code)?.push({ data: String(l.observed_at).slice(0, 10), valor: Number(l.value) });
   for (const pontos of pontosPorSerie.values()) pontos.sort((a, b) => a.data.localeCompare(b.data));
 
+  // A base e os pontos de uma série, a partir de uma data (a do preço que a IA recebeu).
+  const contextoDa = (analise, serie, desdeData) => {
+    const pontos = pontosPorSerie.get(serie.seriesCode).filter((p) => p.data >= desdeData);
+    const base = baseDaAvaliacao(analise, pontos, { tolerancia: serie.tolerancia, hoje, futuro: serie.futuro });
+    return { base, pontos, hoje, tolerancia: serie.tolerancia, futuro: serie.futuro };
+  };
+
   const realizados = analises.map((analise, i) => {
     const serie = series[i];
     if (!serie) return semBase(analise);
-    const pontos = pontosPorSerie.get(serie.seriesCode).filter((p) => p.data >= analise.precoReferencia.dataReferencia);
-    const base = baseDaAvaliacao(analise, pontos, { tolerancia: serie.tolerancia, hoje, futuro: serie.futuro });
-    const contexto = { base, pontos, hoje, tolerancia: serie.tolerancia, futuro: serie.futuro };
-    return { seriesCode: serie.seriesCode, base, horizontes: analise.horizontes.map((h) => apurarHorizonte(h, contexto)) };
+    const contexto = contextoDa(analise, serie, analise.precoReferencia.dataReferencia);
+    const horizontes = analise.horizontes.map((h, k) => {
+      const doHorizonte = seriesDosHorizontes[i][k];
+      // O horizonte com contrato próprio (ADR 0078): a base e o preço no contrato dele.
+      const ctx =
+        doHorizonte.seriesCode === serie.seriesCode
+          ? contexto
+          : contextoDa(analise, doHorizonte, h.precoRecebido?.dataReferencia || analise.precoReferencia.dataReferencia);
+      return { ...apurarHorizonte(h, ctx), seriesCode: doHorizonte.seriesCode, base: ctx.base };
+    });
+    return { seriesCode: serie.seriesCode, base: contexto.base, horizontes };
   });
   return { realizados, pontosPorSerie, hoje };
 }

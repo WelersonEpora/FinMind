@@ -1,6 +1,6 @@
 # Prompt — Análise diária do milho (leitura de tendência em quatro horizontes)
 
-**Versão:** 5
+**Versão:** 6
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0058), no molde do prompt do ouro (`ouro-analise-diaria.md`, v1;
 ADR 0054): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -42,6 +42,11 @@ Na mesma versão (ADR 0077): a tabela 2.5 marca com "†" os meses que a propost
 de janeiro a maio, Baixo; o F2 em janeiro e fevereiro, Médio), com a origem na nota; o F1 ganha a regra da colheita
 da safrinha (de junho a agosto, com 50% ou mais de MT colhido, um nível abaixo), e o bloco do F2 traz o andamento.
 
+v6 (2026-10-05, ADR 0078) - cada horizonte com o seu vencimento do CCM: o mais próximo que ainda negocia depois da
+data-alvo (com o mais próximo para todos, o horizonte de 90 dias nunca era avaliável). A tabela 2.4 traz o contrato, o
+preço, a liquidez e as variações de cada horizonte; o bloco 2.2 traz a curva (o ajuste e os contratos negociados de cada
+vencimento); o bloco 1 diz como usar os dois. Montados por `prompt-diario.service.js`; a configuração passou à v3.
+
 Enviado ao Gemini uma vez por dia pelo coletor `milho-analise-ia-diario` (ADR 0058).
 
 ## Instrução do sistema
@@ -61,6 +66,12 @@ leituras diferentes entre horizontes são esperadas e válidas. Não faça sínt
 
 Para cada horizonte, responda: para que lado tende o preço do milho no CCM nesse prazo, em que faixa de variação da
 tabela 2.4 e com que confiança.
+
+Cada horizonte tem o seu contrato (a linha "Contrato" de cada horizonte na tabela 2.4): o vencimento mais
+próximo que ainda negocia depois da data-alvo. Leia a tendência do milho nesse contrato, com as variações dele, e
+não as do contrato do bloco 2.1 quando forem diferentes. A curva (2.2) é só referência do preço de cada vencimento:
+não a trate como previsão e não crie preço-alvo com ela. Um contrato com POUCA LIQUIDEZ tem preço menos confiável:
+reduza a confiança desse horizonte.
 
 Você produz leitura de tendência, não recomendação. Não diga para comprar, vender, manter, entrar, sair, proteger ou
 montar posição, nem nada equivalente, e não dê stop, alvo nem tamanho de posição. A leitura vai para pessoas que
@@ -198,7 +209,8 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 2.1 PREÇO DO MILHO (CCM) — onde o mercado está e o que já aconteceu
 {{bloco_preco}}
 
-2.2 CURVA FUTURA — fora desta versão (os vencimentos do CCM por horizonte aguardam o Comitê)
+2.2 CURVA FUTURA DO CCM — os vencimentos negociados no último pregão
+{{bloco_curva}}
 
 2.3 SITUAÇÃO DOS DADOS DOS FATORES — calculada pelo motor
 {{bloco_cobertura}}

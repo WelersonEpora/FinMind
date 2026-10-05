@@ -217,3 +217,31 @@ test("sem preço da série perto da data da análise (contrato parado): SEM_BASE
   assert.equal(base, null);
   assert.equal(horizontes[0].situacao, "SEM_BASE");
 });
+
+test("contrato por horizonte (ADR 0078): o horizonte com contrato próprio é apurado nele, com a base dele", async () => {
+  const repo = repoCom([
+    ["B3.CCM.CCMU26.SETTLE", "2026-08-31", 60],
+    ["B3.CCM.CCMU26.SETTLE", "2026-09-01", 61],
+    ["B3.CCM.CCMU26.SETTLE", "2026-09-02", 62],
+    ["B3.CCM.CCMX26.SETTLE", "2026-08-31", 70],
+    ["B3.CCM.CCMX26.SETTLE", "2026-09-01", 70],
+    ["B3.CCM.CCMX26.SETTLE", "2026-11-30", 77]
+  ]);
+  const leitura = analise({ serie: "CCM", contrato: { ticker: "CCMU26", rotulo: "CCMU26 (set/2026)" }, seriesCode: "B3.CCM.CCMU26.SETTLE", valor: 60 });
+  // O longo (alvo 30/11) gravou o CCMX26: o CCMU26 vence antes.
+  leitura.horizontes[3] = {
+    ...leitura.horizontes[3],
+    contrato: { ticker: "CCMX26", rotulo: "CCMX26 (nov/2026)" },
+    seriesCode: "B3.CCM.CCMX26.SETTLE",
+    precoRecebido: { valor: 70, dataReferencia: "2026-08-31" }
+  };
+  const { seriesCode, base, horizontes } = await apurarRealizado(leitura, { agora: AGORA }, { observationRepository: repo });
+  assert.equal(seriesCode, "B3.CCM.CCMU26.SETTLE");
+  assert.equal(base.valor, 61);
+  assert.equal(horizontes[0].seriesCode, "B3.CCM.CCMU26.SETTLE");
+  const longo = horizontes[3];
+  assert.equal(longo.seriesCode, "B3.CCM.CCMX26.SETTLE");
+  assert.equal(longo.base.valor, 70);
+  assert.equal(longo.situacao, "APURADO");
+  assert.equal(longo.variacaoPct, 10);
+});

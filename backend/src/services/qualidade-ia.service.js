@@ -84,12 +84,16 @@ function montarLinha(registro, leitura, realizado, horizonte) {
   const preco = leitura.precoReferencia;
   const apurado = realizado.horizontes.find((r) => r.horizonte === horizonte.codigo) || { situacao: "SEM_BASE" };
   const lida = (leitura.leituras || []).find((l) => l.horizonte === horizonte.codigo) || null;
-  const persistida = persistencia(registro.entrada?.precoReferencia?.variacoes, horizonte);
+  // Com contrato próprio no horizonte (ADR 0078), a base, a série e as variações que a IA recebeu são as dele.
+  const base = apurado.base !== undefined ? apurado.base : realizado.base;
+  const variacoesRecebidas =
+    (registro.entrada?.horizontes || []).find((h) => h.codigo === horizonte.codigo)?.variacoes || registro.entrada?.precoReferencia?.variacoes;
+  const persistida = persistencia(variacoesRecebidas, horizonte);
   const motor = (leitura.agregacaoMotor?.horizontes || []).find((h) => h.horizonte === horizonte.codigo) || null;
   const motivo = motivoFora({
     referencia: leitura.referenciaHorizontes.tipo,
     situacao: apurado.situacao,
-    base: realizado.base,
+    base,
     lida,
     faixaRealizada: apurado.faixa,
     persistida
@@ -104,11 +108,15 @@ function montarLinha(registro, leitura, realizado, horizonte) {
     t2: horizonte.t2,
     versoes: { prompt: registro.versao_prompt, metodologia: registro.versao_metodologia, configuracao: registro.versao_configuracao },
     serie: preco?.serie ?? null,
-    contrato: preco?.contrato?.ticker ?? null,
-    seriesCode: realizado.seriesCode ?? null,
+    contrato: horizonte.contrato?.ticker ?? preco?.contrato?.ticker ?? null,
+    seriesCode: apurado.seriesCode ?? realizado.seriesCode ?? null,
     referenciaHorizontes: leitura.referenciaHorizontes.tipo,
-    precoRecebido: preco ? { valor: preco.valor, data: preco.dataReferencia } : null,
-    base: realizado.base ? { valor: realizado.base.valor, data: realizado.base.data, confirmada: realizado.base.confirmada } : null,
+    precoRecebido: horizonte.precoRecebido
+      ? { valor: horizonte.precoRecebido.valor, data: horizonte.precoRecebido.dataReferencia }
+      : preco
+        ? { valor: preco.valor, data: preco.dataReferencia }
+        : null,
+    base: base ? { valor: base.valor, data: base.data, confirmada: base.confirmada } : null,
     lida: lida ? { tendencia: lida.tendencia, faixa: lida.faixa ?? null, confianca: lida.confianca ?? null } : null,
     realizado: {
       situacao: apurado.situacao,

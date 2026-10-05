@@ -154,9 +154,12 @@ export function contarEventos(quantidade) {
 const FORMATADOR_VARIACAO = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const CLASSES_FAIXA = { BAIXA_FORTE: 'baixa', BAIXA_LEVE: 'baixa', LATERAL: 'lateral', ALTA_LEVE: 'alta', ALTA_FORTE: 'alta' }
 
-export function realizadoDoHorizonte(realizado, formatarData) {
+// `seriesDaLeitura`: a série da leitura; o horizonte com contrato próprio (o milho e o café, ADR 0078) diz qual é o dele.
+export function realizadoDoHorizonte(realizado, formatarData, seriesDaLeitura = null) {
   if (!realizado) return null
   const alvo = formatarData(realizado.dataAlvo)
+  const outroContrato =
+    realizado.seriesCode && seriesDaLeitura && realizado.seriesCode !== seriesDaLeitura ? ` no ${realizado.seriesCode.split('.')[2]}` : ''
   switch (realizado.situacao) {
     case 'APURADO': {
       const v = realizado.variacaoPct
@@ -165,11 +168,11 @@ export function realizadoDoHorizonte(realizado, formatarData) {
         variacao: `${v > 0 ? '+' : v < 0 ? '−' : ''}${FORMATADOR_VARIACAO.format(Math.abs(v))}%`,
         faixa: realizado.faixa ? rotuloFaixa(realizado.faixa) : null,
         classe: CLASSES_FAIXA[realizado.faixa] || 'insuficiente',
-        nota: `preço de ${formatarData(realizado.dataPreco)}`
+        nota: `preço de ${formatarData(realizado.dataPreco)}${outroContrato}`
       }
     }
     case 'A_APURAR':
-      return { apurado: false, nota: `apura em ${alvo}` }
+      return { apurado: false, nota: `apura em ${alvo}${outroContrato}` }
     case 'AGUARDANDO_DADO':
       return { apurado: false, nota: `aguardando o preço de ${alvo}` }
     case 'SEM_PREGAO':

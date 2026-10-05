@@ -18,8 +18,9 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 // de tendência, nunca recomendação: nada daqui gera sinal de compra ou venda.
 
 // v1 (2026-10-04): os 8 fatores do Motor do Café v1, todos calculados com a calibração do FinMind.
-const VERSAO = 1;
-const DATA_VERSAO = "2026-10-04";
+// v2 (2026-10-05): o vencimento do ICF de cada horizonte e a curva no prompt; a pergunta sai (ADR 0078).
+const VERSAO = 2;
+const DATA_VERSAO = "2026-10-05";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
   "O limiar é calibração do FinMind (o estudo deixa \"[CALIBRAR COM DADOS POINT-IN-TIME]\"): a posição da medida no próprio histórico, neutra do percentil 20 ao 80 (a faixa que o estudo usa no COT), forte abaixo do 10 ou acima do 90.";
@@ -358,6 +359,7 @@ const DO_ATIVO = {
     `Aprovação do Motor do Café v1 como está na tela, com os limiares calibrados pelo FinMind (a posição no próprio histórico) como ponto de partida; ajustes daqui em diante pelos parâmetros. O café entra no prompt diário, na leitura de tendência da IA e no Centro de Decisão. ${DECISAO_COMITE}.`,
     `Formato da leitura da IA: tendência por horizonte, com as faixas calibradas (como nos outros ativos), não recomendação de compra ou venda. ${DECISAO_COMITE}.`,
     `Preço de referência no prompt e no Centro de Decisão: o ICF da B3 (US$/saca), o vencimento mais próximo negociado, sem emendar contratos; o KC da ICE fica fora (pago). ${DECISAO_COMITE}.`,
+    "Vencimento de cada horizonte: o mais próximo que ainda negocia depois da data-alvo (vale até o dia 15 do mês de vencimento), e a leitura e a avaliação do horizonte usam esse contrato; a curva vai ao prompt. Com o mais próximo para todos, o contrato vencia antes da data-alvo em 78% dos dias no horizonte de 90 dias. Liquidez mínima de 100 contratos negociados no dia, só com aviso: no ICF, pouco líquido, o aviso sai em cerca de um quarto dos dias. Usuário (Welerson), 2026-10-05 (ADR 0078).",
     `Horizontes em dias corridos (1, 7, 30 e 90), contados da data da análise, como nos outros ativos (o estudo conta em pregões). ${DECISAO_COMITE}.`,
     `Eventos por fator: o David pediu avaliar a leitura de eventos também no café (P12, ADR 0055). Cada fator recebe os eventos que a leitura diária por IA marca com ele (7 dias de janela; 30 na demanda), sem validação humana por ora, e eles vão ao prompt depois do cálculo. ${DECISAO_COMITE}.`,
     "O WASDE não cobre café: o balanço do USDA para o café é o PSD (Coffee: World Markets and Trade). David, 2026-10-03 (P14, ADR 0055).",
@@ -365,7 +367,6 @@ const DO_ATIVO = {
   ],
   perguntas: [
     "Faixas da leitura da IA: hoje são os percentis 40 e 80 do ICF no vencimento mais próximo (2022 a 2026, um período de alta forte), por horizonte. Ficam, ou o Comitê prefere outra régua?",
-    "Vencimentos do ICF por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima, e a curva no prompt?",
     "Pesos e agregação: o estudo descarta os pesos fixos e a matriz do v0 e propõe regras transversais (neutralidade mandatória com dados faltando ou conflito; controle de dupla contagem F1 → F2 → F3; surpresa contra a expectativa). O prompt da IA já leva essas regras como orientação (e o peso do FEL 1 como o único na base). A agregação em código do FinMind, com famílias e peso por horizonte (ADR 0066), está em produção desde 2026-10-05 (no prompt e no Centro de Decisão), por decisão do usuário: a validação dela é do Comitê.",
     "INMET (F1): qual índice? Geada (temperatura mínima horária de maio a agosto em Varginha, Patrocínio, Franca e Caldas, com qual limiar) ou chuva e balanço hídrico contra a climatologia? A coleta só começa com o índice definido.",
     "Vale a mesma régua para o milho? O estudo critica pesos fixos e limiares sem teste, o que também se aplica ao Motor do Milho v0, já aprovado."

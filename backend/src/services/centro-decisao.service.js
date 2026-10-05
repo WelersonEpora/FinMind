@@ -74,6 +74,8 @@ const DIAS_EVENTOS = 7;
 const MAX_EVENTOS = 12;
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
+// Os contratos negociados no dia de um futuro da B3: a liquidez (ADR 0078).
+const CAMPO_CONTRATOS = "CONTRACTS";
 
 function hojeEmSaoPaulo(agora = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
@@ -130,13 +132,20 @@ function calcularVariacoes(pontos, frequencia) {
   return resultado;
 }
 
+// O último dia em que um contrato da B3 vale para uma data-alvo (ADR 0078): o dia 15 do mês de vencimento. O CCM vence
+// no dia 15 (ou no dia útil seguinte) e o ICF depois dele (o último pregão foi do dia 18 ao 23): o dia 15 serve aos dois,
+// do lado seguro. Escolha do FinMind; o decodificador só conhece o mês.
+const DIA_LIMITE_DO_VENCIMENTO = 15;
+const limiteDoVencimento = (contrato) => `${contrato.vencimento}-${String(DIA_LIMITE_DO_VENCIMENTO).padStart(2, "0")}`;
+
 // Futuro: o vencimento mais próximo que negociou no último pregão até a data. Cada vencimento é uma série própria
-// e nada é emendado: o gráfico e as variações usam só o histórico desse contrato.
-async function lerFuturo(futuro, { data, asOf, desde }, repo) {
+// e nada é emendado: o gráfico e as variações usam só o histórico desse contrato. Com `vencimentoApos` (a data-alvo de
+// um horizonte, ADR 0078), só os contratos que ainda valem depois dela.
+async function lerFuturo(futuro, { data, asOf, desde, vencimentoApos = null }, repo) {
   const mesDaData = data.slice(0, 7);
   const contratos = (await repo.listarUltimasDatasItens({ prefixoSerie: futuro.prefixo, campoReferencia: futuro.campo }))
     .map((linha) => decodificarFuturoB3(linha.codigo))
-    .filter((contrato) => contrato && contrato.vencimento >= mesDaData);
+    .filter((contrato) => contrato && contrato.vencimento >= mesDaData && (!vencimentoApos || limiteDoVencimento(contrato) > vencimentoApos));
   if (contratos.length === 0) return null;
 
   const linhas = await repo.buscarAsOf({
@@ -157,7 +166,7 @@ async function lerFuturo(futuro, { data, asOf, desde }, repo) {
   return { linhas: linhas.filter((l) => l.series_code === seriesCode), seriesCode, contrato: { ticker: contrato.ticker, rotulo: contrato.rotulo } };
 }
 
-async function lerPreco(serie, { data, agora }, deps) {
+async function lerPreco(serie, { data, agora, vencimentoApos = null }, deps) {
   const repo = deps.observationRepository || observationRepository;
   const catalogo = buscarNoCatalogo(serie.observavel);
   const campo = catalogo.campos?.find((c) => c.codigo === (serie.futuro?.campo || serie.seriesCode.split(".").pop()));
@@ -167,7 +176,7 @@ async function lerPreco(serie, { data, agora }, deps) {
   const desde = somarDias(data, -janela.busca);
 
   const lido = serie.futuro
-    ? await lerFuturo(serie.futuro, { data, asOf, desde }, repo)
+    ? await lerFuturo(serie.futuro, { data, asOf, desde, vencimentoApos }, repo)
     : { linhas: await repo.buscarAsOf({ seriesCodes: [serie.seriesCode], asOf, observadoDesde: desde, observadoAte: data }), seriesCode: serie.seriesCode, contrato: null };
 
   const base = {
@@ -207,6 +216,42 @@ async function lerPreco(serie, { data, agora }, deps) {
     variacoes: calcularVariacoes(pontos, frequencia),
     pontos: pontos.filter((p) => p.data >= inicioGrafico).map((p) => ({ data: p.data, valor: p.valor }))
   };
+}
+
+// A curva de um futuro na data (ADR 0078): cada vencimento com ajuste no último pregão até ela, com os contratos
+// negociados no dia (0 sem negócio), em ordem de vencimento. null sem contrato.
+async function lerCurva(futuro, { data, agora }, deps = {}) {
+  const repo = deps.observationRepository || observationRepository;
+  const mesDaData = data.slice(0, 7);
+  const contratos = (await repo.listarUltimasDatasItens({ prefixoSerie: futuro.prefixo, campoReferencia: futuro.campo }))
+    .map((linha) => decodificarFuturoB3(linha.codigo))
+    .filter((contrato) => contrato && contrato.vencimento >= mesDaData);
+  if (contratos.length === 0) return null;
+  const serieDe = (c, campo) => `${futuro.prefixo}.${c.ticker}.${campo}`;
+  const linhas = await repo.buscarAsOf({
+    seriesCodes: contratos.flatMap((c) => [serieDe(c, futuro.campo), serieDe(c, CAMPO_CONTRATOS)]),
+    asOf: instanteDaData(data, agora),
+    observadoDesde: somarDias(data, -JANELAS.DIARIA.busca),
+    observadoAte: data
+  });
+  const precos = linhas.filter((l) => l.series_code.endsWith(`.${futuro.campo}`));
+  if (precos.length === 0) return null;
+  const ultimoPregao = precos.reduce((maior, l) => (l.observed_at > maior ? l.observed_at : maior), "");
+  const doDia = new Map(linhas.filter((l) => l.observed_at === ultimoPregao).map((l) => [l.series_code, Number(l.value)]));
+  const vencimentos = contratos
+    .filter((c) => doDia.has(serieDe(c, futuro.campo)))
+    .sort((a, b) => a.vencimento.localeCompare(b.vencimento))
+    .map((c) => ({
+      ticker: c.ticker,
+      rotulo: c.rotulo,
+      vencimento: c.vencimento,
+      seriesCode: serieDe(c, futuro.campo),
+      preco: doDia.get(serieDe(c, futuro.campo)),
+      // Ajuste sem a linha de contratos = nenhum negócio no dia: a B3 deixa o campo vazio e o coletor não grava vazio
+      // (collectors/b3/b3-futuro.collector.js).
+      contratosNegociados: doDia.has(serieDe(c, CAMPO_CONTRATOS)) ? doDia.get(serieDe(c, CAMPO_CONTRATOS)) : 0
+    }));
+  return { dataReferencia: ultimoPregao, vencimentos };
 }
 
 async function lerGeopolitica(ativo, data, deps) {
@@ -262,4 +307,4 @@ async function obterCentroDecisao(filtros = {}, deps = {}) {
   };
 }
 
-module.exports = { obterCentroDecisao, calcularVariacoes, lerPreco, ATIVOS };
+module.exports = { obterCentroDecisao, calcularVariacoes, lerPreco, lerCurva, limiteDoVencimento, ATIVOS };
