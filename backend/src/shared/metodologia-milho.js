@@ -26,7 +26,8 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v5 (2026-10-05): a validação histórica do F1 contra o preço do milho americano do FMI (ADR 0069); a pergunta sai.
 // v6 (2026-10-05): as perguntas do F2 viram decisões; o VHI de MT e do PR vai ao F2 como contexto (ADR 0070).
 // v7 (2026-10-05): as perguntas do F3 viram decisões; a validação contra Chicago; o Brasil (Conab) como contexto (ADR 0071).
-const VERSAO = 7;
+// v8 (2026-10-05): as perguntas do F4 viram decisões; a base contra a própria mediana de 52 semanas (ADR 0072).
+const VERSAO = 8;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -169,11 +170,11 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: false,
         texto:
-          "Basta para a regra de baixa, não para a de alta: a paridade do IMEA (MT) existe desde 31/05/2021, e a PTAX e o Indicador ESALQ cobrem o período. A base da regra (ESALQ − paridade) mistura praças: Campinas fica acima de MT pelo frete, e a base foi negativa em 1 de 251 semanas (mediana de R$ 26/saca). Por isso a alta quase nunca dispara: na guerra da Ucrânia (mar/2022, paridade +13,8% em 10 pregões) e no dólar acima de R$ 6 (dez/2024, +8%), a leitura fica neutra. Contra o Indicador ESALQ (223 semanas, 2021 a 2026), a relação é fraca, no sentido da regra: nas 83 semanas com pressão de baixa o indicador caiu em média 3,6% nas 13 semanas seguintes (subiu em 46% delas), contra -0,2% nas semanas neutras (55%); a variação da paridade tem +0,12 com o indicador 13 semanas depois. A série do IMEA tem ruído e quebras: a troca anual do contrato de referência (10 semanas sem decisão), um salto de nível fora do rótulo (ago/2025) e uma semana fora da série (jul/2022)."
+          "Basta para medir o fator, com histórico curto: a paridade do IMEA (MT) existe desde 31/05/2021, e a PTAX e o Indicador ESALQ cobrem o período. A base (ESALQ − paridade) mistura praças: Campinas fica acima de MT pelo frete, e a base foi negativa em 1 de 251 semanas (mediana de R$ 26/saca). Contra zero, como na regra do especialista, a alta nunca disparou; contra a mediana da própria base nas 52 semanas anteriores (a regra em uso, ADR 0072), dispara em 7 semanas. Contra o Indicador ESALQ 13 semanas depois (2021 a 2026): com pressão de alta o indicador subiu em média 3,5% (3 de 7 semanas), com pressão de baixa caiu 4,3% (subiu em 28 de 62), nas neutras -0,5%; o desvio da base contra a mediana tem -0,15 com o indicador 13 semanas depois (base alta, preço cai depois: a convergência da regra). Na guerra da Ucrânia (mar/2022) a leitura fica neutra pela regra: a paridade subiu por Chicago, não pelo câmbio. A série do IMEA tem ruído e quebras: a troca anual do contrato de referência (10 semanas sem decisão), um salto de nível fora do rótulo (ago/2025) e uma semana fora da série (jul/2022). São 5 anos: pouco para validar."
       },
       lacunas: [
         "A paridade de exportação do IMEA (P16, ADR 0055) é coletada desde 2026-10-04 (ADR 0057), com a tabela diária desde 31/05/2021: cerca de 5 anos, não os 10 da comparação proposta. É a paridade de MT, e o contrato de referência muda uma vez por ano (quebra na série).",
-        "O ZC (CME) é pago; o prêmio de exportação em Paranaguá e o frete não são coletados. A fórmula da paridade da proposta depende dos três."
+        "O ZC (CME) é pago; o prêmio de exportação em Paranaguá e o frete não são coletados. A fórmula da paridade da proposta depende dos três: vale a paridade pronta do IMEA (P16), e a parte do câmbio é a da paridade em reais decomposta em dólar × câmbio, com o frete e o porto na parte em dólar (declarado, ADR 0072)."
       ]
     },
     proposta: {
@@ -181,17 +182,18 @@ const DEFINICOES = [
       objetivo: "Medir se o câmbio e Chicago estão puxando a paridade de exportação, e se o preço interno está acima ou abaixo dela.",
       medida: "USDBRL (PTAX); a paridade de exportação em R$/saca; a base interna = Indicador ESALQ (Campinas) − paridade.",
       comparacao: "A variação da paridade em 10 pregões, decomposta entre câmbio e ZC; o percentil de 10 anos da paridade e da base na mesma época; o USDBRL contra a volatilidade de 12 meses (z-score).",
-      leitura: "Paridade subindo 3% ou mais em 10 pregões, metade ou mais pelo câmbio, com o preço interno abaixo dela, pesa para alta; caindo 3% com o preço interno acima, para baixa (regra do David). O cálculo usa a paridade pronta do IMEA (MT, P16), a PTAX de venda e o Indicador ESALQ (Campinas) como preço interno. Sem o ZC, a parte do câmbio é aproximada (a variação do dólar ÷ a da paridade, que a subestima). O FinMind acrescentou: forte com 6% ou mais; sem decisão quando os 10 pregões cruzam a troca do contrato de referência ou a variação chega a 30% (quebra da série); tendência por 2 semanas. Peso por mês: Alto de julho a janeiro (exportação), Médio nos demais. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
+      leitura: "Paridade subindo 3% ou mais em 10 pregões, metade ou mais pelo câmbio, com o preço interno abaixo dela, pesa para alta; caindo 3% com o preço interno acima, para baixa (regra do David). \"Abaixo\" e \"acima\" são da base (ESALQ − paridade) contra a mediana dela nas 52 semanas anteriores, porque Campinas fica acima de MT pelo frete (ADR 0072). O cálculo usa a paridade pronta do IMEA (MT, P16), a PTAX de venda e o Indicador ESALQ (Campinas) como preço interno. Sem o ZC, a parte do câmbio é aproximada (a variação do dólar ÷ a da paridade, que a subestima). O FinMind acrescentou: forte com 6% ou mais; sem decisão quando os 10 pregões cruzam a troca do contrato de referência ou a variação chega a 30% (quebra da série); tendência por 2 semanas. Peso por mês: Alto de julho a janeiro (exportação), Médio nos demais. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "R-CAM-01 v0: paridade em R$ sobe 3% ou mais em 10 pregões, com 50% ou mais da alta vindo do câmbio, e preço interno abaixo da paridade (base negativa) → pesa para alta (o preço interno tende a convergir).",
         baixa: "R-CAM-02 v0: paridade em R$ cai 3% ou mais em 10 pregões, e preço interno acima da paridade (base positiva) → pesa para baixa."
       }
     },
-    perguntas: [
-      "Qual praça importa para o CCM: MT (onde está a paridade do IMEA) ou Campinas (onde o CCM liquida)? A base \"ESALQ − paridade\" mistura as duas.",
-      "Na v1, sem o ZC e o prêmio, a paridade do IMEA (pronta, P16) substitui a fórmula? A parte do câmbio fica aproximada (a variação do dólar ÷ a da paridade).",
-      "A base Campinas − MT é quase sempre positiva e a alta não dispara. Qual saída: um limiar da base diferente de zero (parâmetro), a base contra a própria média, ou o preço do milho em MT (a linha \"Milho Disponível\" do mesmo boletim do IMEA, que pede autorização de coleta)?",
-      "Reponderar o fator para Alto (como a proposta sugere) entra no FEL 1 revisado?"
+    perguntas: [],
+    decisoes: [
+      "Praça (usuário, 2026-10-05, ADR 0072): Campinas, onde o CCM liquida (o Indicador ESALQ). A paridade de MT é a referência da base; a mistura de praças se resolve comparando a base com a própria mediana.",
+      "Paridade pronta do IMEA no lugar da fórmula (usuário, 2026-10-05, ADR 0072): sim, como o especialista escolheu na P16. A parte do câmbio é a paridade em reais decomposta em dólar × câmbio; o frete e o porto ficam na parte em dólar, o que a subestima (declarado).",
+      "Base sempre positiva (usuário, 2026-10-05, ADR 0072): a base contra a mediana dela nas 52 semanas anteriores (a janela é do FinMind, parâmetro no card C). Contra zero a alta nunca disparava; contra a mediana, dispara em 7 semanas de 2021 a 2026 (o ESALQ subiu em média 3,5% nas 13 semanas seguintes). Sem fonte nova: a linha \"Milho Disponível\" do IMEA não é necessária.",
+      "Peso Alto (usuário, 2026-10-05, ADR 0072): a pergunta sai do fator e fica só a do ativo, sobre o FEL 1 revisado (documento do Comitê). O calendário do especialista já dá Alto ao fator de julho a janeiro no prompt (ADR 0065)."
     ]
   },
   {
