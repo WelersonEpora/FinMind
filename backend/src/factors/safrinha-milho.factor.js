@@ -10,6 +10,8 @@ const faixa = require("./base/decisao-por-faixa");
 // OBSERVÁVEL → FATOR (ver ADR 0008):
 //   observáveis (observation), Conab, um levantamento por mês, cada série com todas as revisões (ADR 0022):
 //     CONAB.MILHO.BRASIL.PRODUCAO_2A / AREA_2A / PRODUTIVIDADE_2A - a 2ª safra do Brasil (mil t, mil ha, kg/ha)
+//   e NOAA STAR, semanal (ADR 0025), só como CONTEXTO, fora da conta (ADR 0070):
+//     NOAA_VH.MILHO.BR_MT.VHI / BR_PR.VHI - a saúde da vegetação sobre a área de milho de MT e do PR (0 a 100)
 //   fator (calculado sob demanda, NUNCA gravado), um ponto por LEVANTAMENTO (o que ele dizia da safra mais nova):
 //     A. a produção, a área e a produtividade; a revisão contra o levantamento anterior; a revisão acumulada contra a
 //        1ª estimativa da safra
@@ -18,7 +20,9 @@ const faixa = require("./base/decisao-por-faixa");
 //     C. R-SAF v0: produção 3% ou mais abaixo da safra anterior no mesmo levantamento, OU revisão acumulada de -2% ou
 //        pior em 2 levantamentos seguidos -> pressão de ALTA; 3% ou mais acima, OU acumulada de +2% ou mais em 2
 //        seguidos -> de BAIXA; abaixo dos limiares, uma revisão para cima dá viés de baixa FRACO (como o David escreveu).
-//        Fora da conta, sem o dado: o alerta agroclimático (alta) e "plantio na janela, sem alerta" (baixa).
+//        Fora da conta: o alerta agroclimático (alta) e "plantio na janela, sem alerta" (baixa). O VHI de MT e do PR
+//        não serve de alerta (dispara em 19 de 27 safrinhas, inclusive nas recordes; ADR 0070): vai como contexto. A
+//        geada chega pelos eventos do INMET.
 //        Acréscimos do FinMind: forte com nível e revisão no mesmo sentido; opostos dão neutra
 //
 // O número do levantamento vem do mês (a safra da Conab começa em outubro: outubro = 1º, setembro = 12º). A observation
@@ -30,13 +34,25 @@ const faixa = require("./base/decisao-por-faixa");
 // ponto como texto, sem entrar na conta. Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "safrinha_milho_conab";
-const FACTOR_VERSION = 1;
+// v2 (2026-10-05): o VHI de MT e do PR como contexto, fora da conta (ADR 0070).
+const FACTOR_VERSION = 2;
 
 const SERIES = Object.freeze({
   producao: "CONAB.MILHO.BRASIL.PRODUCAO_2A",
   area: "CONAB.MILHO.BRASIL.AREA_2A",
   produtividade: "CONAB.MILHO.BRASIL.PRODUTIVIDADE_2A"
 });
+
+// O contexto climático (ADR 0070): o VHI da NOAA sobre o milho dos dois maiores estados da safrinha.
+const ESTADOS_VHI = Object.freeze([
+  { sigla: "MT", serie: "NOAA_VH.MILHO.BR_MT.VHI" },
+  { sigla: "PR", serie: "NOAA_VH.MILHO.BR_PR.VHI" }
+]);
+// Abaixo disso a NOAA classifica como estresse da vegetação.
+const VHI_ESTRESSE = 40;
+const SEMANAS_VHI = 2;
+// Uma semana do VHI só entra se for de até 21 dias antes do limite (uma semana velha não é o momento do levantamento).
+const DIAS_VHI_RECENTE = 21;
 
 // Do David (R-SAF v0): 3% contra a safra anterior; 2% de revisão acumulada em 2 levantamentos seguidos. O Comitê ajusta.
 const PARAMETROS_PADRAO = Object.freeze({
@@ -108,8 +124,53 @@ function decidirSafrinha(entrada, parametros = PARAMETROS_PADRAO) {
   return { ...base, direcao: faixa.DIRECAO.NEUTRA, intensidade: faixa.INTENSIDADE.FRACA };
 }
 
-// Função PURA: recebe as linhas de obterVersoesAsOf() e devolve um ponto por levantamento.
-function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO } = {}) {
+function somarDias(dataIso, dias) {
+  const d = new Date(`${dataIso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+const vhiFmt = (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// O VHI de cada estado: [{ semana, em, valor }], da semana mais antiga para a mais recente (a versão mais recente de cada
+// semana entre as que o asOf já conhece).
+function vhiPorEstado(linhasVhi) {
+  const porEstado = new Map(ESTADOS_VHI.map((e) => [e.serie, new Map()]));
+  for (const linha of linhasVhi) {
+    const semanas = porEstado.get(linha.seriesCode);
+    if (!semanas) continue;
+    const atual = semanas.get(linha.observedAt);
+    if (!atual || linha.publishedAt > atual.em) semanas.set(linha.observedAt, { semana: linha.observedAt, em: linha.publishedAt, valor: linha.value });
+  }
+  return new Map([...porEstado].map(([serie, semanas]) => [serie, [...semanas.values()].sort((a, b) => a.semana.localeCompare(b.semana))]));
+}
+
+// O VHI de um levantamento, só contexto: em cada estado, as 2 semanas mais recentes publicadas antes de `limite`
+// (quando o levantamento seguinte saiu; null = o último, até o asOf). null sem VHI recente.
+function vhiDoLevantamento(vhi, observedAt, limite) {
+  const corte = somarDias(limite ? new Date(limite).toISOString().slice(0, 10) : observedAt, -DIAS_VHI_RECENTE);
+  const partes = [];
+  let semana = null;
+  for (const { sigla, serie } of ESTADOS_VHI) {
+    const ultimas = vhi.get(serie).filter((s) => !limite || s.em < limite).slice(-SEMANAS_VHI);
+    if (ultimas.length === 0 || ultimas.at(-1).semana < corte) continue;
+    if (!semana || ultimas.at(-1).semana > semana) semana = ultimas.at(-1).semana;
+    const abaixo = ultimas.every((s) => s.valor < VHI_ESTRESSE);
+    partes.push(`${sigla} ${ultimas.map((s) => vhiFmt(s.valor)).join(" e ")}${abaixo ? " (abaixo de 40)" : ""}`);
+  }
+  if (partes.length === 0) return { vhiContexto: null, vhiContextoDetalhe: null };
+  return {
+    vhiContexto: `semanas até ${semana.split("-").reverse().join("/")}`,
+    vhiContextoDetalhe:
+      `${partes.join("; ")}. Só contexto, fora da conta: na área de milho desses estados o VHI fica abaixo de 40 ` +
+      "em abril e maio na maioria dos anos, inclusive nos de safra recorde (a máscara não separa a safrinha)."
+  };
+}
+
+// Função PURA: recebe as linhas de obterVersoesAsOf() da Conab (e, como contexto, as de obterAsOf() do VHI) e devolve
+// um ponto por levantamento.
+function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO, linhasVhi = [] } = {}) {
+  const vhi = vhiPorEstado(linhasVhi);
   const porEdicao = new Map();
   for (const linha of linhasVersoes) {
     const edicao = new Date(linha.publishedAt).toISOString().slice(0, 10);
@@ -126,7 +187,8 @@ function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO } 
   const pontos = [];
   let anterior = null;
 
-  for (const edicao of [...porEdicao.keys()].sort()) {
+  const edicoes = [...porEdicao.keys()].sort();
+  edicoes.forEach((edicao, indice) => {
     for (const linha of porEdicao.get(edicao)) {
       estado.get(linha.seriesCode).set(linha.observedAt, linha.value);
       if (linha.seriesCode === SERIES.producao && !primeiraEstimativa.has(linha.observedAt)) {
@@ -135,7 +197,7 @@ function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO } 
     }
     const safras = [...estado.get(SERIES.producao).keys()].sort();
     const safra = safras.at(-1);
-    if (!safra) continue;
+    if (!safra) return;
     const mes = Number(edicao.slice(5, 7));
     const mesAno = edicao.slice(0, 7);
     producaoNoMes.set(mesAno, new Map(estado.get(SERIES.producao)));
@@ -170,20 +232,24 @@ function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO } 
       producaoSafraAnteriorMilT: producaoSafraAnterior,
       variacaoSafraAnteriorPct: variacaoSafraAnterior,
       pesoDoMes: pesoDoMes(mes),
+      ...vhiDoLevantamento(vhi, edicao, edicoes[indice + 1] ? porEdicao.get(edicoes[indice + 1])[0].publishedAt : null),
       decisao: decidirSafrinha({ variacaoSafraAnteriorPct: variacaoSafraAnterior, acumuladasPct, revisaoPct: revisao }, parametros),
       disponivelEm: porEdicao.get(edicao)[0].publishedAt,
       disponivelEmEhEstimado: porEdicao.get(edicao)[0].publishedAtIsEstimated
     });
     anterior = { safra, producao };
-  }
+  });
   // `safraIso` só serve para achar os levantamentos da mesma safra: não vai para fora.
   return pontos.map(({ safraIso: _safraIso, ...ponto }) => ponto);
 }
 
 async function calcularSafrinhaMilho({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
-  const linhas = await servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES), asOf }, deps);
-  return derivarSafrinhaMilho(linhas, { parametros });
+  const [linhas, linhasVhi] = await Promise.all([
+    servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES), asOf }, deps),
+    servico.obterAsOf({ seriesCodes: ESTADOS_VHI.map((e) => e.serie), asOf }, deps)
+  ]);
+  return derivarSafrinhaMilho(linhas, { parametros, linhasVhi });
 }
 
 // --- Camada C: explicação e exemplos ------------------------------------------------------------------------------
@@ -210,7 +276,9 @@ function explicarSafrinha(ponto, parametros = PARAMETROS_PADRAO) {
       : `Revisão acumulada contra a 1ª estimativa: ${pct(ponto.acumuladaPct)}; a regra pede ${faixa.fmt(parametros.limiarRevisaoPct, 1)}% ` +
           `ou mais em ${parametros.levantamentosSeguidos} levantamentos seguidos → ${NOME[d.porRevisao]}.`
   );
-  passos.push("Fora da conta, sem o dado: o alerta agroclimático e o plantio na janela da regra do especialista.");
+  passos.push(
+    "Fora da conta: o alerta agroclimático da regra do especialista (o VHI de MT e do PR vai só como contexto, ADR 0070; a geada chega pelos eventos do INMET) e o plantio na janela."
+  );
   if (d.conflito) passos.push("Combinação: nível e revisão em sentidos opostos → Neutra.");
   else if (d.vies) passos.push(`Combinação: abaixo dos limiares, mas revisada para cima (${pct(ponto.revisaoPct)}) → viés de baixa, fraco.`);
   else passos.push(`Direção: ${faixa.ROTULOS.direcao[d.direcao]}, intensidade ${faixa.ROTULOS.intensidade[d.intensidade].toLowerCase()}.`);
@@ -263,7 +331,8 @@ const APRESENTACAO = {
     { camada: "A", rotulo: "Revisão acumulada contra a 1ª estimativa", campo: "acumuladaPct", casas: 2, sinal: true, unidadeValor: "%" },
     { camada: "B", rotulo: "Safra anterior no mesmo levantamento", campo: "producaoSafraAnteriorMilT", casas: 1, sufixo: "mil t" },
     { camada: "B", rotulo: "Variação contra a safra anterior (mesmo levantamento)", campo: "variacaoSafraAnteriorPct", casas: 2, sinal: true, unidadeValor: "%" },
-    { camada: "B", rotulo: "Peso do mês na proposta do especialista (fora da conta)", campo: "pesoDoMes" }
+    { camada: "B", rotulo: "Peso do mês na proposta do especialista (fora da conta)", campo: "pesoDoMes" },
+    { camada: "B", rotulo: "Saúde da vegetação sobre o milho de MT e do PR (VHI da NOAA; contexto, fora da conta)", campo: "vhiContexto", detalhe: "vhiContextoDetalhe" }
   ],
   graficoAB: {
     titulo: "Produção da 2ª safra em cada levantamento (A) × a safra anterior no mesmo levantamento (B), em mil t",
@@ -292,7 +361,7 @@ const APRESENTACAO = {
     { chave: "levantamentosSeguidos", rotulo: "Levantamentos seguidos", unidade: "levantamentos", explicacao: "Em quantos levantamentos seguidos a revisão acumulada precisa passar do limiar (R-SAF v0: 2)." }
   ],
   regra:
-    "pressão de alta com a produção da 2ª safra {limiarNivelPct}% ou mais abaixo da safra anterior no mesmo levantamento, ou com a revisão acumulada contra a 1ª estimativa de -{limiarRevisaoPct}% ou pior em {levantamentosSeguidos} levantamentos seguidos; de baixa com {limiarNivelPct}% ou mais acima, ou acumulada de +{limiarRevisaoPct}% ou mais em {levantamentosSeguidos} seguidos; abaixo dos limiares, uma revisão para cima dá viés de baixa fraco; forte com nível e revisão no mesmo sentido, neutra com os dois opostos; fora da conta, sem o dado: o alerta agroclimático e o plantio na janela da regra do especialista",
+    "pressão de alta com a produção da 2ª safra {limiarNivelPct}% ou mais abaixo da safra anterior no mesmo levantamento, ou com a revisão acumulada contra a 1ª estimativa de -{limiarRevisaoPct}% ou pior em {levantamentosSeguidos} levantamentos seguidos; de baixa com {limiarNivelPct}% ou mais acima, ou acumulada de +{limiarRevisaoPct}% ou mais em {levantamentosSeguidos} seguidos; abaixo dos limiares, uma revisão para cima dá viés de baixa fraco; forte com nível e revisão no mesmo sentido, neutra com os dois opostos; fora da conta: o alerta agroclimático da regra do especialista (o VHI de MT e do PR vai só como contexto: fica abaixo de 40 na maioria dos anos, mesmo nas safras recordes; a geada chega pelos eventos do INMET) e o plantio na janela, sem o dado",
   exemplos: { colunaValor: "Variação contra a safra anterior" },
   nota:
     "Mensal, não é tempo real: a Conab publica um levantamento por mês (o 1º em outubro, o 12º em setembro). A base tem " +
@@ -311,4 +380,4 @@ const METODOLOGIA = {
   apresentacao: APRESENTACAO
 };
 
-module.exports = { FACTOR_ID, FACTOR_VERSION, SERIES, PARAMETROS_PADRAO, METODOLOGIA, numeroDoLevantamento, decidirSafrinha, derivarSafrinhaMilho, calcularSafrinhaMilho };
+module.exports = { FACTOR_ID, FACTOR_VERSION, SERIES, ESTADOS_VHI, PARAMETROS_PADRAO, METODOLOGIA, numeroDoLevantamento, decidirSafrinha, derivarSafrinhaMilho, calcularSafrinhaMilho };

@@ -69,3 +69,27 @@ test("o texto do prompt traz a regra do fator, com os levantamentos sem casa dec
   });
   assert.match(texto, /3,0% ou mais abaixo da safra anterior no mesmo levantamento, .* -2,0% ou pior em 2 levantamentos seguidos/);
 });
+
+test("o VHI de MT e do PR vai como contexto (ADR 0070): as 2 semanas mais recentes, sem mudar a decisão", () => {
+  const vhi = (estado, semana, valor) => ({
+    seriesCode: `NOAA_VH.MILHO.${estado}.VHI`,
+    observedAt: semana,
+    value: valor,
+    publishedAt: new Date(`${semana}T23:59:59Z`),
+    publishedAtIsEstimated: true
+  });
+  const conab = [producao("2025-09-01", 100000, "2025-10-15"), producao("2025-09-01", 101000, "2025-11-03")];
+  const linhasVhi = [
+    vhi("BR_MT", "2025-10-07", 50), vhi("BR_MT", "2025-10-14", 38), vhi("BR_MT", "2025-11-04", 35), vhi("BR_MT", "2025-11-11", 36),
+    vhi("BR_PR", "2025-11-04", 60), vhi("BR_PR", "2025-11-11", 61)
+  ];
+  const semVhi = derivarSafrinhaMilho(conab);
+  const [outubro, novembro] = derivarSafrinhaMilho(conab, { linhasVhi });
+  // Outubro: o VHI conhecido até o levantamento de novembro sair; o PR ainda não tinha semana recente.
+  assert.equal(outubro.vhiContexto, "semanas até 14/10/2025");
+  assert.match(outubro.vhiContextoDetalhe, /^MT 50,0 e 38,0\. Só contexto/);
+  assert.equal(novembro.vhiContexto, "semanas até 11/11/2025");
+  assert.match(novembro.vhiContextoDetalhe, /^MT 35,0 e 36,0 \(abaixo de 40\); PR 60,0 e 61,0\./);
+  assert.deepEqual(novembro.decisao, semVhi.at(-1).decisao);
+  assert.equal(semVhi.at(-1).vhiContexto, null);
+});
