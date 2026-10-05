@@ -68,6 +68,8 @@ test("evidências: o que foi ao prompt, da entrada GRAVADA, com o nome de cada f
     [["IMEDIATO", -3.23], ["CURTO", -0.26], ["MEDIO", null], ["LONGO", 37.88]]
   );
   assert.equal(evidencias.preco.publicadoEmEstimado, true);
+  // A moeda vem da configuração do ativo: o petróleo não a declara, e vale o dólar, como no prompt.
+  assert.equal(evidencias.preco.moeda, "US$");
 
   const juros = evidencias.fatores.find((f) => f.codigo === "PETROLEO_JUROS");
   assert.equal(juros.nome, FATORES_PETROLEO.find((f) => f.codigo === "PETROLEO_JUROS").nome);

@@ -59,6 +59,8 @@ function resumirEvidencias(ativo, entrada) {
     preco: preco
       ? {
           serie: preco.serie,
+          // A moeda do preço do ativo (US$ no petróleo, no ouro e no café; R$ no milho), da configuração.
+          moeda: config.PRECO.moeda || "US$",
           contrato: preco.contrato ?? null,
           ptax: preco.ptax ?? null,
           valor: preco.valor,

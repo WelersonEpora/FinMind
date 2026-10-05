@@ -9,7 +9,8 @@ import { formatarMedida } from '../../utils/metodologia.js'
 import { contarEventos, faltaNoFator, idadeDoDado, leituraDoFator, rotuloDias, rotuloMedida } from '../../utils/analise-diaria.js'
 
 // Evidências analisadas pelo FinMind (ADR 0052): o que formou o prompt da leitura de tendência da data, lido da leitura
-// GRAVADA (nada é recalculado agora). O card resume (preço, cada fator com a leitura do motor, lacunas); "Ver detalhes"
+// GRAVADA (nada é recalculado agora). O card resume (cada fator com a leitura do motor, lacunas; o preço já está no card
+// ao lado, e o que a IA recebeu fica no detalhe); "Ver detalhes"
 // abre a tabela completa e, no mesmo modal, "Ver prompt completo" mostra o texto exato enviado à IA e a resposta dela,
 // carregados só ao abrir.
 const props = defineProps({
@@ -23,7 +24,9 @@ const calculados = computed(() => evidencias.value.fatores.filter((f) => f.tipo 
 const deEvento = computed(() => evidencias.value.fatores.filter((f) => f.tipo === 'EVENTO').length)
 
 // O card mostra os primeiros fatores (na ordem do catálogo: os de peso alto vêm antes); a lista completa fica no detalhe.
-const FATORES_NO_CARD = 4
+// Cada um com a sigla F1...Fn da Metodologia do Ativo: a ordem gravada é a da metodologia.
+const FATORES_NO_CARD = 8
+const sigla = (i) => `F${i + 1}`
 const fatoresDoCard = computed(() => evidencias.value.fatores.slice(0, FATORES_NO_CARD))
 const fatoresSoNoDetalhe = computed(() => Math.max(evidencias.value.fatores.length - FATORES_NO_CARD, 0))
 
@@ -138,22 +141,9 @@ async function copiar() {
     </div>
 
     <template v-else>
-      <section v-if="evidencias.preco" class="evidencias__preco">
-        <span class="evidencias__preco-valor">
-          {{ evidencias.preco.serie }}<template v-if="evidencias.preco.contrato"> ({{ evidencias.preco.contrato.ticker }})</template>
-          <strong>US$ {{ formatarValor(evidencias.preco.valor) }}</strong> <span class="text-muted">em {{ formatarData(evidencias.preco.dataReferencia) }}</span>
-        </span>
-        <span class="evidencias__variacoes">
-          <span v-for="v in evidencias.preco.variacoes" :key="v.horizonte" class="evidencias__variacao">
-            <span class="text-muted">{{ v.dias }}d</span>
-            <span v-if="variacao(v)" :class="`var--${variacao(v).direcao}`">{{ variacao(v).texto }}</span>
-            <span v-else class="text-muted">-</span>
-          </span>
-        </span>
-      </section>
-
       <ul class="evidencias__fatores">
-        <li v-for="fator in fatoresDoCard" :key="fator.codigo" class="fator">
+        <li v-for="(fator, i) in fatoresDoCard" :key="fator.codigo" class="fator">
+          <span class="fator__sigla">{{ sigla(i) }}</span>
           <span class="fator__nome" :title="fator.nome">{{ fator.nome }}</span>
           <span class="fator__peso" :class="`fator__peso--${(fator.peso || '').toLowerCase()}`">{{ fator.peso }}</span>
           <span class="fator__leitura">
@@ -202,7 +192,7 @@ async function copiar() {
         <h4>Preço de referência</h4>
         <p v-if="evidencias.preco" class="small">
           {{ evidencias.preco.serie }}<template v-if="evidencias.preco.contrato"> ({{ evidencias.preco.contrato.ticker }})</template>
-          US$ {{ formatarValor(evidencias.preco.valor) }} em
+          {{ evidencias.preco.moeda || 'US$' }} {{ formatarValor(evidencias.preco.valor) }} em
           {{ formatarData(evidencias.preco.dataReferencia) }}, publicado em
           {{ formatarData((evidencias.preco.publicadoEm || '').slice(0, 10))
           }}{{ evidencias.preco.publicadoEmEstimado ? ' (data estimada)' : '' }}.
@@ -253,9 +243,9 @@ async function copiar() {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="fator in evidencias.fatores" :key="fator.codigo">
+              <tr v-for="(fator, i) in evidencias.fatores" :key="fator.codigo">
                 <td :title="fator.codigo">
-                  <span class="detalhes__fator">{{ fator.nome }}</span>
+                  <span class="detalhes__fator"><span class="fator__sigla">{{ sigla(i) }}</span> {{ fator.nome }}</span>
                   <span class="fator__peso" :class="`fator__peso--${(fator.peso || '').toLowerCase()}`"
                     >Peso {{ (fator.peso || '').toLowerCase() }}</span
                   >
@@ -446,34 +436,6 @@ async function copiar() {
   margin: 0;
 }
 
-.evidencias__preco {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.4rem 1rem;
-  margin: 0.75rem 1.15rem 0;
-  padding: 0.55rem 0.75rem;
-  border-radius: 10px;
-  background: var(--p-content-hover-background);
-  font-size: 0.82rem;
-}
-.evidencias__variacoes {
-  display: flex;
-  gap: 0.75rem;
-}
-.evidencias__variacao {
-  display: inline-flex;
-  gap: 0.25rem;
-  font-variant-numeric: tabular-nums;
-}
-.var--alta {
-  color: #15803d;
-}
-.var--queda {
-  color: #b91c1c;
-}
-
 .evidencias__fatores {
   list-style: none;
   margin: 0;
@@ -481,7 +443,7 @@ async function copiar() {
 }
 .fator {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.6rem;
   padding: 0.32rem 0;
@@ -490,6 +452,12 @@ async function copiar() {
 }
 .fator:last-child {
   border-bottom: 0;
+}
+.fator__sigla {
+  min-width: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-text-muted-color);
 }
 .fator__nome {
   overflow: hidden;
