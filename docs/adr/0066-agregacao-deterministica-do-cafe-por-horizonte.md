@@ -276,6 +276,22 @@ O que a rodada mostrou (registrado, **sem mudança nesta versão**):
 - **O conflito F1 × F2 não rebaixa a confiança:** em 2024-06-17, o Curto sai LATERAL com confiança MÉDIA. A regra
   aprovada não prevê esse rebaixamento.
 
+## Primeira rodada no servidor (2026-10-05)
+
+Depois do deploy, `npm run agregacao:cafe -- --desde=2023-01-02 --passo=7` no servidor e a leitura do dia refeita
+(`cafe-analise-diaria@2`, sucesso; a do milho, `@4`, também). Conferido nas semanas de jul a out/2026:
+
+- **O F3 roda no servidor** e confirma a Oferta: em 2026-10-05, F2 −2 com F3 −2 dão Oferta −2; no Curto,
+  0,6 × −2 + 0,4 × 0 = −1,20, BAIXA_LEVE (logo abaixo do limiar de FORTE, 1,25).
+- **O F7 age:** em 2026-09-28 e 2026-10-05, o F7 em +2 contra a direção de baixa marca RISCO_DE_REVERSAO e baixa a
+  confiança para BAIXA no Curto, no Médio e no Longo.
+- **O Médio confere na mão:** 0,5 × −2 (Oferta) + 0,33 × +1 (Demanda) + 0,17 × −1 (Juros) = −0,83.
+- **O Imediato** fica LATERAL quase sempre (só o Câmbio, neutro); com a Conab recente, em 2026-09-28, sai −1,60,
+  BAIXA_FORTE; só com o Câmbio, em 2026-08-17, −1,00, LEVE com confiança BAIXA (os tetos sem Oferta).
+- **O F6** só tem decisão desde ago/2026, como em dev.
+
+As semanas de 2023 a 2025 no servidor (INSUFICIENTE e conflito) ainda não foram conferidas.
+
 ## Fora do escopo
 
 Calendário mensal de pesos; o refinamento do catalisador no F7; a curva a termo; a agregação nos outros ativos; tabela
