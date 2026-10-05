@@ -27,7 +27,8 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v6 (2026-10-05): as perguntas do F2 viram decisões; o VHI de MT e do PR vai ao F2 como contexto (ADR 0070).
 // v7 (2026-10-05): as perguntas do F3 viram decisões; a validação contra Chicago; o Brasil (Conab) como contexto (ADR 0071).
 // v8 (2026-10-05): as perguntas do F4 viram decisões; a base contra a própria mediana de 52 semanas (ADR 0072).
-const VERSAO = 8;
+// v9 (2026-10-05): a pergunta do F5 vira decisão; a validação contra Chicago (ADR 0073).
+const VERSAO = 9;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -206,12 +207,12 @@ const DEFINICOES = [
     },
     evento: { janelaDias: 7 },
     dados: {
-      observaveis: ["ETANOL_EUA_EIA", "WASDE_MILHO_EUA"],
+      observaveis: ["ETANOL_EUA_EIA", "WASDE_MILHO_EUA", "MILHO_PRECO_FMI"],
       eventos: false,
       avaliacao: {
         suficiente: false,
         texto:
-          "Basta para a parte dos EUA, não para o fator inteiro: a produção semanal de etanol da EIA é coletada desde 2010 e os episódios conhecidos aparecem (a pandemia, -19% contra a média de 4 semanas em abr/2020; o frio extremo no Texas, -29% em fev/2021). A margem do etanol de milho e a moagem do Brasil (UNEM, ANP, Cepea), de que dependem a regra de alta e boa parte da de baixa, não são coletadas: o fator só dá pressão de baixa. Contra o Indicador CEPEA/ESALQ (432 semanas, 2018 a 2026), a relação é fraca, no sentido da regra: nas 64 semanas com pressão de baixa o indicador caiu em média 1,4% nas 13 semanas seguintes (subiu em 44% delas), contra +3,5% nas semanas neutras (60%); o desvio tem +0,12 com o indicador 13 semanas depois."
+          "Basta para a parte dos EUA, não para o fator inteiro: a produção semanal de etanol da EIA é coletada desde 2010 e os episódios conhecidos aparecem (a pandemia, -19% contra a média de 4 semanas em abr/2020; o frio extremo no Texas, -29% em fev/2021). A margem do etanol de milho e a moagem do Brasil (UNEM, ANP, Cepea), de que dependem a regra de alta e boa parte da de baixa, não são coletadas: o fator só dá pressão de baixa. Contra o Indicador CEPEA/ESALQ (432 semanas, 2018 a 2026), a relação é fraca, no sentido da regra: nas 64 semanas com pressão de baixa o indicador caiu em média 1,4% nas 13 semanas seguintes (subiu em 44% delas), contra +3,5% nas semanas neutras (60%); o desvio tem +0,12 com o indicador 13 semanas depois. Contra o preço do milho americano (FMI, mensal, em dólar; cerca de 840 semanas de 2010 a 2026) não há relação, nem junto com o preço: o desvio contra a média de 4 semanas tem +0,03 com a variação dos 3 meses até o mês da semana e 0,00 a +0,01 de 1 a 3 meses depois; pela regra, com pressão de baixa o preço subiu 3 meses depois em 47% das semanas, contra 49% nas neutras. A queda semanal da produção de etanol é, na maior parte, ruído (frio, feriados, manutenção), não um sinal de demanda que o mercado precifique."
       },
       lacunas: [
         "O etanol de milho do Brasil (UNEM, ANP, Cepea etanol hidratado) não é coletado: a margem e a moagem brasileiras da proposta dependem dele.",
@@ -229,8 +230,9 @@ const DEFINICOES = [
         baixa: "R-ETA-02 v0: margem no percentil 30 ou abaixo, ou moagem semanal (EIA) 3% ou mais abaixo da média de 4 semanas, ou paradas de plantas → pesa para baixa."
       }
     },
-    perguntas: [
-      "Sem o etanol brasileiro na base, a v1 roda só com a parte dos EUA (a moagem da EIA), declarando a lacuna?"
+    perguntas: [],
+    decisoes: [
+      "Só a parte dos EUA (usuário, 2026-10-05, ADR 0073): a v1 roda com a moagem da EIA, declarando a falta do etanol brasileiro e da margem (que pedem fonte nova: o preço do etanol não está na base). Contra o preço americano o fator não mostrou relação; a validação histórica do prompt diz isso, e o peso do especialista não muda."
     ]
   },
   {
