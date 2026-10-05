@@ -34,8 +34,25 @@ const { FATORES } = require("./fatores-fel1");
 // instrumento operado), o formato da leitura da IA, o peso e a agregação dos fatores, a validação dos eventos. Mesmo
 // formato dos fatores: `decisoes` (o que já foi decidido, com quem, a data e o ADR) e `perguntas` (o que o especialista
 // ainda decide). Uma pergunta respondida sai das `perguntas` e vira decisão. Não vai ao prompt: não muda a `versao`.
+//
+// E os pesos e as relações entre os fatores (`pesos`, opcional): o que o especialista definiu além do peso do FEL 1.
+// Hoje só o milho tem (Motor do Milho v0, Seções 3 e 4). Também não vai ao prompt: a IA recebe só o peso do FEL 1.
+//   autoria    - de quem é a definição. `descricao`: o que ela diz do peso, em uma frase (a abertura da seção).
+//   fatores    - por código: `sugestao` (o peso-base que o especialista sugere no lugar do FEL 1, como escrito) e UM de:
+//                `meses` ({ Alto: [7], Médio: [6, 8] }: os meses de 1 a 12 de cada peso; mês fora de todos = não
+//                definido, nunca preenchido por inferência), `fixo` (o mesmo peso o ano todo, sem calendário) ou `papel`
+//                (o fator não tem peso próprio, ex.: multiplica o dos outros). `condicoes` ({ texto, meses }) e `notas`.
+//   relacoes   - { descricao, simbolos: [{ simbolo: "++", significado: "forte" }, ...] (a legenda, na ordem), matriz: { CODIGO: [o símbolo contra cada fator, na ordem do
+//                ativo; null na diagonal] }, observacoes, leitura }. Simétrica: um símbolo diferente entre A×B e B×A
+//                é erro de transcrição.
+//   pares      - (opcional, no lugar da matriz ou junto) as relações por par: { fatores: [A, B], sentido, canal,
+//                defasagem, tratamento }, como o especialista escreveu; `notaPares`, uma ressalva sobre elas.
+//   agregacao  - as regras de agregação, cada uma { tema, tratamento, fatores, noFinMind: { situacao, texto } }:
+//                como a regra está hoje no FinMind (orientação no prompt, parcial ou fora do motor).
 
 const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
+const PESOS = ["Alto", "Médio", "Baixo"];
+const SITUACAO_AGREGACAO = { ORIENTACAO: "ORIENTACAO", PARCIAL: "PARCIAL", FORA: "FORA" };
 
 // As definições de um ativo -> os fatores com o nome e o peso do FEL 1. Um código fora do catálogo, ou de outro
 // ativo, é erro de programação.
@@ -71,10 +88,99 @@ function montarDoAtivo(ativo, doAtivo) {
   return { decisoes: [...doAtivo.decisoes], perguntas: [...doAtivo.perguntas] };
 }
 
-// A metodologia de um ativo, como o serviço a entrega: `versao` sobe quando uma definição de fator muda (vai com cada
-// prompt).
-function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores }) {
-  return { ativo, nome, versao, dataVersao, doAtivo: montarDoAtivo(ativo, doAtivo), fatores };
+// { Alto: [7], Médio: [6, 8] } -> os 12 meses (janeiro primeiro), cada um { peso, condicao } ou null (não definido).
+function mesesDoFator(codigo, meses, condicoes = []) {
+  const lista = Array(12).fill(null);
+  for (const [peso, numeros] of Object.entries(meses)) {
+    if (!PESOS.includes(peso)) throw new Error(`${codigo}: peso desconhecido no calendário: ${peso}`);
+    for (const mes of numeros) {
+      if (!Number.isInteger(mes) || mes < 1 || mes > 12) throw new Error(`${codigo}: mês inválido: ${mes}`);
+      if (lista[mes - 1]) throw new Error(`${codigo}: o mês ${mes} tem dois pesos`);
+      lista[mes - 1] = { peso, condicao: null };
+    }
+  }
+  for (const { texto, meses: numeros } of condicoes) {
+    for (const mes of numeros || []) {
+      if (!lista[mes - 1]) throw new Error(`${codigo}: condição num mês sem peso: ${mes}`);
+      lista[mes - 1].condicao = texto;
+    }
+  }
+  return lista;
 }
 
-module.exports = { SITUACAO, montarFatores, montarMetodologia };
+// O peso de cada fator: o do FEL 1 (o que vai ao prompt) e, se o especialista definiu, a sugestão dele, o calendário
+// (ou o peso fixo, ou o papel) e as notas. `F1`...`Fn` na ordem do ativo, como o especialista numera.
+function montarPesoFator(fator, indice, definicao) {
+  const base = { codigo: fator.codigo, sigla: `F${indice + 1}`, nome: fator.nome, pesoFel1: fator.peso };
+  if (!definicao) return { ...base, sugestao: null, meses: null, fixo: null, papel: null, notas: [] };
+  const formas = ["meses", "fixo", "papel"].filter((chave) => definicao[chave]);
+  if (formas.length !== 1) throw new Error(`${fator.codigo}: o peso precisa de um entre meses, fixo e papel`);
+  if (definicao.fixo && !PESOS.includes(definicao.fixo)) throw new Error(`${fator.codigo}: peso fixo desconhecido: ${definicao.fixo}`);
+  const condicoesSemMes = (definicao.condicoes || []).filter((c) => !c.meses).map((c) => c.texto);
+  return {
+    ...base,
+    sugestao: definicao.sugestao || null,
+    meses: definicao.meses ? mesesDoFator(fator.codigo, definicao.meses, definicao.condicoes) : null,
+    fixo: definicao.fixo || null,
+    papel: definicao.papel || null,
+    notas: [...condicoesSemMes, ...(definicao.notas || [])]
+  };
+}
+
+// A matriz de relações: uma linha por fator do ativo, com um símbolo conhecido por coluna, e simétrica.
+function validarRelacoes(ativo, codigos, relacoes) {
+  const simbolos = new Set(relacoes.simbolos.map((item) => item.simbolo));
+  const linhas = Object.keys(relacoes.matriz);
+  if (linhas.length !== codigos.length || !codigos.every((c) => linhas.includes(c))) {
+    throw new Error(`${ativo}: a matriz de relações precisa de uma linha por fator do ativo`);
+  }
+  codigos.forEach((a, i) => {
+    const linha = relacoes.matriz[a];
+    if (linha.length !== codigos.length) throw new Error(`${a}: a linha da matriz precisa de ${codigos.length} colunas`);
+    codigos.forEach((b, j) => {
+      if (i === j) {
+        if (linha[j] !== null) throw new Error(`${a}: a diagonal da matriz é null`);
+        return;
+      }
+      if (!simbolos.has(linha[j])) throw new Error(`${a} × ${b}: símbolo desconhecido: ${linha[j]}`);
+      if (linha[j] !== relacoes.matriz[b][i]) throw new Error(`${a} × ${b}: a matriz não é simétrica`);
+    });
+  });
+}
+
+function montarPesos(ativo, fatores, pesos) {
+  const codigos = fatores.map((f) => f.codigo);
+  const definicoes = pesos?.fatores || {};
+  const fora = Object.keys(definicoes).filter((codigo) => !codigos.includes(codigo));
+  if (fora.length) throw new Error(`${ativo}: peso de fator fora do ativo: ${fora.join(", ")}`);
+  if (pesos?.relacoes) validarRelacoes(ativo, codigos, pesos.relacoes);
+  for (const par of pesos?.pares || []) {
+    if (par.fatores.length !== 2 || par.fatores.some((codigo) => !codigos.includes(codigo))) {
+      throw new Error(`${ativo}: relação por par com fator fora do ativo: ${par.fatores.join(" × ")}`);
+    }
+  }
+  for (const regra of pesos?.agregacao || []) {
+    const desconhecidos = regra.fatores.filter((codigo) => !codigos.includes(codigo));
+    if (desconhecidos.length) throw new Error(`${ativo}: agregação "${regra.tema}" com fator fora do ativo: ${desconhecidos.join(", ")}`);
+    if (!SITUACAO_AGREGACAO[regra.noFinMind?.situacao]) throw new Error(`${ativo}: agregação "${regra.tema}" sem a situação no FinMind`);
+  }
+  return {
+    autoria: pesos?.autoria || null,
+    descricao: pesos?.descricao || null,
+    // Do especialista e não aprovado pelo Comitê enquanto não houver decisão registrada.
+    situacao: pesos ? SITUACAO.PROPOSTA : null,
+    fatores: fatores.map((fator, i) => montarPesoFator(fator, i, definicoes[fator.codigo])),
+    relacoes: pesos?.relacoes || null,
+    pares: pesos?.pares || [],
+    notaPares: pesos?.notaPares || null,
+    agregacao: pesos?.agregacao || []
+  };
+}
+
+// A metodologia de um ativo, como o serviço a entrega: `versao` sobe quando uma definição de fator muda (vai com cada
+// prompt).
+function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, pesos = null }) {
+  return { ativo, nome, versao, dataVersao, doAtivo: montarDoAtivo(ativo, doAtivo), pesos: montarPesos(ativo, fatores, pesos), fatores };
+}
+
+module.exports = { SITUACAO, SITUACAO_AGREGACAO, montarFatores, montarMetodologia };

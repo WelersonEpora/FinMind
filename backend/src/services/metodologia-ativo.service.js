@@ -5,14 +5,16 @@ const fatorParametroRepository = require("../repositories/fator-parametro.reposi
 const { obterMetodologiaPetroleo } = require("../shared/metodologia-petroleo");
 const { obterMetodologiaOuro } = require("../shared/metodologia-ouro");
 const { obterMetodologiaMilho } = require("../shared/metodologia-milho");
+const { obterMetodologiaCafe } = require("../shared/metodologia-cafe");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
 const { montarTextoPrompt } = require("../factors/base/texto-prompt");
 const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 
 // Metodologia dos fatores por ativo: a proposta para o David validar (ADRs 0050 e 0053); no milho, a proposta v0 do
-// próprio David (ADR 0055).
+// próprio David (ADR 0055); no café, o Motor do Café v1, com os limiares calibrados pelo FinMind (ADR 0060).
 const METODOLOGIAS = {
+  CAFE: obterMetodologiaCafe,
   MILHO: obterMetodologiaMilho,
   OURO: obterMetodologiaOuro,
   PETROLEO: obterMetodologiaPetroleo
@@ -48,7 +50,15 @@ const CALCULOS = {
   MILHO_POLITICA_COMERCIAL: require("../factors/exportacao-milho.factor").METODOLOGIA,
   MILHO_ETANOL: require("../factors/etanol-milho.factor").METODOLOGIA,
   MILHO_DOLAR_PARIDADE: require("../factors/dolar-paridade-milho.factor").METODOLOGIA,
-  MILHO_INSUMOS: require("../factors/insumos-milho.factor").METODOLOGIA
+  MILHO_INSUMOS: require("../factors/insumos-milho.factor").METODOLOGIA,
+  CAFE_CLIMA: require("../factors/clima-cafe.factor").METODOLOGIA,
+  CAFE_SAFRA_BRASIL: require("../factors/safra-cafe.factor").METODOLOGIA,
+  CAFE_ESTOQUES: require("../factors/estoques-cafe-ice.factor").METODOLOGIA,
+  CAFE_DOLAR: require("../factors/dolar-cafe.factor").METODOLOGIA,
+  CAFE_CUSTO_PRECO_MINIMO: require("../factors/custos-cafe.factor").METODOLOGIA,
+  CAFE_DEMANDA: require("../factors/demanda-cafe.factor").METODOLOGIA,
+  CAFE_FUNDOS: require("../factors/fundos-cafe.factor").METODOLOGIA,
+  CAFE_JUROS: require("../factors/juros-cafe.factor").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;

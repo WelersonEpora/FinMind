@@ -13,6 +13,8 @@
 // Uso (no servidor, em segundo plano: nohup npm run backfill:ice-cafe-estoques > /tmp/ice.log 2>&1 &):
 //   node scripts/backfill-ice-cafe-estoques.js                          (padrão: 2016-01-04 até ontem)
 //   node scripts/backfill-ice-cafe-estoques.js --desde=2025-01-01 --ate=2025-03-31
+//   node scripts/backfill-ice-cafe-estoques.js --serie=pendente   (ADR 0061: pede de novo, no mesmo ritmo, os dias que
+//                                                                  ainda não têm as sacas pendentes de classificação)
 
 const { sequelize } = require("../src/models");
 const { executarColetor } = require("../src/collectors/base/collector-runner");
@@ -63,13 +65,22 @@ function aguardar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const SERIES = { certificado: coletor.SERIE_TOTAL, pendente: coletor.SERIE_PENDENTE };
+
+function resolverSerie({ serie = "certificado" } = {}) {
+  if (!SERIES[serie]) throw new Error(`--serie deve ser ${Object.keys(SERIES).join(" ou ")}: "${serie}".`);
+  return SERIES[serie];
+}
+
 async function main({ esperar = aguardar } = {}) {
-  const intervalo = resolverIntervalo(parseArgs());
+  const args = parseArgs();
+  const intervalo = resolverIntervalo(args);
+  const serie = resolverSerie(args);
   const blocos = dividirPorMes(intervalo);
   const falhas = [];
   let bloqueiosSeguidos = 0;
 
-  logger.info({ ...intervalo, blocos: blocos.length }, "Iniciando backfill dos estoques certificados do café da ICE");
+  logger.info({ ...intervalo, serie, blocos: blocos.length }, "Iniciando backfill dos estoques certificados do café da ICE");
 
   for (let i = 0; i < blocos.length; i += 1) {
     const bloco = blocos[i];
@@ -80,7 +91,7 @@ async function main({ esperar = aguardar } = {}) {
         timeoutMs: TIMEOUT_BLOCO_MS,
         tentativasRetry: 1,
         download: async ({ signal }) => {
-          bruto = await coletor.downloadIntervalo({ ...bloco, signal });
+          bruto = await coletor.downloadIntervalo({ ...bloco, serie, signal });
           return bruto;
         }
       },
@@ -138,4 +149,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { resolverIntervalo, parseArgs, dividirPorMes };
+module.exports = { resolverIntervalo, resolverSerie, parseArgs, dividirPorMes };

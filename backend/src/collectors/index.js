@@ -32,6 +32,8 @@ const usdaAreaPlantadaCollector = require("./usda/usda-area-plantada.collector")
 const usdaGrainStocksCollector = require("./usda/usda-grain-stocks.collector");
 const usdaPsdCafeCollector = require("./usda/usda-psd-cafe.collector");
 const iceCafeEstoquesCollector = require("./ice/ice-cafe-estoques.collector");
+const icoCafeCollector = require("./ico/ico-cafe.collector");
+const ecfCafeEstoquesCollector = require("./ecf/ecf-cafe-estoques.collector");
 const conabMilhoCollector = require("./conab/conab-milho.collector");
 const conabCafeCollector = require("./conab/conab-cafe.collector");
 const conabCustoCafeCollector = require("./conab/conab-custo-cafe.collector");
@@ -86,6 +88,8 @@ function bootstrapCollectors() {
     registerCollector(usdaGrainStocksCollector);
     registerCollector(usdaPsdCafeCollector);
     registerCollector(iceCafeEstoquesCollector);
+    registerCollector(icoCafeCollector);
+    registerCollector(ecfCafeEstoquesCollector);
     registerCollector(conabMilhoCollector);
     registerCollector(conabCafeCollector);
     registerCollector(conabCustoCafeCollector);

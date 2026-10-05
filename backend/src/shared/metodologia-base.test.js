@@ -37,3 +37,72 @@ test("todo ativo com metodologia diz o preço de referência decidido; o instrum
   assert.match(obterMetodologiaPetroleo().doAtivo.decisoes[0], /Brent/);
   assert.ok(obterMetodologiaOuro().doAtivo.perguntas.some((p) => p.startsWith("Instrumento operado:")));
 });
+
+// --- Pesos e relações (só na tela; o prompt leva o peso do FEL 1) ---
+
+const BASE_PESOS = { ativo: "OURO", nome: "Ouro", versao: 1, dataVersao: "2026-10-04", doAtivo: { decisoes: [], perguntas: [] } };
+const FATORES_PESOS = montarFatores("OURO", [definicao("OURO_JUROS_REAIS"), definicao("OURO_DOLAR")]);
+const comPesos = (pesos) => montarMetodologia({ ...BASE_PESOS, fatores: FATORES_PESOS, pesos });
+
+test("sem definição do especialista, os pesos são só os do FEL 1, numerados F1...Fn", () => {
+  const { pesos } = comPesos(null);
+  assert.equal(pesos.situacao, null);
+  assert.equal(pesos.relacoes, null);
+  assert.deepEqual(pesos.agregacao, []);
+  assert.deepEqual(
+    pesos.fatores.map((f) => [f.sigla, f.pesoFel1, f.meses, f.fixo, f.papel]),
+    [
+      ["F1", "Alto", null, null, null],
+      ["F2", "Alto", null, null, null]
+    ]
+  );
+});
+
+test("o calendário vira 12 meses; o mês fora dele fica sem peso, e a condição marca os meses dela", () => {
+  const { pesos } = comPesos({
+    autoria: "David",
+    fatores: {
+      OURO_JUROS_REAIS: { meses: { Alto: [7], Médio: [6, 8] }, condicoes: [{ texto: "c", meses: [7] }, { texto: "geral" }] },
+      OURO_DOLAR: { fixo: "Baixo" }
+    }
+  });
+  assert.equal(pesos.situacao, SITUACAO.PROPOSTA);
+  const [juros, dolar] = pesos.fatores;
+  assert.equal(juros.meses.length, 12);
+  assert.equal(juros.meses[0], null);
+  assert.deepEqual(juros.meses[6], { peso: "Alto", condicao: "c" });
+  assert.deepEqual(juros.meses[5], { peso: "Médio", condicao: null });
+  assert.deepEqual(juros.notas, ["geral"]);
+  assert.equal(dolar.fixo, "Baixo");
+});
+
+test("peso desconhecido, mês repetido, mais de uma forma ou fator de outro ativo são erro", () => {
+  assert.throws(() => comPesos({ fatores: { OURO_DOLAR: { meses: { Altíssimo: [1] } } } }), /peso desconhecido/);
+  assert.throws(() => comPesos({ fatores: { OURO_DOLAR: { meses: { Alto: [1], Baixo: [1] } } } }), /dois pesos/);
+  assert.throws(() => comPesos({ fatores: { OURO_DOLAR: { meses: { Alto: [13] } } } }), /mês inválido/);
+  assert.throws(() => comPesos({ fatores: { OURO_DOLAR: { fixo: "Alto", papel: "x" } } }), /um entre/);
+  assert.throws(() => comPesos({ fatores: { PETROLEO_DOLAR: { fixo: "Alto" } } }), /fora do ativo/);
+});
+
+test("a matriz de relações precisa ser completa, com símbolos da legenda e simétrica", () => {
+  const simbolos = [{ simbolo: "+", significado: "média" }, { simbolo: "−", significado: "inversa" }];
+  const relacoes = (a, b) => ({ simbolos, matriz: { OURO_JUROS_REAIS: [null, a], OURO_DOLAR: [b, null] } });
+  assert.doesNotThrow(() => comPesos({ relacoes: relacoes("+", "+") }));
+  assert.throws(() => comPesos({ relacoes: relacoes("+", "−") }), /simétrica/);
+  assert.throws(() => comPesos({ relacoes: relacoes("?", "?") }), /desconhecido/);
+  assert.throws(() => comPesos({ relacoes: { simbolos, matriz: { OURO_DOLAR: [null] } } }), /uma linha por fator/);
+});
+
+test("a regra de agregação diz como está no FinMind e só cita fatores do ativo", () => {
+  const regra = { tema: "t", tratamento: "x", fatores: ["OURO_DOLAR"], noFinMind: { situacao: "FORA", texto: "y" } };
+  assert.equal(comPesos({ agregacao: [regra] }).pesos.agregacao.length, 1);
+  assert.throws(() => comPesos({ agregacao: [{ ...regra, fatores: ["MILHO_FUNDOS"] }] }), /fora do ativo/);
+  assert.throws(() => comPesos({ agregacao: [{ ...regra, noFinMind: {} }] }), /situação no FinMind/);
+});
+
+test("as relações por par só citam fatores do ativo, dois de cada vez", () => {
+  const par = { fatores: ["OURO_JUROS_REAIS", "OURO_DOLAR"], sentido: "s", canal: "c", defasagem: "d", tratamento: "t" };
+  assert.equal(comPesos({ pares: [par] }).pesos.pares.length, 1);
+  assert.throws(() => comPesos({ pares: [{ ...par, fatores: ["OURO_DOLAR", "MILHO_FUNDOS"] }] }), /fora do ativo/);
+  assert.throws(() => comPesos({ pares: [{ ...par, fatores: ["OURO_DOLAR"] }] }), /fora do ativo/);
+});

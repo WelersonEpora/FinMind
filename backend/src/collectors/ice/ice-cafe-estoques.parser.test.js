@@ -3,7 +3,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const XLSX = require("xlsx");
-const { lerRelatorio, lerAsOf, slugOrigem } = require("./ice-cafe-estoques.parser");
+const { lerRelatorio, lerAsOf, slugOrigem, lerPendentes } = require("./ice-cafe-estoques.parser");
 
 // Planilha no layout real (XLS antigo, uma aba). Os portos mudam com o tempo: o parser só usa a coluna "Total".
 function xls({ asOf = "As of: Sep 25, 2026  1:18:21PM", portos = ["ANT", "HOU"], linhas, total, comRotulo = true, titulo = 'COFFEE "C" CERTIFIED WAREHOUSE STOCK REPORT' } = {}) {
@@ -58,6 +58,22 @@ test("lerAsOf converte 12h: meia-noite e meio-dia", () => {
 test("lerAsOf aceita os desvios reais da fonte: correção republicada e cabeçalho sem horário", () => {
   assert.deepEqual(lerAsOf("As of: Jun 6, 2018  2:10:33PM- Total Correction"), { data: "2018-06-06", horario: "14:10:33", observacao: "Total Correction" });
   assert.deepEqual(lerAsOf("As of: Jun 11, 2026 "), { data: "2026-06-11", horario: null, observacao: null });
+});
+
+test("sacas pendentes de classificação: só o total, nos dois layouts reais (por porto em 2016, por origem em 2026)", () => {
+  // 2026: o bloco tem cabeçalho de portos e "Total in Bags" (o `xls` acima termina assim, com 1 saca).
+  assert.equal(lerRelatorio(xls({ linhas: [], total: 0 })).pendente, 1);
+  // 2016 e 2021: por porto, com "Grand Total in Bags" (arquivo de 2016-01-04: AN 28119 + HA/BR 4437 = 32556).
+  const de2016 = [["Pending Grading Report"], ["Port", "Bags"], ["AN", 28119], ["HA/BR", 4437], ["Grand Total in Bags", 32556], ["Flagged for Rebagging"]];
+  assert.deepEqual(lerPendentes(de2016), { total: 32556 });
+  assert.deepEqual(lerPendentes([["Pending Grading Report"], ["No Bags Pending Grading"], ["Flagged for Rebagging"]]), { total: 0 });
+});
+
+test("bloco pendente ausente, sem total ou que não fecha: só o pendente fica de fora, com o motivo", () => {
+  assert.match(lerPendentes([["Flagged for Rebagging"]]).motivo, /ausente/);
+  assert.match(lerPendentes([["Pending Grading Report"], ["Port", "Bags"], ["AN", 5], ["Grand Total in Bags", 6]]).motivo, /não fecha/);
+  assert.match(lerPendentes([["Pending Grading Report"], ["Port", "Bags"], ["AN", 5], ["Flagged for Rebagging"]]).motivo, /sem linha de total/);
+  assert.match(lerPendentes([["Pending Grading Report"], ["Port", "Bags"], ["AN", "n/d"]]).motivo, /ilegível/);
 });
 
 test("slugOrigem tira acento e pontuação", () => {

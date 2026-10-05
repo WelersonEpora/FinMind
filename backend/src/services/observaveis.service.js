@@ -1392,16 +1392,89 @@ const CATALOGO_OBSERVAVEIS = [
       descritor: "ice-origem"
     },
     campoPrincipal: "CERTIFICADO",
-    campos: [{ codigo: "CERTIFICADO", nome: "Sacas certificadas", unidade: "sacas", casasDecimais: 0 }],
+    campos: [
+      { codigo: "CERTIFICADO", nome: "Sacas certificadas", unidade: "sacas", casasDecimais: 0 },
+      // Só no item TOTAL (ADR 0061).
+      { codigo: "PENDENTE", nome: "Sacas aguardando classificação (só o total)", unidade: "sacas", casasDecimais: 0 }
+    ],
     fonteDetalhe: {
       descricao:
-        "Estoque de café arábica certificado (aprovado na classificação e apto a ser entregue contra o contrato futuro Coffee \"C\" da ICE), em sacas, por país de origem e no total, conforme o relatório diário da ICE Futures U.S. É o \"estoque certificado ICE\" do fator de estoques do café.",
+        "Estoque de café arábica certificado (aprovado na classificação e apto a ser entregue contra o contrato futuro Coffee \"C\" da ICE), em sacas, por país de origem e no total, conforme o relatório diário da ICE Futures U.S. É o \"estoque certificado ICE\" do fator de estoques do café. No total, também as sacas aguardando classificação (entregues aos armazéns e ainda não classificadas): a fila que vira estoque certificado.",
       metodologia:
         "Um valor por pregão e origem, somando todos os portos de entrega. A data de publicação é a REAL, o horário em que o arquivo do dia foi publicado no site da ICE (cabeçalho Last-Modified; o relatório traz o horário de Nova York em que foi gerado, alguns minutos antes); sem ela, vale esse horário, estimado. A série não revisa: é a foto do dia. Valores como publicados; o FinMind confere que a soma das origens fecha com o total do relatório e descarta o arquivo que não fechar.",
       escopo:
-        "só o bloco de sacas certificadas (por origem e total), desde 2016-01-04, o arquivo mais antigo no site. Não coletados: a quebra por porto (as colunas mudam com os anos), as sacas de transição (sujeitas a desconto a partir de 2027), a classificação do dia, as pendentes de classificação e as marcadas para reensaque. Licença: os termos de uso da ICE limitam o site a uso pessoal e não comercial e excluem a coleta por robôs; a coleta foi decidida pelo usuário, com esse risco registrado (ADR 0032): uso interno, sem redistribuição.",
+        "o bloco de sacas certificadas (por origem e total), desde 2016-01-04, o arquivo mais antigo no site, e o total do bloco de sacas aguardando classificação (Pending Grading Report, ADR 0061; só o total, porque o bloco mudou de formato: por porto até 2021, por origem em 2026). Não coletados: a quebra por porto (as colunas mudam com os anos), as sacas de transição (sujeitas a desconto a partir de 2027), a classificação do dia e as marcadas para reensaque. Licença: os termos de uso da ICE limitam o site a uso pessoal e não comercial e excluem a coleta por robôs; a coleta foi decidida pelo usuário, com esse risco registrado (ADR 0032): uso interno, sem redistribuição.",
       formatoOrigem: "XLS por pregão (arquivo público no site da ICE, sem chave; sem documentação)",
       urlOficial: "https://www.ice.com/report/41"
+    }
+  },
+
+  // --- ICO - Coffee Market Report: preços por grupo e estoques certificados de Nova York e Londres, mensal (ADR 0061) ---
+  {
+    instrumentCode: "ICO_CAFE",
+    origem: "observation",
+    nome: "Café - preços e estoques certificados da ICO (mensal)",
+    unidade: "US¢/lb",
+    casasDecimais: 2,
+    frequencia: "MENSAL",
+    // O relatório de um mês sai de 3 a 38 dias depois do fim dele: o último mês fica até ~70 dias sem sucessor.
+    toleranciaDias: 75,
+    fonte: "ICO - Coffee Market Report",
+    fonteCollectorCode: "ico-cafe",
+    porCampo: { prefixoSerie: "ICO.CAFE" },
+    campoPrincipal: "PRECO_I_CIP",
+    campos: [
+      { codigo: "PRECO_I_CIP", nome: "Preço indicativo composto (I-CIP)", unidade: "US¢/lb", casasDecimais: 2 },
+      { codigo: "PRECO_COLOMBIAN_MILDS", nome: "Colombian Milds", unidade: "US¢/lb", casasDecimais: 2 },
+      { codigo: "PRECO_OTHER_MILDS", nome: "Other Milds", unidade: "US¢/lb", casasDecimais: 2 },
+      { codigo: "PRECO_BRAZILIAN_NATURALS", nome: "Brazilian Naturals (arábica natural do Brasil)", unidade: "US¢/lb", casasDecimais: 2 },
+      { codigo: "PRECO_ROBUSTAS", nome: "Robustas", unidade: "US¢/lb", casasDecimais: 2 },
+      { codigo: "PRECO_NOVA_YORK", nome: "Futuro de Nova York (arábica, ICE)", unidade: "US¢/lb", casasDecimais: 2 },
+      { codigo: "PRECO_LONDRES", nome: "Futuro de Londres (robusta, ICE)", unidade: "US¢/lb", casasDecimais: 2 },
+      { codigo: "ESTOQUE_NOVA_YORK", nome: "Estoque certificado de Nova York", unidade: "milhões de sacas", casasDecimais: 2 },
+      { codigo: "ESTOQUE_LONDRES", nome: "Estoque certificado de Londres", unidade: "milhões de sacas", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Relatório mensal da Organização Internacional do Café (ICO): a média do mês dos preços indicativos por grupo de café (o composto I-CIP, Colombian Milds, Other Milds, Brazilian Naturals e Robustas) e dos futuros de Nova York (arábica) e Londres (robusta), média da 2ª e 3ª posições, em centavos de dólar por libra-peso; e os estoques certificados das duas bolsas no fim do mês, em milhões de sacas. A diferença entre Nova York e Londres é a arbitragem entre arábica e robusta.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês), lido das tabelas 1 e 5 do PDF. Cada relatório repete de 12 a 14 meses e é uma edição: o mês entra com a data do relatório dele mesmo, e os seguintes confirmam ou corrigem. A fonte revisa (preços em centésimos; estoques em centésimos de milhão de sacas) e corrige erros de digitação no mês seguinte (Nova York de set/2020: 2,45 no relatório de setembro, 1,26 no de outubro); cada correção fica com a data do relatório que a trouxe. Em alguns relatórios uma tabela é imagem, sem texto (jul e ago/2015, set, nov e dez/2016): esses meses entram pelo relatório seguinte. A data de publicação é o horário em que o PDF foi publicado no site (cabeçalho Last-Modified), de out/2023 em diante; os relatórios anteriores têm a data das migrações do site (2023 e 2025), e aí a data é estimada em 45 dias depois do fim do mês (acima do maior atraso visto, 38 dias). Mensal: serve para os horizontes longos, não para regras diárias.",
+      escopo:
+        "relatórios de out/2012 (o 1º no site) em diante; os estoques só desde 2013 (em 2012 eram um gráfico). O estoque de Nova York repete, com menos precisão, o estoque certificado diário da ICE. Não coletados: a tabela 2 (diferenciais entre grupos, deriváveis da tabela 1), a 3 (balanço por ano-café, layout muda entre os anos; o PSD do USDA já traz a produção por espécie) e a 4 (exportações por grupo). Licença: reuso livre citando a ICO como fonte.",
+      formatoOrigem: "PDF mensal (público, sem chave)",
+      urlOficial: "https://www.ico.org/coffee-market-report"
+    }
+  },
+
+  // --- ECF - estoques de café verde nos portos europeus, por tipo, mensal (ADR 0061) ---
+  {
+    instrumentCode: "ECF_CAFE_ESTOQUES",
+    origem: "observation",
+    nome: "Café - estoques nos portos europeus (ECF)",
+    unidade: "toneladas",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    // Bimestral, com ~2 meses de atraso: o mês mais recente fica até ~4 meses sem sucessor.
+    toleranciaDias: 130,
+    fonte: "European Coffee Federation - Stocks in European Ports",
+    fonteCollectorCode: "ecf-cafe-estoques",
+    porCampo: { prefixoSerie: "ECF.CAFE" },
+    campoPrincipal: "ESTOQUE_TOTAL",
+    campos: [
+      { codigo: "ESTOQUE_TOTAL", nome: "Total da Europa", unidade: "toneladas", casasDecimais: 0 },
+      { codigo: "ESTOQUE_ROBUSTA", nome: "Robusta", unidade: "toneladas", casasDecimais: 0 },
+      { codigo: "ESTOQUE_NATURAL_ARABICA", nome: "Arábica natural (com o semi-lavado do Brasil)", unidade: "toneladas", casasDecimais: 0 },
+      { codigo: "ESTOQUE_WASHED_ARABICA", nome: "Arábica lavado", unidade: "toneladas", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Estoque de café verde nos principais portos da Europa (Antuérpia, Hamburgo, Le Havre, Barcelona, Trieste, Gênova, Nápoles, Tallinn, Londres, Felixstowe e parte de Bremen) no último dia de cada mês, em toneladas, por tipo de café e no total, segundo a European Coffee Federation. Inclui os estoques certificados da ICE nesses portos e os que não são de bolsa.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês; o estoque é o do último dia), lido da tabela por tipo do relatório anual em PDF, que a ECF substitui a cada 2 meses. Cada versão do PDF é uma edição, com a data em que foi para o site (cabeçalho Last-Modified): a fonte revisa os meses já publicados (robusta de abr/2026: 150.769 t na versão de junho, 150.565 t na de agosto), e cada revisão fica com a data dela. Sai com cerca de 2 meses de atraso. Defeitos conhecidos da fonte, tratados sem adivinhar: ano digitado errado no cabeçalho (\"31-May-24\" no arquivo de 2025, lido pela sequência), separador de milhar com ponto ou vírgula e números quebrados no PDF. O total tem de fechar com a soma dos tipos (até 3 t de arredondamento).",
+      escopo:
+        "de jan/2020 em diante (antes, a tabela era por porto e a cobertura mudou: a Antuérpia saiu em ago/2019). As versões antigas de anos fechados não ficam no site: de 2020 a 2025, só a versão final de cada ano. Sobreposição: os certificados da ICE em Londres e Antuérpia estão aqui e no estoque de Londres da ICO. Licença: não lida (dados cedidos por armazéns e portos); uso interno.",
+      formatoOrigem: "PDF anual, atualizado a cada 2 meses (público, sem chave)",
+      urlOficial: "https://www.ecf-coffee.org/category/publications/stocks/"
     }
   },
 

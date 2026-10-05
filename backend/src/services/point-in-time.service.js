@@ -146,7 +146,10 @@ async function registrarObservacoes(observacoes, { execucaoId, coletadoEm = new 
       // regra (ex.: "1 dia útil depois de observed_at"): a regra descreve a
       // publicação ORIGINAL, não a da revisão. A revisão só foi vista agora,
       // então o único limite honesto é collected_at.
-      if (ultima && !mesmoValor(ultima.value, v.value) && v.published_at_is_estimated) {
+      // Exceção: "edition_lag_rule" (ADR 0061) estima a data da EDIÇÃO que traz o
+      // valor (o relatório mensal da ICO antes de 2023): a revisão saiu nessa
+      // mesma edição, então a estimativa vale para ela também.
+      if (ultima && !mesmoValor(ultima.value, v.value) && v.published_at_is_estimated && v.metadata.publishedAtBasis !== "edition_lag_rule") {
         v = {
           ...v,
           published_at: v.collected_at,

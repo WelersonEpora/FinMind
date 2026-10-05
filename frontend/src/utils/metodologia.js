@@ -83,7 +83,11 @@ export function linhaSecundaria(ponto, quadro) {
 const PERIODOS_DO_FATOR = {
   SEMANAL: { unidade: 'Semana', janela: 'semanas', referencia: (iso) => `Semana encerrada em ${dataBrCompleta(iso)}`, data: dataBrCompleta },
   MENSAL: { unidade: 'Mês', janela: 'meses', referencia: (iso) => `Mês de ${mesAno(iso)}`, data: mesAno },
-  TRIMESTRAL: { unidade: 'Trimestre', janela: 'trimestres', referencia: (iso) => `Trimestre de ${trimestre(iso)}`, data: trimestre }
+  TRIMESTRAL: { unidade: 'Trimestre', janela: 'trimestres', referencia: (iso) => `Trimestre de ${trimestre(iso)}`, data: trimestre },
+  // Um ponto por publicação de um levantamento (a safra do café da Conab), com a data exata dela.
+  LEVANTAMENTO: { unidade: 'Levantamento', janela: 'levantamentos', referencia: (iso) => `Levantamento de ${dataBrCompleta(iso)}`, data: dataBrCompleta },
+  // Um ponto por publicação de um relatório (o balanço do café do USDA), com a data dela.
+  PUBLICACAO: { unidade: 'Publicação', janela: 'publicações', referencia: (iso) => `Publicação de ${dataBrCompleta(iso)}`, data: dataBrCompleta }
 }
 
 // "3º/2026": o trimestre de uma data do 1º dia do trimestre (AAAA-MM-01).
@@ -120,4 +124,38 @@ export function descreverOrigemParametros(origem) {
   const data = new Date(origem.alteradoEm).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
   const autor = origem.alteradoPor?.nome || 'usuário removido'
   return `Versão ${origem.versao}, salva por ${autor} em ${data}`
+}
+
+// --- Pesos e relações entre os fatores (só na tela: o prompt leva o peso do FEL 1) ---
+
+export const MESES_CURTOS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+
+// O mês (0 a 11) de uma data AAAA-MM-DD: a coluna destacada no calendário de pesos (hoje, ou a data simulada).
+export function indiceDoMes(iso) {
+  const mes = Number(String(iso || '').slice(5, 7))
+  return mes >= 1 && mes <= 12 ? mes - 1 : null
+}
+
+// O sufixo da classe CSS de um peso; vazio para o que não é Alto, Médio nem Baixo (ex.: "Médio-Alto").
+export function classePeso(peso) {
+  return { Alto: 'alto', Médio: 'medio', Baixo: 'baixo' }[peso] || ''
+}
+
+// O tom de um símbolo da matriz de relações: positivo (forte, média, fraca), inverso (média, fraca), dependente do
+// regime ou desprezível. A legenda, com o significado, vem da API.
+export function tomRelacao(simbolo) {
+  if (simbolo === '++' || simbolo === '+/++') return 'positiva-forte'
+  if (simbolo === '+') return 'positiva'
+  if (simbolo === '(+)') return 'positiva-fraca'
+  if (simbolo === '−') return 'inversa'
+  if (simbolo === '(−)') return 'inversa-fraca'
+  if (simbolo === '±' || simbolo === '(±)') return 'regime'
+  return 'nula'
+}
+
+// Como uma regra de agregação está hoje no FinMind.
+export const ROTULO_AGREGACAO = {
+  ORIENTACAO: 'Orientação no prompt',
+  PARCIAL: 'Em parte',
+  FORA: 'Fora do motor'
 }

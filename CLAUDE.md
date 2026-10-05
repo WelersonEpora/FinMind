@@ -13,9 +13,9 @@ por IA → resultado. Hoje: autenticação, espaços, o Centro de Decisão (tela
 dados de milho e ouro** (as fontes do relatório FEL 1 do especialista de mercado,
 "David"), guardada com data de publicação. No petróleo, no ouro e no milho, a cadeia
 roda inteira: os fatores, o prompt diário e a leitura de tendência da IA no Centro
-de Decisão (ADRs 0050 a 0052, 0054 e 0058). No café, o motor analítico e a integração com IA
-seguem como contratos vazios até o David e o Comitê definirem regras, cálculos e
-critérios de sinal (ver `STATUS_DO_PROJETO.md`, §4).
+de Decisão (ADRs 0050 a 0052, 0054 e 0058). No café, os 8 fatores estão calculados na tela de metodologia como proposta
+(Motor do Café v1, limiares calibrados pelo FinMind, ADR 0060), sem prompt nem IA até o David e o Comitê
+aprovarem (ver `STATUS_DO_PROJETO.md`, §4).
 
 ## Restrições permanentes (não negociáveis nesta fase)
 
@@ -160,6 +160,12 @@ cd backend && npm run backfill:noaa-vh-cafe
 # estoques certificados do café "C" da ICE, um XLS por pregão desde 2016-01-04 (~2.700 downloads, ~15 h: 20 s entre
 # eles e pausa quando a ICE responde 429; retoma de onde parou). Só no servidor, em segundo plano (ADR 0032):
 cd backend && npm run backfill:ice-cafe-estoques
+# as sacas aguardando classificação (pending grading) do mesmo arquivo, nos dias já gravados sem elas (mesmo ritmo, ~15 h; ADR 0061):
+cd backend && npm run backfill:ice-cafe-estoques -- --serie=pendente
+# relatório mensal da ICO (preços por grupo e estoques certificados de Nova York e Londres), out/2012 em diante (~165 PDFs, ~8 min); ANTES da coleta diária em banco novo:
+cd backend && npm run backfill:ico-cafe
+# estoques de café nos portos europeus da ECF (por tipo, mensal, 2020 em diante; ~8 PDFs, < 1 min); ANTES da coleta diária em banco novo:
+cd backend && npm run backfill:ecf-cafe
 ```
 
 A API do BCB rejeita (406) um pedido com mais de 10 anos: os scripts dividem o
@@ -169,7 +175,7 @@ intervalo de datas (`bcb-usd-brl.collector.js::downloadIntervalo`) em vez
 dos últimos 10 pontos. Reexecutar é seguro (upsert por chave natural, ver
 ADR 0003).
 
-Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FMI (ouro nas reservas dos bancos centrais), World Gold Council (ouro em ETFs e oferta e demanda; uso interno), FRED (juros, índices do dólar, moedas da cesta do DXY, meta do Fed e, pelo ALFRED, o CPI e o preço mensal do café do FMI), CFTC (ouro, milho, café e petróleo WTI), ANP (produção de petróleo por UF), JODI (produção de petróleo e demanda de derivados por país), ICE (estoques certificados do café), Cecafé (resumo diário das exportações de café), B3 (futuros CCM, ICF e o ouro em dólar GLD; a LBMA saiu em 2026-10-01, quando o feed fechou, ADR 0044), B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho, de milho por país de destino e de café), EIA (etanol; e o petróleo: estoques, produção, refino e preços à vista de WTI, Brent, gasolina e diesel), NOAA STAR (saúde da vegetação sobre o milho e o café), WASDE (balanço do milho, com o milho usado para etanol), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage; e os estoques trimestrais do Grain Stocks), USDA FAS (PSD do café, balanço por país), Conab (milho do boletim mensal, café do Boletim da Safra de Café e o custo de produção do café), IMEA (milho de MT por safra, custo de produção, balanço de oferta e demanda, andamento da semeadura e da colheita e paridade de exportação), com `NASS_API_KEY`, USDA e, com `GEMINI_API_KEY_FREE` e/ou `GEMINI_API_KEY` (a gratuita primeiro, a paga como reserva), a leitura diária de eventos de mercado do ouro, do petróleo, do milho e do café (Gemini com busca na web em fontes autorizadas, sete tipos de evento, a geopolítica entre eles; fora da `observation`: tabelas próprias, uma leitura por dia, entregue ao Motor por `geopolitica.service.js`, ADRs 0047 e 0049) e, por último, a leitura diária de tendência do petróleo, do ouro e do milho (o prompt diário de cada um enviado ao Gemini sem busca, resposta em JSON validada, tabela `analise_diaria`, ADRs 0052, 0054 e 0058); `--coletor=<trecho>` filtra),
+Roda todos os coletores registrados (hoje: BCB dólar/Selic + os de `observation` — BCB Focus (expectativas de IPCA, Selic e câmbio), BCB reservas internacionais, FMI (ouro nas reservas dos bancos centrais), World Gold Council (ouro em ETFs e oferta e demanda; uso interno), FRED (juros, índices do dólar, moedas da cesta do DXY, meta do Fed e, pelo ALFRED, o CPI e o preço mensal do café do FMI), CFTC (ouro, milho, café e petróleo WTI), ANP (produção de petróleo por UF), JODI (produção de petróleo e demanda de derivados por país), ICE (estoques certificados do café e as sacas aguardando classificação), ICO (preços por grupo e estoques certificados de Nova York e Londres, mensal), ECF (estoques de café nos portos europeus), Cecafé (resumo diário das exportações de café), B3 (futuros CCM, ICF e o ouro em dólar GLD; a LBMA saiu em 2026-10-01, quando o feed fechou, ADR 0044), B3/Indicador do Milho CEPEA/ESALQ, Comex Stat (exportação de milho, de milho por país de destino e de café), EIA (etanol; e o petróleo: estoques, produção, refino e preços à vista de WTI, Brent, gasolina e diesel), NOAA STAR (saúde da vegetação sobre o milho e o café), WASDE (balanço do milho, com o milho usado para etanol), USDA/ESMIS (área plantada do milho: Prospective Plantings e Acreage; e os estoques trimestrais do Grain Stocks), USDA FAS (PSD do café, balanço por país), Conab (milho do boletim mensal, café do Boletim da Safra de Café e o custo de produção do café), IMEA (milho de MT por safra, custo de produção, balanço de oferta e demanda, andamento da semeadura e da colheita e paridade de exportação), com `NASS_API_KEY`, USDA e, com `GEMINI_API_KEY_FREE` e/ou `GEMINI_API_KEY` (a gratuita primeiro, a paga como reserva), a leitura diária de eventos de mercado do ouro, do petróleo, do milho e do café (Gemini com busca na web em fontes autorizadas, sete tipos de evento, a geopolítica entre eles; fora da `observation`: tabelas próprias, uma leitura por dia, entregue ao Motor por `geopolitica.service.js`, ADRs 0047 e 0049) e, por último, a leitura diária de tendência do petróleo, do ouro e do milho (o prompt diário de cada um enviado ao Gemini sem busca, resposta em JSON validada, tabela `analise_diaria`, ADRs 0052, 0054 e 0058); `--coletor=<trecho>` filtra),
 imprime um resumo estruturado (pino) por coletor e sai com código de erro
 se algum falhar. Também dá pra disparar pela API (`POST /api/v1/coletas`,
 autenticado como `admin` de plataforma, rate-limitado) ou pela tela `/dados-mercado/

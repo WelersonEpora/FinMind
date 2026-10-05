@@ -26,13 +26,16 @@ const { lerRelatorio } = require("./ice-cafe-estoques.parser");
 // `Last-Modified` guarda o horário original de cada arquivo (2016-01-04 18:41:28 GMT, ~5 min depois do "As of").
 //
 // SÉRIES `ICE.CAFE_C.ESTOQUE.<ORIGEM>.CERTIFICADO` (sacas), com `TOTAL` para o total certificado. observed_at = o
-// pregão do arquivo (conferido com o "As of"). published_at = o `Last-Modified` (REAL: quando o arquivo ficou
+// pregão do arquivo (conferido com o "As of").
+// `ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE` (sacas): o total do bloco "Pending Grading Report", as sacas entregues para
+// classificação e ainda não classificadas (ADR 0061; só o total: o bloco muda de formato com os anos). Mesmas datas. published_at = o `Last-Modified` (REAL: quando o arquivo ficou
 // disponível); sem ele, o "As of" em Nova York, ESTIMADO. A série não revisa (é a foto do dia).
 
 const URL_BASE = "https://www.ice.com/publicdocs/futures_us_reports/coffee";
 const SOURCE_CODE = "ICE_COFFEE_CERT";
 const PREFIXO_SERIE = "ICE.CAFE_C.ESTOQUE";
 const SERIE_TOTAL = `${PREFIXO_SERIE}.TOTAL.CERTIFICADO`;
+const SERIE_PENDENTE = `${PREFIXO_SERIE}.TOTAL.PENDENTE`;
 const PRIMEIRA_DATA = "2016-01-04";
 const FUSO = "America/New_York";
 const USER_AGENT = "FinMind/0.1 (coleta de dados de mercado)";
@@ -99,12 +102,13 @@ async function baixarDia(data, { signal, fetchFn, esperar, recuos }) {
 }
 
 /**
- * Baixa, em ordem, os `dias` que ainda não estão no banco, um por vez, até `maxArquivos`. Um 429 persistente
+ * Baixa, em ordem, os `dias` que ainda não estão no banco (na `serie` de referência: o total certificado, ou o
+ * pendente no backfill que completa essa série), um por vez, até `maxArquivos`. Um 429 persistente
  * encerra o lote: os dias já baixados seguem para gravação e o resto vira aviso (a próxima execução retoma).
  */
-async function baixarDias(dias, { signal, fetchFn = fetch, esperar = aguardarPadrao, maxArquivos = Infinity, recuos = RECUOS_429_MS, deps = {} } = {}) {
+async function baixarDias(dias, { signal, fetchFn = fetch, esperar = aguardarPadrao, maxArquivos = Infinity, recuos = RECUOS_429_MS, serie = SERIE_TOTAL, deps = {} } = {}) {
   const repo = deps.observationRepository || observationRepository;
-  const jaNoBanco = await repo.buscarUltimasVersoes(SERIE_TOTAL, { transaction: deps.transaction });
+  const jaNoBanco = await repo.buscarUltimasVersoes(serie, { transaction: deps.transaction });
   const pendentes = dias.filter((d) => !jaNoBanco.has(d)).slice(0, maxArquivos);
 
   const arquivos = [];
@@ -142,10 +146,12 @@ async function download({ signal, fetchFn, esperar, agora = new Date(), deps } =
   });
 }
 
-// Backfill: um intervalo inteiro (o script divide em blocos, e cada bloco grava ao terminar).
-async function downloadIntervalo({ dataInicial, dataFinal, signal, fetchFn, esperar, deps } = {}) {
+// Backfill: um intervalo inteiro (o script divide em blocos, e cada bloco grava ao terminar). Com `serie` =
+// SERIE_PENDENTE, pede de novo os dias que já têm o certificado e ainda não têm o pendente (o certificado relido é o
+// mesmo valor e a gravação o ignora).
+async function downloadIntervalo({ dataInicial, dataFinal, signal, fetchFn, esperar, serie, deps } = {}) {
   const inicio = dataInicial < PRIMEIRA_DATA ? PRIMEIRA_DATA : dataInicial;
-  return baixarDias(diasUteis(inicio, dataFinal), { signal, fetchFn, esperar, deps });
+  return baixarDias(diasUteis(inicio, dataFinal), { signal, fetchFn, esperar, serie, deps });
 }
 
 function parse(rawData) {
@@ -196,9 +202,14 @@ function normalize(entradas) {
     }
     const pub = publicacao(relatorio.asOf, ultimaModificacao);
     const linhas = [...relatorio.origens, { codigo: "TOTAL", nome: "Total in Bags", sacas: relatorio.total }];
+    if (relatorio.pendente !== null) {
+      linhas.push({ codigo: "TOTAL", nome: "Pending Grading Report", sacas: relatorio.pendente, campo: "PENDENTE" });
+    } else {
+      avisos.push({ item: { data }, motivo: `sacas pendentes de classificação não gravadas: ${relatorio.motivoPendente}` });
+    }
     for (const o of linhas) {
       validos.push({
-        series_code: `${PREFIXO_SERIE}.${o.codigo}.CERTIFICADO`,
+        series_code: `${PREFIXO_SERIE}.${o.codigo}.${o.campo ?? "CERTIFICADO"}`,
         observed_at: data,
         value: o.sacas,
         unit: "sacas",
@@ -235,6 +246,7 @@ module.exports = {
   ultimoDiaDisponivel,
   SOURCE_CODE,
   SERIE_TOTAL,
+  SERIE_PENDENTE,
   PRIMEIRA_DATA,
   PAUSA_MS
 };

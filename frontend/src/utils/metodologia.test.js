@@ -11,7 +11,11 @@ import {
   parametrosAlterados,
   descreverOrigemParametros,
   periodoDoFator,
-  formatarMedida
+  formatarMedida,
+  MESES_CURTOS,
+  indiceDoMes,
+  classePeso,
+  tomRelacao
 } from './metodologia.js'
 
 const PARAMS = { limiarModeradoPct: 3, limiarFortePct: 10, semanasTendencia: 4, limiarTendenciaPp: 2 }
@@ -101,4 +105,36 @@ test('formatarMedida: sinal, duas casas e a unidade (% colado, as outras com esp
   assert.equal(formatarMedida(-20.3, 'pontos'), '-20,30 pontos')
   assert.equal(formatarMedida(0.93, 'p.p.'), '+0,93 p.p.')
   assert.equal(formatarMedida(null), '-')
+})
+
+test('indiceDoMes: o mês de 0 a 11 de uma data; nada para data inválida', () => {
+  assert.equal(MESES_CURTOS.length, 12)
+  assert.equal(indiceDoMes('2026-10-04'), 9)
+  assert.equal(indiceDoMes('2026-01-31'), 0)
+  assert.equal(indiceDoMes(''), null)
+  assert.equal(indiceDoMes('2026-13-01'), null)
+})
+
+test('classePeso: Alto, Médio e Baixo; o resto sem classe', () => {
+  assert.equal(classePeso('Alto'), 'alto')
+  assert.equal(classePeso('Médio'), 'medio')
+  assert.equal(classePeso('Baixo'), 'baixo')
+  assert.equal(classePeso('Médio-Alto'), '')
+})
+
+test('tomRelacao: os símbolos da matriz do especialista', () => {
+  assert.equal(tomRelacao('++'), 'positiva-forte')
+  assert.equal(tomRelacao('+/++'), 'positiva-forte')
+  assert.equal(tomRelacao('+'), 'positiva')
+  assert.equal(tomRelacao('(+)'), 'positiva-fraca')
+  assert.equal(tomRelacao('−'), 'inversa')
+  assert.equal(tomRelacao('(−)'), 'inversa-fraca')
+  assert.equal(tomRelacao('(±)'), 'regime')
+  assert.equal(tomRelacao('0'), 'nula')
+})
+
+test('periodoDoFator: o levantamento e a publicação, com a data exata', () => {
+  assert.equal(periodoDoFator('LEVANTAMENTO').referencia('2026-09-24'), 'Levantamento de 24/09/2026')
+  assert.equal(periodoDoFator('PUBLICACAO').referencia('2026-07-31'), 'Publicação de 31/07/2026')
+  assert.equal(periodoDoFator('PUBLICACAO').janela, 'publicações')
 })

@@ -47,6 +47,8 @@ function trimestre(iso) {
 function periodoDoPonto(observedAt, periodicidade) {
   if (periodicidade === "MENSAL") return `Mês de ${dataBr(observedAt).slice(3)}`;
   if (periodicidade === "TRIMESTRAL") return `Trimestre de ${trimestre(observedAt)}`;
+  if (periodicidade === "LEVANTAMENTO") return `Levantamento de ${dataBr(observedAt)}`;
+  if (periodicidade === "PUBLICACAO") return `Publicação de ${dataBr(observedAt)}`;
   return `Semana encerrada em ${dataBr(observedAt)}`;
 }
 

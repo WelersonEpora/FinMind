@@ -9,7 +9,13 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { resolverIntervalo, dividirPorMes } = require("./backfill-ice-cafe-estoques");
+const { resolverIntervalo, resolverSerie, dividirPorMes } = require("./backfill-ice-cafe-estoques");
+
+test("--serie: o certificado (padrão) ou o pendente de classificação (ADR 0061)", () => {
+  assert.equal(resolverSerie({}), "ICE.CAFE_C.ESTOQUE.TOTAL.CERTIFICADO");
+  assert.equal(resolverSerie({ serie: "pendente" }), "ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE");
+  assert.throws(() => resolverSerie({ serie: "transicao" }), /--serie deve ser/);
+});
 
 test("intervalo padrão: do 1º arquivo (2016-01-04) até ontem; antes do 1º arquivo, o 1º arquivo", () => {
   assert.deepEqual(resolverIntervalo({}, "2026-09-28"), { dataInicial: "2016-01-04", dataFinal: "2026-09-27" });

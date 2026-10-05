@@ -7,6 +7,7 @@ import CalculoFator from '../components/metodologia/CalculoFator.vue'
 import EventosFator from '../components/metodologia/EventosFator.vue'
 import ResultadoSimulacao from '../components/metodologia/ResultadoSimulacao.vue'
 import PromptDiario from '../components/metodologia/PromptDiario.vue'
+import PesosRelacoes from '../components/metodologia/PesosRelacoes.vue'
 import metodologiaAtivoService from '../services/metodologia-ativo.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
 
@@ -281,6 +282,16 @@ watch(ativo, carregar, { immediate: true })
                 </div>
               </article>
             </div>
+
+            <!-- Como os fatores se combinam: o peso do FEL 1 (o do prompt) e, quando o especialista definiu, o peso por
+                 mês, as relações e a agregação (o milho, Motor do Milho v0). Só na tela. -->
+            <div class="metodologia-ativo__secao-cabecalho metodologia-ativo__secao-cabecalho--seguinte">
+              <h2 class="metodologia-ativo__secao-titulo">Pesos e relações</h2>
+              <span class="metodologia-ativo__contexto-resumo">
+                {{ metodologia.pesos.situacao ? 'definidos pelo especialista, fora do prompt' : 'só o peso do FEL 1' }}
+              </span>
+            </div>
+            <PesosRelacoes :pesos="metodologia.pesos" :nome-ativo="metodologia.nome" :data="simulacao?.data || hoje" />
           </template>
         </div>
       </template>
@@ -582,6 +593,11 @@ watch(ativo, carregar, { immediate: true })
   flex-wrap: wrap;
   gap: 0.25rem 0.75rem;
   margin-bottom: 0.75rem;
+}
+
+/* A seção depois dos cards dos fatores: o mesmo vão do card do ativo antes de "Fatores". */
+.metodologia-ativo__secao-cabecalho--seguinte {
+  margin-top: 1.5rem;
 }
 
 .metodologia-ativo__secao-titulo {

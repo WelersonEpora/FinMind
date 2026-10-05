@@ -12,10 +12,15 @@ const XLSX = require("xlsx");
 //   ["Total in Bags", ..., 254304]
 //   depois: sacas de transição (2026), classificação do dia, pendentes de classificação, marcadas para reensaque.
 //
-// SÓ o primeiro bloco entra, e só a coluna "Total" (sacas certificadas por origem e o total geral): a quebra por porto
-// muda de colunas ao longo dos anos, e os outros blocos mudam de formato (por porto em 2016, por origem em 2026). A
-// soma das origens tem de fechar com o "Total in Bags": se não fechar, o arquivo foi mal lido e nada dele é gravado.
-// Origem que não aparece num dia = nenhuma saca certificada dela naquele dia; o FinMind NÃO grava zero por ela.
+// Do primeiro bloco entra só a coluna "Total" (sacas certificadas por origem e o total geral): a quebra por porto
+// muda de colunas ao longo dos anos. A soma das origens tem de fechar com o "Total in Bags": se não fechar, o arquivo
+// foi mal lido e nada dele é gravado. Origem que não aparece num dia = nenhuma saca certificada dela naquele dia; o
+// FinMind NÃO grava zero por ela.
+//
+// Do bloco "Pending Grading Report" (sacas entregues para classificação e ainda não classificadas) entra SÓ O TOTAL
+// (ADR 0061): o bloco muda de formato com os anos (por porto, com "Grand Total in Bags", em 2016 e 2021; por origem e
+// porto, com "Total in Bags", em 2026). A soma das linhas tem de fechar com o total; se não fechar, ou se o bloco não
+// existir, só o pendente fica de fora (o certificado é gravado) e o motivo vai em `motivoPendente`.
 
 const TITULO = 'COFFEE "C" CERTIFIED WAREHOUSE STOCK REPORT';
 const ROTULO_TOTAL = "Total in Bags";
@@ -67,12 +72,52 @@ function localizarBloco(linhas) {
   return { inicio, fim, colunaTotal };
 }
 
+const TITULO_PENDENTE = "PENDING GRADING REPORT";
+const RE_TOTAL_PENDENTE = /^(Grand )?Total in Bags$/i;
+// Linha de texto sem número dentro do bloco: "No Bags Pending ..." (dia sem saca pendente) = zero.
+const RE_SEM_SACAS = /^No Bags\b/i;
+
+// Um título de bloco: só a 1ª célula preenchida, em texto, e a linha seguinte é um cabeçalho.
+function ehTituloDeBloco(linha) {
+  return typeof linha[0] === "string" && linha.slice(1).every((c) => texto(c) === "");
+}
+
+// -> { total } | { motivo }. Nunca lança: o pendente é um bloco auxiliar.
+function lerPendentes(linhas) {
+  const inicio = linhas.findIndex((l) => texto(l[0]).toUpperCase() === TITULO_PENDENTE);
+  if (inicio < 0) return { motivo: 'bloco "Pending Grading Report" ausente.' };
+  let soma = 0;
+  let coluna = null;
+  for (let i = inicio + 1; i < linhas.length; i += 1) {
+    const linha = linhas[i];
+    const rotulo = texto(linha[0]);
+    if (RE_TOTAL_PENDENTE.test(rotulo)) {
+      const total = lerSacas(coluna === null ? null : linha[coluna]);
+      if (total === null) return { motivo: `total pendente ilegível: ${JSON.stringify(linha)}.` };
+      if (soma !== total) return { motivo: `a soma das linhas pendentes (${soma}) não fecha com o total (${total}).` };
+      return { total };
+    }
+    if (coluna === null) {
+      if (RE_SEM_SACAS.test(rotulo)) return { total: 0 };
+      // Cabeçalho: a coluna dos valores é a última preenchida ("Total" em 2026, "Bags" em 2016).
+      coluna = linha.map(texto).findLastIndex(Boolean);
+      if (coluna < 1) return { motivo: `cabeçalho do bloco pendente ilegível: ${JSON.stringify(linha)}.` };
+      continue;
+    }
+    if (ehTituloDeBloco(linha)) return { motivo: `bloco pendente sem linha de total (chegou a "${rotulo}").` };
+    const sacas = lerSacas(linha[coluna]);
+    if (sacas === null) return { motivo: `linha pendente ilegível: ${JSON.stringify(linha)}.` };
+    soma += sacas;
+  }
+  return { motivo: "bloco pendente sem linha de total (fim do arquivo)." };
+}
+
 function lerSacas(valor) {
   return typeof valor === "number" && Number.isInteger(valor) && valor >= 0 ? valor : null;
 }
 
 /**
- * Buffer do XLS -> { asOf, origens: [{ codigo, nome, sacas }], total }. Qualquer desvio de layout é erro (a coleta
+ * Buffer do XLS -> { asOf, origens: [{ codigo, nome, sacas }], total, pendente, motivoPendente }. Qualquer desvio de layout é erro (a coleta
  * daquele dia não grava nada), nunca um número lido da coluna errada.
  */
 function lerRelatorio(buffer) {
@@ -103,7 +148,8 @@ function lerRelatorio(buffer) {
   const soma = origens.reduce((s, o) => s + o.sacas, 0);
   if (soma !== total) throw new Error(`a soma das origens (${soma}) não fecha com o "${ROTULO_TOTAL}" (${total}).`);
 
-  return { asOf, origens, total };
+  const pendentes = lerPendentes(linhas.slice(fim + 1));
+  return { asOf, origens, total, pendente: pendentes.total ?? null, motivoPendente: pendentes.motivo ?? null };
 }
 
-module.exports = { lerRelatorio, lerAsOf, slugOrigem };
+module.exports = { lerRelatorio, lerAsOf, slugOrigem, lerPendentes };

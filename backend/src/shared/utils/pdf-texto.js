@@ -13,7 +13,8 @@ function texto(str) {
 
 async function lerPdf(buffer) {
   const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.mjs");
-  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), useSystemFonts: true, isEvalSupported: false }).promise;
+  // verbosity 0: sem os avisos de fonte do pdfjs ("Warning: TT: undefined function") no log da coleta (ICO, ADR 0061).
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer), useSystemFonts: true, isEvalSupported: false, verbosity: 0 }).promise;
   const paginas = [];
   try {
     for (let p = 1; p <= doc.numPages; p += 1) {

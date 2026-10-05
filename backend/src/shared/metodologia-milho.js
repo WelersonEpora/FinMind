@@ -357,15 +357,214 @@ const DO_ATIVO = {
   ],
   perguntas: [
     "Vencimentos do CCM por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima (contratos em aberto), e a curva dos vencimentos no prompt?",
-    "Peso por mês e agregação (Seção 4 da proposta): o mapa sazonal (fator × mês) não está no motor. O prompt da IA já leva, como orientação, o bloco de oferta como um argumento só, os fundos como contexto e não voto, o F3 como filtro e o conflito entre blocos reduzindo a confiança: a agregação em código continua para o Comitê.",
+    "Peso por mês e agregação (Seção 4 da proposta): o mapa sazonal (fator × mês) não está no motor (a seção \"Pesos e relações\" mostra o calendário, só na tela). O prompt da IA já leva, como orientação, o bloco de oferta como um argumento só, os fundos como contexto e não voto, o F3 como filtro e o conflito entre blocos reduzindo a confiança: a agregação em código continua para o Comitê.",
+    "Calendário de pesos: qual o peso do F1 (clima dos EUA) de janeiro a maio e do F2 (safrinha) em janeiro e fevereiro? A proposta não define esses meses.",
+    "F7 (fundos): a tabela do fator dá peso Médio (Alto com o COT Index em 10 ou abaixo), e as regras de agregação dizem que ele não vota, só multiplica o peso de F1, F3 e F8. Vale o multiplicador?",
     "Faixas da leitura da IA: hoje são os percentis 40 e 80 do Indicador ESALQ (2018 a 2026), por horizonte. As 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%) substituem?",
     "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto e F6 para Baixo-Médio): entram no FEL 1 revisado (até 2026-10-15)?",
     "Fatores ausentes propostos (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio): entram na v1, ou depois?"
   ]
 };
 
+// Os pesos e as relações do Motor do Milho v0 (formato em metodologia-base.js), copiados da proposta do David: o peso de
+// cada regra (Seção 3), a "Sugestão" de peso-base de cada fator, a matriz de correlações e as regras de agregação
+// (Seção 4). O mês que ele não definiu fica sem peso (ex.: o F1 de janeiro a maio): não se completa por inferência. Só
+// na tela: o prompt diário continua com o peso do FEL 1 (o mapa sazonal aguarda o Comitê, ADR 0058).
+const PESOS_MILHO = {
+  autoria: AUTORIA_DAVID,
+  descricao:
+    "o peso separa-se da direção e depende do peso-base do fator, do mês e da força do sinal. Pesos ilustrativos, a calibrar em backtest.",
+  fatores: {
+    MILHO_CLIMA_SAFRA_EUA: {
+      sugestao: "Alto para Chicago (ZC); Médio-Alto para o CCM, porque o efeito chega por paridade e é atenuado pela colheita da safrinha.",
+      meses: { Alto: [7], Médio: [6, 8], Baixo: [9, 10, 11, 12] },
+      notas: [
+        "A fase da lavoura define o peso: junho (pré-polinização), julho (polinização), agosto (enchimento), setembro a novembro (maturação e colheita). \"Baixo de setembro em diante\"; de janeiro a maio, não definido.",
+        "Ajuste ao CCM: o sinal chega via Chicago e perde força enquanto a colheita da safrinha estiver acima de 50%. De junho a agosto, reduzir o peso do F1 no CCM (conflito com a safrinha).",
+        "Regra de baixa: Médio; sobe para Alto quando a polinização está concluída (90% ou mais da área) com boa + excelente acima da média."
+      ]
+    },
+    MILHO_SAFRINHA: {
+      sugestao: "Alto de março a julho, decrescente depois (a safra já está colhida em setembro).",
+      meses: { Alto: [3, 4, 5, 6, 7], Médio: [8, 9], Baixo: [10, 11, 12] },
+      notas: [
+        "\"Baixo de outubro em diante, quando o fator passa para F3 (estoque de passagem)\"; janeiro e fevereiro, não definidos.",
+        "Revisões para cima que não atingem os limiares dão viés baixista fraco, com peso Baixo."
+      ]
+    },
+    MILHO_ESTOQUES_WASDE: {
+      sugestao: "Alto. É o hub do motor: recebe e consolida os fatores F1, F2, F5 e F8.",
+      fixo: "Alto",
+      notas: [
+        "Cresce quanto mais baixo o percentil do estoque/uso (convexidade).",
+        "Regra de baixa (estoque folgado): Médio, Alto só se houver também surpresa; o efeito de estoque farto é menor que o de estoque apertado."
+      ]
+    },
+    MILHO_DOLAR_PARIDADE: {
+      sugestao: "Alto, pois o dólar converte todos os fatores internacionais para R$.",
+      meses: { Alto: [1, 7, 8, 9, 10, 11, 12], Médio: [2, 3, 4, 5, 6] },
+      notas: ["Alto no período de exportação (julho a janeiro); Médio nos demais meses."]
+    },
+    MILHO_ETANOL: {
+      sugestao: "Médio; Alto na base de MT durante a colheita.",
+      meses: { Médio: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
+      condicoes: [{ texto: "Alto na base de MT durante a colheita (junho a setembro), quando a usina é o comprador marginal.", meses: [6, 7, 8, 9] }],
+      notas: ["Regra de baixa: Médio."]
+    },
+    MILHO_INSUMOS: {
+      sugestao: "Baixo-Médio. É um fator lento: age sobre a safra seguinte e tem pouco poder preditivo no horizonte de swing e position.",
+      fixo: "Baixo",
+      condicoes: [{ texto: "Médio para vencimentos a 6 meses ou mais e quando a margem do produtor é ≤ 0 (funciona como piso)." }],
+      notas: ["Sinal defasado: age sobre a safrinha seguinte, de 6 a 12 meses depois."]
+    },
+    MILHO_FUNDOS: {
+      sugestao: "Médio. Não é fundamento: é amplificador e termômetro de timing.",
+      papel: "Não vota: multiplica o peso de F1, F3 e F8 (ex.: ×1,25) quando o extremo de posição está alinhado ao sinal; contra o sinal, vira regra de risco.",
+      notas: [
+        "Na tabela do fator, a regra diz \"Peso: Médio; Alto se o COT Index está em 10 ou abaixo e a variação em 4 semanas muda de sinal\"; nas regras de agregação (Seção 4), o F7 não vota."
+      ]
+    },
+    MILHO_POLITICA_COMERCIAL: {
+      sugestao: "Médio, com caudas pesadas: alto impacto e baixa frequência. Modelar como flag de regime e camada de risco, não como variável contínua.",
+      fixo: "Médio",
+      condicoes: [{ texto: "Alto se o destino é grande (ex.: China) e o ato está confirmado." }]
+    }
+  },
+  relacoes: {
+    descricao:
+      "O sinal compara as pressões de alta de dois fatores: + quando tendem a aparecer juntas, − quando aparecem em sentido oposto. É um julgamento estrutural, a validar com correlações defasadas, Granger e VAR, separados por regime sazonal.",
+    simbolos: [
+      { simbolo: "++", significado: "forte" },
+      { simbolo: "+", significado: "média" },
+      { simbolo: "(+)", significado: "fraca" },
+      { simbolo: "−", significado: "média, inversa" },
+      { simbolo: "(−)", significado: "fraca, inversa" },
+      { simbolo: "±", significado: "depende do regime" },
+      { simbolo: "(±)", significado: "fraca, depende do regime" },
+      { simbolo: "+/++", significado: "média a forte" },
+      { simbolo: "0", significado: "desprezível" }
+    ],
+    // Na ordem dos fatores: F1 Clima EUA, F2 Safrinha, F3 Estoques, F4 Dólar, F5 Etanol, F6 Insumos, F7 Fundos, F8 Política.
+    matriz: {
+      MILHO_CLIMA_SAFRA_EUA: [null, "±", "++", "(−)", "(−)", "(+)", "++", "(+)"],
+      MILHO_SAFRINHA: ["±", null, "+", "(−)", "−", "+", "(+)", "+"],
+      MILHO_ESTOQUES_WASDE: ["++", "+", null, "0", "+", "(+)", "++", "+"],
+      MILHO_DOLAR_PARIDADE: ["(−)", "(−)", "0", null, "(±)", "+/++", "−", "±"],
+      MILHO_ETANOL: ["(−)", "−", "+", "(±)", null, "+", "(+)", "0"],
+      MILHO_INSUMOS: ["(+)", "+", "(+)", "+/++", "+", null, "(+)", "(+)"],
+      MILHO_FUNDOS: ["++", "(+)", "++", "−", "(+)", "(+)", null, "±"],
+      MILHO_POLITICA_COMERCIAL: ["(+)", "+", "+", "±", "0", "(+)", "±", null]
+    },
+    observacoes: ["F2 × F6 é defasada de 6 a 12 meses."],
+    leitura: [
+      "Os dois fatores que mais influenciam os demais: F1 Clima EUA (origem do choque) e F3 Estoques (hub que consolida os outros). F4 é o conversor obrigatório para R$ e F7 é o fator mais influenciado (amplificador).",
+      "Correlações inversas relevantes: F4 × F1/F3/F7 (risk-on); F2 × F1 na sazonalidade de jun–ago; F2 × F5 (estabilizador); F1 × F5 (margem do etanol); F6 × área plantada (defasada); ZC × prêmio do Brasil em F8."
+    ]
+  },
+  agregacao: [
+    {
+      tema: "Bloco de oferta",
+      tratamento:
+        "F1, F2 e F3 medem a mesma cadeia (clima e produção viram estoque). Os sinais do bloco formam um só, com teto de peso: três sinais do bloco na mesma direção contam como um sinal Alto, não como três.",
+      fatores: ["MILHO_CLIMA_SAFRA_EUA", "MILHO_SAFRINHA", "MILHO_ESTOQUES_WASDE"],
+      noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: o bloco é um argumento só, sem contar o mesmo choque duas vezes. O teto não é calculado." }
+    },
+    {
+      tema: "Paridade líquida",
+      tratamento:
+        "O motor entrega à IA o efeito líquido em R$ (Chicago × câmbio), além dos sinais separados, porque o real tende a se mover contra as commodities em risk-on.",
+      fatores: ["MILHO_DOLAR_PARIDADE", "MILHO_CLIMA_SAFRA_EUA", "MILHO_ESTOQUES_WASDE", "MILHO_FUNDOS"],
+      noFinMind: { situacao: "FORA", texto: "Sem o ZC (pago), não há efeito líquido de Chicago × câmbio. O F4 usa a paridade pronta do IMEA." }
+    },
+    {
+      tema: "Fundos como multiplicador",
+      tratamento:
+        "F7 não vota. Multiplica o peso de F1, F3 e F8 quando o extremo de posição está alinhado ao sinal, e vira regra de risco quando está contra.",
+      fatores: ["MILHO_FUNDOS", "MILHO_CLIMA_SAFRA_EUA", "MILHO_ESTOQUES_WASDE", "MILHO_POLITICA_COMERCIAL"],
+      noFinMind: { situacao: "PARCIAL", texto: "No prompt: o COT é contexto e não voto, com leitura de reversão. O multiplicador (×1,25) não é aplicado." }
+    },
+    {
+      tema: "F3 como filtro",
+      tratamento: "Sinal de F1, F2 ou F5 confirmado por F3 sobe de confiança; contradito por F3, perde peso.",
+      fatores: ["MILHO_ESTOQUES_WASDE", "MILHO_CLIMA_SAFRA_EUA", "MILHO_SAFRINHA", "MILHO_ETANOL"],
+      noFinMind: { situacao: "PARCIAL", texto: "No prompt: os estoques confirmam ou enfraquecem o clima e a safrinha. O F5 não está na orientação." }
+    },
+    {
+      tema: "Mapa sazonal de pesos",
+      tratamento:
+        "O Comitê aprova uma matriz fator × mês com o peso máximo de cada fator (ex.: F2 Alto de março a julho; F1 Alto em julho; F4 Alto de julho a janeiro; F6 Baixo).",
+      fatores: [
+        "MILHO_CLIMA_SAFRA_EUA",
+        "MILHO_SAFRINHA",
+        "MILHO_ESTOQUES_WASDE",
+        "MILHO_DOLAR_PARIDADE",
+        "MILHO_ETANOL",
+        "MILHO_INSUMOS",
+        "MILHO_FUNDOS",
+        "MILHO_POLITICA_COMERCIAL"
+      ],
+      noFinMind: { situacao: "FORA", texto: "Só nesta tela. O prompt leva o peso do FEL 1 e proíbe a IA de criar um peso por mês." }
+    },
+    {
+      tema: "Sinais defasados",
+      tratamento: "F6 age sobre F2 da safra seguinte (6 a 12 meses). Registrar com data de efeito esperada, não como sinal imediato.",
+      fatores: ["MILHO_INSUMOS", "MILHO_SAFRINHA"],
+      noFinMind: { situacao: "PARCIAL", texto: "No prompt: o custo de produção é sinal defasado, que informa pouco os horizontes. A data de efeito não é registrada." }
+    },
+    {
+      tema: "Eventos",
+      tratamento: "F8 entra como flag com data, tipo, volume e decaimento, após confirmação oficial e validação humana.",
+      fatores: ["MILHO_POLITICA_COMERCIAL"],
+      noFinMind: {
+        situacao: "PARCIAL",
+        texto: "Os eventos vão ao prompt com data e tipo, numa janela de 30 dias, sem volume nem decaimento e sem validação humana (Comitê, ADR 0058)."
+      }
+    },
+    {
+      tema: "Conflito entre blocos",
+      tratamento:
+        "Quando blocos independentes divergem (ex.: oferta em alta e paridade em baixa), o motor não resolve sozinho: passa os dois à IA com a marcação \"conflito\", e a recomendação sai com confiança reduzida.",
+      fatores: [
+        "MILHO_CLIMA_SAFRA_EUA",
+        "MILHO_SAFRINHA",
+        "MILHO_ESTOQUES_WASDE",
+        "MILHO_DOLAR_PARIDADE",
+        "MILHO_ETANOL",
+        "MILHO_INSUMOS",
+        "MILHO_FUNDOS",
+        "MILHO_POLITICA_COMERCIAL"
+      ],
+      noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: a IA explica as duas forças e reduz a confiança. O motor não marca o conflito." }
+    },
+    {
+      tema: "Cobertura",
+      tratamento:
+        "O motor informa à IA quantos fatores têm dado e regra naquele dia. Cobertura baixa reduz a confiança, como já prevê o desenho do motor.",
+      fatores: [
+        "MILHO_CLIMA_SAFRA_EUA",
+        "MILHO_SAFRINHA",
+        "MILHO_ESTOQUES_WASDE",
+        "MILHO_DOLAR_PARIDADE",
+        "MILHO_ETANOL",
+        "MILHO_INSUMOS",
+        "MILHO_FUNDOS",
+        "MILHO_POLITICA_COMERCIAL"
+      ],
+      noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: a tabela da cobertura (a idade e a situação de cada fator) e a confiança rebaixada sem dado." }
+    }
+  ]
+};
+
 function obterMetodologiaMilho() {
-  return montarMetodologia({ ativo: "MILHO", nome: "Milho", versao: VERSAO, dataVersao: DATA_VERSAO, doAtivo: DO_ATIVO, fatores: FATORES_MILHO });
+  return montarMetodologia({
+    ativo: "MILHO",
+    nome: "Milho",
+    versao: VERSAO,
+    dataVersao: DATA_VERSAO,
+    doAtivo: DO_ATIVO,
+    pesos: PESOS_MILHO,
+    fatores: FATORES_MILHO
+  });
 }
 
 module.exports = { SITUACAO, FATORES_MILHO, obterMetodologiaMilho };

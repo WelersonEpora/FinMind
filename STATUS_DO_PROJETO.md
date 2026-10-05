@@ -57,7 +57,8 @@ quando chegar a vez delas.
 | 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | **Proposta pronta** (§5b), aguarda o Comitê |
 | 2b. Entendimento do petróleo | Propor os 10 fatores do petróleo nas três camadas (medida, comparação e um esboço da leitura), ao lado do que o FEL 1 diz e dos dados que já temos, com as perguntas de cada fator | FinMind → David | **Aprovada pelo David em reunião (2026-10-03)**; respostas por escrito a caminho. A cadeia do petróleo roda inteira: leitura diária de tendência da IA no Centro de Decisão (ADR 0052). Desde 2026-10-04, o preço de referência é o **Brent**, o instrumento operado (confirmado com o David; ADR 0052, adendo) |
 | 2c. Fatores do ouro | O mesmo tratamento do petróleo nos 8 fatores do ouro, a pedido do David | FinMind → David | **Aprovada pelo David (2026-10-03)**, com as decisões do preço (GLD), da inflação (contexto do juro real), do COT e dos bancos centrais (ADRs 0053 e 0054). A cadeia do ouro roda inteira: leitura diária de tendência da IA no Centro de Decisão (ADR 0054) |
-| 2d. Fatores do milho | O David mandou o **Motor do Milho v0** (2026-10-02): para cada fator, uma regra de alta e uma de baixa, o peso por mês, as correlações e um prompt para a IA. Limiares ilustrativos, para deliberação do Comitê | David → Comitê; FinMind monta como proposta | Recebido em 2026-10-03. **Na tela Metodologia do Ativo desde 2026-10-04** (ADR 0056): os 8 fatores com as regras do David, todos calculados (F1 clima dos EUA, F2 safrinha, F3 estoques do WASDE, F4 dólar e paridade com a paridade do IMEA, ADR 0057, F5 etanol só dos EUA, F6 insumos só a margem, F7 fundos, F8 exportações), validados contra o Indicador ESALQ onde há histórico. **Aprovado pelo Comitê em 2026-10-04 (ADR 0058):** o prompt diário vai à IA todo dia e a leitura de tendência aparece no Centro de Decisão, com o CCM como preço; cada fator leva os eventos da leitura diária marcados com ele, sem validação humana por ora. Em aberto: o mapa sazonal de pesos e a agregação em código, os vencimentos do CCM por horizonte, as faixas (ESALQ ou as classes do David) e a base do F4 (Campinas − MT, quase sempre positiva) |
+| 2d. Fatores do milho | O David mandou o **Motor do Milho v0** (2026-10-02): para cada fator, uma regra de alta e uma de baixa, o peso por mês, as correlações e um prompt para a IA. Limiares ilustrativos, para deliberação do Comitê | David → Comitê; FinMind monta como proposta | Recebido em 2026-10-03. **Na tela Metodologia do Ativo desde 2026-10-04** (ADR 0056): os 8 fatores com as regras do David, todos calculados (F1 clima dos EUA, F2 safrinha, F3 estoques do WASDE, F4 dólar e paridade com a paridade do IMEA, ADR 0057, F5 etanol só dos EUA, F6 insumos só a margem, F7 fundos, F8 exportações), validados contra o Indicador ESALQ onde há histórico. **Aprovado pelo Comitê em 2026-10-04 (ADR 0058):** o prompt diário vai à IA todo dia e a leitura de tendência aparece no Centro de Decisão, com o CCM como preço; cada fator leva os eventos da leitura diária marcados com ele, sem validação humana por ora. O calendário de pesos, a matriz de relações e as regras de agregação do David estão na seção "Pesos e relações" da tela, só para leitura (ADR 0059): o prompt segue com o peso do FEL 1. Em aberto: o mapa sazonal de pesos (com os meses que o David não definiu) e a agregação em código, os vencimentos do CCM por horizonte, as faixas (ESALQ ou as classes do David) e a base do F4 (Campinas − MT, quase sempre positiva) |
+| 2e. Fatores do café | O David mandou o **Motor do Café v1** (2026-10-04): por fator, objetivo, variáveis e regras candidatas de alta e baixa, **sem limiares** ("[CALIBRAR COM DADOS POINT-IN-TIME]"); descarta os pesos e a matriz do v0; recomenda aprovar só a arquitetura e o protótipo | David → Comitê; FinMind calibra como proposta | **Na tela Metodologia do Ativo desde 2026-10-04** (ADR 0060): os 8 fatores calculados, com os limiares calibrados pelo FinMind (a posição no próprio histórico, neutra do percentil 20 ao 80), as relações por par e as regras transversais. Fora do prompt, da IA e do Centro de Decisão. Fontes novas autorizadas pelo Comitê em 2026-10-04 e coletadas (ADR 0061): as sacas aguardando classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado, fora da decisão dos fatores. Em aberto: a aprovação, as janelas críticas do clima, como os dados novos entram nas regras do F3 e do F6, o índice do INMET, os horizontes em pregões e a agregação |
 | 3. Medidas e dados | Implementar as medidas confirmadas e coletar os dados aprovados que faltam | FinMind | Depende da 1 |
 | 4. Regras | O Comitê define a leitura (B) e a regra (C) de cada fator; o FinMind faz o backtest; o Comitê aprova | Comitê + FinMind | Depende da 3 |
 | 5. IA em simulação | Prompt, registro de cada recomendação e simulação por pelo menos 6 meses (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | Depende da 4 |
@@ -367,11 +368,34 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 <details>
 <summary>ICE — estoques certificados · Café · XLS · nível 5 · Servidor desde 2016-01-04; dev só um trecho de teste</summary>
 
-**Acesso:** XLS por pregão (arquivo público, sem documentação). **Ressalva principal:** ⚠️ **Os termos de uso da ICE excluem robôs**: uso interno, risco aceito. **Evidência:** ADR 0032.
+**Acesso:** XLS por pregão (arquivo público, sem documentação). **Ressalva principal:** ⚠️ **Os termos de uso da ICE excluem robôs**: uso interno, risco aceito. Das sacas aguardando classificação, só o total (o bloco muda de formato com os anos). **Evidência:** ADRs 0032 e 0061.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | Café - estoques certificados da ICE | Sacas certificadas por origem e o total | Diária (por pregão) | 2016-01-04 | Real (`Last-Modified` do arquivo) | Servidor desde 2016-01-04; dev só um trecho de teste |
+| Café - sacas aguardando classificação (ICE) | O total do *Pending Grading Report* (sacas entregues e ainda não classificadas) | Diária (por pregão) | 2016-01-04 | Real (`Last-Modified` do arquivo) | Dev de ago a out/2026; servidor: backfill pendente |
+
+</details>
+
+<details>
+<summary>ICO — Coffee Market Report · Café · PDF mensal · nível 4 · Dev; servidor pendente</summary>
+
+**Acesso:** PDF mensal público, sem chave; reuso livre citando a ICO. **Ressalva principal:** **mensal e revisado**: a fonte corrige os próprios erros no relatório seguinte (cada correção fica com a data do relatório que a trouxe); `published_at` real só de out/2023 em diante (antes, estimado em fim do mês + 45 dias); 9 tabelas são imagem ou PDF ilegível (2015 a 2017) e ficam de fora. **Evidência:** ADR 0061.
+
+| Série | O que tem | Frequência | Desde | `published_at` | Status |
+|---|---|---|---|---|---|
+| Café - preços e estoques certificados da ICO (mensal) | Preço médio do mês por grupo (I-CIP, Colombian Milds, Other Milds, Brazilian Naturals, Robustas) e dos futuros de Nova York e Londres, US¢/lb; estoques certificados de Nova York e Londres, milhões de sacas | Mensal | 2011-10 (preços); 2012-06 (estoques) | Real desde out/2023; antes, estimado | Dev; servidor: backfill pendente |
+
+</details>
+
+<details>
+<summary>ECF — estoques nos portos europeus · Café · PDF · nível 4 · Dev; servidor pendente</summary>
+
+**Acesso:** PDF anual público, substituído a cada 2 meses; `robots.txt` livre. **Ressalva principal:** **~2 meses de atraso e revisado**; erros de digitação da fonte tratados como aviso; inclui os certificados da ICE nos portos (dupla contagem com Londres da ICO); licença não lida, uso interno. **Evidência:** ADR 0061.
+
+| Série | O que tem | Frequência | Desde | `published_at` | Status |
+|---|---|---|---|---|---|
+| Café - estoques nos portos europeus (ECF) | Toneladas no fim do mês, por tipo (robusta, arábica natural, arábica lavado) e o total | Mensal (publicação bimestral) | 2020-01 | Real (`Last-Modified` de cada versão do PDF) | Dev; servidor: backfill pendente |
 
 </details>
 
@@ -436,8 +460,15 @@ Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a 
 Backfills já validados em dev que ainda não rodaram na VM. Ao rodar, tirar a linha daqui e marcar "dev e servidor"
 no status da fonte e da série em "Fontes" (§2).
 
-Nenhuma no momento (as últimas, Grain Stocks, etanol do WASDE, exportação de milho por destino, ouro do FMI, World Gold
-Council, Cecafé e andamento do IMEA, rodaram no servidor em 2026-10-01, com os mesmos números de dev).
+- **ICO** (ADR 0061): `npm run backfill:ico-cafe`, ~8 min, **antes** da 1ª coleta diária com o coletor novo. Dev:
+  1.595 valores, 127 revisões.
+- **ECF** (ADR 0061): `npm run backfill:ecf-cafe`, < 1 min, também antes da coleta diária. Dev: 312 valores, 8
+  revisões.
+- **ICE, sacas aguardando classificação** (ADR 0061): `npm run backfill:ice-cafe-estoques -- --serie=pendente`, em
+  segundo plano (~15 h, o mesmo ritmo do backfill original).
+
+As anteriores (Grain Stocks, etanol do WASDE, exportação de milho por destino, ouro do FMI, World Gold Council, Cecafé e
+andamento do IMEA) rodaram no servidor em 2026-10-01, com os mesmos números de dev.
 
 A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy é a carga (ADR 0031). O mesmo vale para as séries do ouro no FRED e o CPI (ADR 0033), que baixam a série inteira, com todas as versões, a cada coleta, e para o petróleo (EIA e COT do WTI, ADR 0040; ANP, ADR 0041; JODI, ADRs 0042 e 0046) e o preço mensal do café do FMI (ADR 0045).
 
@@ -450,7 +481,7 @@ A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy �
 
 | Definição | Situação |
 |---|---|
-| Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro; as fontes e a planilha de fatores), aguardando a aprovação do Comitê. A coleta de milho e ouro foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR (ADRs 0001, 0006, 0008, 0009, 0013, 0015, 0017 a 0025, 0027, 0033 a 0037 e 0039); a do café seguiu do mesmo jeito (ADRs 0028 a 0032 e 0038), e a do petróleo começou em 2026-10-01 (ADRs 0040 a 0042) |
+| Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro; as fontes e a planilha de fatores), aguardando a aprovação do Comitê. A coleta de milho e ouro foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR (ADRs 0001, 0006, 0008, 0009, 0013, 0015, 0017 a 0025, 0027, 0033 a 0037 e 0039); a do café seguiu do mesmo jeito (ADRs 0028 a 0032, 0038 e 0061), e a do petróleo começou em 2026-10-01 (ADRs 0040 a 0042) |
 | Regras e cálculos do motor (camadas B e C) | Em aberto: é a etapa 1 dos "Próximos passos" e o §5 (a medida de cada fator, camada A, é proposta pelo FinMind para o Comitê confirmar) |
 | Formato de apresentação dos resultados | Em aberto (dashboard, relatório, alerta...) |
 | Avaliação da saída da IA | Em aberto: o que é acerto (horizonte e métrica), ver §5, "Memória com avaliação". O papel da IA já foi decidido (pergunta 11) |
@@ -1494,6 +1525,10 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Fontes novas do café (Motor do Café v1) | Autorizadas pelo Comitê na ordem do estudo de viabilidade. Três coletas, só como dado: (1) o total de sacas aguardando classificação, lido do mesmo arquivo diário da ICE; (2) o relatório mensal da ICO, com o preço médio por grupo e de Nova York e Londres e os estoques certificados das duas bolsas, 167 relatórios desde out/2012 lidos por coordenada, apesar das muitas mudanças de layout; (3) os estoques nos portos europeus da ECF, por tipo, desde jan/2020, uma edição por versão do PDF. A carga completa mostrou que a ICO revisa e corrige erros de digitação no mês seguinte (o estudo, com 11 meses, não tinha visto): uma base nova no point-in-time (`edition_lag_rule`) data essas correções pelo relatório, não pela coleta. A metodologia do café lista os dados novos no F3 e no F6, sem mudar o cálculo. O INMET espera o índice do David; o diário de Londres e do KC, orçamento e licença | ADR 0061 |
+| Viabilidade das fontes novas do café | Reconhecimento (nível 1, com chamadas reais) das fontes que o Motor do Café v1 pede: a ICO (PDF mensal, grátis, reuso com citação) cobre a arbitragem Nova York × Londres, o estoque de Londres e o preço médio do KC; o bloco *pending grading* já vem no arquivo da ICE que coletamos; ECF (revisa, 2 meses de atraso), FNC da Colômbia (XLSX desde 1956) e INMET (viável, mas o índice é regra do David) são viáveis; o preço diário da ICE tem termos que proíbem criar produto sem aprovação; o diferencial FOB não tem fonte pública. Nada implementado: cada fonte pede autorização num ADR | `docs/reconhecimento-fontes/cafe-fontes-novas-motor-v1.md` |
+| Metodologia dos fatores do café | O Motor do Café v1 do David na tela, com os 8 fatores calculados: clima (VHI da NOAA ponderado pelo arábica da Conab, só de junho a novembro), safra (revisão do arábica da Conab), estoques certificados da ICE, câmbio (PTAX em 10 pregões), custos (ICF em reais contra o custo da Conab), demanda (consumo do USDA PSD), fundos (COT) e juros. Os limiares que o estudo deixou em aberto são calibração do FinMind (P06), quase todos pela posição da medida no próprio histórico. Os números do estudo conferem com a base (Conab de 24/09/2026; estoques da ICE de agosto). Fora do prompt e da IA | ADR 0060 |
+| Pesos e relações na Metodologia do Ativo | Seção nova na tela, para todo ativo: o peso do FEL 1 (o que vai ao prompt) e, no milho, o que o Motor v0 do David define além dele: a sugestão de peso-base, o calendário fator × mês (o mês não definido fica em branco), a matriz de relações 8×8 e as 9 regras de agregação, cada uma com a situação no FinMind. Ouro e petróleo mostram só o peso do FEL 1. Duas pendências novas no milho: os meses sem peso do F1 e do F2 e o papel do F7. Nada vai ao prompt | ADR 0059 |
 | Leitura diária de tendência do milho | Com a aprovação do Comitê (o Motor do Milho v0 como está na tela; leitura de tendência, não recomendação; o CCM como preço; a base do F4 como está; eventos sem validação humana por ora), o milho entra no prompt diário, na IA e no Centro de Decisão, no molde do ouro: prompt próprio com as orientações do David (bloco de oferta como um argumento, F3 como filtro, fundos como contexto, conflito reduzindo a confiança), faixas pelos percentis 40 e 80 do Indicador ESALQ (2018 a 2026), o CCM como 1ª série do Centro de Decisão e os eventos de cada fator depois do cálculo (7 dias; 30 no F8). Uma chamada real ao Gemini passou na validação. Corrigido um bug que derrubaria o Centro de Decisão do milho no 1º dia com leitura | ADR 0058 |
 | Fator de dólar e paridade do milho calculado | O F4 com a regra do David (R-CAM v0): a paridade do IMEA subindo 3% em 10 pregões, metade pelo câmbio (aproximado, sem o ZC), com o ESALQ abaixo dela é alta; caindo 3% com o ESALQ acima, baixa. Sem decisão na troca do contrato e nas quebras da série (30% ou mais). A base Campinas − MT foi negativa em 1 de 251 semanas: a alta quase nunca dispara (pergunta ao Comitê). Contra o Indicador ESALQ, fraca no sentido da regra (baixa: -3,6% em 13 semanas; neutras: -0,2%). Com ele, os 8 fatores do milho calculados. O leitor da paridade passou a recusar o zero da fonte (2025-04-25) | ADRs 0056 e 0057 (adendos) |
 | Paridade de exportação do milho (IMEA) | A paridade calculada pelo IMEA (MT, R$/saca), escolhida pelo David na pergunta 16 e autorizada pelo usuário em 2026-10-04, lida por coordenada da tabela diária do Boletim Semanal - Milho: 1.200 dias desde 2021-05-31, em 258 edições (1.199 depois de recusar o zero de 2025-04-25). Defeitos da fonte tratados sem adivinhar: datas com erro de digitação, 3 semanas republicadas com os valores da anterior e 3 edições com o cabeçalho em outra página ficam de fora. O contrato de referência muda uma vez por ano (quebra na série). Backfill: `npm run backfill:imea-paridade` (~7 min) | ADR 0057 |

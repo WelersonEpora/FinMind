@@ -106,6 +106,20 @@ test("published_at estimado por collected_at NÃO gera versão nova a cada colet
   assert.equal(repo.linhas[0].published_at.getTime(), T0.getTime(), "fica o limite mais antigo em que o valor já era conhecido");
 });
 
+test("revisão numa EDIÇÃO com data estimada (edition_lag_rule, ADR 0061) fica com a data da edição, não com collected_at", async () => {
+  const repo = criarRepoFake();
+  const edicao = (value, publicada) => obs({ value, published_at: new Date(publicada), published_at_is_estimated: true, published_at_basis: "edition_lag_rule" });
+  // Relatório de set/2020 da ICO com um erro de digitação; o de out/2020 corrige.
+  const r = await registrarObservacoes(
+    [edicao(2.45, "2020-11-14T23:59:59Z"), edicao(1.26, "2020-12-15T23:59:59Z")],
+    { execucaoId: "e1", coletadoEm: T1 },
+    { observationRepository: repo }
+  );
+  assert.deepEqual([r.criados, r.atualizados, r.falhas.length], [1, 1, 0]);
+  assert.equal(repo.linhas[1].published_at.toISOString(), "2020-12-15T23:59:59.000Z");
+  assert.equal(repo.linhas[1].metadata.publishedAtBasis, "edition_lag_rule");
+});
+
 test("revisão detectada numa fonte com published_at ESTIMADO usa collected_at, não a regra antiga", async () => {
   const repo = criarRepoFake();
   const regra = new Date("2026-03-02T23:59:59Z"); // "1 dia útil depois" de 2026-03-01

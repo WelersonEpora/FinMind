@@ -13,8 +13,10 @@ const XLSX = require("xlsx");
 const coletor = require("./ice-cafe-estoques.collector");
 const { UpstreamServiceError } = require("../../shared/errors");
 
-function xls(asOf, linhas, total) {
+// `pendente` = total do bloco "Pending Grading Report" (null: arquivo sem o bloco).
+function xls(asOf, linhas, total, pendente = 0) {
   const aoa = [["ICE Futures U.S."], ['COFFEE "C" CERTIFIED WAREHOUSE STOCK REPORT'], [asOf], [null, "ANT", "Total"], ...linhas, ["Total in Bags", total, total]];
+  if (pendente !== null) aoa.push(["Pending Grading Report"], ["Port", "Bags"], ["AN", pendente], ["Grand Total in Bags", pendente]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), "Sheet1");
   return XLSX.write(wb, { type: "buffer", bookType: "biff8" });
@@ -76,7 +78,7 @@ test("429: espera o Retry-After e tenta de novo; se persistir, para e o resto vi
   assert.deepEqual(esperas, [30_000, coletor.PAUSA_MS, 60_000, 120_000, 300_000, 600_000]);
 
   const { validos, avisos } = coletor.normalize(coletor.parse(bruto));
-  assert.equal(validos.length, 2);
+  assert.equal(validos.length, 3, "Brazil, total certificado e total pendente");
   assert.equal(avisos.length, 1);
   assert.match(avisos[0].motivo, /429/);
 });
@@ -89,7 +91,7 @@ test("erro HTTP que não é 404 nem 429 falha a coleta", async () => {
 });
 
 test("normalize: origens e total do dia; published_at = Last-Modified (real) ou, sem ele, o As of de Nova York (estimado)", () => {
-  const arquivo = (data, asOf, ultimaModificacao) => ({ data, ultimaModificacao, buffer: xls(asOf, [["Brazil", 52791, 52791], ["Honduras", 1000, 1000]], 53791) });
+  const arquivo = (data, asOf, ultimaModificacao) => ({ data, ultimaModificacao, buffer: xls(asOf, [["Brazil", 52791, 52791], ["Honduras", 1000, 1000]], 53791, 21117) });
   const { validos, invalidos } = coletor.normalize(
     coletor.parse({
       arquivos: [
@@ -106,9 +108,11 @@ test("normalize: origens e total do dia; published_at = Last-Modified (real) ou,
       ["ICE.CAFE_C.ESTOQUE.BRAZIL.CERTIFICADO", "2026-09-25", 52791, "2026-09-25T17:22:12.000Z", false],
       ["ICE.CAFE_C.ESTOQUE.HONDURAS.CERTIFICADO", "2026-09-25", 1000, "2026-09-25T17:22:12.000Z", false],
       ["ICE.CAFE_C.ESTOQUE.TOTAL.CERTIFICADO", "2026-09-25", 53791, "2026-09-25T17:22:12.000Z", false],
+      ["ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE", "2026-09-25", 21117, "2026-09-25T17:22:12.000Z", false],
       ["ICE.CAFE_C.ESTOQUE.BRAZIL.CERTIFICADO", "2016-01-04", 52791, "2016-01-04T18:13:50.000Z", true],
       ["ICE.CAFE_C.ESTOQUE.HONDURAS.CERTIFICADO", "2016-01-04", 1000, "2016-01-04T18:13:50.000Z", true],
-      ["ICE.CAFE_C.ESTOQUE.TOTAL.CERTIFICADO", "2016-01-04", 53791, "2016-01-04T18:13:50.000Z", true]
+      ["ICE.CAFE_C.ESTOQUE.TOTAL.CERTIFICADO", "2016-01-04", 53791, "2016-01-04T18:13:50.000Z", true],
+      ["ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE", "2016-01-04", 21117, "2016-01-04T18:13:50.000Z", true]
     ]
   );
   assert.ok(validos.every((v) => v.unit === "sacas" && v.source_code === "ICE_COFFEE_CERT"));
@@ -133,6 +137,30 @@ test("normalize: correção republicada fica com a data da correção; sem horá
   assert.equal(total("2026-06-11").published_at_is_estimated, false);
   assert.equal(total("2026-06-12").published_at.toISOString(), "2026-06-13T03:59:59.000Z", "23:59:59 de Nova York (EDT)");
   assert.equal(total("2026-06-12").published_at_is_estimated, true);
+});
+
+test("normalize: sem o bloco de pendentes, grava o certificado e avisa (sem falhar o dia)", () => {
+  const { validos, invalidos, avisos } = coletor.normalize(
+    coletor.parse({ arquivos: [{ data: "2026-09-25", ultimaModificacao: null, buffer: xls("As of: Sep 25, 2026  1:18:21PM", [["Brazil", 7, 7]], 7, null) }] })
+  );
+  assert.deepEqual(validos.map((v) => v.series_code), ["ICE.CAFE_C.ESTOQUE.BRAZIL.CERTIFICADO", "ICE.CAFE_C.ESTOQUE.TOTAL.CERTIFICADO"]);
+  assert.equal(invalidos.length, 0);
+  assert.match(avisos[0].motivo, /pendentes de classificação não gravadas: bloco "Pending Grading Report" ausente/);
+});
+
+test("backfill do pendente: pede os dias que ainda não têm a série PENDENTE, mesmo com o certificado gravado", async () => {
+  const consultadas = [];
+  const pedidos = [];
+  await coletor.downloadIntervalo({
+    dataInicial: "2026-09-24",
+    dataFinal: "2026-09-25",
+    serie: coletor.SERIE_PENDENTE,
+    fetchFn: fetchPorDia({}, pedidos),
+    esperar: async () => {},
+    deps: { observationRepository: { buscarUltimasVersoes: async (serie) => (consultadas.push(serie), new Map([["2026-09-24", { value: 1 }]])) } }
+  });
+  assert.deepEqual(consultadas, ["ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE"]);
+  assert.deepEqual(pedidos, ["20260925"]);
 });
 
 test("parse: arquivo com layout inesperado vira inválido daquele dia, sem derrubar os outros", () => {
