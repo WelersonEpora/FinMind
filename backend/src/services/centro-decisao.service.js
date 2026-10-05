@@ -9,10 +9,9 @@ const { somarDias } = require("../shared/utils/date-utils");
 const { ValidationError } = require("../shared/errors");
 
 // Centro de Decisão (ADR 0048): a tela inicial. Para um ATIVO e uma DATA, devolve o preço como era conhecido no fim
-// daquele dia (point-in-time, ADR 0008), a leitura de eventos de mercado daquela data (ADRs 0047 e 0049) e, no petróleo,
-// a leitura de tendência da IA feita naquela data (ADR 0052). A variação é aritmética sobre a própria série (sem
-// limiar, sem sinal). Nos ativos sem leitura de tendência, o espaço da análise fica vazio até o David e o Comitê
-// definirem as regras.
+// daquele dia (point-in-time, ADR 0008), a leitura de eventos de mercado daquela data (ADRs 0047 e 0049) e a leitura
+// de tendência da IA feita naquela data (ADRs 0052, 0054, 0058 e 0062, nos quatro ativos). A variação é aritmética
+// sobre a própria série (sem limiar, sem sinal).
 //
 // Cada ativo tem uma lista FIXA de séries de preço; a 1ª é o padrão e o usuário troca na tela. Não há regra que
 // escolha a "melhor" série: isso seria critério de análise. Quando o David definir o preço de referência de cada

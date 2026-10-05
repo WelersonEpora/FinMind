@@ -5,13 +5,14 @@ const { ATIVOS_COM_ANALISE_DIARIA, configuracaoDoAtivo } = require("../shared/an
 const { FATORES_PETROLEO } = require("../shared/metodologia-petroleo");
 const { FATORES_OURO } = require("../shared/metodologia-ouro");
 const { FATORES_MILHO } = require("../shared/metodologia-milho");
+const { FATORES_CAFE } = require("../shared/metodologia-cafe");
 const { NotFoundError, ValidationError } = require("../shared/errors");
 
-// Leitura diária de tendência da IA (petróleo, ADR 0052; ouro, ADR 0054), como o Centro de Decisão a mostra: a leitura feita NA data escolhida
+// Leitura diária de tendência da IA (petróleo, ADR 0052; ouro, ADR 0054; milho, ADR 0058; café, ADR 0062), como o Centro de Decisão a mostra: a leitura feita NA data escolhida
 // (nunca a de outro dia no lugar dela) e as evidências que formaram o prompt dela. Tudo sai da leitura GRAVADA (a
 // entrada estruturada, o prompt e a resposta como foram): nada é recalculado agora, então um parâmetro que mude depois
 // não altera o que a tela diz que a IA recebeu naquele dia. Só os ativos com leitura diária têm o bloco.
-const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO, OURO: FATORES_OURO, MILHO: FATORES_MILHO };
+const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO, OURO: FATORES_OURO, MILHO: FATORES_MILHO, CAFE: FATORES_CAFE };
 const ATIVOS_COM_ANALISE = ATIVOS_COM_ANALISE_DIARIA;
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;

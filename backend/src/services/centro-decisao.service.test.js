@@ -180,7 +180,7 @@ test("eventos: os aceitos da semana que termina na data, do ativo escolhido", as
   );
 });
 
-test("leitura de tendência da IA (ADRs 0052, 0054 e 0058): no petróleo, no ouro e no milho, a da data escolhida", async () => {
+test("leitura de tendência da IA (ADRs 0052, 0054, 0058 e 0062): nos quatro ativos, a da data escolhida", async () => {
   const pedidas = [];
   const analiseDiariaRepository = {
     buscarAnaliseDoDia: async (ativo, data) => {
@@ -220,14 +220,20 @@ test("leitura de tendência da IA (ADRs 0052, 0054 e 0058): no petróleo, no our
   const { centroDecisao: semLeitura } = await obterCentroDecisao({ ativo: "PETROLEO", data: "2026-10-01" }, deps);
   assert.deepEqual(semLeitura.analise, { disponivel: false, data: "2026-10-01" });
 
-  // O ouro (ADR 0054) e o milho (ADR 0058) também têm leitura diária; o café não: null, e o repositório nem é consultado.
+  // O ouro (ADR 0054), o milho (ADR 0058) e o café (ADR 0062) também têm leitura diária.
   const { centroDecisao: ouro } = await obterCentroDecisao({ ativo: "OURO", data: "2026-10-01" }, deps);
   assert.deepEqual(ouro.analise, { disponivel: false, data: "2026-10-01" });
   const { centroDecisao: milho } = await obterCentroDecisao({ ativo: "MILHO", data: "2026-10-01" }, deps);
   assert.deepEqual(milho.analise, { disponivel: false, data: "2026-10-01" });
-  const { centroDecisao: cafe } = await obterCentroDecisao({ ativo: "CAFE", data: "2026-10-02" }, deps);
-  assert.equal(cafe.analise, null);
-  assert.deepEqual(pedidas, [["PETROLEO", "2026-10-02"], ["PETROLEO", "2026-10-01"], ["OURO", "2026-10-01"], ["MILHO", "2026-10-01"]]);
+  const { centroDecisao: cafe } = await obterCentroDecisao({ ativo: "CAFE", data: "2026-10-01" }, deps);
+  assert.deepEqual(cafe.analise, { disponivel: false, data: "2026-10-01" });
+  assert.deepEqual(pedidas, [
+    ["PETROLEO", "2026-10-02"],
+    ["PETROLEO", "2026-10-01"],
+    ["OURO", "2026-10-01"],
+    ["MILHO", "2026-10-01"],
+    ["CAFE", "2026-10-01"]
+  ]);
 });
 
 test("filtros inválidos: ativo, série e data futura", async () => {

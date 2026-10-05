@@ -12,9 +12,9 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // CALIBRAÇÃO DO FINMIND (a P06 do estudo, autorizada pelo usuário em 2026-10-04): em geral, a posição da medida no
 // próprio histórico (factors/modelos/posicao-historica.js), dita no cálculo de cada fator.
 //
-// Limite (CLAUDE.md e ADR 0060): o café não vai ao prompt diário, ao Centro de Decisão nem à IA. O próprio estudo
-// recomenda aprovar só a arquitetura, a ingestão e o protótipo, e rejeitar as regras para operação. Nada daqui gera
-// sinal de compra ou venda.
+// Aprovação do Comitê (2026-10-05, ADR 0062): o Motor do Café v1 como está na tela, com os limiares calibrados pelo
+// FinMind, vai ao prompt diário, à leitura de tendência da IA e ao Centro de Decisão, como o milho (ADR 0058). Leitura
+// de tendência, nunca recomendação: nada daqui gera sinal de compra ou venda.
 
 // v1 (2026-10-04): os 8 fatores do Motor do Café v1, todos calculados com a calibração do FinMind.
 const VERSAO = 1;
@@ -349,19 +349,23 @@ const DEFINICOES = [
 
 const FATORES_CAFE = montarFatores("CAFE", DEFINICOES);
 
-// O que vale para o ativo, não para um fator (metodologia-base.js). O estudo propõe o instrumento e os limites da IA;
-// o Comitê ainda não decidiu: tudo vai em perguntas.
+// O que vale para o ativo, não para um fator (metodologia-base.js): o que o Comitê aprovou em 2026-10-05 (ADR 0062) e o
+// que segue em aberto.
+const DECISAO_COMITE = "Comitê, 2026-10-05 (ADR 0062)";
 const DO_ATIVO = {
   decisoes: [
-    "Eventos por fator: o David pediu avaliar a leitura de eventos também no café (P12, ADR 0055). Cada fator recebe os eventos que a leitura diária por IA marca com ele (7 dias de janela; 30 na demanda), só na tela.",
+    `Aprovação do Motor do Café v1 como está na tela, com os limiares calibrados pelo FinMind (a posição no próprio histórico) como ponto de partida; ajustes daqui em diante pelos parâmetros. O café entra no prompt diário, na leitura de tendência da IA e no Centro de Decisão. ${DECISAO_COMITE}.`,
+    `Formato da leitura da IA: tendência por horizonte, com as faixas calibradas (como nos outros ativos), não recomendação de compra ou venda. ${DECISAO_COMITE}.`,
+    `Preço de referência no prompt e no Centro de Decisão: o ICF da B3 (US$/saca), o vencimento mais próximo negociado, sem emendar contratos; o KC da ICE fica fora (pago). ${DECISAO_COMITE}.`,
+    `Horizontes em dias corridos (1, 7, 30 e 90), contados da data da análise, como nos outros ativos (o estudo conta em pregões). ${DECISAO_COMITE}.`,
+    `Eventos por fator: o David pediu avaliar a leitura de eventos também no café (P12, ADR 0055). Cada fator recebe os eventos que a leitura diária por IA marca com ele (7 dias de janela; 30 na demanda), sem validação humana por ora, e eles vão ao prompt depois do cálculo. ${DECISAO_COMITE}.`,
     "O WASDE não cobre café: o balanço do USDA para o café é o PSD (Coffee: World Markets and Trade). David, 2026-10-03 (P14, ADR 0055).",
     "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET espera o índice do David; o diário de Londres e do KC, orçamento e licença; o diferencial FOB não tem fonte pública."
   ],
   perguntas: [
-    "Aprovação do Motor do Café v1: o estudo recomenda aprovar a arquitetura, a ingestão e o protótipo, e rejeitar as regras para operação. Os limiares calibrados pelo FinMind (percentil no próprio histórico) servem de ponto de partida para o protótipo?",
-    "Preço de referência: o ICF da B3 (US$/saca), com o KC da ICE como referência (o estudo). O KC é pago; o ICF basta para a v1?",
-    "Horizontes: o estudo conta em pregões (1, 7, 30 e 90); o milho, o ouro e o petróleo, em dias corridos. Qual vale para o café?",
-    "Pesos e agregação: o estudo descarta os pesos fixos e a matriz do v0 e propõe regras transversais (neutralidade mandatória com dados faltando ou conflito; controle de dupla contagem F1 → F2 → F3; surpresa contra a expectativa). Como a agregação fica no motor?",
+    "Faixas da leitura da IA: hoje são os percentis 40 e 80 do ICF no vencimento mais próximo (2022 a 2026, um período de alta forte), por horizonte. Ficam, ou o Comitê prefere outra régua?",
+    "Vencimentos do ICF por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima, e a curva no prompt?",
+    "Pesos e agregação: o estudo descarta os pesos fixos e a matriz do v0 e propõe regras transversais (neutralidade mandatória com dados faltando ou conflito; controle de dupla contagem F1 → F2 → F3; surpresa contra a expectativa). O prompt da IA já leva essas regras como orientação (e o peso do FEL 1 como o único na base): a agregação em código continua para o Comitê.",
     "INMET (F1): qual índice? Geada (temperatura mínima horária de maio a agosto em Varginha, Patrocínio, Franca e Caldas, com qual limiar) ou chuva e balanço hídrico contra a climatologia? A coleta só começa com o índice definido.",
     "Vale a mesma régua para o milho? O estudo critica pesos fixos e limiares sem teste, o que também se aplica ao Motor do Milho v0, já aprovado."
   ]

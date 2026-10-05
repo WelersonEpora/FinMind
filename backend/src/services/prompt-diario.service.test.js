@@ -169,7 +169,7 @@ test("o mesmo dia e a mesma base dão o mesmo hash; outro ativo não tem prompt 
   const a = (await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps())).promptDiario.hashEntrada;
   const b = (await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps())).promptDiario.hashEntrada;
   assert.equal(a, b);
-  await assert.rejects(montarPromptDiario("CAFE", {}, deps()), (err) => err.statusCode === 404);
+  await assert.rejects(montarPromptDiario("SOJA", {}, deps()), (err) => err.statusCode === 404);
 });
 
 test("faixas: quatro horizontes com T1 < T2; a classificação do realizado segue as bordas da tabela 2.4", () => {
@@ -232,7 +232,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.4 });
   assert.equal(p.entrada.precoReferencia.contrato.ticker, "GLDZ26");
 
-  await assert.rejects(montarPromptDiario("CAFE", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
+  await assert.rejects(montarPromptDiario("SOJA", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
 });
 
 test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os eventos usados como chegam", async () => {
@@ -265,4 +265,40 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
   assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
   assert.equal(p.entrada.precoReferencia.serie, "CCM");
   assert.equal(p.entrada.precoReferencia.ptax, undefined);
+});
+
+test("café (ADR 0062): o ICF com o contrato e o preço em reais por saca, sem bloco de curva", async () => {
+  const precoIcf = {
+    ...PRECO,
+    nome: "Futuro B3 (ICF)",
+    unidade: "US$/saca",
+    fonte: "B3 - Up2Data",
+    contrato: { ticker: "ICFZ26", rotulo: "ICFZ26 (dez/2026)" },
+    valor: 351.9,
+    dataReferencia: "2026-10-02",
+    diasSemDado: 1
+  };
+  const d = deps({ fatores: [{ ...CALCULADO, codigo: "CAFE_FUNDOS", textoPrompt: "FATOR — Fundos" }], preco: precoIcf });
+  d.marketQuoteRepository = {
+    async buscarHistorico() {
+      return { registros: [{ reference_date: "2026-10-02", value: "5.2000" }], total: 1 };
+    }
+  };
+  const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
+
+  assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@1");
+  assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
+  assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
+  assert.match(p.prompt, /Último preço: US\$ 351,90 em 02\/10\/2026/);
+  assert.match(p.prompt, /Em reais: R\$ 1\.829,88 por saca, pela PTAX de venda de 02\/10\/2026/);
+  assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/saca\)/);
+  assert.match(p.prompt, /2\.2 CURVA FUTURA — fora desta versão/);
+  assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 11,0% \| T2 = 25,0%/);
+  assert.match(p.instrucaoDoSistema, /modificador de risco, sem voto próprio/);
+  assert.match(p.instrucaoDoSistema, /não\s+passou por validação humana/);
+  assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
+  assert.doesNotMatch(p.prompt, /\{\{/);
+  assert.equal(p.entrada.precoReferencia.serie, "ICF");
+  assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.2 });
 });

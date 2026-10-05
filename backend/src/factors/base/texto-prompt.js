@@ -15,14 +15,15 @@
 
 const ROTULO_ATIVO = { PETROLEO: "PETRÓLEO", OURO: "OURO", MILHO: "MILHO", CAFE: "CAFÉ" };
 
-function numero(valor, casas) {
-  return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+function numero(valor, casas, agrupar = true) {
+  return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas, useGrouping: agrupar });
 }
 
-// Um valor de quadro como a tela o mostra: casas, sinal e unidade colada (o mesmo que formatarQuadro do frontend).
-function formatarValor(valor, { casas = 0, sinal = false, unidadeValor = "" } = {}) {
+// Um valor de quadro como a tela o mostra: casas, sinal, unidade colada e, com `agrupar: false`, sem o separador de
+// milhar (um ano) - o mesmo que formatarQuadro do frontend.
+function formatarValor(valor, { casas = 0, sinal = false, unidadeValor = "", agrupar = true } = {}) {
   if (valor === null || valor === undefined) return "-";
-  return `${sinal && valor > 0 ? "+" : ""}${numero(valor, casas)}${unidadeValor}`;
+  return `${sinal && valor > 0 ? "+" : ""}${numero(valor, casas, agrupar)}${unidadeValor}`;
 }
 
 // "- Rótulo: valor (linha de baixo)": a linha de baixo do quadro na tela (o valor secundário ou o sufixo) vai entre

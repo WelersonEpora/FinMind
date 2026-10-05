@@ -17,8 +17,8 @@ import { formatarData, rotuloTipo } from '../utils/geopolitica.js'
 
 // Centro de Decisão (ADR 0048): a tela inicial, no desenho do Centro de Decisão do AgroMind. Um ativo e uma data
 // mudam a tela inteira: o preço como era conhecido no fim daquele dia (point-in-time) e a leitura de eventos de mercado
-// dela (ADR 0049). No petróleo, ao lado do preço ficam as evidências que formaram o prompt e, numa linha própria, a
-// leitura diária de tendência da IA nos quatro horizontes, em linha do tempo (ADR 0052); nos outros ativos, fica reservado até o David e o Comitê definirem as regras. Nenhum sinal ou recomendação de
+// dela (ADR 0049). Ao lado do preço ficam as evidências que formaram o prompt e, numa linha própria, a leitura diária
+// de tendência da IA nos quatro horizontes, em linha do tempo (ADRs 0052, 0054, 0058 e 0062). Nenhum sinal ou recomendação de
 // compra ou venda é gerado aqui.
 //
 // O ativo, a data e a série ficam na URL (?ativo=&data=&serie=): recarregar ou compartilhar o link abre a mesma leitura.

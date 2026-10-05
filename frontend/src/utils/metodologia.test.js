@@ -70,6 +70,8 @@ test('formatarQuadro e linhaSecundaria: casas, sinal, unidade e o valor de baixo
   assert.equal(formatarQuadro(1.86, { casas: 2, sinal: true, unidadeValor: '%' }), '+1,86%')
   assert.equal(formatarQuadro(-922, { casas: 0, sinal: true }), '-922')
   assert.equal(formatarQuadro(null), '-')
+  // Um ano (o custo do café da Conab): sem o separador de milhar.
+  assert.equal(formatarQuadro(2025, { agrupar: false }), '2025')
   assert.equal(linhaSecundaria({}, { sufixo: 'mil barris' }), 'mil barris')
   assert.equal(
     linhaSecundaria({ recorde: 13955 }, { secundario: { campo: 'recorde', casas: 0, prefixo: 'recorde:', sufixo: 'mil barris/dia' } }),

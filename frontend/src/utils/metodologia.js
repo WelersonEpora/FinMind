@@ -65,10 +65,11 @@ export function rotulosDasFaixas(rotuloMedida, limiares = null) {
   }
 }
 
-// Um valor de quadro, como a apresentação pede: casas decimais, sinal (+/-) e unidade colada (ex.: "%").
-export function formatarQuadro(valor, { casas = 0, sinal = false, unidadeValor = '' } = {}) {
+// Um valor de quadro, como a apresentação pede: casas decimais, sinal (+/-), unidade colada (ex.: "%") e, com
+// `agrupar: false`, sem o separador de milhar (um ano).
+export function formatarQuadro(valor, { casas = 0, sinal = false, unidadeValor = '', agrupar = true } = {}) {
   if (valor === null || valor === undefined) return '-'
-  const numero = valor.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
+  const numero = valor.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas, useGrouping: agrupar })
   return `${sinal && valor > 0 ? '+' : ''}${numero}${unidadeValor}`
 }
 

@@ -120,8 +120,8 @@ function bootstrapCollectors() {
     // Geopolítica do ouro e do petróleo: uma chamada diária ao Gemini com busca na web (ADR 0047).
     if (env.gemini.apiKeyFree || env.gemini.apiKey) {
       registerCollector(geopoliticaIaCollector);
-      // Leitura diária de tendência do petróleo e do ouro (ADRs 0052 e 0054): por ÚLTIMO, para usar a base do dia já
-      // coletada (os fatores e a leitura de eventos acima). Uma por ativo, independentes.
+      // Leitura diária de tendência dos quatro ativos (ADRs 0052, 0054, 0058 e 0062): por ÚLTIMO, para usar a base do
+      // dia já coletada (os fatores e a leitura de eventos acima). Uma por ativo, independentes.
       for (const coletor of COLETORES_ANALISE_DIARIA) registerCollector(coletor);
     } else {
       logger.warn(

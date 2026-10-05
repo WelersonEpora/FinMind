@@ -38,12 +38,19 @@ test("todo observável citado existe no catálogo", () => {
   }
 });
 
-test("os 8 fatores calculados e com eventos; fora do prompt diário (ADR 0060)", () => {
+test("os 8 fatores calculados e com eventos; com prompt diário desde a aprovação do Comitê (ADR 0062)", () => {
   const { metodologia } = obterMetodologiaAtivo("CAFE");
   assert.deepEqual(metodologia.fatores.filter((f) => !f.calculado).map((f) => f.codigo), []);
   assert.ok(metodologia.fatores.every((f) => f.comEventos));
-  assert.equal(metodologia.promptDiario, false);
-  assert.ok(!ATIVOS_COM_PROMPT_DIARIO.includes("CAFE"));
+  assert.equal(metodologia.promptDiario, true);
+  assert.ok(ATIVOS_COM_PROMPT_DIARIO.includes("CAFE"));
+});
+
+test("o ativo: a aprovação do Comitê e o ICF como preço de referência entre as decisões (ADR 0062)", () => {
+  const { doAtivo } = obterMetodologiaCafe();
+  assert.ok(doAtivo.decisoes.some((d) => d.startsWith("Aprovação do Motor do Café v1")));
+  assert.ok(doAtivo.decisoes.some((d) => d.startsWith("Preço de referência no prompt e no Centro de Decisão: o ICF")));
+  assert.ok(!doAtivo.perguntas.some((p) => p.startsWith("Aprovação do Motor do Café v1")));
 });
 
 test("pesos do café: sem calendário (o estudo descarta os pesos fixos), 5 relações por par e as regras transversais", () => {

@@ -235,7 +235,7 @@ const APRESENTACAO = {
     { camada: "A", rotulo: "ICF, vencimento mais próximo", campo: "precoUsd", casas: 2, sufixo: "US$/saca" },
     { camada: "A", rotulo: "ICF em reais (pela PTAX)", campo: "precoBrl", casas: 2, sufixo: "R$/saca" },
     { camada: "A", rotulo: "Custo operacional do arábica (Conab, mediana)", campo: "custoOperacionalSaca", casas: 2, sufixo: "R$/saca" },
-    { camada: "A", rotulo: "Custo total do arábica (Conab, mediana)", campo: "custoTotalSaca", casas: 2, secundario: { prefixo: "R$/saca, ano", campo: "anoCusto" } },
+    { camada: "A", rotulo: "Custo total do arábica (Conab, mediana)", campo: "custoTotalSaca", casas: 2, secundario: { prefixo: "R$/saca, ano", campo: "anoCusto", agrupar: false } },
     { camada: "B", rotulo: "Margem sobre o custo operacional", campo: "margemOperacionalPct", casas: 2, sinal: true, unidadeValor: "%" },
     { camada: "B", rotulo: "Margem sobre o custo total", campo: "margemTotalPct", casas: 2, sinal: true, unidadeValor: "%" },
     { camada: "B", rotulo: "Percentil da margem total (5 anos)", campo: "percentilMargem", casas: 1 }

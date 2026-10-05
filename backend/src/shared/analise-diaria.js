@@ -2,13 +2,14 @@
 
 const { NotFoundError } = require("./errors");
 
-// Os ativos com leitura diária de tendência da IA aprovada (petróleo, ADR 0052; ouro, ADR 0054; milho, ADR 0058) e a
-// configuração de cada um. Um ativo novo é uma configuração `analise-diaria-<ativo>.js`, um prompt em ai/prompts/ e uma
-// linha aqui, depois da aprovação dele registrada num ADR (CLAUDE.md, restrições permanentes).
+// Os ativos com leitura diária de tendência da IA aprovada (petróleo, ADR 0052; ouro, ADR 0054; milho, ADR 0058; café,
+// ADR 0062) e a configuração de cada um. Um ativo novo é uma configuração `analise-diaria-<ativo>.js`, um prompt em
+// ai/prompts/ e uma linha aqui, depois da aprovação dele registrada num ADR (CLAUDE.md, restrições permanentes).
 const CONFIGURACOES = Object.freeze({
   PETROLEO: require("./analise-diaria-petroleo"),
   OURO: require("./analise-diaria-ouro"),
-  MILHO: require("./analise-diaria-milho")
+  MILHO: require("./analise-diaria-milho"),
+  CAFE: require("./analise-diaria-cafe")
 });
 
 const ATIVOS_COM_ANALISE_DIARIA = Object.freeze(Object.keys(CONFIGURACOES));

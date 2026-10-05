@@ -51,17 +51,17 @@ async function lerPtax(dataReferencia, deps = {}) {
   return registro ? { data: String(registro.reference_date).slice(0, 10), valor: Number(registro.value) } : null;
 }
 
-function linhaEmReais(preco, ptax) {
+function linhaEmReais(preco, ptax, config) {
   if (!ptax) return `Em reais: SEM DADO (sem PTAX até ${fmtData(preco.dataReferencia)}).`;
   return (
-    `Em reais: R$ ${fmtNumero(preco.valor * ptax.valor)} por onça, pela PTAX de venda de ${fmtData(ptax.data)} ` +
+    `Em reais: R$ ${fmtNumero(preco.valor * ptax.valor)} ${config.PRECO.unidadeEmReais || "por onça"}, pela PTAX de venda de ${fmtData(ptax.data)} ` +
     `(R$ ${fmtNumero(ptax.valor, 4)} por US$). Só referência: as faixas da tabela 2.4 são sobre o preço em US$.`
   );
 }
 
 function blocoPreco(preco, dataAnalise, config, ptax = null) {
   if (!preco.disponivel) return `Preço do ${config.PRECO.rotulo}: SEM DADO até a data da análise.`;
-  // A moeda do preço: US$ no petróleo e no ouro, R$ no milho (o CCM).
+  // A moeda do preço: US$ no petróleo, no ouro e no café (o ICF), R$ no milho (o CCM).
   const moeda = config.PRECO.moeda || "US$";
   const publicado = diaDaPublicacao(preco.publicadoEm);
   const linhas = [`Série: ${preco.nome}, ${preco.unidade} | Fonte: ${preco.fonte}`];
@@ -74,7 +74,7 @@ function blocoPreco(preco, dataAnalise, config, ptax = null) {
       `${preco.publicadoEmEstimado ? " (data estimada)" : ""} | ${preco.diasSemDado} dia(s) antes da data da análise` +
       `${preco.defasada ? " | DEFASADO: passou da tolerância da série" : ""}`
   );
-  if (config.PRECO.emReais) linhas.push(linhaEmReais(preco, ptax));
+  if (config.PRECO.emReais) linhas.push(linhaEmReais(preco, ptax, config));
   linhas.push(
     // Os horizontes contam da data da análise (config.REFERENCIA_HORIZONTES, ADR 0052): o intervalo entre o último
     // preço e ela é dito como desconhecido, para a IA não o estimar.
