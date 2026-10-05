@@ -3,6 +3,7 @@
 const observationRepository = require("../repositories/observation.repository");
 const geopoliticaService = require("./geopolitica.service");
 const analiseDiariaService = require("./analise-diaria.service");
+const realizadoAnaliseService = require("./realizado-analise.service");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
 const { somarDias } = require("../shared/utils/date-utils");
@@ -153,7 +154,7 @@ async function lerFuturo(futuro, { data, asOf, desde }, repo) {
     .sort((a, b) => a.vencimento.localeCompare(b.vencimento))[0];
   const seriesCode = `${futuro.prefixo}.${contrato.ticker}.${futuro.campo}`;
 
-  return { linhas: linhas.filter((l) => l.series_code === seriesCode), contrato: { ticker: contrato.ticker, rotulo: contrato.rotulo } };
+  return { linhas: linhas.filter((l) => l.series_code === seriesCode), seriesCode, contrato: { ticker: contrato.ticker, rotulo: contrato.rotulo } };
 }
 
 async function lerPreco(serie, { data, agora }, deps) {
@@ -167,7 +168,7 @@ async function lerPreco(serie, { data, agora }, deps) {
 
   const lido = serie.futuro
     ? await lerFuturo(serie.futuro, { data, asOf, desde }, repo)
-    : { linhas: await repo.buscarAsOf({ seriesCodes: [serie.seriesCode], asOf, observadoDesde: desde, observadoAte: data }), contrato: null };
+    : { linhas: await repo.buscarAsOf({ seriesCodes: [serie.seriesCode], asOf, observadoDesde: desde, observadoAte: data }), seriesCode: serie.seriesCode, contrato: null };
 
   const base = {
     codigo: serie.codigo,
@@ -193,6 +194,8 @@ async function lerPreco(serie, { data, agora }, deps) {
   return {
     ...base,
     disponivel: true,
+    // A série exata do preço (num futuro, a do contrato): a leitura de tendência a grava (ADR 0064).
+    seriesCode: lido.seriesCode,
     contrato: lido.contrato,
     valor: ultimo.valor,
     dataReferencia: ultimo.data,
@@ -236,6 +239,12 @@ async function obterCentroDecisao(filtros = {}, deps = {}) {
     lerGeopolitica(ativo, data, deps),
     (deps.analiseDiariaService || analiseDiariaService).obterAnaliseDoDia(ativo.codigo, data, deps)
   ]);
+
+  // O realizado da leitura (ADR 0063 e adendo): em que faixa o preço de fato caiu em cada horizonte, a partir da base da
+  // avaliação (o preço da data da análise), na série que a leitura gravou (o petróleo antes do Brent usava o WTI).
+  if (analise?.disponivel) {
+    analise.realizado = await (deps.realizadoAnaliseService || realizadoAnaliseService).apurarRealizado(analise, { agora }, deps);
+  }
 
   return {
     centroDecisao: {

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { contarEventos, etiquetaLeitura, faltaNoFator, idadeDoDado, rotuloMedida, intervaloDaFaixa, leituraDoFator, nivelConfianca, rotuloConfianca, rotuloDias, rotuloFaixa, rotuloPapelCot, tendencia } from './analise-diaria.js'
+import { contarEventos, etiquetaLeitura, realizadoDoHorizonte, faltaNoFator, idadeDoDado, rotuloMedida, intervaloDaFaixa, leituraDoFator, nivelConfianca, rotuloConfianca, rotuloDias, rotuloFaixa, rotuloPapelCot, tendencia } from './analise-diaria.js'
 
 test('faixa em % a partir de T1 e T2 do horizonte, com as bordas da classificação', () => {
   const medio = { t1: 5, t2: 12 }
@@ -79,4 +79,17 @@ test('fator de contexto (ADR 0054): sem pressão, o chip diz Contexto, com a ten
   assert.equal(leitura.texto, 'Contexto')
   assert.equal(leitura.classe, 'lateral')
   assert.equal(leitura.tendencia, 'caindo')
+})
+
+test('realizado de um horizonte: variação e faixa quando apurado; nas outras situações, só a nota', () => {
+  const fmt = (d) => (d ? d.split('-').reverse().join('/') : '—')
+  assert.deepEqual(
+    realizadoDoHorizonte({ situacao: 'APURADO', dataAlvo: '2026-09-02', dataPreco: '2026-09-02', variacaoPct: -1.54, faixa: 'BAIXA_LEVE' }, fmt),
+    { apurado: true, variacao: '−1,5%', faixa: 'Baixa leve', classe: 'baixa', nota: 'preço de 02/09/2026' }
+  )
+  assert.equal(realizadoDoHorizonte({ situacao: 'APURADO', dataPreco: '2026-09-02', variacaoPct: 0.3, faixa: 'LATERAL' }, fmt).variacao, '+0,3%')
+  assert.deepEqual(realizadoDoHorizonte({ situacao: 'A_APURAR', dataAlvo: '2026-12-01' }, fmt), { apurado: false, nota: 'apura em 01/12/2026' })
+  assert.equal(realizadoDoHorizonte({ situacao: 'SEM_PREGAO', dataAlvo: '2026-09-06' }, fmt).nota, 'sem pregão novo até 06/09/2026')
+  assert.equal(realizadoDoHorizonte({ situacao: 'SEM_BASE', dataAlvo: null }, fmt).nota, 'sem preço-base na leitura')
+  assert.equal(realizadoDoHorizonte(undefined, fmt), null)
 })

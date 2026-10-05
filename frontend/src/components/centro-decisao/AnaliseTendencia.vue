@@ -7,6 +7,7 @@ import {
   etiquetaLeitura,
   intervaloDaFaixa,
   nivelConfianca,
+  realizadoDoHorizonte,
   rotuloDias,
   rotuloLacuna,
   rotuloPapelCot
@@ -17,7 +18,8 @@ import {
 // calcula nem resume nada. Leitura de tendência, não recomendação.
 const props = defineProps({
   analise: { type: Object, required: true },
-  ativoNome: { type: String, required: true }
+  ativoNome: { type: String, required: true },
+  ativoCodigo: { type: String, default: null }
 })
 
 const aberto = ref(null)
@@ -28,9 +30,13 @@ const detalheVisivel = computed({
   }
 })
 
-// Cada horizonte com a leitura dele (pelo código, não pela posição).
+// Cada horizonte com a leitura dele e o realizado (ADR 0063), pelo código, não pela posição.
 const horizontes = computed(() =>
-  props.analise.horizontes.map((h) => ({ ...h, leitura: (props.analise.leituras || []).find((l) => l.horizonte === h.codigo) || null }))
+  props.analise.horizontes.map((h) => ({
+    ...h,
+    leitura: (props.analise.leituras || []).find((l) => l.horizonte === h.codigo) || null,
+    realizado: realizadoDoHorizonte((props.analise.realizado?.horizontes || []).find((r) => r.horizonte === h.codigo), formatarData)
+  }))
 )
 
 // A faixa em % do horizonte ("+2% a +6%"): a direção e a intensidade já estão na etiqueta. Sem faixa (INSUFICIENTE), null.
@@ -43,6 +49,9 @@ const etiqueta = (leitura) => etiquetaLeitura(leitura.tendencia, leitura.faixa)
 
 const proveniencia = computed(() => props.analise.proveniencia || {})
 const contaDaAnalise = computed(() => props.analise.referenciaHorizontes?.tipo === 'DATA_DA_ANALISE')
+// A base da avaliação (ADR 0063, adendo): o preço da data da leitura, de onde o realizado conta. Até o preço da data chegar,
+// provisória; sem pregão na data, a leitura fica fora da Qualidade da IA (ADR 0064).
+const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
 </script>
 
 <template>
@@ -63,6 +72,9 @@ const contaDaAnalise = computed(() => props.analise.referenciaHorizontes?.tipo =
         </p>
       </div>
       <span class="analise__selo"><span class="analise__selo-ponto"></span>Leitura de tendência da IA</span>
+      <router-link v-if="ativoCodigo" :to="{ path: '/qualidade-ia', query: { ativo: ativoCodigo } }" class="analise__qualidade">
+        <i class="bi bi-check2-circle"></i> Qualidade da IA
+      </router-link>
     </header>
 
     <div v-if="!analise.disponivel" class="analise__vazia">
@@ -116,6 +128,16 @@ const contaDaAnalise = computed(() => props.analise.referenciaHorizontes?.tipo =
                 <span class="faixa" :class="{ 'faixa--vazia': !intervalo(horizonte) }">{{ intervalo(horizonte) || 'sem faixa' }}</span>
               </span>
             </span>
+            <!-- O que o preço de fato fez no horizonte (ADR 0063), ao lado da faixa lida: só descreve, sem marcar acerto. -->
+            <span v-if="horizonte.realizado" class="realizado">
+              <span class="horizonte__faixa-rotulo">Realizado</span>
+              <template v-if="horizonte.realizado.apurado">
+                <span class="realizado__valor" :class="`realizado__valor--${horizonte.realizado.classe}`">
+                  {{ horizonte.realizado.variacao }}<template v-if="horizonte.realizado.faixa"> · {{ horizonte.realizado.faixa }}</template>
+                </span>
+              </template>
+              <span class="realizado__nota">{{ horizonte.realizado.nota }}</span>
+            </span>
             <span class="horizonte__tese">{{ horizonte.leitura.tese }}</span>
             <span class="horizonte__abrir">Ver detalhe <i class="bi bi-arrow-right-short"></i></span>
           </template>
@@ -152,6 +174,24 @@ const contaDaAnalise = computed(() => props.analise.referenciaHorizontes?.tipo =
           <span class="confianca" :class="`confianca--${nivelConfianca(aberto.leitura.confianca).classe}`">
             {{ nivelConfianca(aberto.leitura.confianca).rotulo }}
           </span>
+        </p>
+        <p v-if="aberto.realizado" class="detalhe__realizado">
+          <strong>Realizado:</strong>
+          <template v-if="aberto.realizado.apurado">
+            {{ aberto.realizado.variacao }}<template v-if="aberto.realizado.faixa"> ({{ aberto.realizado.faixa }})</template>, {{ aberto.realizado.nota }},
+            contra a base da avaliação.
+          </template>
+          <template v-else>{{ aberto.realizado.nota }}.</template>
+        </p>
+        <p v-if="baseAvaliacao?.data" class="detalhe__realizado">
+          <strong>Base da avaliação:</strong> {{ formatarValor(baseAvaliacao.valor) }} em {{ formatarData(baseAvaliacao.data) }}
+          <template v-if="!baseAvaliacao.confirmada"> (provisória: o preço da data da leitura ainda não chegou)</template>.
+          <template v-if="analise.precoReferencia">
+            A IA recebeu {{ formatarValor(analise.precoReferencia.valor) }} em {{ formatarData(analise.precoReferencia.dataReferencia) }}.
+          </template>
+          <template v-if="contaDaAnalise && baseAvaliacao.confirmada && !baseAvaliacao.naDataDaAnalise">
+            Sem pregão na data da leitura: ela fica fora da Qualidade da IA.
+          </template>
         </p>
         <p class="detalhe__tese">{{ aberto.leitura.tese }}</p>
 
@@ -295,6 +335,12 @@ const contaDaAnalise = computed(() => props.analise.referenciaHorizontes?.tipo =
   background: var(--p-content-hover-background);
   font-size: 0.75rem;
   color: var(--p-text-muted-color);
+}
+.analise__qualidade {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  text-decoration: none;
+  white-space: nowrap;
 }
 .analise__selo-ponto {
   width: 0.45rem;
@@ -554,6 +600,38 @@ const contaDaAnalise = computed(() => props.analise.referenciaHorizontes?.tipo =
   font-family: inherit;
   font-style: italic;
   color: var(--p-text-muted-color);
+}
+
+/* O realizado: uma linha discreta abaixo da faixa lida, com a cor da faixa em que o preço caiu (sem marca de acerto). */
+.realizado {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.5rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed var(--p-surface-300);
+}
+.realizado__valor {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.realizado__valor--alta {
+  color: var(--tendencia-alta);
+}
+.realizado__valor--baixa {
+  color: var(--tendencia-baixa);
+}
+.realizado__valor--lateral,
+.realizado__valor--insuficiente {
+  color: var(--tendencia-lateral);
+}
+.realizado__nota {
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+}
+.detalhe__realizado {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
 }
 
 .horizonte__tese {

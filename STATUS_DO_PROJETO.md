@@ -47,21 +47,29 @@ fecha, como a LBMA) segue normal.
 
 ### Próximos passos
 
-Caminho até **fechar a arquitetura do milho e do ouro**: a cadeia completa (Coleta → A → B → C → prompt → IA →
-recomendação) rodando em simulação, com regras aprovadas. Só a etapa atual tem detalhe; as seguintes são detalhadas
-quando chegar a vez delas.
+**Os quatro ativos têm a cadeia inteira rodando todo dia**: coleta → fatores (camadas A, B e C) → prompt diário → IA →
+leitura de tendência em quatro horizontes no Centro de Decisão (nunca recomendação de compra ou venda). O mapa do motor
+no código está em `backend/src/analytics-engine/README.md`. Falta fechar o que segue provisório. As leituras já são
+medidas contra o preço realizado, na tela Qualidade da IA (ADR 0064).
 
 | Etapa | O quê | Responsável | Situação |
 |---|---|---|---|
-| **1. Decisões de base** | Critérios de aprovação do backtest, preço e orçamento, instrumento e horizontes, medidas dos fatores do milho (só a camada A) e ajustes no FEL 1 | Comitê | **Atual**: respostas por escrito do David recebidas em 2026-10-03 e registradas no §4 (ADR 0055). Faltam os 10 pontos em aberto, para a conversa com o David: `docs/conversa-david-respostas-fel1.md`. FEL 1 revisado previsto para 2026-10-15 |
-| 2. Entendimento do ouro | Propor a medida (camada A) dos 8 fatores do ouro, como a §5 faz para o milho, para o Comitê confirmar | FinMind → Comitê | **Proposta pronta** (§5b), aguarda o Comitê |
-| 2b. Entendimento do petróleo | Propor os 10 fatores do petróleo nas três camadas (medida, comparação e um esboço da leitura), ao lado do que o FEL 1 diz e dos dados que já temos, com as perguntas de cada fator | FinMind → David | **Aprovada pelo David em reunião (2026-10-03)**; respostas por escrito a caminho. A cadeia do petróleo roda inteira: leitura diária de tendência da IA no Centro de Decisão (ADR 0052). Desde 2026-10-04, o preço de referência é o **Brent**, o instrumento operado (confirmado com o David; ADR 0052, adendo) |
-| 2c. Fatores do ouro | O mesmo tratamento do petróleo nos 8 fatores do ouro, a pedido do David | FinMind → David | **Aprovada pelo David (2026-10-03)**, com as decisões do preço (GLD), da inflação (contexto do juro real), do COT e dos bancos centrais (ADRs 0053 e 0054). A cadeia do ouro roda inteira: leitura diária de tendência da IA no Centro de Decisão (ADR 0054) |
-| 2d. Fatores do milho | O David mandou o **Motor do Milho v0** (2026-10-02): para cada fator, uma regra de alta e uma de baixa, o peso por mês, as correlações e um prompt para a IA. Limiares ilustrativos, para deliberação do Comitê | David → Comitê; FinMind monta como proposta | Recebido em 2026-10-03. **Na tela Metodologia do Ativo desde 2026-10-04** (ADR 0056): os 8 fatores com as regras do David, todos calculados (F1 clima dos EUA, F2 safrinha, F3 estoques do WASDE, F4 dólar e paridade com a paridade do IMEA, ADR 0057, F5 etanol só dos EUA, F6 insumos só a margem, F7 fundos, F8 exportações), validados contra o Indicador ESALQ onde há histórico. **Aprovado pelo Comitê em 2026-10-04 (ADR 0058):** o prompt diário vai à IA todo dia e a leitura de tendência aparece no Centro de Decisão, com o CCM como preço; cada fator leva os eventos da leitura diária marcados com ele, sem validação humana por ora. O calendário de pesos, a matriz de relações e as regras de agregação do David estão na seção "Pesos e relações" da tela, só para leitura (ADR 0059): o prompt segue com o peso do FEL 1. Em aberto: o mapa sazonal de pesos (com os meses que o David não definiu) e a agregação em código, os vencimentos do CCM por horizonte, as faixas (ESALQ ou as classes do David) e a base do F4 (Campinas − MT, quase sempre positiva) |
-| 2e. Fatores do café | O David mandou o **Motor do Café v1** (2026-10-04): por fator, objetivo, variáveis e regras candidatas de alta e baixa, **sem limiares** ("[CALIBRAR COM DADOS POINT-IN-TIME]"); descarta os pesos e a matriz do v0; recomenda aprovar só a arquitetura e o protótipo | David → Comitê; FinMind calibra como proposta | **Na tela Metodologia do Ativo desde 2026-10-04** (ADR 0060): os 8 fatores calculados, com os limiares calibrados pelo FinMind (a posição no próprio histórico, neutra do percentil 20 ao 80), as relações por par e as regras transversais. **Aprovado pelo Comitê em 2026-10-05 (ADR 0062):** o prompt diário vai à IA todo dia e a leitura de tendência aparece no Centro de Decisão, com o ICF como preço e as faixas pelos percentis 40 e 80 do próprio ICF (2022 a 2026); as regras transversais do estudo vão ao prompt como orientação, e cada fator leva os eventos da leitura diária, sem validação humana por ora. Fontes novas autorizadas pelo Comitê em 2026-10-04 e coletadas (ADR 0061): as sacas aguardando classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado, fora da decisão dos fatores. Em aberto: as faixas (o período do ICF é de alta forte), os vencimentos do ICF por horizonte, as janelas críticas do clima, como os dados novos entram nas regras do F3 e do F6, o índice do INMET e a agregação em código |
-| 3. Medidas e dados | Implementar as medidas confirmadas e coletar os dados aprovados que faltam | FinMind | Depende da 1 |
-| 4. Regras | O Comitê define a leitura (B) e a regra (C) de cada fator; o FinMind faz o backtest; o Comitê aprova | Comitê + FinMind | Depende da 3 |
-| 5. IA em simulação | Prompt, registro de cada recomendação e simulação por pelo menos 6 meses (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | Depende da 4 |
+| 1. Decisões de base | Critérios do backtest, preço e orçamento, instrumento e horizontes, ajustes no FEL 1 | Comitê | Respostas por escrito do David recebidas em 2026-10-03 (§4, ADR 0055). Faltam os 10 pontos em aberto, para a conversa com o David (`docs/conversa-david-respostas-fel1.md`). FEL 1 revisado previsto para 2026-10-15 |
+| 2. Fatores, prompt e leitura da IA | Os fatores de cada ativo, o prompt diário e a leitura de tendência no Centro de Decisão | David/Comitê aprovam; FinMind monta | **Feito nos quatro ativos** (tabela abaixo) |
+| 3. Pontos em aberto do motor | O que ficou provisório em cada ativo (tabela abaixo) | David → FinMind | Aguardam a conversa da etapa 1 |
+| 4. Comparação com o realizado e avaliação | Para cada leitura e horizonte, em que faixa o preço de fato caiu, e as medidas de direção e de faixa contra dois benchmarks. A avaliação foi delegada pelo David ao usuário em 2026-10-05 (§4, "Avaliação da saída da IA") | FinMind | **Feito em 2026-10-05 (ADRs 0063 e 0064)**: o realizado em cada horizonte do Centro de Decisão, a partir do preço da data da análise, e a tela Qualidade da IA (`/qualidade-ia`), por ativo e horizonte, com as linhas de cada número. Fora desta versão: calibração da confiança, taxa de inversão, índice único e análise estatística |
+| 5. Agregação e backtest | Os pesos e a agregação dos fatores em código (hoje a IA combina os fatores pelo prompt) e o backtest com os critérios da etapa 1 | Comitê + FinMind | Depende da 1 e da 3 |
+| 6. Simulação | Pelo menos 6 meses de leituras registradas e avaliadas (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | As leituras se acumulam desde a aprovação de cada ativo, e a Qualidade da IA já as mede (etapa 4). O horizonte de 90 dias dos futuros fica sem preço até a decisão dos vencimentos por horizonte |
+
+**O motor por ativo**
+
+| Ativo | Aprovação | Preço de referência | Em aberto | ADRs |
+|---|---|---|---|---|
+| Petróleo (10 fatores) | David, em reunião, 2026-10-03; respostas por escrito a caminho | Brent, desde 2026-10-04 | Os fatores seguem marcados como proposta no código até as respostas por escrito; faixas provisórias; peso e agregação (ponto 3 da conversa) | ADRs 0050, 0051 e 0052 |
+| Ouro (8) | David, 2026-10-03 | GLD da B3, vencimento mais próximo | Instrumento (ponto 1); série contínua do GLD: o horizonte de 90 dias fica muitas vezes sem a variação (ADR 0044); faixas provisórias; peso e agregação | ADRs 0053 e 0054 |
+| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0) | CCM | Mapa sazonal de pesos e agregação (ADR 0059); vencimentos do CCM por horizonte; faixas provisórias, recalibradas no próprio CCM na configuração v2 em 2026-10-05 (ADR 0058, adendo; as classes fixas do David seguem como alternativa); base do F4 (Campinas − MT, quase sempre positiva) | ADRs 0055, 0056, 0057, 0058 e 0059 |
+| Café (8) | Comitê, 2026-10-05 (Motor do Café v1) | ICF | Faixas (o período do ICF é de alta forte); vencimentos do ICF por horizonte; janelas críticas do clima e índice do INMET; como os dados novos entram no F3 e no F6 (ADR 0061); agregação das regras transversais | ADRs 0060, 0061 e 0062 |
+| **Comum aos quatro** | — | — | Eventos vão à IA sem validação humana (ponto 4); o formato de apresentação; o horizonte de 90 dias dos três futuros não tem preço na avaliação (o contrato da leitura vence antes; ADR 0064) | ADRs 0055 e 0064 |
 
 **Etapa 1 em detalhe**
 
@@ -89,6 +97,7 @@ quando chegar a vez delas.
 | Fator versionado | `backend/src/factors/juro-real-10a.factor.js`: juro real 10a = `DFII10`, com `DGS10 − T10YIE` como validação cruzada (5.932 de 5.932 datas iguais). Não exposto na tela |
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
 | Centro de Decisão | A tela inicial (`/`), no desenho do AgroMind: para um ativo (ouro, petróleo, milho, café) e uma data, o preço como era conhecido no fim daquele dia (point-in-time, com troca de série, mini-gráfico e variações; futuros pelo vencimento mais próximo, sem emendar) e a leitura de geopolítica da data, com os eventos da semana. Nos quatro ativos, o espaço da análise mostra a leitura diária de tendência da IA nos quatro horizontes (ADRs 0052, 0054, 0058 e 0062). Nenhum sinal de compra ou venda é gerado — ADR 0048 |
+| Qualidade da IA | `/qualidade-ia`: por ativo e horizonte, o que a IA leu contra o que o preço fez, em direção e faixa, contra os benchmarks Sempre Lateral e Persistência nas mesmas linhas, com o n e as linhas de cada número; o gráfico "faixas lidas × preço" mostra cada leitura na data-alvo, com os quatro horizontes lado a lado; sem índice único nem cor de acerto — ADR 0064 |
 | Telas de dados | `/dados-mercado/observaveis` (60 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
@@ -108,9 +117,10 @@ quando chegar a vez delas.
 | Petróleo | Estoques, produção, refino e consumo dos EUA (EIA), produção do Brasil (ANP), produção e demanda por país (JODI), posição dos fundos (CFTC) | WTI à vista (EIA), desde 1986; o futuro é pago |
 | Comum a todos | Dólar (PTAX), Selic, expectativas do Focus e reservas internacionais (BCB) | — |
 
-**Nada interpreta esses dados ainda:** motor analítico, IA, sinais, backtest e execução de ordens seguem como contratos
-vazios, à espera das definições do David (ver `CLAUDE.md`, "Restrições permanentes"). O desenho já está decidido: o
-motor prepara a base (fatores e regras do Comitê) e a **IA gera a recomendação**, que uma pessoa decide se segue (§5).
+**Quem interpreta esses dados:** os fatores de cada ativo e a leitura diária de tendência da IA, nos quatro ativos (§1,
+"Próximos passos"). A agregação dos fatores em código, os sinais, o backtest e a execução de ordens seguem vazios, à
+espera das definições do David (ver `CLAUDE.md`, "Restrições permanentes"). O desenho já está decidido: o motor prepara
+a base (fatores e regras do Comitê) e a IA gera a leitura, que uma pessoa decide se segue (§5).
 
 ### Fontes
 
@@ -442,8 +452,7 @@ no ADR de cada fonte.
 
 | Item | Situação |
 |---|---|
-| Registrar as respostas do documento do David | Aguarda o documento: cada resposta e a data na §4 e, se for decisão estrutural, num ADR (etapa 1c dos "Próximos passos") |
-| Medidas dos fatores do milho (camada A do motor) | Aguarda o Comitê confirmar o entendimento da §5. Confirmado, a ordem proposta é COT, estoque/uso do WASDE e % boa + excelente do Crop Progress, no molde do juro real 10a |
+| Pontos em aberto do motor | Por ativo, na tabela "O motor por ativo" (§1); dependem da conversa com o David |
 | Série contínua do GLD (ouro) | O horizonte de 90 dias do ouro fica muitas vezes sem a variação de 90 dias, porque cada vencimento do GLD tem pouco histórico e nada é emendado (ADR 0054). Emendar os vencimentos é um cálculo do David (ADR 0044) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): 
@@ -484,7 +493,7 @@ A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy �
 | Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro; as fontes e a planilha de fatores), aguardando a aprovação do Comitê. A coleta de milho e ouro foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR (ADRs 0001, 0006, 0008, 0009, 0013, 0015, 0017 a 0025, 0027, 0033 a 0037 e 0039); a do café seguiu do mesmo jeito (ADRs 0028 a 0032, 0038 e 0061), e a do petróleo começou em 2026-10-01 (ADRs 0040 a 0042) |
 | Regras e cálculos do motor (camadas B e C) | Em aberto: é a etapa 1 dos "Próximos passos" e o §5 (a medida de cada fator, camada A, é proposta pelo FinMind para o Comitê confirmar) |
 | Formato de apresentação dos resultados | Em aberto (dashboard, relatório, alerta...) |
-| Avaliação da saída da IA | Em aberto: o que é acerto (horizonte e métrica), ver §5, "Memória com avaliação". O papel da IA já foi decidido (pergunta 11) |
+| Avaliação da saída da IA | **Delegada pelo David ao usuário em 2026-10-05.** Metodologia no ADR 0064: por ativo e horizonte, o acerto de direção, a faixa exata e a distância média entre faixas, contra os benchmarks Sempre Lateral e Persistência, nas mesmas linhas; tela Qualidade da IA. Fica para depois: calibração da confiança, taxa de inversão, índice único e análise estatística. O papel da IA já foi decidido (pergunta 11) |
 | Condições de sinal operacional | Em aberto: nenhum sinal é gerado hoje |
 | Execução automática de ordens | **Não existe nesta fase** (restrição permanente, `CLAUDE.md`): uma pessoa decide e executa. A arquitetura mantém análise e execução em camadas separadas (`docs/architecture.md`) |
 
@@ -1526,6 +1535,9 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 | Entrega | Resultado | Onde |
 |---|---|---|
 | Leitura diária de tendência do café | Com a aprovação do Comitê (o Motor do Café v1 como está na tela, com os limiares calibrados pelo FinMind; leitura de tendência, não recomendação; o ICF como preço; horizontes em dias corridos; eventos sem validação humana por ora), o café entra no prompt diário, na IA e no Centro de Decisão, no molde do milho: prompt próprio com as regras transversais do estudo (neutralidade, clima → safra → estoques como um choque só, revisão da Conab sem a expectativa do mercado, fundos como modificador de risco, custo só no longo prazo), faixas pelos percentis 40 e 80 do ICF no vencimento mais próximo (2022 a 2026) e o preço em reais pela PTAX. Uma chamada real ao Gemini passou na validação (imediato lateral; curto, médio e longo em baixa leve). O ano do custo da Conab deixou de sair "2.025" na tela e no prompt. Com ele, os quatro ativos têm a cadeia inteira | ADR 0062 |
+| Revisão das pendências do motor | Os "Próximos passos" (§1) passam a mostrar o motor dos quatro ativos lado a lado, com o que segue em aberto em cada um e a comparação com o realizado como próxima entrega. A documentação que ainda tratava o motor e a IA como contratos vazios foi corrigida (README, `docs/architecture.md`, `docs/decisoes-tecnicas.md`), o `README.md` do `analytics-engine` virou o mapa do motor no código e a tela Configuração mostra o motor e a IA como ativos | `docs/architecture.md` |
+| Qualidade da IA | A avaliação das leituras, delegada pelo David ao usuário: tela `/qualidade-ia` (menu principal, e um link no card de análise do Centro de Decisão) com, por ativo e horizonte, o acerto de direção, a faixa exata e a distância média entre faixas da IA e de dois benchmarks (Sempre Lateral e Persistência) nas mesmas linhas, o n, a cobertura e as linhas fora da métrica por motivo; cada número abre a tabela das linhas que o formam. Um gráfico mostra cada leitura como uma faixa em preço na data-alvo, com os quatro horizontes lado a lado, escolhido a partir de um protótipo. As faixas do milho foram recalibradas no próprio CCM (configuração v2): no horizonte de 90 dias, de 6 / 19% para 3 / 8%. Antes, o realizado passou a contar do preço da data da análise (como o prompt define), não do preço que a IA recebeu, que segue visível; os horizontes e a série vêm da leitura gravada, não da configuração atual. Calculado sob demanda, sem tabela nova | ADRs 0058 (adendo), 0063 (adendo) e 0064 |
+| O realizado da leitura de tendência | Em cada horizonte da leitura da IA, o Centro de Decisão mostra o que o preço de fato fez: a variação contra o preço-base que a IA recebeu e a faixa em que caiu, pelas faixas gravadas com a leitura, sem nota de acerto (a métrica é do David). Nos futuros, o mesmo contrato da leitura: um contrato vencido deixa o horizonte sem preço, em vez de emendar outro vencimento. Calculado sob demanda, sem tabela nova | ADR 0063 |
 
 </details>
 

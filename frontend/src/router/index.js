@@ -11,6 +11,7 @@ import ObservavelDetalheView from '../views/ObservavelDetalheView.vue'
 import ExecucoesView from '../views/ExecucoesView.vue'
 import EventosView from '../views/EventosView.vue'
 import MetodologiaAtivoView from '../views/MetodologiaAtivoView.vue'
+import QualidadeIaView from '../views/QualidadeIaView.vue'
 import EspacoView from '../views/EspacoView.vue'
 import StatusProjetoView from '../views/StatusProjetoView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
@@ -25,6 +26,7 @@ const router = createRouter({
     // Tela inicial: o Centro de Decisão (ADR 0048), no lugar do antigo Dashboard.
     { path: '/', name: 'centro-decisao', component: CentroDecisaoView },
     { path: '/como-funciona', name: 'como-funciona', component: ComoFuncionaView },
+    { path: '/qualidade-ia', name: 'qualidade-ia', component: QualidadeIaView },
     { path: '/dados-mercado/observaveis', name: 'dados-mercado-observaveis', component: ObservaveisView },
     {
       path: '/dados-mercado/observaveis/:codigo',

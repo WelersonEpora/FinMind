@@ -191,7 +191,13 @@ test("leitura de tendência da IA (ADRs 0052, 0054, 0058 e 0062): nos quatro ati
             created_at: "2026-10-02T04:10:00.000Z",
             entrada: {
               precoReferencia: { serie: "WTI", dataReferencia: "2026-09-29", valor: 96.16 },
-              horizontes: [{ codigo: "IMEDIATO", dias: 1, t1: 1, t2: 2.5 }]
+              // Os horizontes como foram gravados: o CURTO com 5 dias, diferente da configuração atual (7), vale o gravado.
+              horizontes: [
+                { codigo: "IMEDIATO", dias: 1, t1: 1, t2: 2.5 },
+                { codigo: "CURTO", dias: 5, t1: 2, t2: 6 },
+                { codigo: "MEDIO", dias: 30, t1: 5, t2: 12 },
+                { codigo: "LONGO", dias: 90, t1: 8, t2: 20 }
+              ]
             },
             leituras: [{ horizonte: "IMEDIATO", tendencia: "ALTA" }],
             modelo: "gemini-x",
@@ -209,10 +215,22 @@ test("leitura de tendência da IA (ADRs 0052, 0054, 0058 e 0062): nos quatro ati
 
   const { centroDecisao: petroleo } = await obterCentroDecisao({ ativo: "PETROLEO", data: "2026-10-02" }, deps);
   assert.equal(petroleo.analise.disponivel, true);
-  assert.deepEqual(petroleo.analise.precoReferencia, { serie: "WTI", dataReferencia: "2026-09-29", valor: 96.16 });
+  assert.deepEqual(petroleo.analise.precoReferencia, { serie: "WTI", seriesCode: null, contrato: null, dataReferencia: "2026-09-29", valor: 96.16 });
+  // O realizado (ADR 0063) vem na série que a leitura gravou (o WTI, antes do Brent), pelo mapa fixo das séries de
+  // referência (a leitura antiga não tem o seriesCode).
+  assert.equal(petroleo.analise.realizado.seriesCode, "EIA.PETROLEO_PRECOS.WTI");
   assert.deepEqual(
-    petroleo.analise.horizontes.map((h) => [h.codigo, h.t1, h.t2]),
-    [["IMEDIATO", 1, 2.5], ["CURTO", null, null], ["MEDIO", null, null], ["LONGO", null, null]]
+    petroleo.analise.realizado.horizontes.map((h) => [h.horizonte, h.situacao]),
+    [["IMEDIATO", "AGUARDANDO_DADO"], ["CURTO", "A_APURAR"], ["MEDIO", "A_APURAR"], ["LONGO", "A_APURAR"]]
+  );
+  assert.deepEqual(
+    petroleo.analise.horizontes.map((h) => [h.codigo, h.dias, h.t1, h.t2, h.dataAlvo]),
+    [
+      ["IMEDIATO", 1, 1, 2.5, "2026-09-30"],
+      ["CURTO", 5, 2, 6, "2026-10-04"],
+      ["MEDIO", 30, 5, 12, "2026-10-29"],
+      ["LONGO", 90, 8, 20, "2026-12-28"]
+    ]
   );
   assert.equal(petroleo.analise.proveniencia.hashEntrada, "abc");
 

@@ -98,3 +98,28 @@ foi seguido pelo petróleo (ADRs 0050 a 0052) e pelo ouro (ADRs 0053 e 0054).
 
 Recomendação de compra ou venda; o café; a agregação dos fatores em código; a curva do CCM; a validação humana dos
 eventos.
+
+## Adendo (2026-10-05): as faixas recalibradas no CCM (configuração v2)
+
+**Decisão do usuário (Welerson, 2026-10-05):** as faixas do milho passam a ser calibradas no próprio CCM, o preço que a
+leitura mede e que a Qualidade da IA avalia (ADR 0064). Nos outros três ativos as faixas já vinham do instrumento medido
+(o Brent, o GLD e o ICF); o milho era o único com a régua tirada de outra série. Com as do ESALQ, as faixas longas
+ficavam largas para o CCM: em 90 dias, o lateral ia de −6% a +6%.
+
+| Horizonte | v1 (ESALQ) | v2 (CCM) | Percentis 40 e 80 do CCM |
+|---|---|---|---|
+| Imediato (1 dia) | 0,3 / 1% | 0,3 / 1% | 0,31 / 1,03% |
+| Curto (7 dias) | 1 / 3% | 0,8 / 2,5% | 0,81 / 2,44% |
+| Médio (30 dias) | 3 / 9% | 2 / 5% | 1,94 / 5,07% |
+| Longo (90 dias) | 6 / 19% | 3 / 8% | 2,82 / 7,65% |
+
+Os percentis são da variação absoluta de todos os vencimentos do CCM, cada um sem emendar, de 2022-03-21 a 2026-10-02
+(banco de dev), com a regra de variação do Centro de Decisão. O critério é o mesmo dos outros ativos.
+
+- **Ressalva:** o CCM tem histórico curto (desde 2022, com um buraco em 2023) e mais calmo que o do ESALQ. Se a
+  volatilidade voltar, as faixas ficam apertadas. Continuam provisórias, e as classes fixas do prompt do David (1, 3,
+  5, 7 e 10%) seguem como alternativa para o Comitê.
+- **Uma faixa mais estreita não aumenta o acerto:** a leitura diz mais sobre o preço, mas a faixa exata fica mais
+  difícil de acertar. O que mantém a avaliação justa é calibrar no instrumento medido, com os mesmos percentis.
+- **Versão nova da configuração (v2):** o prompt passa a mostrar as faixas novas. As leituras da v1 continuam medidas
+  com a régua gravada com elas, e o filtro de versão da Qualidade da IA separa as duas séries.

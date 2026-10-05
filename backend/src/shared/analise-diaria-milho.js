@@ -7,7 +7,8 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // (ai/prompts/milho-analise-diaria.md). Mudar um valor = versão nova desta configuração (VERSAO), gravada com cada leitura.
 
 // v1 (2026-10-04): a primeira, com a aprovação do Motor do Milho v0 pelo Comitê.
-const VERSAO = 1;
+// v2 (2026-10-05): as faixas recalibradas no próprio CCM, o preço que a leitura mede (decisão do usuário, ADR 0058, adendo).
+const VERSAO = 2;
 
 // Os mesmos quatro horizontes do petróleo e do ouro, que são também os do prompt do David (Motor do Milho v0, §6).
 const HORIZONTES = Object.freeze([
@@ -17,19 +18,22 @@ const HORIZONTES = Object.freeze([
   { codigo: "LONGO", rotulo: "Longo", dias: 90, variacao: "d90" }
 ]);
 
-// As faixas de variação do milho, em %, por horizonte. PROVISÓRIAS (2026-10-04), pelo critério do petróleo e do ouro: T1
-// e T2 são os percentis 40 e 80 da variação absoluta do Indicador CEPEA/ESALQ (R$/saca, Campinas) de 2018-06-08 a
-// 2026-09-25 (2.062 pregões, banco de dev), arredondados, com a regra de variação do Centro de Decisão: |1 dia| 0,30 /
-// 0,92%; |7 dias| 1,04 / 2,99%; |30 dias| 3,21 / 9,17%; |90 dias| 6,08 / 19,15%. O ESALQ, e não o CCM, como a LBMA no
-// ouro: o CCM só tem histórico desde 2022, com um buraco em 2023, e liquida contra o ESALQ. Nos futuros do CCM (todos os
-// vencimentos, 2022 a 2026) as faixas saem mais estreitas nos prazos longos (30 dias: 1,94 / 5,07%; 90 dias: 2,82 /
-// 7,65%), porque o período é mais calmo e os vencimentos distantes variam menos. O prompt do David (§6) classifica a
-// variação em 1, 3, 5, 7 e 10%, iguais para todos os horizontes: fica como alternativa para o Comitê. A metodologia ajusta.
+// As faixas de variação do milho, em %, por horizonte. PROVISÓRIAS. v2 (2026-10-05): T1 e T2 são os percentis 40 e 80 da
+// variação absoluta do próprio CCM, o preço que a leitura mede e a Qualidade da IA avalia (ADR 0064): todos os
+// vencimentos, cada um sem emendar, de 2022-03-21 a 2026-10-02 (banco de dev), arredondados, com a regra de variação do
+// Centro de Decisão: |1 dia| 0,31 / 1,03%; |7 dias| 0,81 / 2,44%; |30 dias| 1,94 / 5,07%; |90 dias| 2,82 / 7,65%. As da
+// v1 saíam do ESALQ e eram largas demais para o CCM (90 dias: 6 / 19%, contra 2,82 / 7,65% no próprio CCM). Ressalva: o
+// CCM tem histórico curto (desde 2022, com um buraco em 2023) e calmo; se a volatilidade voltar, as faixas ficam
+// apertadas. O prompt do David (§6) classifica a variação em 1, 3, 5, 7 e 10%, iguais para todos os horizontes: segue como
+// alternativa para o Comitê.
+//
+// v1 (2026-10-04), para registro: os percentis 40 e 80 do Indicador CEPEA/ESALQ (2018-06-08 a 2026-09-25), arredondados:
+// 0,3 / 1%; 1 / 3%; 3 / 9%; 6 / 19%. As leituras da v1 continuam medidas por essa régua, gravada com elas (ADR 0064).
 const FAIXAS = Object.freeze({
   IMEDIATO: { t1: 0.3, t2: 1 },
-  CURTO: { t1: 1, t2: 3 },
-  MEDIO: { t1: 3, t2: 9 },
-  LONGO: { t1: 6, t2: 19 }
+  CURTO: { t1: 0.8, t2: 2.5 },
+  MEDIO: { t1: 2, t2: 5 },
+  LONGO: { t1: 3, t2: 8 }
 });
 
 // Da data da análise, como no petróleo e no ouro.

@@ -2,11 +2,12 @@
 
 Plataforma de inteligência aplicada ao mercado financeiro: coleta de
 dados, preparação, motor analítico (regras do especialista de mercado)
-e síntese por IA. Esta é a **casca inicial** do projeto — autenticação,
-dashboard e infraestrutura funcionando de ponta a ponta, com os módulos
-de domínio (coleta, motor analítico, IA) preparados como contratos
-vazios até que o especialista de mercado (David) defina ativos, fontes,
-regras e critérios de sinal. Ver `STATUS_DO_PROJETO.md` (§4).
+e síntese por IA. Hoje: autenticação, espaços, a coleta de dados dos
+quatro ativos do FEL 1 (petróleo, ouro, milho e café) e, para cada um, a
+cadeia inteira até a leitura diária de tendência da IA no Centro de
+Decisão. Regras de agregação, critérios de sinal e a avaliação da IA
+continuam com o especialista de mercado (David) e o Comitê. Ver
+`STATUS_DO_PROJETO.md` (§4).
 
 ## Arquitetura
 
@@ -197,14 +198,20 @@ pelo Nginx Proxy Manager da VM. Ver `docs/architecture.md` § "Deploy".
   `docs/adr/0006-fonte-taxa-selic-bcb-sgs.md`.
 - Centro de Decisão (`/`, a tela inicial): para um ativo (ouro, petróleo,
   milho, café) e uma data, o preço como era conhecido naquele dia (com troca
-  de série, mini-gráfico e variações) e a leitura de geopolítica da data. O
-  espaço da análise fica reservado até o David e o Comitê definirem as regras
-  (nenhum sinal é gerado). Ver `docs/adr/0048-centro-de-decisao.md`.
+  de série, mini-gráfico e variações), a leitura de geopolítica da data e a
+  leitura de tendência da IA nos quatro horizontes (nenhum sinal é gerado).
+  Ver `docs/adr/0048-centro-de-decisao.md`.
+- Qualidade da IA (`/qualidade-ia`): por ativo e horizonte, o que a IA leu
+  contra o que o preço fez, em direção e faixa, contra dois benchmarks
+  (Sempre Lateral e Persistência), com as linhas de cada número. Ver
+  `docs/adr/0064-qualidade-da-ia-avaliacao-das-leituras.md`.
 - Tela de configuração/status dos módulos (`/configuracao`).
 - Banco de dados PostgreSQL com migrations e seeders.
-- Motor analítico e integração com IA seguem como contratos vazios,
-  prontos para receber implementação real quando o especialista de mercado
-  definir regras/critérios.
+- Motor analítico por fator nos quatro ativos: fatores, prompt diário e
+  leitura de tendência da IA (Gemini) no Centro de Decisão, nunca
+  recomendação de compra ou venda (ADRs 0052, 0054, 0058 e 0062; mapa em
+  `backend/src/analytics-engine/README.md`). A agregação dos fatores em
+  código aguarda o especialista de mercado.
 - Docker Compose (dev e prod), Dockerfiles, Nginx.
 - CI (lint + testes + build) e publicação de imagens no GHCR.
 - Testes automatizados (backend e frontend), incluindo o pipeline de coleta.

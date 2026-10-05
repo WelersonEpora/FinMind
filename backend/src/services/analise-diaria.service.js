@@ -7,6 +7,7 @@ const { FATORES_OURO } = require("../shared/metodologia-ouro");
 const { FATORES_MILHO } = require("../shared/metodologia-milho");
 const { FATORES_CAFE } = require("../shared/metodologia-cafe");
 const { NotFoundError, ValidationError } = require("../shared/errors");
+const { somarDias } = require("../shared/utils/date-utils");
 
 // Leitura diária de tendência da IA (petróleo, ADR 0052; ouro, ADR 0054; milho, ADR 0058; café, ADR 0062), como o Centro de Decisão a mostra: a leitura feita NA data escolhida
 // (nunca a de outro dia no lugar dela) e as evidências que formaram o prompt dela. Tudo sai da leitura GRAVADA (a
@@ -78,6 +79,44 @@ function resumirEvidencias(ativo, entrada) {
   };
 }
 
+// A leitura como foi gravada (ADR 0064): o preço que a IA recebeu, de onde os horizontes contam e, por horizonte, os
+// dias, o T1/T2 e a data-alvo. Tudo sai da entrada gravada: a configuração atual só dá o rótulo do horizonte, então uma
+// mudança nela (outro prazo, outra faixa) nunca muda o que uma leitura antiga quis dizer. Serve ao Centro de Decisão e à
+// Qualidade da IA (`registro` pode ser a linha inteira ou a projeção de analise-diaria.repository.js::listarParaAvaliacao).
+function leituraGravada(ativo, registro) {
+  const entrada = registro.entrada || {};
+  const preco = entrada.precoReferencia;
+  // De onde os horizontes contam (a configuração v1 do petróleo contava do último preço, as demais contam da data da
+  // análise; shared/analise-diaria-petroleo.js::REFERENCIA_HORIZONTES).
+  const tipoReferencia = entrada.referenciaHorizontes || "DATA_DO_ULTIMO_PRECO";
+  const dataReferenciaHorizontes = tipoReferencia === "DATA_DA_ANALISE" ? registro.data_analise : preco?.dataReferencia ?? null;
+  const rotulos = new Map(configuracaoDoAtivo(ativo).HORIZONTES.map((h) => [h.codigo, h.rotulo]));
+  return {
+    disponivel: true,
+    data: registro.data_analise,
+    geradaEm: registro.created_at,
+    precoReferencia: preco
+      ? {
+          serie: preco.serie,
+          seriesCode: preco.seriesCode ?? null,
+          contrato: preco.contrato ?? null,
+          dataReferencia: preco.dataReferencia,
+          valor: preco.valor
+        }
+      : null,
+    referenciaHorizontes: { tipo: tipoReferencia, data: dataReferenciaHorizontes },
+    horizontes: (entrada.horizontes || []).map(({ codigo, dias, t1, t2 }) => ({
+      codigo,
+      rotulo: rotulos.get(codigo) || codigo,
+      dias,
+      t1: t1 ?? null,
+      t2: t2 ?? null,
+      dataAlvo: dataReferenciaHorizontes && Number.isInteger(dias) ? somarDias(dataReferenciaHorizontes, dias) : null
+    })),
+    leituras: registro.leituras
+  };
+}
+
 // -> null (ativo sem leitura diária), { disponivel: false } (nenhuma leitura nesta data) ou a leitura com o que a tela
 // precisa: as quatro leituras, as faixas de cada horizonte (as da configuração gravada com ela), o preço de referência,
 // as evidências e a proveniência (modelo, versões, hash). O prompt e a resposta (~30 mil caracteres) ficam de fora:
@@ -89,25 +128,8 @@ async function obterAnaliseDoDia(ativo, data, deps = {}) {
   if (!registro) return { disponivel: false, data };
 
   const entrada = registro.entrada || {};
-  const faixasDoHorizonte = new Map((entrada.horizontes || []).map((h) => [h.codigo, h]));
-  // De onde os horizontes contam, como foi gravado com a leitura (a configuração v1 contava do último preço, a v2 conta
-  // da data da análise; shared/analise-diaria-petroleo.js::REFERENCIA_HORIZONTES).
-  const tipoReferencia = entrada.referenciaHorizontes || "DATA_DO_ULTIMO_PRECO";
-  const dataReferenciaHorizontes =
-    tipoReferencia === "DATA_DA_ANALISE" ? registro.data_analise : entrada.precoReferencia?.dataReferencia ?? null;
   return {
-    disponivel: true,
-    data: registro.data_analise,
-    geradaEm: registro.created_at,
-    precoReferencia: entrada.precoReferencia
-      ? { serie: entrada.precoReferencia.serie, dataReferencia: entrada.precoReferencia.dataReferencia, valor: entrada.precoReferencia.valor }
-      : null,
-    referenciaHorizontes: { tipo: tipoReferencia, data: dataReferenciaHorizontes },
-    horizontes: configuracaoDoAtivo(ativo).HORIZONTES.map(({ codigo, rotulo, dias }) => {
-      const faixa = faixasDoHorizonte.get(codigo) || {};
-      return { codigo, rotulo, dias, t1: faixa.t1 ?? null, t2: faixa.t2 ?? null };
-    }),
-    leituras: registro.leituras,
+    ...leituraGravada(ativo, registro),
     evidencias: resumirEvidencias(ativo, entrada),
     proveniencia: {
       modelo: registro.modelo,
@@ -147,4 +169,4 @@ async function obterPromptEnviado({ ativo, data } = {}, deps = {}) {
   };
 }
 
-module.exports = { obterAnaliseDoDia, obterPromptEnviado, resumirEvidencias, ATIVOS_COM_ANALISE };
+module.exports = { obterAnaliseDoDia, obterPromptEnviado, resumirEvidencias, leituraGravada, ATIVOS_COM_ANALISE };

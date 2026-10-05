@@ -1,0 +1,804 @@
+<script setup>
+import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import AppShell from '../components/layout/AppShell.vue'
+import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
+import LequeLeiturasChart from '../components/charts/LequeLeiturasChart.vue'
+import { CORES_HORIZONTE, montarLeque } from '../utils/leque-leituras.js'
+import qualidadeIaService from '../services/qualidade-ia.service.js'
+import { iconeAtivo } from '../utils/centro-decisao.js'
+import { formatarData } from '../utils/geopolitica.js'
+import { rotuloConfianca, rotuloFaixa } from '../utils/analise-diaria.js'
+import {
+  PREVISORES,
+  compararComBenchmark,
+  desdeDoPeriodo,
+  filtrarLinhas,
+  formatarDistancia,
+  formatarPct,
+  formatarPreco,
+  formatarVariacao,
+  motivosPresentes,
+  rotuloMotivo
+} from '../utils/qualidade-ia.js'
+
+// Qualidade da IA (ADR 0064): por ativo e horizonte, o que a IA leu contra o que o preço fez, em duas medidas (direção
+// e faixa) e contra dois benchmarks calculados nas mesmas linhas. Sem índice único e sem cor de acerto ou erro: cada
+// número mostra o n e leva às linhas que o formam (a tabela abaixo). O ativo fica na URL (?ativo=).
+
+// Os seletores seguem o do ativo (SeletorOpcao), com códigos em texto. O período abre em 90 dias: com o histórico
+// crescendo, "Tudo" deixaria a tela pesada para abrir.
+const OPCOES_PERIODO = [
+  { codigo: '30', nome: 'Últimos 30 dias' },
+  { codigo: '90', nome: 'Últimos 90 dias' },
+  { codigo: '180', nome: 'Últimos 180 dias' },
+  { codigo: '365', nome: 'Último ano' },
+  { codigo: 'TUDO', nome: 'Tudo' }
+]
+const OPCOES_LINHAS_POR_PAGINA = [20, 50, 100]
+// A unidade do eixo de preço do gráfico, por ativo (o preço de referência de cada um).
+const UNIDADE = { PETROLEO: 'US$/bbl', OURO: 'US$/oz', MILHO: 'R$/sc', CAFE: 'US$/sc' }
+
+const route = useRoute()
+const router = useRouter()
+
+const loading = ref(true)
+const atualizando = ref(false)
+const errorMessage = ref('')
+const qualidade = ref(null)
+const periodo = ref('90')
+const versao = ref('TODAS')
+
+// A tabela de auditoria: o horizonte e "só as avaliadas" vêm do botão de cada card ou dos filtros dela.
+const horizonteTabela = ref('TODOS')
+const somenteAvaliadas = ref(false)
+const tamanhoPagina = ref(20)
+const primeiroRegistro = ref(0)
+const tabela = ref(null)
+
+// O gráfico de faixas (ADR 0064): os quatro horizontes lado a lado, ou um só com o resultado de cada data-alvo. Um
+// seletor só escolhe os dois ("QUATRO" ou o código do horizonte), para nenhum controle aparecer e empurrar os outros.
+const visaoGrafico = ref('QUATRO')
+const modoGrafico = computed(() => (visaoGrafico.value === 'QUATRO' ? 'quatro' : 'um'))
+const horizonteGrafico = computed(() => (visaoGrafico.value === 'QUATRO' ? null : visaoGrafico.value))
+const persistenciaGrafico = ref(false)
+const leque = computed(() =>
+  montarLeque({
+    linhas: qualidade.value?.linhas || [],
+    precos: qualidade.value?.precos || [],
+    horizontes: qualidade.value?.horizontes || [],
+    modo: modoGrafico.value,
+    horizonte: horizonteGrafico.value,
+    persistencia: persistenciaGrafico.value,
+    hoje: qualidade.value?.hoje || new Date().toISOString().slice(0, 10)
+  })
+)
+
+const opcoesAtivo = computed(() => (qualidade.value?.ativos || []).map((a) => ({ ...a, icone: iconeAtivo(a.codigo) })))
+const opcoesVersao = computed(() => [
+  { codigo: 'TODAS', nome: 'Todas as versões' },
+  ...(qualidade.value?.versoesConfiguracao || []).map((v) => ({ codigo: String(v), nome: `Versão ${v}` }))
+])
+const opcoesHorizonte = computed(() =>
+  (qualidade.value?.horizontes || []).map((h) => ({ codigo: h.horizonte, nome: `${h.rotulo} (${h.dias} dia${h.dias > 1 ? 's' : ''})` }))
+)
+const opcoesVisao = computed(() => [{ codigo: 'QUATRO', nome: 'Quatro horizontes' }, ...opcoesHorizonte.value])
+const opcoesHorizonteTabela = computed(() => [{ codigo: 'TODOS', nome: 'Todos os horizontes' }, ...opcoesHorizonte.value])
+const linhasDaTabela = computed(() =>
+  filtrarLinhas(qualidade.value?.linhas || [], { horizonte: horizonteTabela.value === 'TODOS' ? null : horizonteTabela.value, somenteAvaliadas: somenteAvaliadas.value })
+    .slice()
+    .reverse()
+)
+
+async function carregar() {
+  if (qualidade.value) atualizando.value = true
+  else loading.value = true
+  errorMessage.value = ''
+  try {
+    const { qualidadeIa } = await qualidadeIaService.getQualidadeIa({
+      ativo: route.query.ativo || undefined,
+      desde: periodo.value === 'TUDO' ? undefined : desdeDoPeriodo(Number(periodo.value)),
+      versaoConfiguracao: versao.value === 'TODAS' ? undefined : versao.value
+    })
+    qualidade.value = qualidadeIa
+    primeiroRegistro.value = 0
+  } catch (err) {
+    errorMessage.value = err.response?.data?.error?.message || 'Não foi possível carregar a Qualidade da IA.'
+  } finally {
+    loading.value = false
+    atualizando.value = false
+  }
+}
+
+function selecionarAtivo(ativo) {
+  versao.value = 'TODAS'
+  horizonteTabela.value = 'TODOS'
+  router.replace({ query: { ativo } })
+}
+
+// "Ver as linhas": a tabela abaixo, filtrada nas linhas que formaram os números do card (ou, sem nenhuma avaliada, em
+// todas as do horizonte, com o motivo de cada uma estar fora).
+async function verLinhas(horizonte, soAvaliadas) {
+  horizonteTabela.value = horizonte
+  somenteAvaliadas.value = soAvaliadas
+  primeiroRegistro.value = 0
+  await nextTick()
+  tabela.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// "Ver no gráfico": o card leva o gráfico ao próprio horizonte (de novo no mesmo, volta aos quatro). O gráfico só rola
+// para a tela se não estiver à vista.
+const grafico = ref(null)
+async function verNoGrafico(horizonte) {
+  visaoGrafico.value = visaoGrafico.value === horizonte ? 'QUATRO' : horizonte
+  await nextTick()
+  grafico.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+
+function sintese(celula) {
+  if (!celula.sintese) return []
+  return [
+    { rotulo: 'Direção', ...compararComBenchmark(celula.sintese.direcaoPp) },
+    { rotulo: 'Faixa exata', ...compararComBenchmark(celula.sintese.faixaExataPp) },
+    { rotulo: 'Distância', ...compararComBenchmark(celula.sintese.distancia, { menorEhMelhor: true }) }
+  ]
+}
+
+const contrato = (linha) => (linha.contrato ? `${linha.serie} ${linha.contrato}` : linha.serie || '—')
+
+watch(() => route.query.ativo, carregar, { immediate: true })
+watch([periodo, versao], carregar)
+</script>
+
+<template>
+  <AppShell>
+    <div class="qualidade">
+      <header class="qualidade__cabecalho">
+        <h1 class="qualidade__titulo">Qualidade da IA</h1>
+        <p class="qualidade__subtitulo">
+          O que a IA leu, o que o preço fez e como isso se compara a dois benchmarks simples, por horizonte.
+        </p>
+      </header>
+
+      <div v-if="loading" class="text-muted">Carregando...</div>
+
+      <div v-else-if="errorMessage && !qualidade" class="alert alert-danger">{{ errorMessage }}</div>
+
+      <template v-else>
+        <div v-if="errorMessage" class="alert alert-danger small">{{ errorMessage }}</div>
+
+        <section class="qualidade__contexto">
+          <SeletorOpcao :model-value="qualidade.ativo.codigo" :opcoes="opcoesAtivo" rotulo="Ativo" @update:model-value="selecionarAtivo" />
+          <div class="qualidade__filtros">
+            <div class="qualidade__filtro">
+              <span>Período</span>
+              <SeletorOpcao v-model="periodo" :opcoes="OPCOES_PERIODO" rotulo="Período" compacto />
+            </div>
+            <div class="qualidade__filtro">
+              <span>Configuração</span>
+              <SeletorOpcao v-model="versao" :opcoes="opcoesVersao" rotulo="Versão da configuração" compacto />
+            </div>
+          </div>
+        </section>
+
+        <p class="qualidade__nota">
+          <i class="bi bi-info-circle"></i>
+          A variação conta da <strong>base da avaliação</strong> (o preço da própria data da análise) até a data-alvo, e a
+          faixa usa o T1/T2 gravados com cada leitura. Entram só os horizontes apurados de leituras com pregão na data da
+          análise; os benchmarks (<strong>Sempre Lateral</strong> e <strong>Persistência</strong>, a variação passada que a
+          IA recebeu) são medidos nas mesmas linhas. Por construção das faixas, cerca de 40% dos casos históricos são
+          laterais. Com poucas leituras (veja o <em>n</em>), diferenças pequenas não querem dizer nada.
+          {{ qualidade.totalLeituras }} leitura(s) no filtro; calculado em {{ new Date(qualidade.calculadoEm).toLocaleString('pt-BR') }}.
+        </p>
+
+        <div class="qualidade__conteudo" :class="{ 'qualidade__conteudo--atualizando': atualizando }">
+          <section class="qualidade__grade">
+            <article
+              v-for="celula in qualidade.horizontes"
+              :key="celula.horizonte"
+              class="celula"
+              :class="{ 'celula--no-grafico': visaoGrafico === celula.horizonte }"
+              :style="{ '--cor-horizonte': CORES_HORIZONTE[celula.horizonte] || 'var(--p-primary-color)' }"
+              @click="verNoGrafico(celula.horizonte)"
+            >
+              <header class="celula__topo">
+                <h2 class="celula__titulo">
+                  <span class="celula__marca" aria-hidden="true"></span>{{ celula.rotulo }}
+                  <span class="celula__dias">{{ celula.dias }} dia{{ celula.dias > 1 ? 's' : '' }}</span>
+                </h2>
+                <span class="celula__n">
+                  <strong>{{ celula.n }}</strong> avaliada{{ celula.n === 1 ? '' : 's' }}
+                </span>
+              </header>
+              <p class="celula__cobertura">
+                <template v-if="celula.cobertura.total">
+                  {{ celula.cobertura.respondidas }} de {{ celula.cobertura.total }} respondidas pela IA
+                </template>
+                <template v-else>Nenhum horizonte fechado com pregão na data ainda</template>
+              </p>
+
+              <table class="celula__medidas">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th v-for="p in PREVISORES" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">{{ p.rotulo }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th>Direção</th>
+                    <td v-for="p in PREVISORES" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
+                      <template v-if="celula.n">
+                        {{ celula.medidas[p.codigo].direcao.k }} de {{ celula.n }}
+                        <span class="celula__pct">{{ formatarPct(celula.medidas[p.codigo].direcao.pct) }}</span>
+                      </template>
+                      <template v-else>—</template>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Faixa exata</th>
+                    <td v-for="p in PREVISORES" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
+                      <template v-if="celula.n">
+                        {{ celula.medidas[p.codigo].faixaExata.k }} de {{ celula.n }}
+                        <span class="celula__pct">{{ formatarPct(celula.medidas[p.codigo].faixaExata.pct) }}</span>
+                      </template>
+                      <template v-else>—</template>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Distância média</th>
+                    <td v-for="p in PREVISORES" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
+                      {{ formatarDistancia(celula.medidas[p.codigo].distanciaMedia) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-if="celula.sintese" class="celula__sintese">
+                <span class="celula__sintese-rotulo">IA contra o melhor benchmark</span>
+                <span v-for="s in sintese(celula)" :key="s.rotulo" class="celula__sintese-item" :class="`celula__sintese-item--${s.sentido}`">
+                  {{ s.rotulo }} <strong>{{ s.texto }}</strong>
+                </span>
+              </div>
+
+              <ul v-if="motivosPresentes(celula.fora).length" class="celula__fora">
+                <li v-for="m in motivosPresentes(celula.fora)" :key="m.codigo">
+                  <span class="celula__fora-qtd">{{ m.quantidade }}</span> {{ m.rotulo }}
+                </li>
+              </ul>
+
+              <div class="celula__acoes">
+                <button type="button" class="celula__ver" :aria-pressed="visaoGrafico === celula.horizonte" @click.stop="verNoGrafico(celula.horizonte)">
+                  <i class="bi bi-bar-chart-line"></i>
+                  {{ visaoGrafico === celula.horizonte ? 'Voltar aos quatro no gráfico' : 'Ver no gráfico' }}
+                </button>
+                <button v-if="celula.n" type="button" class="celula__ver" @click.stop="verLinhas(celula.horizonte, true)">
+                  Ver as {{ celula.n }} linha{{ celula.n === 1 ? '' : 's' }} avaliada{{ celula.n === 1 ? '' : 's' }}
+                  <i class="bi bi-arrow-down-short"></i>
+                </button>
+                <button v-else-if="celula.totalLinhas" type="button" class="celula__ver" @click.stop="verLinhas(celula.horizonte, false)">
+                  Ver as {{ celula.totalLinhas }} linha{{ celula.totalLinhas === 1 ? '' : 's' }} do horizonte
+                  <i class="bi bi-arrow-down-short"></i>
+                </button>
+              </div>
+            </article>
+          </section>
+
+          <section ref="grafico" class="tabela-card qualidade__grafico" aria-labelledby="titulo-grafico">
+            <header class="qualidade__tabela-topo">
+              <div>
+                <h2 id="titulo-grafico" class="qualidade__tabela-titulo">Faixas lidas × preço</h2>
+                <p class="qualidade__grafico-sub">
+                  Cada faixa é uma leitura, na data-alvo, em preço a partir da base dela. Passe o mouse ou toque numa data.
+                </p>
+              </div>
+              <div class="qualidade__filtros">
+                <div class="qualidade__filtro">
+                  <span>Visão</span>
+                  <SeletorOpcao v-model="visaoGrafico" :opcoes="opcoesVisao" rotulo="Visão do gráfico" compacto />
+                </div>
+              </div>
+            </header>
+
+            <LequeLeiturasChart
+              v-if="leque.barras.length || leque.segmentos.length"
+              :leque="leque"
+              :horizontes="qualidade.horizontes"
+              :modo="modoGrafico"
+              :hoje="qualidade.hoje"
+              :unidade="UNIDADE[qualidade.ativo.codigo] || ''"
+              :moeda="qualidade.ativo.codigo === 'MILHO' ? 'R$' : 'US$'"
+            />
+            <p v-else class="text-muted small mb-0">Nenhuma leitura com faixa neste filtro ainda.</p>
+
+            <div class="qualidade__legenda">
+              <span><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" /></svg> Preço realizado</span>
+              <template v-if="modoGrafico === 'quatro'">
+                <span v-for="h in qualidade.horizontes" :key="h.horizonte">
+                  <span class="qualidade__cor qualidade__cor--alta" :style="{ background: CORES_HORIZONTE[h.horizonte] }"></span>{{ h.rotulo }} ({{ h.dias }} dia{{ h.dias > 1 ? 's' : '' }})
+                </span>
+                <span><span class="qualidade__amostra qualidade__amostra--cheia"></span>Cheia: preço dentro da faixa</span>
+                <span><span class="qualidade__amostra qualidade__amostra--contorno"></span>Só contorno: fora da faixa</span>
+                <span><span class="qualidade__amostra qualidade__amostra--tracejada"></span>Tracejada: a apurar</span>
+              </template>
+              <template v-else>
+                <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="#0ca30c" /></svg> Na faixa lida</span>
+                <span><svg width="14" height="14" aria-hidden="true"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="#e09a00" /></svg> Uma faixa ao lado</span>
+                <span><svg width="14" height="14" aria-hidden="true"><path d="M2.5,2.5 L11.5,11.5 M11.5,2.5 L2.5,11.5" stroke="#d03b3b" stroke-width="2.6" stroke-linecap="round" /></svg> Duas faixas ou mais</span>
+                <label class="form-check qualidade__legenda-check">
+                  <input v-model="persistenciaGrafico" type="checkbox" class="form-check-input" />
+                  <span class="form-check-label"><svg width="12" height="14" aria-hidden="true"><rect x="1" y="1" width="10" height="12" fill="none" stroke="currentColor" stroke-dasharray="3 2" /></svg> Faixa da Persistência</span>
+                </label>
+              </template>
+              <span><svg width="12" height="12" aria-hidden="true"><path d="M1,9 L11,9 L6,3 Z" fill="currentColor" /></svg> Faixa forte: "ou mais"</span>
+              <span><span class="qualidade__amostra qualidade__amostra--cheia qualidade__amostra--esmaecida"></span>Esmaecida: fora da métrica (fim de semana, referência antiga)</span>
+            </div>
+          </section>
+
+          <section ref="tabela" class="tabela-card qualidade__tabela">
+            <header class="qualidade__tabela-topo">
+              <h2 class="qualidade__tabela-titulo">Leituras × realizado</h2>
+              <div class="qualidade__filtros">
+                <div class="qualidade__filtro">
+                  <span>Horizonte</span>
+                  <SeletorOpcao
+                    :model-value="horizonteTabela"
+                    :opcoes="opcoesHorizonteTabela"
+                    rotulo="Horizonte da tabela"
+                    compacto
+                    @update:model-value="(h) => { horizonteTabela = h; primeiroRegistro = 0 }"
+                  />
+                </div>
+                <label class="form-check qualidade__check">
+                  <input v-model="somenteAvaliadas" type="checkbox" class="form-check-input" @change="primeiroRegistro = 0" />
+                  <span class="form-check-label">Só as avaliadas</span>
+                </label>
+              </div>
+            </header>
+
+            <DataTable
+              :value="linhasDaTabela"
+              paginator
+              paginator-position="bottom"
+              :always-show="false"
+              :rows="tamanhoPagina"
+              v-model:first="primeiroRegistro"
+              paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+              current-page-report-template="Página {currentPage} de {totalPages} ({totalRecords} no total)"
+              scrollable
+              class="tabela-paginada qualidade__datatable"
+            >
+              <template #paginatorend>
+                <label class="tabela-linhas-por-pagina">
+                  <span>Por página</span>
+                  <select v-model.number="tamanhoPagina">
+                    <option v-for="opcao in OPCOES_LINHAS_POR_PAGINA" :key="opcao" :value="opcao">{{ opcao }}</option>
+                  </select>
+                </label>
+              </template>
+              <template #empty>Nenhuma leitura neste filtro.</template>
+
+              <Column header="Análise">
+                <template #body="{ data }">
+                  <router-link :to="{ path: '/', query: { ativo: qualidade.ativo.codigo, data: data.dataAnalise } }" title="Ver leitura no Centro de Decisão">
+                    {{ formatarData(data.dataAnalise) }}
+                  </router-link>
+                </template>
+              </Column>
+              <Column header="Horizonte">
+                <template #body="{ data }">{{ data.rotulo }}</template>
+              </Column>
+              <Column header="Alvo">
+                <template #body="{ data }">{{ data.dataAlvo ? formatarData(data.dataAlvo) : '—' }}</template>
+              </Column>
+              <Column header="Lida">
+                <template #body="{ data }">
+                  <template v-if="data.lida?.faixa">
+                    {{ rotuloFaixa(data.lida.faixa) }}
+                    <span class="qualidade__sub">{{ rotuloConfianca(data.lida.confianca) }}</span>
+                  </template>
+                  <span v-else class="text-muted">Insuficiente</span>
+                </template>
+              </Column>
+              <Column header="Série">
+                <template #body="{ data }">{{ contrato(data) }}</template>
+              </Column>
+              <Column header="A IA recebeu">
+                <template #body="{ data }">
+                  <template v-if="data.precoRecebido">
+                    {{ formatarPreco(data.precoRecebido.valor) }}
+                    <span class="qualidade__sub">{{ formatarData(data.precoRecebido.data) }}</span>
+                  </template>
+                  <span v-else class="text-muted">—</span>
+                </template>
+              </Column>
+              <Column header="Base da avaliação">
+                <template #body="{ data }">
+                  <template v-if="data.base?.data">
+                    {{ formatarPreco(data.base.valor) }}
+                    <span class="qualidade__sub">
+                      {{ formatarData(data.base.data) }}<template v-if="!data.base.confirmada"> · provisória</template>
+                    </span>
+                  </template>
+                  <span v-else class="text-muted">—</span>
+                </template>
+              </Column>
+              <Column header="Realizado">
+                <template #body="{ data }">
+                  <template v-if="data.realizado.preco != null">
+                    {{ formatarPreco(data.realizado.preco) }}
+                    <span class="qualidade__sub">{{ formatarData(data.realizado.data) }}</span>
+                  </template>
+                  <span v-else class="text-muted">—</span>
+                </template>
+              </Column>
+              <Column header="Variação">
+                <template #body="{ data }">{{ formatarVariacao(data.realizado.variacaoPct) }}</template>
+              </Column>
+              <Column header="Faixa realizada">
+                <template #body="{ data }">{{ data.realizado.faixa ? rotuloFaixa(data.realizado.faixa) : '—' }}</template>
+              </Column>
+              <Column header="Persistência">
+                <template #body="{ data }">
+                  <template v-if="data.persistencia">
+                    {{ rotuloFaixa(data.persistencia.faixa) }}
+                    <span class="qualidade__sub">{{ formatarVariacao(data.persistencia.variacaoPct) }}</span>
+                  </template>
+                  <span v-else class="text-muted">—</span>
+                </template>
+              </Column>
+              <Column header="Situação">
+                <template #body="{ data }">
+                  <span :class="{ 'qualidade__avaliada': data.motivoFora === null }">{{ rotuloMotivo(data.motivoFora) }}</span>
+                </template>
+              </Column>
+              <Column header="Versões">
+                <template #body="{ data }">
+                  <span :title="`Prompt ${data.versoes.prompt} · Metodologia ${data.versoes.metodologia}`">
+                    v{{ data.versoes.configuracao }}
+                  </span>
+                  <span class="qualidade__sub">T1 {{ data.t1 }} · T2 {{ data.t2 }}</span>
+                </template>
+              </Column>
+            </DataTable>
+          </section>
+        </div>
+      </template>
+    </div>
+  </AppShell>
+</template>
+
+<style scoped>
+.qualidade__cabecalho {
+  margin-bottom: 1rem;
+}
+.qualidade__titulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.01em;
+}
+.qualidade__subtitulo {
+  margin: 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.9rem;
+}
+
+.qualidade__contexto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--p-surface-300);
+  border-radius: 16px;
+  background: var(--p-content-background);
+}
+.qualidade__filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.qualidade__filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.qualidade__check {
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+
+.qualidade__nota {
+  margin: 0 0 1.25rem;
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+  line-height: 1.45;
+}
+
+.qualidade__conteudo--atualizando {
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+/* O tabela-card não tem respiro interno (é feito para tabelas de ponta a ponta) e corta o que passa da borda: aqui, o
+   bloco do gráfico ganha respiro, e os dois blocos deixam aparecer o menu dos seletores. */
+.qualidade__grafico {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  overflow: visible;
+}
+.qualidade__tabela {
+  overflow: visible;
+}
+.qualidade__tabela > .qualidade__tabela-topo {
+  padding: 1rem 1.25rem 0;
+}
+.qualidade__tabela :deep(.p-datatable) {
+  overflow: hidden;
+  border-radius: 0 0 14px 14px;
+}
+.qualidade__grafico-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+}
+.qualidade__cor {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 0.35rem;
+  border-radius: 2px;
+}
+.qualidade__cor--alta {
+  width: 7px;
+  height: 12px;
+}
+.qualidade__legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin-top: 0.75rem;
+  font-size: 0.76rem;
+  color: var(--p-text-muted-color);
+}
+.qualidade__legenda-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 0;
+}
+.qualidade__legenda-check .form-check-input {
+  float: none;
+  margin: 0;
+}
+.qualidade__legenda-check .form-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+.qualidade__legenda > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.qualidade__amostra {
+  display: inline-block;
+  width: 7px;
+  height: 12px;
+  border: 1.2px solid var(--p-text-muted-color);
+  border-radius: 1.5px;
+}
+.qualidade__amostra--cheia {
+  background: var(--p-text-muted-color);
+}
+.qualidade__amostra--contorno {
+  background: #ffffff;
+}
+.qualidade__amostra--esmaecida {
+  opacity: 0.4;
+}
+.qualidade__amostra--tracejada {
+  border-style: dashed;
+  background: rgb(107 114 128 / 0.25);
+}
+
+.qualidade__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Compacto (os cards vêm antes do gráfico, e o começo dele deve aparecer sem rolar). O card leva o gráfico ao horizonte
+   dele; o que está no gráfico fica com a borda na cor do horizonte. */
+.celula {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.8rem 1.2rem 0.75rem;
+  border: 1px solid var(--p-surface-300);
+  border-radius: 16px;
+  background: var(--p-content-background);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.celula:hover {
+  border-color: var(--p-surface-400);
+}
+.celula--no-grafico,
+.celula--no-grafico:hover {
+  border-color: var(--cor-horizonte);
+  box-shadow: 0 0 0 1px var(--cor-horizonte);
+}
+.celula__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.celula__titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.celula__marca {
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--cor-horizonte);
+}
+.celula__dias {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--p-text-muted-color);
+}
+.celula__n {
+  font-size: 0.78rem;
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
+}
+.celula__n strong {
+  font-size: 1.15rem;
+  color: var(--p-text-color);
+}
+.celula__cobertura {
+  margin: -0.3rem 0 0;
+  font-size: 0.76rem;
+  color: var(--p-text-muted-color);
+}
+
+/* Largura fixa por coluna e o percentual numa 2ª linha: nada encosta nem estoura a borda direita do card. */
+.celula__medidas {
+  width: 100%;
+  table-layout: fixed;
+  font-size: 0.78rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.celula__medidas th,
+.celula__medidas td {
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+  text-align: right;
+  vertical-align: top;
+}
+.celula__medidas th:first-child {
+  width: 34%;
+  padding-left: 0;
+  text-align: left;
+  font-weight: 600;
+}
+.celula__medidas th:last-child,
+.celula__medidas td:last-child {
+  padding-right: 0;
+}
+.celula__medidas thead th {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--p-text-muted-color);
+  vertical-align: bottom;
+}
+.celula__pct {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--p-text-muted-color);
+}
+.celula__ia {
+  font-weight: 700;
+}
+
+.celula__sintese {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.76rem;
+}
+.celula__sintese-rotulo {
+  width: 100%;
+  font-size: 0.7rem;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.celula__fora {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.74rem;
+  color: var(--p-text-muted-color);
+}
+.celula__fora-qtd {
+  display: inline-block;
+  min-width: 1.4rem;
+  font-weight: 700;
+  color: var(--p-text-color);
+}
+
+.celula__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin-top: auto;
+}
+.celula__ver {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.78rem;
+  color: var(--p-primary-color);
+}
+
+.qualidade__tabela-topo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.qualidade__tabela-titulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.qualidade__datatable :deep(.p-datatable-tbody > tr > td) {
+  font-size: 0.75rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.qualidade__datatable :deep(.p-datatable-thead > tr > th) {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.qualidade__sub {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--p-text-muted-color);
+}
+.qualidade__avaliada {
+  font-weight: 600;
+}
+</style>

@@ -12,6 +12,7 @@ const statusProjetoRoutes = require("./status-projeto.routes");
 const documentosProjetoRoutes = require("./documentos-projeto.routes");
 const geopoliticaRoutes = require("./geopolitica.routes");
 const metodologiaAtivoRoutes = require("./metodologia-ativo.routes");
+const qualidadeIaRoutes = require("./qualidade-ia.routes");
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use("/api/v1", statusProjetoRoutes);
 router.use("/api/v1", documentosProjetoRoutes);
 router.use("/api/v1", geopoliticaRoutes);
 router.use("/api/v1", metodologiaAtivoRoutes);
+router.use("/api/v1", qualidadeIaRoutes);
 
 module.exports = router;

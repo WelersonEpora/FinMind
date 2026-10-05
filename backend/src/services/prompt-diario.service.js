@@ -188,6 +188,8 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config }) {
     precoReferencia: preco.disponivel
       ? {
           serie: config.PRECO.serie,
+          // A série exata no banco: o realizado e a avaliação a usam sem depender da configuração futura (ADR 0064).
+          ...(preco.seriesCode ? { seriesCode: preco.seriesCode } : {}),
           ...(preco.contrato ? { contrato: preco.contrato } : {}),
           dataReferencia: preco.dataReferencia,
           valor: preco.valor,

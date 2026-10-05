@@ -143,7 +143,7 @@ watch(() => route.query, carregar, { immediate: true })
 
           <!-- A leitura de tendência nos quatro horizontes, em linha do tempo. -->
           <div v-if="centro.analise" class="centro__linha-inteira">
-            <AnaliseTendencia :analise="centro.analise" :ativo-nome="centro.ativo.nome" />
+            <AnaliseTendencia :analise="centro.analise" :ativo-nome="centro.ativo.nome" :ativo-codigo="centro.ativo.codigo" />
           </div>
 
           <section class="centro__secao">

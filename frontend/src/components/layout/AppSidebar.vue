@@ -18,6 +18,7 @@ const workspaces = useWorkspaceStore()
 const links = [
   { to: '/', label: 'Centro de Decisão', icon: 'bi-compass' },
   { to: '/dados-mercado/metodologia', label: 'Metodologia do Ativo', icon: 'bi-diagram-3' },
+  { to: '/qualidade-ia', label: 'Qualidade da IA', icon: 'bi-check2-circle' },
   { to: '/como-funciona', label: 'Como funciona', icon: 'bi-question-circle' }
 ]
 

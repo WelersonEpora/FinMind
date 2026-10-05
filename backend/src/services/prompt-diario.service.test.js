@@ -190,6 +190,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
     nome: "Futuro B3 (GLD)",
     unidade: "US$/oz",
     fonte: "B3 - Up2Data",
+    seriesCode: "B3.GLD.GLDZ26.SETTLE",
     contrato: { ticker: "GLDZ26", rotulo: "GLDZ26 (dez/2026)" },
     valor: 4177.5,
     dataReferencia: "2026-10-02",
@@ -231,6 +232,8 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   assert.deepEqual(entrada.leitura, { papel: "CONTEXTO", contextoDe: "OURO_JUROS_REAIS", tendencia: "DESACELERANDO" });
   assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.4 });
   assert.equal(p.entrada.precoReferencia.contrato.ticker, "GLDZ26");
+  // A série exata vai com a leitura (ADR 0064): o realizado não depende da configuração futura.
+  assert.equal(p.entrada.precoReferencia.seriesCode, "B3.GLD.GLDZ26.SETTLE");
 
   await assert.rejects(montarPromptDiario("SOJA", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
 });
@@ -260,7 +263,8 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
   assert.match(p.prompt, /Último preço: R\$ 71,67 em 02\/10\/2026/);
   assert.doesNotMatch(p.prompt, /US\$|Em reais:/);
   assert.match(p.prompt, /2\.2 CURVA FUTURA — fora desta versão/);
-  assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 6,0% \| T2 = 19,0%/);
+  // As faixas da v2, recalibradas no próprio CCM (ADR 0058, adendo).
+  assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 3,0% \| T2 = 8,0%/);
   assert.match(p.instrucaoDoSistema, /não passou por validação humana/);
   assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
   assert.equal(p.entrada.precoReferencia.serie, "CCM");

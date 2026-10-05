@@ -13,7 +13,8 @@ por IA → resultado. Hoje: autenticação, espaços, o Centro de Decisão (tela
 dados de milho e ouro** (as fontes do relatório FEL 1 do especialista de mercado,
 "David"), guardada com data de publicação. Nos quatro ativos (petróleo, ouro, milho e café),
 a cadeia roda inteira: os fatores, o prompt diário e a leitura de tendência da IA no Centro
-de Decisão (ADRs 0050 a 0052, 0054, 0058 e 0062). O que segue com o David e o Comitê está em
+de Decisão (ADRs 0050 a 0052, 0054, 0058 e 0062), com o realizado de cada horizonte e a tela Qualidade
+da IA, que mede as leituras contra dois benchmarks (ADRs 0063 e 0064). O que segue com o David e o Comitê está em
 `STATUS_DO_PROJETO.md`, §4.
 
 ## Restrições permanentes (não negociáveis nesta fase)
@@ -397,9 +398,11 @@ Ver `STATUS_DO_PROJETO.md` (visão atual) e "O que está pronto" em `README.md`
 ## O que ainda depende das definições do David
 
 Ver `STATUS_DO_PROJETO.md`, §4 ("O que o David e o Comitê ainda definem" e as
-perguntas). Qualquer regra/cálculo do motor analítico, critérios de avaliação
-da IA, condições de sinal operacional e formato de apresentação continuam
-bloqueados até o David/Comitê definir; execução automática de ordens não existe
-nesta fase. Ativos e fontes: o FEL 1 propôs, o Comitê ainda não aprovou; a coleta
+perguntas). Qualquer regra/cálculo do motor analítico, condições de sinal
+operacional e formato de apresentação continuam bloqueados até o David/Comitê
+definir; execução automática de ordens não existe nesta fase. **Exceção:** a
+avaliação das leituras da IA foi delegada pelo David ao usuário em 2026-10-05; a
+metodologia (direção, faixa, benchmarks, quais linhas entram) está no ADR 0064 e
+só muda por ele. Ativos e fontes: o FEL 1 propôs, o Comitê ainda não aprovou; a coleta
 de milho e ouro foi adiantada fonte a fonte, cada uma autorizada no seu ADR, e
 nenhuma autorização é precedente para outra fonte ou para qualquer regra.

@@ -147,3 +147,36 @@ export function contarEventos(quantidade) {
   if (!quantidade) return 'Nenhum evento'
   return quantidade === 1 ? '1 evento' : `${quantidade} eventos`
 }
+
+// O realizado de um horizonte (ADR 0063): em que faixa o preço de fato caiu, para mostrar ao lado da faixa lida. Só
+// descreve: a leitura isolada não ganha marca de acerto ou erro (as medidas ficam na tela Qualidade da IA, ADR 0064).
+// Sem realizado (resposta antiga da API), null.
+const FORMATADOR_VARIACAO = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const CLASSES_FAIXA = { BAIXA_FORTE: 'baixa', BAIXA_LEVE: 'baixa', LATERAL: 'lateral', ALTA_LEVE: 'alta', ALTA_FORTE: 'alta' }
+
+export function realizadoDoHorizonte(realizado, formatarData) {
+  if (!realizado) return null
+  const alvo = formatarData(realizado.dataAlvo)
+  switch (realizado.situacao) {
+    case 'APURADO': {
+      const v = realizado.variacaoPct
+      return {
+        apurado: true,
+        variacao: `${v > 0 ? '+' : v < 0 ? '−' : ''}${FORMATADOR_VARIACAO.format(Math.abs(v))}%`,
+        faixa: realizado.faixa ? rotuloFaixa(realizado.faixa) : null,
+        classe: CLASSES_FAIXA[realizado.faixa] || 'insuficiente',
+        nota: `preço de ${formatarData(realizado.dataPreco)}`
+      }
+    }
+    case 'A_APURAR':
+      return { apurado: false, nota: `apura em ${alvo}` }
+    case 'AGUARDANDO_DADO':
+      return { apurado: false, nota: `aguardando o preço de ${alvo}` }
+    case 'SEM_PREGAO':
+      return { apurado: false, nota: `sem pregão novo até ${alvo}` }
+    case 'SEM_PRECO':
+      return { apurado: false, nota: `sem preço perto de ${alvo} (contrato vencido ou série parada)` }
+    default:
+      return { apurado: false, nota: 'sem preço-base na leitura' }
+  }
+}
