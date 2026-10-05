@@ -6,6 +6,7 @@ import { formatarValor } from '../../utils/centro-decisao.js'
 import {
   etiquetaLeitura,
   intervaloDaFaixa,
+  leituraDoMotor,
   nivelConfianca,
   realizadoDoHorizonte,
   rotuloDias,
@@ -30,13 +31,17 @@ const detalheVisivel = computed({
   }
 })
 
-// Cada horizonte com a leitura dele e o realizado (ADR 0063), pelo código, não pela posição.
+// Cada horizonte com a leitura dele, a do motor (o café, ADR 0066) e o realizado (ADR 0063), pelo código, não pela posição.
 const horizontes = computed(() =>
-  props.analise.horizontes.map((h) => ({
-    ...h,
-    leitura: (props.analise.leituras || []).find((l) => l.horizonte === h.codigo) || null,
-    realizado: realizadoDoHorizonte((props.analise.realizado?.horizontes || []).find((r) => r.horizonte === h.codigo), formatarData)
-  }))
+  props.analise.horizontes.map((h) => {
+    const leitura = (props.analise.leituras || []).find((l) => l.horizonte === h.codigo) || null
+    return {
+      ...h,
+      leitura,
+      motor: leituraDoMotor(props.analise.agregacaoMotor, h.codigo, leitura),
+      realizado: realizadoDoHorizonte((props.analise.realizado?.horizontes || []).find((r) => r.horizonte === h.codigo), formatarData)
+    }
+  })
 )
 
 // A faixa em % do horizonte ("+2% a +6%"): a direção e a intensidade já estão na etiqueta. Sem faixa (INSUFICIENTE), null.
@@ -138,6 +143,14 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
               </template>
               <span class="realizado__nota">{{ horizonte.realizado.nota }}</span>
             </span>
+            <!-- A leitura agregada do motor (o café, ADR 0066): em código, sem IA; a IA a recebeu como evidência. -->
+            <span v-if="horizonte.motor" class="motor">
+              <span class="horizonte__faixa-rotulo">Motor</span>
+              <span class="motor__valor" :class="`motor__valor--${horizonte.motor.etiqueta.classe}`">
+                {{ horizonte.motor.etiqueta.rotulo }}<template v-if="horizonte.motor.confianca"> · {{ horizonte.motor.confianca.rotulo }}</template>
+              </span>
+              <span v-if="horizonte.motor.diverge" class="motor__diverge">diverge da IA</span>
+            </span>
             <span class="horizonte__tese">{{ horizonte.leitura.tese }}</span>
             <span class="horizonte__abrir">Ver detalhe <i class="bi bi-arrow-right-short"></i></span>
           </template>
@@ -148,6 +161,9 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
       <p class="analise__rodape">
         Leitura de tendência, não recomendação. Feita pela IA com os fatores da metodologia do {{ ativoNome.toLowerCase() }}
         e o preço na base; cada horizonte é lido separadamente.
+        <template v-if="analise.agregacaoMotor">
+          "Motor" é a agregação dos fatores em código, sem IA (proposta do FinMind, a validar pelo Comitê).
+        </template>
         <span class="analise__proveniencia">
           {{ proveniencia.modelo }} · prompt {{ proveniencia.versaoPrompt }} · metodologia {{ proveniencia.versaoMetodologia }} ·
           configuração v{{ proveniencia.versaoConfiguracao }} · hash {{ (proveniencia.hashEntrada || '').slice(0, 12) }}
@@ -194,6 +210,29 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
           </template>
         </p>
         <p class="detalhe__tese">{{ aberto.leitura.tese }}</p>
+
+        <section v-if="aberto.motor" class="detalhe__motor">
+          <h4>
+            Leitura do motor <span class="detalhe__motor-selo">em código, proposta do FinMind a validar pelo Comitê</span>
+          </h4>
+          <p class="detalhe__linha">
+            <span class="tendencia" :class="[`tendencia--${aberto.motor.etiqueta.classe}`, { 'tendencia--forte': aberto.motor.etiqueta.forte }]">
+              <i class="bi" :class="aberto.motor.etiqueta.icone"></i> {{ aberto.motor.etiqueta.rotulo }}
+            </span>
+            <span v-if="aberto.motor.confianca" class="confianca" :class="`confianca--${aberto.motor.confianca.classe}`">
+              {{ aberto.motor.confianca.rotulo }}
+            </span>
+            <span class="text-muted">S = {{ aberto.motor.score }} · cobertura {{ aberto.motor.cobertura }}</span>
+            <span v-if="aberto.motor.diverge" class="motor__diverge">diverge da IA</span>
+          </p>
+          <ul>
+            <li v-for="familia in aberto.motor.familias" :key="familia.rotulo"><strong>{{ familia.rotulo }}:</strong> {{ familia.texto }}</li>
+            <li><strong>Fundos (F7, sem peso):</strong> {{ aberto.motor.fundos }}</li>
+            <li v-if="aberto.motor.conflito"><strong>Conflito:</strong> {{ aberto.motor.conflito }}</li>
+            <li v-for="motivo in aberto.motor.motivos" :key="motivo" class="text-muted">{{ motivo }}</li>
+          </ul>
+          <p class="detalhe__motor-nota">{{ aberto.motor.versao }}. A IA recebeu esta leitura como evidência, não como resposta.</p>
+        </section>
 
         <template v-if="aberto.leitura.forcasDominantes">
           <h4>Forças dominantes</h4>
@@ -271,6 +310,59 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
 </template>
 
 <style scoped>
+/* A leitura do motor (o café, ADR 0066): uma linha discreta abaixo do realizado; no detalhe, um bloco destacado. */
+.motor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.45rem;
+  font-size: 0.78rem;
+}
+.motor__valor {
+  font-weight: 600;
+}
+.motor__valor--alta {
+  color: var(--tendencia-alta);
+}
+.motor__valor--baixa {
+  color: var(--tendencia-baixa);
+}
+.motor__valor--lateral {
+  color: var(--tendencia-lateral);
+}
+.motor__diverge {
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(211, 154, 23, 0.15);
+  color: #8a5f00;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+.detalhe__motor {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 12px;
+  background: var(--p-surface-50);
+}
+.detalhe__motor h4 {
+  margin-top: 0;
+}
+.detalhe__motor ul {
+  margin-bottom: 0.4rem;
+}
+.detalhe__motor-selo {
+  margin-left: 0.35rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+.detalhe__motor-nota {
+  margin: 0;
+  color: var(--p-text-muted-color);
+  font-size: 0.75rem;
+}
+
 /* Cores das tendências. Também no detalhe: o modal é renderizado fora do card. */
 .analise,
 .detalhe {

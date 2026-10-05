@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { contarEventos, etiquetaLeitura, realizadoDoHorizonte, faltaNoFator, idadeDoDado, rotuloMedida, intervaloDaFaixa, leituraDoFator, nivelConfianca, rotuloConfianca, rotuloDias, rotuloFaixa, rotuloPapelCot, tendencia } from './analise-diaria.js'
+import { contarEventos, etiquetaLeitura, realizadoDoHorizonte, faltaNoFator, idadeDoDado, rotuloMedida, intervaloDaFaixa, leituraDoFator, leituraDoMotor, nivelConfianca, rotuloConfianca, rotuloDias, rotuloFaixa, rotuloPapelCot, tendencia } from './analise-diaria.js'
 
 test('faixa em % a partir de T1 e T2 do horizonte, com as bordas da classificação', () => {
   const medio = { t1: 5, t2: 12 }
@@ -92,4 +92,39 @@ test('realizado de um horizonte: variação e faixa quando apurado; nas outras s
   assert.equal(realizadoDoHorizonte({ situacao: 'SEM_PREGAO', dataAlvo: '2026-09-06' }, fmt).nota, 'sem pregão novo até 06/09/2026')
   assert.equal(realizadoDoHorizonte({ situacao: 'SEM_BASE', dataAlvo: null }, fmt).nota, 'sem preço-base na leitura')
   assert.equal(realizadoDoHorizonte(undefined, fmt), null)
+})
+
+test('leituraDoMotor: a leitura agregada de um horizonte, se diverge da IA e o que a formou', () => {
+  const agregacao = {
+    versao: 'cafe-agregacao-v1 (2026-10-05)',
+    horizontes: [
+      {
+        horizonte: 'CURTO',
+        tendencia: 'BAIXA',
+        faixa: 'BAIXA_LEVE',
+        confianca: 'BAIXA',
+        score: -1.2,
+        cobertura: 1,
+        conflito: null,
+        fundos: 'RISCO_DE_REVERSAO',
+        motivosConfianca: ['F7 (fundos) em extremo contra a direção: risco de reversão'],
+        familias: [
+          { codigo: 'OFERTA', ativa: true, pesoEfetivo: 0.6, score: -2, ausente: false, contribuicao: -1.2 },
+          { codigo: 'CAMBIO', ativa: true, pesoEfetivo: 0.4, score: 0, ausente: true, contribuicao: 0 }
+        ]
+      }
+    ]
+  }
+  const m = leituraDoMotor(agregacao, 'CURTO', { tendencia: 'ALTA' })
+  assert.equal(m.etiqueta.classe, 'baixa')
+  assert.equal(m.score, '−1,20')
+  assert.equal(m.cobertura, '100%')
+  assert.equal(m.diverge, true)
+  assert.deepEqual(m.familias, [
+    { rotulo: 'Oferta', texto: '60% × −2,00 = −1,20' },
+    { rotulo: 'Câmbio', texto: '40%, sem dado' }
+  ])
+  assert.equal(leituraDoMotor(agregacao, 'CURTO', { tendencia: 'BAIXA' }).diverge, false)
+  assert.equal(leituraDoMotor(agregacao, 'LONGO'), null)
+  assert.equal(leituraDoMotor(null, 'CURTO'), null)
 })

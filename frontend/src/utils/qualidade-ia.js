@@ -13,6 +13,14 @@ export const PREVISORES = [
   { codigo: 'PERSISTENCIA', rotulo: 'Persistência' }
 ]
 
+// A leitura agregada do motor (o café, ADR 0066): medida nas linhas em que leu o horizonte, com o próprio n; fora da
+// síntese, que compara a IA com os benchmarks.
+export const PREVISOR_MOTOR = {
+  codigo: 'MOTOR',
+  rotulo: 'Motor',
+  titulo: 'A leitura agregada do motor, em código (proposta do FinMind, a validar pelo Comitê)'
+}
+
 // Por que uma linha ficou fora da métrica, na ordem em que o backend verifica (qualidade-ia.service.js::MOTIVOS_FORA).
 const MOTIVOS = {
   REFERENCIA_ANTIGA: 'Horizonte contado do último preço (petróleo v1)',

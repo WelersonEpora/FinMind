@@ -19,7 +19,10 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 
 // v1 (2026-10-04): os 8 fatores com a proposta v0 do David; o F3 (estoques) calculado.
 // v2 (2026-10-05): o calendário de pesos vai ao prompt diário (ADR 0065); os fatores não mudam.
-const VERSAO = 2;
+// v3 (2026-10-05): as regras de peso por força do sinal do David (F1, F2, F3 e F5) vão ao prompt como condições, ao
+// lado das que já iam (ADR 0065, adendo); o ajuste do F1 pela colheita da safrinha sai da tela e vira pergunta (o
+// andamento da colheita não está na BASE).
+const VERSAO = 3;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -230,6 +233,8 @@ const DEFINICOES = [
       fonte: "Conab, IMEA"
     },
     evento: { janelaDias: 7 },
+    // Sinal defasado (Motor do Milho v0, regras de agregação): o F6 age sobre a área e a safrinha da safra seguinte.
+    efeitoDefasado: { mesesMin: 6, mesesMax: 12, sobre: "a área e a safrinha (F2) da safra seguinte" },
     dados: {
       observaveis: ["IMEA_CUSTO_MILHO_MES", "IMEA_CUSTO_MILHO_SAFRA", "MILHO_CEPEA_ESALQ"],
       eventos: false,
@@ -332,8 +337,8 @@ const DEFINICOES = [
       }
     },
     perguntas: [
-      "A validação humana dos eventos antes do prompt: como (uma tela de aprovação?) e por quem?",
-      "Qual o \"volume estimado relevante\" que torna um evento uma pressão?",
+      "Qual o valor do \"volume estimado relevante\" que torna um evento uma pressão?",
+      "Qual o valor do decaimento de um evento: em quanto tempo ele deixa de pesar na leitura?",
       "O ritmo de embarque pelo acumulado do ano comercial (o cálculo) atende, ou o especialista quer o mês contra a média do mesmo mês (que salta na entressafra)?"
     ]
   }
@@ -352,7 +357,7 @@ const DO_ATIVO = {
     "Aprovação do Comitê (2026-10-04, ADR 0058): o Motor do Milho v0 como está na tela, com as regras do David, os limiares v0 e os acréscimos do FinMind; ajustes daqui em diante pelos parâmetros. O milho entra no prompt diário, na leitura de tendência da IA e no Centro de Decisão.",
     "Formato da leitura da IA: tendência por horizonte, com as faixas calibradas (como no petróleo e no ouro), não recomendação de compra ou venda. Comitê, 2026-10-04 (ADR 0058).",
     "Preço de referência no prompt e no Centro de Decisão: o CCM, o vencimento mais próximo negociado, sem emendar contratos. Comitê, 2026-10-04 (ADR 0058).",
-    "Eventos sem validação humana, por ora: cada fator recebe os eventos que a leitura diária por IA marca com ele, como chegam (7 dias de janela; 30 no F8). Pode ser revisto. Comitê, 2026-10-04 (ADR 0058).",
+    "Eventos sem validação humana, por ora: cada fator recebe os eventos que a leitura diária por IA marca com ele, como chegam (7 dias de janela; 30 no F8). Comitê, 2026-10-04 (ADR 0058); confirmado pelo usuário (Welerson), 2026-10-05: não haverá validação humana.",
     "Base do F4 (Campinas − paridade de MT): fica como está por ora, com o limiar 0 da regra do David. Comitê, 2026-10-04 (ADR 0058).",
     `Medidas da camada A confirmadas: COT em managed money (contratos e % dos contratos em aberto), estoque/uso dos EUA e do mundo com a revisão, safrinha em nível e revisão (Conab e IMEA), boa + excelente com o VHI, insumos pelo IMEA na v1. ${DECISAO_DAVID}, §5.`,
     "Peso por mês e agregação no prompt: o calendário de pesos da proposta vai ao prompt diário como uma tabela fixa, e as regras de agregação como orientação em texto, sem cálculo novo; a agregação em código continua para o Comitê. Nos meses que a proposta não define (o F1 de janeiro a maio, o F2 em janeiro e fevereiro), vale o peso do FEL 1. Usuário (Welerson), 2026-10-05 (ADR 0065).",
@@ -360,7 +365,8 @@ const DO_ATIVO = {
   ],
   perguntas: [
     "Vencimentos do CCM por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima (contratos em aberto), e a curva dos vencimentos no prompt?",
-    "Agregação em código (Seção 4 da proposta): o teto do bloco de oferta, o multiplicador dos fundos (×1,25) e a paridade líquida (Chicago × câmbio) só existem como orientação no prompt. O Comitê quer a agregação calculada pelo motor, com o backtest?",
+    "Agregação em código (Seção 4 da proposta): o teto do bloco de oferta e a paridade líquida (Chicago × câmbio) só existem como orientação no prompt. O Comitê quer a agregação calculada pelo motor, com o backtest?",
+    "Ajuste do F1 ao CCM: a proposta reduz o peso do F1 de junho a agosto enquanto a colheita da safrinha passa de 50%. O andamento da colheita (IMEA) é coletado, mas não está na BASE do prompt: levamos o andamento ao prompt (como contexto do F2) ou a regra fica de fora?",
     "Calendário de pesos: qual o peso do F1 (clima dos EUA) de janeiro a maio e do F2 (safrinha) em janeiro e fevereiro? A proposta não define esses meses; por ora vale o do FEL 1 (ADR 0065).",
     "Faixas da leitura da IA: hoje são os percentis 40 e 80 do Indicador ESALQ (2018 a 2026), por horizonte. As 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%) substituem?",
     "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto e F6 para Baixo-Médio): entram no FEL 1 revisado (até 2026-10-15)?",
@@ -371,8 +377,9 @@ const DO_ATIVO = {
 // Os pesos e as relações do Motor do Milho v0 (formato em metodologia-base.js), copiados da proposta do David: o peso de
 // cada regra (Seção 3), a "Sugestão" de peso-base de cada fator, a matriz de correlações e as regras de agregação
 // (Seção 4). O mês que ele não definiu fica sem peso (ex.: o F1 de janeiro a maio): não se completa por inferência. O
-// calendário vai ao prompt diário como uma tabela fixa (ADR 0065, bloco 2.5); a matriz e as regras de agregação, não: a
-// orientação de agregação é texto fixo do prompt (ai/prompts/milho-analise-diaria.md, bloco 4).
+// calendário vai ao prompt diário como uma tabela fixa (ADR 0065, bloco 2.5); as frases das relações também
+// (bloco 2.5); a matriz de símbolos, não. A orientação de agregação é texto fixo do prompt (ai/prompts/milho-analise-diaria.md,
+// bloco 4).
 const PESOS_MILHO = {
   autoria: AUTORIA_DAVID,
   noPrompt: {
@@ -385,26 +392,31 @@ const PESOS_MILHO = {
     MILHO_CLIMA_SAFRA_EUA: {
       sugestao: "Alto para Chicago (ZC); Médio-Alto para o CCM, porque o efeito chega por paridade e é atenuado pela colheita da safrinha.",
       meses: { Alto: [7], Médio: [6, 8], Baixo: [9, 10, 11, 12] },
+      condicoes: [
+        {
+          texto:
+            "Pressão de baixa (lavoura boa + excelente acima da média): peso Médio; Alto quando a polinização está concluída (90% ou mais da área)."
+        }
+      ],
       notas: [
-        "A fase da lavoura define o peso: junho (pré-polinização), julho (polinização), agosto (enchimento), setembro a novembro (maturação e colheita). \"Baixo de setembro em diante\"; de janeiro a maio, não definido.",
-        "Ajuste ao CCM: o sinal chega via Chicago e perde força enquanto a colheita da safrinha estiver acima de 50%. De junho a agosto, reduzir o peso do F1 no CCM (conflito com a safrinha).",
-        "Regra de baixa: Médio; sobe para Alto quando a polinização está concluída (90% ou mais da área) com boa + excelente acima da média."
+        "A fase da lavoura define o peso: junho (pré-polinização), julho (polinização), agosto (enchimento), setembro a novembro (maturação e colheita). \"Baixo de setembro em diante\"; de janeiro a maio, não definido."
       ]
     },
     MILHO_SAFRINHA: {
       sugestao: "Alto de março a julho, decrescente depois (a safra já está colhida em setembro).",
       meses: { Alto: [3, 4, 5, 6, 7], Médio: [8, 9], Baixo: [10, 11, 12] },
-      notas: [
-        "\"Baixo de outubro em diante, quando o fator passa para F3 (estoque de passagem)\"; janeiro e fevereiro, não definidos.",
-        "Revisões para cima que não atingem os limiares dão viés baixista fraco, com peso Baixo."
-      ]
+      condicoes: [{ texto: "Revisão para cima que não atinge os limiares do fator: viés baixista fraco, com peso Baixo." }],
+      notas: ["\"Baixo de outubro em diante, quando o fator passa para F3 (estoque de passagem)\"; janeiro e fevereiro, não definidos."]
     },
     MILHO_ESTOQUES_WASDE: {
       sugestao: "Alto. É o hub do motor: recebe e consolida os fatores F1, F2, F5 e F8.",
       fixo: "Alto",
-      notas: [
-        "Cresce quanto mais baixo o percentil do estoque/uso (convexidade).",
-        "Regra de baixa (estoque folgado): Médio, Alto só se houver também surpresa; o efeito de estoque farto é menor que o de estoque apertado."
+      condicoes: [
+        { texto: "O peso cresce quanto mais baixo o percentil do estoque/uso (convexidade): estoque apertado pesa mais que estoque farto." },
+        {
+          texto:
+            "Pressão de baixa (estoque folgado): peso Médio; Alto só com surpresa contra a expectativa do mercado, que não está na BASE (então vale o Médio)."
+        }
       ]
     },
     MILHO_DOLAR_PARIDADE: {
@@ -415,8 +427,10 @@ const PESOS_MILHO = {
     MILHO_ETANOL: {
       sugestao: "Médio; Alto na base de MT durante a colheita.",
       meses: { Médio: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
-      condicoes: [{ texto: "Alto na base de MT durante a colheita (junho a setembro), quando a usina é o comprador marginal.", meses: [6, 7, 8, 9] }],
-      notas: ["Regra de baixa: Médio."]
+      condicoes: [
+        { texto: "Alto na base de MT durante a colheita (junho a setembro), quando a usina é o comprador marginal.", meses: [6, 7, 8, 9] },
+        { texto: "Pressão de baixa: peso Médio, mesmo de junho a setembro." }
+      ]
     },
     MILHO_INSUMOS: {
       sugestao: "Baixo-Médio. É um fator lento: age sobre a safra seguinte e tem pouco poder preditivo no horizonte de swing e position.",
@@ -489,7 +503,7 @@ const PESOS_MILHO = {
       tratamento:
         "F7 não vota. Multiplica o peso de F1, F3 e F8 quando o extremo de posição está alinhado ao sinal, e vira regra de risco quando está contra.",
       fatores: ["MILHO_FUNDOS", "MILHO_CLIMA_SAFRA_EUA", "MILHO_ESTOQUES_WASDE", "MILHO_POLITICA_COMERCIAL"],
-      noFinMind: { situacao: "PARCIAL", texto: "No prompt: o COT não vota; alinhado ao sinal de F1, F3 ou F8, reforça a firmeza deles; contra o sinal, é risco de reversão. O multiplicador (×1,25) não é aplicado." }
+      noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: o COT não vota; alinhado ao sinal de F1, F3 ou F8, reforça a firmeza deles; contra o sinal, é risco de reversão. O multiplicador numérico (×1,25) ficou fora por decisão do usuário (2026-10-05, ADR 0065): a IA não faz conta." }
     },
     {
       tema: "F3 como filtro",
@@ -520,7 +534,10 @@ const PESOS_MILHO = {
       tema: "Sinais defasados",
       tratamento: "F6 age sobre F2 da safra seguinte (6 a 12 meses). Registrar com data de efeito esperada, não como sinal imediato.",
       fatores: ["MILHO_INSUMOS", "MILHO_SAFRINHA"],
-      noFinMind: { situacao: "PARCIAL", texto: "No prompt: o custo de produção é sinal defasado, que informa pouco os horizontes. A data de efeito não é registrada." }
+      noFinMind: {
+        situacao: "ORIENTACAO",
+        texto: "No prompt: o custo de produção é sinal defasado, que informa pouco os horizontes; o bloco do F6 traz a data de efeito esperada (de 6 a 12 meses depois do dado), sobre a safrinha seguinte."
+      }
     },
     {
       tema: "Eventos",
@@ -528,7 +545,7 @@ const PESOS_MILHO = {
       fatores: ["MILHO_POLITICA_COMERCIAL"],
       noFinMind: {
         situacao: "PARCIAL",
-        texto: "Os eventos vão ao prompt com data e tipo, numa janela de 30 dias, sem volume nem decaimento e sem validação humana (Comitê, ADR 0058)."
+        texto: "Os eventos vão ao prompt com data e tipo, numa janela de 30 dias, sem validação humana (decidido: Comitê, ADR 0058, e usuário, 2026-10-05). Falta definir o valor do volume estimado relevante e o do decaimento."
       }
     },
     {

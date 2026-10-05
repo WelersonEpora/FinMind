@@ -74,3 +74,56 @@ milho de 2026-10-05, montada no banco local, duas vezes cada, sem gravar nada.
 A agregação em código; a matriz de relações 8×8 inteira no prompt (só as relações que mudam a leitura viraram frase); os
 pesos do ouro, do petróleo e do café; as notas de peso por força do sinal (ex.: "Médio; Alto quando a polinização está
 concluída"), que seguem só na tela.
+
+## Adendo (2026-10-05): as regras de peso por força do sinal vão ao prompt
+
+**Decisão do usuário (Welerson, 2026-10-05):** tudo o que o card "Peso por fator e por mês" da tela mostra como
+orientação vai ao prompt, ou sai do card.
+
+- **Vão ao prompt** (bloco 2.5, lista "Condições e regras de peso", que só valem quando a BASE mostra que estão
+  atendidas), ao lado das condições que já iam:
+  - F1: pressão de baixa com peso Médio; Alto quando a polinização está concluída (90% ou mais da área);
+  - F2: revisão para cima que não atinge os limiares, viés baixista fraco com peso Baixo;
+  - F3: o peso cresce quanto mais baixo o percentil do estoque/uso (convexidade); de baixa, Médio (o Alto pede uma
+    surpresa contra a expectativa do mercado, que não está na BASE);
+  - F5: pressão de baixa com peso Médio, mesmo de junho a setembro.
+
+  A polinização, a condição da lavoura, a revisão da Conab e o percentil do estoque/uso estão na BASE.
+- **Sai da tela e vira pergunta:** o ajuste do F1 ao CCM (reduzir o peso de junho a agosto enquanto a colheita da
+  safrinha passa de 50%). O andamento da colheita (IMEA) é coletado, mas não está na BASE do prompt.
+- **Sai do card:** a coluna "Sugestão do especialista" (o calendário é a versão aplicada dela; o texto segue no ADR 0056).
+  As notas que só explicam o calendário ficam.
+- **A tela mostra o que vai:** a tabela ganha a coluna "Hoje no FinMind", com o chip "Orientação no prompt" e, por
+  fator, as mesmas linhas que vão ao prompt (`metodologia-base.js`, `noPrompt`; o prompt e a tela usam o mesmo dado).
+- **Versões:** prompt `milho-analise-diaria` v3 e metodologia do milho v3.
+
+## Adendo (2026-10-05): as relações entre os fatores vão ao prompt
+
+**Decisão do usuário (Welerson, 2026-10-05):** o card "Relações entre os fatores" só mostra o chip "Orientação no
+prompt" se o que ele orienta vai ao prompt.
+
+- **Vão ao prompt** (bloco 2.5, lista "Relações entre os fatores", como orientação, não fórmula): as frases do Motor
+  do Milho v0 ao lado da matriz, ou seja, os fatores que mais influenciam os demais (F1 e F3; F4 conversor, F7
+  amplificador), as correlações inversas relevantes e a defasagem de F2 × F6. O item 9 do bloco 4 diz para usá-las ao
+  julgar se uma divergência é esperada ou um conflito de verdade, sem somar nem descontar nada por elas.
+- **Não vai:** a matriz de símbolos (++, +, (−), ±...). É um julgamento estrutural ainda a validar, e 64 células
+  convidariam a IA a fazer conta, contra a regra de que nada quantitativo de agregação vai a ela. Fica na tela como
+  referência, e o card diz isso.
+- **Versão:** prompt `milho-analise-diaria` v4; o texto vem de `shared/metodologia-milho.js` (`relacoes.leitura` e
+  `relacoes.observacoes`), o mesmo do card.
+
+## Adendo (2026-10-05): as regras de agregação "em parte"
+
+**Decisões do usuário (Welerson, 2026-10-05)**, no card "Regras de agregação" da tela:
+
+- **Fundos como multiplicador:** passa a "Orientação no prompt". O que vai (o F7 não vota; alinhado ao sinal, reforça;
+  contra, é risco de reversão) é a forma aprovada, e o multiplicador numérico (×1,25) ficou fora por decisão do
+  usuário (adendo anterior); o card diz isso. Sai das perguntas ao Comitê.
+- **Sinais defasados:** passa a "Orientação no prompt". O bloco do F6 no prompt ganha a data de efeito esperada, de 6 a
+  12 meses depois do período do dado, sobre a safrinha seguinte (`efeitoDefasado` no fator, em
+  `shared/metodologia-milho.js`; a linha sai de `factors/base/texto-prompt.js`). É conta de calendário sobre a regra do
+  David, não regra nova; o item 1 do prompt cita a data.
+- **Eventos:** continua "em parte". **Não haverá validação humana** dos eventos antes do prompt (confirma o Comitê,
+  ADR 0058; a pergunta sai). Falta o David definir o valor do **volume estimado relevante** e o do **decaimento** (as
+  duas são perguntas do F8). Sem esses valores, nada disso é inventado no prompt.
+- **Versão:** prompt `milho-analise-diaria` v4 (com o adendo anterior).

@@ -99,7 +99,7 @@ Episódios no F1:
   - as janelas críticas do clima;
   - as fontes novas (INMET, ECF, ICO, FOB e o robusta de Londres), cada uma com o seu ADR;
   - os horizontes em pregões ou em dias;
-  - a agregação;
+  - a agregação (proposta em código, com famílias e peso por horizonte, no ADR 0066, de 2026-10-05; fora do prompt);
   - se vale a mesma régua para o milho.
 - **O F3 só decide no servidor**, onde o histórico da ICE é completo.
 

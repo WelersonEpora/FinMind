@@ -1,6 +1,6 @@
 # Prompt — Análise diária do milho (leitura de tendência em quatro horizontes)
 
-**Versão:** 2
+**Versão:** 4
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0058), no molde do prompt do ouro (`ouro-analise-diaria.md`, v1;
 ADR 0054): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -21,6 +21,18 @@ dado da tela de metodologia; nos meses que a proposta não define, o peso do FEL
 passam a orientar pelo peso do mês, pelo teto do bloco de oferta, pelo F3 como filtro também do etanol, pelas relações
 inversas do câmbio e pelo F7 que não vota (fora das listas de argumentos); peso não é direção (um fator neutro não é
 argumento). Tudo qualitativo: nenhuma conta, pontuação ou multiplicador vai para a IA.
+
+v3 (2026-10-05, ADR 0065, adendo) - as regras de peso por força do sinal do Motor do Milho v0 vão ao bloco 2.5, ao lado
+das condições que já iam: F1 de baixa Médio (Alto com a polinização concluída), F2 com revisão para cima abaixo dos
+limiares (viés baixista fraco, peso Baixo), F3 convexo (estoque apertado pesa mais; de baixa, Médio) e F5 de baixa
+Médio. A lista passa a se chamar "Condições e regras de peso"; o item 2 do bloco 4 cita as duas. O texto vem de
+`shared/metodologia-milho.js` (as mesmas linhas da coluna "Hoje no FinMind" da tela).
+
+v4 (2026-10-05, ADR 0065, adendo) - as frases das relações entre os fatores do Motor do Milho v0 (os fatores que mais
+influenciam os demais, as correlações inversas e a defasagem de F2 × F6) vão ao bloco 2.5, como orientação; a matriz
+de símbolos fica só na tela. O item 9 do bloco 4 cita a lista. O texto vem de `shared/metodologia-milho.js`, o mesmo
+do card "Relações entre os fatores" da tela. O bloco do F6 (MILHO_INSUMOS) ganha a data de efeito esperada do sinal
+defasado (de 6 a 12 meses depois do dado, regra de agregação "Sinais defasados"), e o item 1 a cita.
 
 Enviado ao Gemini uma vez por dia pelo coletor `milho-analise-ia-diario` (ADR 0058).
 
@@ -56,12 +68,13 @@ Para cada horizonte, separadamente:
 1. Relevância. Decida quais fatores informam aquele prazo, pela periodicidade, pela idade e pela natureza de cada um
    (a tabela 2.3 dá a idade e a situação dos dados). Um levantamento mensal com semanas de atraso diz pouco sobre 1 dia;
    um relatório de ontem pode dizer muito. O custo de produção (MILHO_INSUMOS) é um sinal defasado: age sobre a área e a
-   safrinha seguintes, de 6 a 12 meses depois, e informa pouco os horizontes desta leitura. Diga quais fatores pesaram
+   safrinha seguintes, de 6 a 12 meses depois (o bloco dele traz a data de efeito esperada), e informa pouco os
+   horizontes desta leitura. Diga quais fatores pesaram
    pouco e por quê.
 2. Peso do mês. O peso de cada fator é o da coluna do mês da data da análise, na tabela 2.5; a coluna FEL 1 é só
    referência. Comece pelos fatores de peso Alto nesse mês; os de peso Médio e Baixo confirmam ou enfraquecem a
-   leitura. Uma condição da tabela 2.5 só muda o peso quando a BASE mostra que ela está atendida; sem isso, vale o peso
-   da coluna. Não altere um peso, não use o de outro mês e não interpole entre meses. Peso não é direção: o peso diz
+   leitura. Uma condição ou regra de peso da tabela 2.5 só muda o peso quando a BASE mostra que ela está atendida; sem
+   isso, vale o peso da coluna. Não altere um peso, não use o de outro mês e não interpole entre meses. Peso não é direção: o peso diz
    quanto a pressão de um fator conta, não para que lado ela vai. Um fator com pressão neutra, mesmo de peso Alto, não
    é argumento a favor nem contra a leitura: não o ponha em fatoresAFavor nem em fatoresContra. A validação histórica
    (parte D de cada fator) qualifica a confiança na evidência; ela não muda o peso, a pressão nem a intensidade de
@@ -99,7 +112,9 @@ Para cada horizonte, separadamente:
 9. Conflito entre blocos. Quando blocos independentes divergem (por exemplo, oferta em alta e paridade ou exportação em
    baixa), não resolva o conflito por conta própria: explique as duas forças e reduza a confiança. Fatores
    economicamente ligados (por exemplo, o clima dos EUA, os estoques e os fundos de Chicago) podem parecer se confirmar
-   sem serem evidências independentes: diga quando for o caso, sem criar regra de desconto.
+   sem serem evidências independentes: diga quando for o caso, sem criar regra de desconto. As relações entre os
+   fatores da tabela 2.5 dizem quais fatores costumam andar juntos ou em sentido oposto: use-as para julgar se uma
+   divergência é esperada ou um conflito de verdade, sem somar nem descontar nada por elas.
 10. Preço. Use o histórico (2.1) para dizer quanto do movimento já aconteceu. Um fator que acompanha o preço pode já
     estar refletido nele. O preço é de um contrato futuro: as variações são só desse contrato, e uma variação SEM DADO
     é falta de histórico do contrato, não estabilidade do preço. Os horizontes contam da data da análise, não da data do

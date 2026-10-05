@@ -265,12 +265,17 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
   const { promptDiario: p } = await montarPromptDiario("MILHO", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["CCM", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "milho-analise-diaria@2");
+  assert.equal(p.versaoPrompt, "milho-analise-diaria@4");
   // O calendário de pesos como tabela fixa (ADR 0065): em outubro, o F1 é Baixo e o F4 é Alto.
   assert.match(p.prompt, /2\.5 PESO DE CADA FATOR POR MÊS/);
   assert.match(p.prompt, /F1 MILHO_CLIMA_SAFRA_EUA +\| Alto +\| Alto\* +\|/);
   assert.match(p.prompt, /F4 MILHO_DOLAR_PARIDADE +\| Médio +\| Alto +\|/);
   assert.match(p.instrucaoDoSistema, /coluna do mês da data da análise, na tabela 2\.5/);
+  // As frases das relações entre os fatores vão ao bloco 2.5, as mesmas da tela; a matriz de símbolos não vai.
+  const { relacoes } = obterMetodologiaMilho().pesos;
+  assert.match(p.prompt, /Relações entre os fatores \(orientação para o julgamento, não fórmula\):/);
+  for (const frase of [...relacoes.leitura, ...relacoes.observacoes]) assert.ok(p.prompt.includes(`- ${frase}`), frase);
+  assert.doesNotMatch(p.prompt, /\+\/\+\+|desprezível/);
   assert.match(p.prompt, /Contrato: CCMX26 \(nov\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Último preço: R\$ 71,67 em 02\/10\/2026/);
   assert.doesNotMatch(p.prompt, /US\$|Em reais:/);
@@ -289,9 +294,9 @@ test("pesos (ADR 0065): o mês não definido sai com o FEL 1 e *, o fator sem pe
     autoria: "David",
     noPrompt: { autorizacao: "Usuário", mesSemDefinicao: "vale o peso do FEL 1" },
     fatores: [
-      { sigla: "F1", codigo: "A", pesoFel1: "Alto", meses: [null, ...Array(10).fill(mes("Baixo")), mes("Alto", "c")], fixo: null, papel: null, condicoes: [] },
-      { sigla: "F2", codigo: "B", pesoFel1: "Médio", meses: null, fixo: "Baixo", papel: null, condicoes: ["geral"] },
-      { sigla: "F3", codigo: "C", pesoFel1: "Médio", meses: null, fixo: null, papel: "não vota", condicoes: [] }
+      { sigla: "F1", codigo: "A", pesoFel1: "Alto", meses: [null, ...Array(10).fill(mes("Baixo")), mes("Alto", "c")], fixo: null, papel: null, condicoes: [], noPrompt: ["F1 (dez): c"] },
+      { sigla: "F2", codigo: "B", pesoFel1: "Médio", meses: null, fixo: "Baixo", papel: null, condicoes: ["geral"], noPrompt: ["F2: geral"] },
+      { sigla: "F3", codigo: "C", pesoFel1: "Médio", meses: null, fixo: null, papel: "não vota", condicoes: [], noPrompt: [] }
     ]
   });
   assert.match(texto, /^F1 A +\| Alto +\| Alto\* +\| Baixo +\|.*\| Alto$/m);
@@ -302,7 +307,7 @@ test("pesos (ADR 0065): o mês não definido sai com o FEL 1 e *, o fator sem pe
   assert.match(texto, /\* mês que a proposta não define: vale o peso do FEL 1\./);
 });
 
-test("café (ADR 0062): o ICF com o contrato e o preço em reais por saca, sem bloco de curva", async () => {
+test("café (ADRs 0062 e 0066): o ICF com o contrato e o preço em reais por saca, sem curva, com a leitura agregada do motor", async () => {
   const precoIcf = {
     ...PRECO,
     nome: "Futuro B3 (ICF)",
@@ -322,7 +327,8 @@ test("café (ADR 0062): o ICF com o contrato e o preço em reais por saca, sem b
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@1");
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@2");
+  assert.equal(p.versaoConfiguracao, 2);
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Último preço: US\$ 351,90 em 02\/10\/2026/);
@@ -336,4 +342,28 @@ test("café (ADR 0062): o ICF com o contrato e o preço em reais por saca, sem b
   assert.doesNotMatch(p.prompt, /\{\{/);
   assert.equal(p.entrada.precoReferencia.serie, "ICF");
   assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.2 });
+  // A leitura agregada do motor (ADR 0066): no bloco 3B do prompt e gravada na entrada, os quatro horizontes.
+  assert.match(p.prompt, /\[3B\. LEITURA AGREGADA DO MOTOR/);
+  assert.match(p.prompt, /^CURTO: /m);
+  assert.match(p.prompt, /CAFE_FUNDOS \(modificador\)/);
+  assert.match(p.instrucaoDoSistema, /O bloco 3B traz a LEITURA AGREGADA DO MOTOR/);
+  assert.deepEqual(
+    p.entrada.agregacaoMotor.horizontes.map((h) => h.horizonte),
+    ["IMEDIATO", "CURTO", "MEDIO", "LONGO"]
+  );
+  assert.match(p.entrada.agregacaoMotor.versao, /^cafe-agregacao-v1/);
+  // Toda regra que a tela de metodologia mostra está no prompt, com a mesma frase.
+  for (const regra of require("../factors/agregacao/agregacao-cafe").ORIGEM_DAS_REGRAS) assert.ok(p.prompt.includes(`- ${regra.prompt}`), regra.regra);
+});
+
+test("ativo sem agregação (o ouro): sem bloco 3B nem agregacaoMotor na entrada", async () => {
+  const d = deps({ fatores: [{ ...CALCULADO, codigo: "OURO_FUNDOS", textoPrompt: "FATOR — Fundos" }] });
+  d.marketQuoteRepository = {
+    async buscarHistorico() {
+      return { registros: [{ reference_date: "2026-10-02", value: "5.2000" }], total: 1 };
+    }
+  };
+  const { promptDiario: p } = await montarPromptDiario("OURO", { data: "2026-10-03" }, d);
+  assert.doesNotMatch(p.prompt, /LEITURA AGREGADA DO MOTOR/);
+  assert.equal(p.entrada.agregacaoMotor, undefined);
 });

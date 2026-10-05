@@ -190,14 +190,11 @@ function blocoPesos(pesos) {
   const largura = Math.max(...pesos.fatores.map((f) => rotulo(f).length));
   const linha = (inicio, fel1, celulas) => [inicio.padEnd(largura), fel1.padEnd(5), ...celulas.map((c) => c.padEnd(6))].join(" | ").trimEnd();
 
-  const condicoes = pesos.fatores.flatMap((f) => {
-    const porMes = new Map();
-    (f.meses || []).forEach((m, i) => {
-      if (m?.condicao) porMes.set(m.condicao, [...(porMes.get(m.condicao) || []), MESES[i]]);
-    });
-    return [...[...porMes].map(([texto, meses]) => `- ${f.sigla} (${meses.join(", ")}): ${texto}`), ...f.condicoes.map((texto) => `- ${f.sigla}: ${texto}`)];
-  });
+  // As condições e as regras de peso de cada fator, como a tela as mostra (metodologia-base.js, `noPrompt`).
+  const condicoes = pesos.fatores.flatMap((f) => f.noPrompt.map((texto) => `- ${texto}`));
   const semPeso = pesos.fatores.filter((f) => f.papel && !f.meses && !f.fixo);
+  // As frases das relações entre os fatores, como a tela as mostra; a matriz de símbolos fica só na tela.
+  const relacoes = pesos.relacoes ? [...pesos.relacoes.leitura, ...pesos.relacoes.observacoes].map((frase) => `- ${frase}`) : [];
 
   return [
     `O peso de cada fator em cada mês, da proposta de ${pesos.autoria}. Vale a coluna do mês da data da análise.`,
@@ -207,8 +204,72 @@ function blocoPesos(pesos) {
     "",
     `* mês que a proposta não define: ${pesos.noPrompt.mesSemDefinicao}.`,
     ...semPeso.map((f) => `- ${f.sigla} ${f.codigo}: sem peso próprio; o papel dele está nas instruções.`),
-    ...(condicoes.length ? ["", "Condições (só valem quando a BASE mostra que estão atendidas):", ...condicoes] : [])
+    ...(condicoes.length ? ["", "Condições e regras de peso (só valem quando a BASE mostra que estão atendidas):", ...condicoes] : []),
+    ...(relacoes.length ? ["", "Relações entre os fatores (orientação para o julgamento, não fórmula):", ...relacoes] : [])
   ].join("\n");
+}
+
+// --- 3B. Leitura agregada do motor (o café, ADR 0066) -------------------------------------------------------------
+
+const fmtScore = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${fmtNumero(Math.abs(n))}`;
+const fmtPeso = (n) => `${Math.round(n * 100)}%`;
+
+// O resultado da agregação em código, em texto: por horizonte, a leitura, o score, a cobertura e a confiança, a
+// contribuição de cada família e os motivos. No cabeçalho, as regras da agregação, com as mesmas frases que a tela de
+// metodologia mostra (agregacao-cafe.js::ORIGEM_DAS_REGRAS).
+function blocoAgregacao(agregacao) {
+  const familia = (f) => {
+    if (!f.ativa) return `${f.codigo} inativa (${f.detalhe.motivo})`;
+    const membros = f.detalhe?.membros ? ` [${f.detalhe.membros.join(" + ")}]` : "";
+    const valor = f.ausente ? "SEM DADO" : `score ${fmtScore(f.score)}, contribuição ${fmtScore(f.contribuicao)}`;
+    const oferta = f.detalhe?.membros
+      ? `; F1/F2 ${f.detalhe.baseF1F2 === null ? "sem dado" : fmtScore(f.detalhe.baseF1F2)}${f.detalhe.conflitoF1F2 ? " (em conflito)" : ""}, F3 ${f.detalhe.papelF3}`
+      : "";
+    return `${f.codigo} ${fmtPeso(f.pesoEfetivo)}${membros}: ${valor}${oferta}`;
+  };
+  const horizonte = (h) =>
+    [
+      `${h.horizonte}: ${h.faixa ?? h.tendencia} | S = ${fmtScore(h.score)} | cobertura ${fmtPeso(h.cobertura)} | confiança ${h.confianca ?? "-"}`,
+      ...h.familias.map((f) => `  - ${familia(f)}`),
+      `  - CAFE_FUNDOS (modificador): ${h.fundos.papel}${h.fundos.motivo ? ` (${h.fundos.motivo})` : ""}`,
+      ...(h.conflito ? [`  - conflito entre ${h.conflito.familias.join(" e ")}`] : []),
+      ...(h.motivosConfianca.length ? [`  - motivos: ${h.motivosConfianca.join("; ")}`] : [])
+    ].join("\n");
+  return [
+    `Agregação ${agregacao.versao}: proposta do FinMind, sem backtest, a validar pelo Comitê. As regras:`,
+    ...agregacao.regrasNoPrompt.map((regra) => `- ${regra}`),
+    "",
+    "O resultado em cada horizonte:",
+    ...agregacao.horizontes.map(horizonte)
+  ].join("\n");
+}
+
+// O que da agregação fica gravado na entrada (o Centro de Decisão e a Qualidade da IA leem daí): a leitura de cada
+// horizonte e o que a formou, sem os textos das regras (estão na versão).
+function agregacaoParaEntrada(agregacao) {
+  return {
+    versao: agregacao.versao,
+    situacao: agregacao.situacao,
+    horizontes: agregacao.horizontes.map((h) => ({
+      horizonte: h.horizonte,
+      tendencia: h.tendencia,
+      faixa: h.faixa,
+      confianca: h.confianca,
+      score: h.score,
+      cobertura: h.cobertura,
+      conflito: h.conflito,
+      fundos: h.fundos.papel,
+      motivosConfianca: h.motivosConfianca,
+      familias: h.familias.map((f) => ({
+        codigo: f.codigo,
+        ativa: f.ativa,
+        pesoEfetivo: f.pesoEfetivo,
+        score: f.score,
+        ausente: f.ausente,
+        contribuicao: f.contribuicao
+      }))
+    }))
+  };
 }
 
 // --- Montagem ------------------------------------------------------------------------------------------------------
@@ -222,8 +283,10 @@ function leituraDoFator(f) {
 }
 
 // O que entrou no prompt, estruturado: para guardar com a resposta da IA e reconstituir a entrada (ADR 0010).
-function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config }) {
+function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao = null }) {
   return {
+    // A leitura agregada do motor que foi ao prompt (o café, ADR 0066).
+    ...(agregacao ? { agregacaoMotor: agregacaoParaEntrada(agregacao) } : {}),
     precoReferencia: preco.disponivel
       ? {
           serie: config.PRECO.serie,
@@ -284,6 +347,8 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     centro.lerPreco(serie, { data: dataAnalise, agora }, deps)
   ]);
   const ptax = config.PRECO.emReais && preco.disponivel ? await lerPtax(preco.dataReferencia, deps) : null;
+  // A agregação em código (o café, ADR 0066), sobre os mesmos fatores do prompt.
+  const agregacao = config.AGREGACAO ? config.AGREGACAO.calcular(simulacao.fatores, { dataAnalise }) : null;
 
   const carregado = carregarPrompt(config.ARQUIVO_PROMPT, {
     data_analise: fmtData(dataAnalise),
@@ -294,7 +359,8 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
     bloco_faixas: blocoFaixas(config),
     ...(simulacao.pesos ? { bloco_pesos: blocoPesos(simulacao.pesos) } : {}),
-    blocos_fatores: simulacao.fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt).join("\n\n")
+    blocos_fatores: simulacao.fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt).join("\n\n"),
+    ...(agregacao ? { bloco_agregacao: blocoAgregacao(agregacao) } : {})
   });
 
   const hashEntrada = crypto.createHash("sha256").update(`${carregado.instrucaoDoSistema}\n\n${carregado.prompt}`).digest("hex");
@@ -308,9 +374,20 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
       hashEntrada,
       instrucaoDoSistema: carregado.instrucaoDoSistema,
       prompt: carregado.prompt,
-      entrada: entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config })
+      entrada: entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao })
     }
   };
 }
 
-module.exports = { montarPromptDiario, blocoPreco, blocoCurva, blocoCobertura, blocoFaixas, blocoPesos, situacaoDoFator, lerPtax };
+module.exports = {
+  montarPromptDiario,
+  blocoPreco,
+  blocoCurva,
+  blocoCobertura,
+  blocoFaixas,
+  blocoPesos,
+  blocoAgregacao,
+  agregacaoParaEntrada,
+  situacaoDoFator,
+  lerPtax
+};

@@ -10,6 +10,7 @@ import PromptDiario from '../components/metodologia/PromptDiario.vue'
 import PesosRelacoes from '../components/metodologia/PesosRelacoes.vue'
 import metodologiaAtivoService from '../services/metodologia-ativo.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
+import { resumoPesos } from '../utils/metodologia.js'
 
 // Metodologia dos fatores de um ativo: uma PROPOSTA para o David validar, não regra (ADR 0050). Cada bloco diz de
 // onde vem: o FEL 1 (o que o David escreveu), os dados (o que o FinMind coleta) e a proposta (rascunho). No desenho
@@ -37,12 +38,6 @@ const resumoDoAtivo = computed(() => {
 const opcoesAtivo = computed(() => (resposta.value?.ativos || []).map((a) => ({ ...a, icone: iconeAtivo(a.codigo) })))
 
 const ROTULO_SITUACAO = { PROPOSTA: 'Proposta, aguardando o David', VALIDADA: 'Validada pelo David' }
-
-// A situação da proposta de um fator. A do próprio especialista (o milho, ADR 0055) aguarda o Comitê, não ele.
-function rotuloSituacao(proposta) {
-  if (proposta.situacao === 'PROPOSTA' && proposta.autoria) return 'Proposta do especialista, aguardando o Comitê'
-  return ROTULO_SITUACAO[proposta.situacao]
-}
 
 // O nome de um fator do ativo pelo código (o fator de que outro é contexto, ADR 0054).
 function nomeDoFator(codigo) {
@@ -232,7 +227,7 @@ watch(ativo, carregar, { immediate: true })
                      o botão de detalhes, no meio da altura do card. -->
                 <div class="metodologia-ativo__card-corpo">
                   <div class="metodologia-ativo__card-titulo-grupo">
-                    <h2 class="metodologia-ativo__card-titulo">{{ index + 1 }} - {{ fator.nome }}</h2>
+                    <h2 class="metodologia-ativo__card-titulo">F{{ index + 1 }} - {{ fator.nome }}</h2>
                     <span
                       class="metodologia-ativo__badge"
                       :class="{
@@ -284,15 +279,16 @@ watch(ativo, carregar, { immediate: true })
               </article>
             </div>
 
-            <!-- Como os fatores se combinam: o peso do FEL 1 (o do prompt) e, quando o especialista definiu, o peso por
-                 mês, as relações e a agregação (o milho, Motor do Milho v0). Só na tela. -->
+            <!-- Como os fatores se combinam: o peso do FEL 1 e, quando o especialista definiu, o peso por mês, as relações
+                 e a agregação (o milho, Motor do Milho v0; o café, Motor do Café v1), com o que vai ao prompt; no café,
+                 também a proposta de agregação em código do FinMind (ADR 0066). -->
             <div class="metodologia-ativo__secao-cabecalho metodologia-ativo__secao-cabecalho--seguinte">
               <h2 class="metodologia-ativo__secao-titulo">Pesos e relações</h2>
               <span class="metodologia-ativo__contexto-resumo">
-                {{ metodologia.pesos.situacao ? 'definidos pelo especialista, fora do prompt' : 'só o peso do FEL 1' }}
+                {{ resumoPesos(metodologia.pesos) }}
               </span>
             </div>
-            <PesosRelacoes :pesos="metodologia.pesos" :nome-ativo="metodologia.nome" :data="simulacao?.data || hoje" />
+            <PesosRelacoes :pesos="metodologia.pesos" :data="simulacao?.data || hoje" />
           </template>
         </div>
       </template>
@@ -361,8 +357,12 @@ watch(ativo, carregar, { immediate: true })
           <section class="metodologia-ativo__bloco metodologia-ativo__bloco--proposta">
             <h4>
               Como medir
-              <span class="metodologia-ativo__situacao" :class="`metodologia-ativo__situacao--${fatorSelecionado.proposta.situacao.toLowerCase()}`">
-                {{ rotuloSituacao(fatorSelecionado.proposta) }}
+              <!-- Tudo é proposta, validada com o uso e pelo Comitê: o selo só marca a exceção (fator validado). -->
+              <span
+                v-if="fatorSelecionado.proposta.situacao === 'VALIDADA'"
+                class="metodologia-ativo__situacao metodologia-ativo__situacao--validada"
+              >
+                {{ ROTULO_SITUACAO.VALIDADA }}
               </span>
             </h4>
             <p v-if="fatorSelecionado.proposta.autoria" class="metodologia-ativo__autoria">
@@ -670,6 +670,8 @@ watch(ativo, carregar, { immediate: true })
   font-size: 0.7rem;
   font-weight: 700;
   color: #fff;
+  /* Peso Baixo (e qualquer outro sem classe): o cinza da tabela de pesos; sem fundo, o texto branco sumia. */
+  background: #6b7280;
 }
 
 .metodologia-ativo__badge--alto {

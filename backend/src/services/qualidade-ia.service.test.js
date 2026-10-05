@@ -167,3 +167,43 @@ test("filtros: período e versão vão ao repository; inválidos são recusados"
   await assert.rejects(obterQualidadeIa({ ativo: "CAFE", desde: "01/09/2026" }, deps), ValidationError);
   await assert.rejects(obterQualidadeIa({ ativo: "CAFE", versaoConfiguracao: "v1" }, deps), ValidationError);
 });
+
+test("motor (ADR 0066): medido nas linhas da métrica em que leu o horizonte, com o próprio n e fora da síntese", async () => {
+  const comMotor = (data, opcoes, faixaMotor) => {
+    const r = registro(data, opcoes);
+    r.entrada.agregacaoMotor = {
+      versao: "cafe-agregacao-v1 (2026-10-05)",
+      horizontes: [
+        {
+          horizonte: "IMEDIATO",
+          tendencia: faixaMotor ? faixaMotor.split("_")[0] : "INSUFICIENTE",
+          faixa: faixaMotor,
+          confianca: faixaMotor ? "BAIXA" : null,
+          score: 0
+        }
+      ]
+    };
+    return r;
+  };
+  const registros = [
+    comMotor("2026-09-01", { faixa: "ALTA_LEVE", d1: -0.5 }, "ALTA_FORTE"), // o motor acerta a faixa exata
+    comMotor("2026-09-02", { faixa: "LATERAL", d1: 0.1 }, null), // o motor INSUFICIENTE: fora do n dele
+    registro("2026-09-09", { faixa: "LATERAL", d1: 0.1 }) // leitura sem motor (anterior a ele)
+  ];
+  const realizado = realizadoFalso({ "2026-09-01": { faixa: "ALTA_FORTE" }, "2026-09-02": { faixa: "LATERAL" }, "2026-09-09": { faixa: "LATERAL" } });
+  const { qualidadeIa: q } = await obterQualidadeIa({ ativo: "milho" }, { agora: AGORA, analiseDiariaRepository: repoCom(registros), realizadoAnaliseService: realizado });
+
+  const imediato = q.horizontes[0];
+  assert.equal(imediato.n, 3);
+  assert.deepEqual(imediato.medidas.MOTOR, { direcao: { k: 1, pct: 100 }, faixaExata: { k: 1, pct: 100 }, distanciaMedia: 0, n: 1 });
+  // A síntese segue a IA contra os dois benchmarks, sem o motor.
+  assert.deepEqual(Object.keys(imediato.sintese), ["direcaoPp", "faixaExataPp", "distancia"]);
+  assert.deepEqual(q.linhas.find((l) => l.dataAnalise === "2026-09-01" && l.horizonte === "IMEDIATO").motor, {
+    tendencia: "ALTA",
+    faixa: "ALTA_FORTE",
+    confianca: "BAIXA",
+    score: 0
+  });
+  // Sem motor em nenhuma linha do horizonte (o CURTO), sem a medida.
+  assert.equal(q.horizontes[1].medidas.MOTOR, undefined);
+});

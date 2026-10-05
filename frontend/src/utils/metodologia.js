@@ -160,3 +160,38 @@ export const ROTULO_AGREGACAO = {
   PARCIAL: 'Em parte',
   FORA: 'Fora do motor'
 }
+
+// De onde vem cada regra da agregação do FinMind (ADR 0066): do especialista, derivada do estudo ou proposta do FinMind.
+export const ROTULO_ORIGEM_REGRA = {
+  DAVID: 'Do especialista',
+  DERIVADA: 'Derivada do estudo',
+  PROPOSTA: 'Proposta do FinMind'
+}
+
+// A célula de uma família num horizonte da agregação do FinMind: o peso em % (ou "—" quando a família não entra) e, na
+// família com composição por horizonte (a Oferta do café), as siglas dos membros que entram nele.
+export function celulaPesoFamilia(familia, horizonte, siglaPorCodigo = {}) {
+  const peso = familia.pesos[horizonte]
+  if (!peso) return { texto: '—', membros: null }
+  const membros = familia.composicao?.[horizonte]
+  const todos = !membros || membros.length === familia.fatores.length
+  return { texto: `${peso}%`, membros: todos ? null : membros.map((c) => siglaPorCodigo[c] || c).join(' + ') }
+}
+
+// O especialista definiu peso próprio (calendário por mês, peso fixo, papel ou sugestão de peso-base) para algum fator?
+// Hoje só o milho. Sem isso, o peso de cada fator é o do FEL 1, que já aparece no card de cada fator.
+export function temCalendario(pesos) {
+  return pesos.fatores.some((f) => f.sugestao || f.meses || f.fixo || f.papel)
+}
+
+// O resumo ao lado do título "Pesos e relações": o que vai ao prompt diário (o peso, e as relações e regras do
+// especialista como orientação) e, quando existe, a leitura agregada do motor (a agregação em código do FinMind).
+export function resumoPesos(pesos) {
+  const peso = temCalendario(pesos) && pesos.noPrompt ? 'o calendário de pesos' : 'o peso do FEL 1'
+  const orientacao = []
+  if (pesos.pares?.some((par) => par.noPrompt)) orientacao.push('relações')
+  if (pesos.agregacao.some((r) => r.noFinMind.situacao === 'ORIENTACAO')) orientacao.push('regras')
+  const doEspecialista = orientacao.length ? ` e as ${orientacao.join(' e ')} do especialista, como orientação` : ''
+  const motor = pesos.agregacaoFinMind ? '; e a leitura agregada do motor (proposta do FinMind)' : ''
+  return `No prompt: ${peso}${doEspecialista}${motor}.`
+}

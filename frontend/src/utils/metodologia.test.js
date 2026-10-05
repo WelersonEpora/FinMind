@@ -3,6 +3,9 @@ import assert from 'node:assert/strict'
 
 import {
   desdeDoPeriodo,
+  celulaPesoFamilia,
+  resumoPesos,
+  temCalendario,
   seriesDoGrafico,
   seriesComFaixas,
   rotulosDasFaixas,
@@ -139,4 +142,36 @@ test('periodoDoFator: o levantamento e a publicação, com a data exata', () => 
   assert.equal(periodoDoFator('LEVANTAMENTO').referencia('2026-09-24'), 'Levantamento de 24/09/2026')
   assert.equal(periodoDoFator('PUBLICACAO').referencia('2026-07-31'), 'Publicação de 31/07/2026')
   assert.equal(periodoDoFator('PUBLICACAO').janela, 'publicações')
+})
+
+test('celulaPesoFamilia: o peso em %, "—" fora do horizonte e os membros quando a família não entra inteira', () => {
+  const oferta = {
+    fatores: ['F_CLIMA', 'F_SAFRA', 'F_ESTOQUES'],
+    pesos: { IMEDIATO: 60, CURTO: 60, LONGO: 50 },
+    composicao: { IMEDIATO: ['F_SAFRA'], CURTO: ['F_CLIMA', 'F_SAFRA', 'F_ESTOQUES'], LONGO: ['F_SAFRA'] }
+  }
+  const siglas = { F_CLIMA: 'F1', F_SAFRA: 'F2', F_ESTOQUES: 'F3' }
+  assert.deepEqual(celulaPesoFamilia(oferta, 'IMEDIATO', siglas), { texto: '60%', membros: 'F2' })
+  assert.deepEqual(celulaPesoFamilia(oferta, 'CURTO', siglas), { texto: '60%', membros: null })
+  assert.deepEqual(celulaPesoFamilia({ fatores: ['X'], pesos: { MEDIO: 0 }, composicao: null }, 'MEDIO'), { texto: '—', membros: null })
+  assert.deepEqual(celulaPesoFamilia({ fatores: ['X'], pesos: { MEDIO: 33 }, composicao: null }, 'MEDIO'), { texto: '33%', membros: null })
+})
+
+test('resumoPesos: o que vai ao prompt, por ativo', () => {
+  const semPeso = [{ codigo: 'A' }]
+  const orientacao = [{ noFinMind: { situacao: 'ORIENTACAO' } }]
+  assert.equal(resumoPesos({ situacao: null, fatores: semPeso, pares: [], agregacao: [] }), 'No prompt: o peso do FEL 1.')
+  assert.equal(
+    resumoPesos({ situacao: 'PROPOSTA', fatores: [{ codigo: 'A', meses: [] }], noPrompt: { autorizacao: 'x' }, pares: [], agregacao: orientacao }),
+    'No prompt: o calendário de pesos e as regras do especialista, como orientação.'
+  )
+  assert.equal(
+    resumoPesos({ situacao: 'PROPOSTA', fatores: semPeso, noPrompt: null, pares: [{ noPrompt: 'x' }], agregacao: orientacao, agregacaoFinMind: {} }),
+    'No prompt: o peso do FEL 1 e as relações e regras do especialista, como orientação; e a leitura agregada do motor (proposta do FinMind).'
+  )
+})
+
+test('temCalendario: só com peso próprio do especialista em algum fator', () => {
+  assert.equal(temCalendario({ fatores: [{ codigo: 'A' }] }), false)
+  assert.equal(temCalendario({ fatores: [{ codigo: 'A' }, { codigo: 'B', fixo: 'Alto' }] }), true)
 })

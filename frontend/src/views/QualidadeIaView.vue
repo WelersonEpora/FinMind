@@ -13,6 +13,7 @@ import { formatarData } from '../utils/geopolitica.js'
 import { rotuloConfianca, rotuloFaixa } from '../utils/analise-diaria.js'
 import {
   PREVISORES,
+  PREVISOR_MOTOR,
   compararComBenchmark,
   desdeDoPeriodo,
   filtrarLinhas,
@@ -146,6 +147,12 @@ function sintese(celula) {
   ]
 }
 
+// A leitura agregada do motor (o café, ADR 0066): uma coluna a mais na célula e na tabela, só quando o ativo a tem.
+const temMotor = computed(() => (qualidade.value?.linhas || []).some((l) => l.motor))
+const previsoresDaCelula = (celula) => (celula.medidas.MOTOR ? [...PREVISORES, PREVISOR_MOTOR] : PREVISORES)
+// O n de cada previsor: o da célula, ou o próprio (o motor só conta as linhas em que leu o horizonte).
+const nDo = (celula, codigo) => celula.medidas[codigo].n ?? celula.n
+
 const contrato = (linha) => (linha.contrato ? `${linha.serie} ${linha.contrato}` : linha.serie || '—')
 
 watch(() => route.query.ativo, carregar, { immediate: true })
@@ -223,15 +230,15 @@ watch([periodo, versao], carregar)
                 <thead>
                   <tr>
                     <th></th>
-                    <th v-for="p in PREVISORES" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">{{ p.rotulo }}</th>
+                    <th v-for="p in previsoresDaCelula(celula)" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }" :title="p.titulo">{{ p.rotulo }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <th>Direção</th>
-                    <td v-for="p in PREVISORES" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
-                      <template v-if="celula.n">
-                        {{ celula.medidas[p.codigo].direcao.k }} de {{ celula.n }}
+                    <td v-for="p in previsoresDaCelula(celula)" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
+                      <template v-if="nDo(celula, p.codigo)">
+                        {{ celula.medidas[p.codigo].direcao.k }} de {{ nDo(celula, p.codigo) }}
                         <span class="celula__pct">{{ formatarPct(celula.medidas[p.codigo].direcao.pct) }}</span>
                       </template>
                       <template v-else>—</template>
@@ -239,9 +246,9 @@ watch([periodo, versao], carregar)
                   </tr>
                   <tr>
                     <th>Faixa exata</th>
-                    <td v-for="p in PREVISORES" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
-                      <template v-if="celula.n">
-                        {{ celula.medidas[p.codigo].faixaExata.k }} de {{ celula.n }}
+                    <td v-for="p in previsoresDaCelula(celula)" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
+                      <template v-if="nDo(celula, p.codigo)">
+                        {{ celula.medidas[p.codigo].faixaExata.k }} de {{ nDo(celula, p.codigo) }}
                         <span class="celula__pct">{{ formatarPct(celula.medidas[p.codigo].faixaExata.pct) }}</span>
                       </template>
                       <template v-else>—</template>
@@ -249,7 +256,7 @@ watch([periodo, versao], carregar)
                   </tr>
                   <tr>
                     <th>Distância média</th>
-                    <td v-for="p in PREVISORES" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
+                    <td v-for="p in previsoresDaCelula(celula)" :key="p.codigo" :class="{ 'celula__ia': p.codigo === 'IA' }">
                       {{ formatarDistancia(celula.medidas[p.codigo].distanciaMedia) }}
                     </td>
                   </tr>
@@ -400,6 +407,16 @@ watch([periodo, versao], carregar)
                     <span class="qualidade__sub">{{ rotuloConfianca(data.lida.confianca) }}</span>
                   </template>
                   <span v-else class="text-muted">Insuficiente</span>
+                </template>
+              </Column>
+              <Column v-if="temMotor" header="Motor">
+                <template #body="{ data }">
+                  <template v-if="data.motor?.faixa">
+                    {{ rotuloFaixa(data.motor.faixa) }}
+                    <span class="qualidade__sub">{{ rotuloConfianca(data.motor.confianca) }}</span>
+                  </template>
+                  <span v-else-if="data.motor" class="text-muted">Insuficiente</span>
+                  <span v-else class="text-muted">—</span>
                 </template>
               </Column>
               <Column header="Série">

@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 1
+**Versão:** 2
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -15,6 +15,12 @@ com os limiares calibrados pelo FinMind, aprovadas pelo Comitê para o protótip
 vão ao prompt sem validação humana, como chegam da leitura diária de eventos por IA; cada fator recebe os eventos
 marcados com ele, depois do cálculo. Os números das faixas e dos horizontes NÃO são escritos aqui: vêm da configuração
 (`shared/analise-diaria-cafe.js`), no bloco 2.4.
+
+v2 (2026-10-05, ADR 0066): a LEITURA AGREGADA DO MOTOR vai ao prompt, no bloco 3B: os fatores juntados em código por
+famílias, com peso por horizonte (proposta do FinMind, sem backtest, a validar pelo Comitê). A IA a recebe como
+evidência, não como resposta: compara a sua leitura com ela e diz por que diverge. Mudam os itens 2 e 5 do bloco 4 e o
+cabeçalho do bloco 3. O texto do bloco 3B é montado por `prompt-diario.service.js::blocoAgregacao`; a configuração
+passou à v2.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -54,8 +60,9 @@ Para cada horizonte, separadamente:
    pesaram pouco e por quê.
 2. Pesos. O Motor do Café descartou os pesos fixos e não definiu peso novo: o peso do FEL 1 (tabela 2.3) é o único na
    BASE. Use-o como ordem de partida (os de peso Alto primeiro; os de peso Médio e Baixo confirmam ou enfraquecem a
-   leitura). Nunca altere um peso nem crie um peso por mês. A validação histórica (parte D de cada fator) qualifica a
-   confiança na evidência; ela não muda o peso, a pressão nem a intensidade de nenhum fator.
+   leitura). Nunca altere um peso nem crie um peso por mês. Os pesos por horizonte do bloco 3B são das famílias na
+   agregação do motor, não de cada fator: não os use para refazer a conta. A validação histórica (parte D de cada
+   fator) qualifica a confiança na evidência; ela não muda o peso, a pressão nem a intensidade de nenhum fator.
 3. Leitura do motor. A pressão, a intensidade e a tendência de cada fator (parte C) são resultado das regras do motor:
    não as recalcule, não as contradiga e não as troque por uma interpretação sua. As regras do café são hipóteses do
    estudo do especialista, com limiares calibrados na posição de cada medida no próprio histórico, ainda sem backtest:
@@ -63,8 +70,12 @@ Para cada horizonte, separadamente:
    relação com o preço é fraca ou o histórico é curto), diga isso e dê a ela menos papel.
 4. Neutralidade. Um fator sem dado, sem histórico mínimo ou dentro da faixa neutra é neutro: não é sinal fraco para
    nenhum lado. Não preencha a falta com interpretação sua.
-5. Agregação. Não existe uma fórmula validada que junte os oito fatores: não invente uma, não conte votos e não crie
-   pontuação. Explique quais forças atuam, qual delas domina naquele horizonte e por quê.
+5. Agregação. O bloco 3B traz a LEITURA AGREGADA DO MOTOR: os fatores juntados em código, por famílias com peso por
+   horizonte. É uma proposta do FinMind, sem backtest, ainda a validar pelo Comitê: uma evidência, não a resposta.
+   Compare a sua leitura com a dela em cada horizonte. Se a sua tendência ou faixa divergir da do motor, diga em
+   "forcasDominantes" por quê, citando o que a agregação não pesa (um evento, a idade de um dado, o preço, a relação
+   entre fatores). Não recalcule o score, não crie pontuação própria e não conte votos. Explique quais forças atuam,
+   qual delas domina naquele horizonte e por quê.
 6. Cadeia de oferta. Clima (CAFE_CLIMA), safra brasileira (CAFE_SAFRA_BRASIL) e estoques certificados (CAFE_ESTOQUES)
    medem o mesmo choque em momentos diferentes: o clima afeta a lavoura, a Conab quantifica a perda semanas ou meses
    depois e os estoques refletem o balanço depois disso. O mesmo choque nos três é UM argumento, não três: não o conte
@@ -182,7 +193,10 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
 Eventos de cada fator: os aceitos da leitura diária por IA marcados com ele, na janela do fator, depois do cálculo.
-O motor ainda não fornece confiança por fator, horizonte por fator, peso por mês nem relações entre fatores.
+O motor não fornece confiança por fator, horizonte por fator nem peso por mês; a agregação dos fatores está no bloco 3B.
 
 {{blocos_fatores}}
+
+[3B. LEITURA AGREGADA DO MOTOR — os fatores juntados em código por famílias, com peso por horizonte, sem IA]
+{{bloco_agregacao}}
 ```

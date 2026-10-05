@@ -61,3 +61,26 @@ test("pesos do café: sem calendário (o estudo descarta os pesos fixos), 5 rela
   assert.equal(pesos.pares.length, 5);
   assert.ok(pesos.agregacao.some((r) => r.tema === "Neutralidade mandatória"));
 });
+
+test("agregação do café: as quatro regras do estudo estão no prompt como orientação (ADR 0062)", () => {
+  const { pesos } = obterMetodologiaCafe();
+  assert.deepEqual(
+    pesos.agregacao.map((r) => r.noFinMind.situacao),
+    ["ORIENTACAO", "ORIENTACAO", "ORIENTACAO", "ORIENTACAO"]
+  );
+  assert.ok(pesos.agregacao.every((r) => r.noFinMind.texto.startsWith("No prompt")));
+});
+
+test("agregação do FinMind (ADR 0066): na tela, vinda do agregador, separada da do David", () => {
+  const { agregacaoFinMind: a } = obterMetodologiaCafe().pesos;
+  const { PESOS } = require("../factors/agregacao/agregacao-cafe");
+  assert.equal(a.situacao, "PROPOSTA");
+  // Os pesos da tela são os do cálculo.
+  for (const familia of a.familias) {
+    for (const h of Object.keys(PESOS)) assert.equal(familia.pesos[h], Math.round(PESOS[h][familia.codigo] * 100));
+  }
+  assert.deepEqual(a.familias.find((f) => f.codigo === "OFERTA").fatores, ["CAFE_CLIMA", "CAFE_SAFRA_BRASIL", "CAFE_ESTOQUES"]);
+  assert.equal(a.modificador.fator, "CAFE_FUNDOS");
+  // Nenhum parâmetro da proposta atribuído ao David.
+  assert.ok(a.regras.filter((r) => r.origem === "DAVID").every((r) => !/\d,\d|\d%/.test(r.regra)));
+});

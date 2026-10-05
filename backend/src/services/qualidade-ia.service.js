@@ -30,8 +30,14 @@ const MOTIVOS_FORA = Object.freeze([
   "SEM_BENCHMARK"
 ]);
 
-// Os três "previsores" medidos nas mesmas linhas: a IA e os dois benchmarks.
+// Os três "previsores" medidos nas mesmas linhas: a IA e os dois benchmarks. A síntese compara a IA com o melhor dos
+// BENCHMARKS.
 const PREVISORES = Object.freeze(["IA", "SEMPRE_LATERAL", "PERSISTENCIA"]);
+const BENCHMARKS = Object.freeze(["SEMPRE_LATERAL", "PERSISTENCIA"]);
+
+// A leitura agregada do motor (o café, ADR 0066), gravada com a leitura da IA: um previsor a mais, medido só nas
+// linhas da métrica que a têm (com faixa; INSUFICIENTE fica fora), com o próprio n. Não entra na síntese.
+const MOTOR = "MOTOR";
 
 // O passado da janela do gráfico (90 dias; frontend/src/utils/leque-leituras.js): o preço vem desde então, mesmo antes
 // da leitura mais antiga do período.
@@ -79,6 +85,7 @@ function montarLinha(registro, leitura, realizado, horizonte) {
   const apurado = realizado.horizontes.find((r) => r.horizonte === horizonte.codigo) || { situacao: "SEM_BASE" };
   const lida = (leitura.leituras || []).find((l) => l.horizonte === horizonte.codigo) || null;
   const persistida = persistencia(registro.entrada?.precoReferencia?.variacoes, horizonte);
+  const motor = (leitura.agregacaoMotor?.horizontes || []).find((h) => h.horizonte === horizonte.codigo) || null;
   const motivo = motivoFora({
     referencia: leitura.referenciaHorizontes.tipo,
     situacao: apurado.situacao,
@@ -112,13 +119,15 @@ function montarLinha(registro, leitura, realizado, horizonte) {
       tendencia: apurado.faixa ? TENDENCIA_DA_FAIXA[apurado.faixa] : null
     },
     persistencia: persistida,
+    motor: motor ? { tendencia: motor.tendencia, faixa: motor.faixa ?? null, confianca: motor.confianca ?? null, score: motor.score } : null,
     motivoFora: motivo,
     resultado:
       motivo === null
         ? {
             IA: comparar(lida.faixa, apurado.faixa),
             SEMPRE_LATERAL: comparar("LATERAL", apurado.faixa),
-            PERSISTENCIA: comparar(persistida.faixa, apurado.faixa)
+            PERSISTENCIA: comparar(persistida.faixa, apurado.faixa),
+            ...(motor?.faixa ? { [MOTOR]: comparar(motor.faixa, apurado.faixa) } : {})
           }
         : null
   };
@@ -142,7 +151,9 @@ function resumirHorizonte(horizonte, linhas) {
   const avaliadas = linhas.filter((l) => l.motivoFora === null);
   const fora = Object.fromEntries(MOTIVOS_FORA.map((m) => [m, linhas.filter((l) => l.motivoFora === m).length]));
   const medidas = Object.fromEntries(PREVISORES.map((p) => [p, medir(avaliadas.map((l) => l.resultado[p]))]));
-  const benchmarks = PREVISORES.filter((p) => p !== "IA").map((p) => medidas[p]);
+  const doMotor = avaliadas.filter((l) => l.resultado[MOTOR]).map((l) => l.resultado[MOTOR]);
+  if (linhas.some((l) => l.motor)) medidas[MOTOR] = { ...medir(doMotor), n: doMotor.length };
+  const benchmarks = BENCHMARKS.map((p) => medidas[p]);
   const n = avaliadas.length;
   return {
     horizonte: horizonte.codigo,
@@ -228,4 +239,4 @@ async function obterQualidadeIa(filtros = {}, deps = {}) {
   };
 }
 
-module.exports = { obterQualidadeIa, montarLinha, resumirHorizonte, comparar, persistencia, MOTIVOS_FORA, PREVISORES, POSICAO_DA_FAIXA };
+module.exports = { obterQualidadeIa, montarLinha, resumirHorizonte, comparar, persistencia, MOTIVOS_FORA, PREVISORES, MOTOR, POSICAO_DA_FAIXA };

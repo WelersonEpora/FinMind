@@ -72,7 +72,9 @@ test("o calendário vira 12 meses; o mês fora dele fica sem peso, e a condiçã
   assert.equal(juros.meses[0], null);
   assert.deepEqual(juros.meses[6], { peso: "Alto", condicao: "c" });
   assert.deepEqual(juros.meses[5], { peso: "Médio", condicao: null });
-  assert.deepEqual(juros.notas, ["geral"]);
+  // O que vai ao prompt, linha a linha (a condição com os meses e a geral); as notas ficam só com a explicação.
+  assert.deepEqual(juros.noPrompt, ["F1 (jul): c", "F1: geral"]);
+  assert.deepEqual(juros.notas, []);
   assert.equal(dolar.fixo, "Baixo");
 });
 

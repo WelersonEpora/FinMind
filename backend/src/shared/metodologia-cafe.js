@@ -1,6 +1,7 @@
 "use strict";
 
 const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-base");
+const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 
 // Metodologia dos 8 fatores do café: só as definições (o formato de cada uma está em metodologia-base.js). Fonte do FEL
 // 1: a tabela "Fatores de Influência de Preço: Café", v1.1, copiada sem reescrever.
@@ -365,53 +366,59 @@ const DO_ATIVO = {
   perguntas: [
     "Faixas da leitura da IA: hoje são os percentis 40 e 80 do ICF no vencimento mais próximo (2022 a 2026, um período de alta forte), por horizonte. Ficam, ou o Comitê prefere outra régua?",
     "Vencimentos do ICF por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima, e a curva no prompt?",
-    "Pesos e agregação: o estudo descarta os pesos fixos e a matriz do v0 e propõe regras transversais (neutralidade mandatória com dados faltando ou conflito; controle de dupla contagem F1 → F2 → F3; surpresa contra a expectativa). O prompt da IA já leva essas regras como orientação (e o peso do FEL 1 como o único na base): a agregação em código continua para o Comitê.",
+    "Pesos e agregação: o estudo descarta os pesos fixos e a matriz do v0 e propõe regras transversais (neutralidade mandatória com dados faltando ou conflito; controle de dupla contagem F1 → F2 → F3; surpresa contra a expectativa). O prompt da IA já leva essas regras como orientação (e o peso do FEL 1 como o único na base). A agregação em código do FinMind, com famílias e peso por horizonte (ADR 0066), está em produção desde 2026-10-05 (no prompt e no Centro de Decisão), por decisão do usuário: a validação dela é do Comitê.",
     "INMET (F1): qual índice? Geada (temperatura mínima horária de maio a agosto em Varginha, Patrocínio, Franca e Caldas, com qual limiar) ou chuva e balanço hídrico contra a climatologia? A coleta só começa com o índice definido.",
     "Vale a mesma régua para o milho? O estudo critica pesos fixos e limiares sem teste, o que também se aplica ao Motor do Milho v0, já aprovado."
   ]
 };
 
 // Os pesos e as relações do estudo (formato em metodologia-base.js): sem pesos (o estudo os descarta) e sem matriz; as
-// relações por par (§8) e as regras transversais (§5) como agregação. Só na tela.
+// relações por par (§8) e as regras transversais (§5) como agregação, que vão ao prompt como orientação (ADR 0062). A
+// proposta de agregação em código do FinMind (ADR 0066) vem do próprio agregador, separada do que é do David: só na tela.
 const PESOS_CAFE = {
   autoria: AUTORIA,
   descricao:
-    "os pesos fixos do v0 são descartados: \"devem ser zerados e recalibrados sob protocolo de simulação fora da amostra\". Sem peso por mês nem peso-base novo; cada fator traz o horizonte e a sazonalidade no texto.",
+    "os pesos fixos do v0 são descartados: \"devem ser zerados e recalibrados sob protocolo de simulação fora da amostra\". Sem peso por mês nem peso-base novo; cada fator traz o horizonte e a sazonalidade no texto. Os pesos por horizonte da proposta do FinMind (ADR 0066) não são do David.",
   pares: [
     {
       fatores: ["CAFE_CLIMA", "CAFE_SAFRA_BRASIL"],
       sentido: "Convergente estrutural",
       canal: "Anomalias hídricas ou térmicas (F1) afetam a produtividade e a carga do cafezal, sendo quantificadas posteriormente nos boletins de colheita da Conab (F2).",
       defasagem: "De 30 a 120 dias",
-      tratamento: "Filtro de precedência: dar peso primário ao F1 durante as fases fenológicas críticas; migrar gradualmente o peso para o F2 à medida que a colheita avança e os dados se tornam oficiais."
+      tratamento: "Filtro de precedência: dar peso primário ao F1 durante as fases fenológicas críticas; migrar gradualmente o peso para o F2 à medida que a colheita avança e os dados se tornam oficiais.",
+      noPrompt: "Item 6: o clima afeta a lavoura e a Conab quantifica a perda semanas ou meses depois; nas fases críticas, o clima é a informação mais nova; quando a Conab já revisou a safra, a revisão é o dado oficial. A defasagem vai sem número."
     },
     {
       fatores: ["CAFE_SAFRA_BRASIL", "CAFE_ESTOQUES"],
       sentido: "Inverso no balanço de passagem",
       canal: "Revisões expressivas na safra (F2) determinam o potencial de reconstituição dos estoques finais globais e de certificação em bolsa (F3).",
       defasagem: "De 60 a 180 dias",
-      tratamento: "Não somar os dois fatores como fontes de evidência concorrentes independentes; F3 atua como confirmação de F2."
+      tratamento: "Não somar os dois fatores como fontes de evidência concorrentes independentes; F3 atua como confirmação de F2.",
+      noPrompt: "Item 6: o mesmo choque na safra e nos estoques é um argumento só; os estoques confirmam a safra: confirmada, ela ganha firmeza; contradita, perde."
     },
     {
       fatores: ["CAFE_DOLAR", "CAFE_FUNDOS"],
       sentido: "Interação via fluxo externo",
       canal: "Oscilações fortes no Real impactam a arbitragem física/financeira e provocam realocação de risco por parte de fundos institucionais no KC.",
       defasagem: "De 5 a 15 pregões",
-      tratamento: "Testar defasagens cruzadas (Cross-Correlation Function). Não pressupor simultaneidade instantânea de posições."
+      tratamento: "Testar defasagens cruzadas (Cross-Correlation Function). Não pressupor simultaneidade instantânea de posições.",
+      noPrompt: "Item 9: câmbio e fundos podem interagir com alguns pregões de defasagem; quando andam juntos, não são evidências independentes. O teste de defasagem cruzada não é feito."
     },
     {
       fatores: ["CAFE_CUSTO_PRECO_MINIMO", "CAFE_SAFRA_BRASIL"],
       sentido: "Inverso em horizontes plurianuais",
       canal: "Erosão severa da rentabilidade com preços abaixo do custo operacional (F5) leva ao abandono de tratos culturais, reduzindo safras futuras (F2).",
       defasagem: "De 1 a 3 anos",
-      tratamento: "F5 deve ser restrito ao horizonte de longo prazo (>90 dias); o sinal não deve interferir em operações de curto prazo."
+      tratamento: "F5 deve ser restrito ao horizonte de longo prazo (>90 dias); o sinal não deve interferir em operações de curto prazo.",
+      noPrompt: "Item 1: o custo age sobre as safras seguintes, em anos; só informa o horizonte LONGO, e pouco."
     },
     {
       fatores: ["CAFE_JUROS", "CAFE_ESTOQUES"],
       sentido: "Inverso sobre o carry",
       canal: "Juros internacionais elevados encarecem o carregamento financeiro de mercadorias, estimulando a indústria a operar com estoques mínimos (just-in-time).",
       defasagem: "De 30 a 90 dias",
-      tratamento: "Analisar a curva a termo (contango vs. backwardation) para aferir a pressão sobre os estoques certificados da ICE."
+      tratamento: "Analisar a curva a termo (contango vs. backwardation) para aferir a pressão sobre os estoques certificados da ICE.",
+      noPrompt: "Item 10: juro e estoques certificados podem apontar a mesma força (o custo de carregar estoque). A curva a termo não está na base."
     }
   ],
   notaPares:
@@ -422,29 +429,46 @@ const PESOS_CAFE = {
       tratamento:
         "O estado Neutro é compulsório com dados corrompidos, incompletos ou indisponíveis; com a medida dentro da faixa de ruído; ou com conflito interno de variáveis sem priorização objetiva.",
       fatores: ["CAFE_CLIMA", "CAFE_SAFRA_BRASIL", "CAFE_ESTOQUES", "CAFE_DOLAR", "CAFE_CUSTO_PRECO_MINIMO", "CAFE_DEMANDA", "CAFE_FUNDOS", "CAFE_JUROS"],
-      noFinMind: { situacao: "PARCIAL", texto: "Cada fator sem dado ou sem histórico mínimo fica sem decisão, e dentro da faixa fica neutro. Não há agregação, então o conflito entre fatores não é tratado." }
+      noFinMind: {
+        situacao: "ORIENTACAO",
+        texto:
+          "No prompt: um fator sem dado, sem histórico mínimo ou dentro da faixa neutra é neutro, não sinal fraco; o conflito entre blocos, ou entre variáveis sem prioridade objetiva, reduz a confiança, sem a IA resolvê-lo. Na agregação do motor (ADR 0066, no prompt, bloco 3B): sem dado conta 0 e reduz a cobertura; o conflito entre as duas maiores contribuições vira LATERAL com confiança BAIXA."
+      }
     },
     {
       tema: "Dupla contagem: clima → safra → estoques",
       tratamento:
         "Choques que afetem os cafezais (F1) aparecem semanas depois nas revisões de safra (F2) e, depois, nos estoques (F3). O mesmo evento não pode acionar vários fatores no balanço geral.",
       fatores: ["CAFE_CLIMA", "CAFE_SAFRA_BRASIL", "CAFE_ESTOQUES"],
-      noFinMind: { situacao: "FORA", texto: "Cada fator decide sozinho. A precedência temporal fica para a agregação." }
+      noFinMind: {
+        situacao: "ORIENTACAO",
+        texto:
+          "No prompt (item 6): a cadeia vai como os pares F1 × F2 e F2 × F3 (card Relações entre os fatores, acima): o mesmo choque nos três é um argumento só. Na agregação do motor (ADR 0066, bloco 3B): a família Oferta é um voto, com F1 e F2 pelo maior módulo e o F3 como confirmação."
+      }
     },
     {
       tema: "Surpresa contra a expectativa",
       tratamento:
         "O impacto de um relatório depende da surpresa contra o consenso arquivado antes dele. Sem base de consenso, registrar só o sentido da revisão contra o vintage anterior, com peso direcional reduzido.",
       fatores: ["CAFE_SAFRA_BRASIL", "CAFE_DEMANDA"],
-      noFinMind: { situacao: "PARCIAL", texto: "O F2 lê a revisão contra o levantamento anterior. A expectativa do mercado (paga) não é coletada, e o peso não é reduzido." }
+      noFinMind: {
+        situacao: "ORIENTACAO",
+        texto:
+          "No prompt: a revisão da Conab é medida contra o levantamento anterior, sem a expectativa do mercado (paga, não coletada), e a IA lhe dá menos firmeza direcional do que o tamanho da revisão sugere. A agregação do motor (ADR 0066) não reduz o score do F2."
+      }
     },
     {
       tema: "Fundos como modificador de risco",
       tratamento: "O fator de posicionamento atua exclusivamente como modificador de risco contextual, sem voto fundamental independente.",
       fatores: ["CAFE_FUNDOS"],
-      noFinMind: { situacao: "PARCIAL", texto: "O F7 tem pressão própria na tela, com a nota de que não vota. Não há agregação que o use como modificador." }
+      noFinMind: {
+        situacao: "ORIENTACAO",
+        texto:
+          "No prompt: o COT não vota; o papel dele vai em posicionamentoCot (confirma, excesso, risco de reversão ou enfraquece), e sem catalisador de clima ou de safra o extremo pesa menos. Na agregação do motor (ADR 0066, bloco 3B): sem peso; no extremo contra a direção, a confiança desce um nível."
+      }
     }
-  ]
+  ],
+  agregacaoFinMind: resumoParaTela()
 };
 
 function obterMetodologiaCafe() {

@@ -41,7 +41,7 @@ async function listarParaAvaliacao({ ativo, desde, ate, versaoConfiguracao }) {
       "versao_configuracao",
       [
         sequelize.literal(
-          "jsonb_build_object('precoReferencia', entrada->'precoReferencia', 'referenciaHorizontes', entrada->'referenciaHorizontes', 'horizontes', entrada->'horizontes')"
+          "jsonb_build_object('precoReferencia', entrada->'precoReferencia', 'referenciaHorizontes', entrada->'referenciaHorizontes', 'horizontes', entrada->'horizontes', 'agregacaoMotor', entrada->'agregacaoMotor')"
         ),
         "entrada"
       ],

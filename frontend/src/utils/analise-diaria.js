@@ -180,3 +180,36 @@ export function realizadoDoHorizonte(realizado, formatarData) {
       return { apurado: false, nota: 'sem preço-base na leitura' }
   }
 }
+
+// Os nomes das famílias da agregação do motor (o café, ADR 0066).
+const FAMILIAS_MOTOR = { OFERTA: 'Oferta', CAMBIO: 'Câmbio', DEMANDA: 'Demanda', JUROS: 'Juros', CUSTOS: 'Custos' }
+const NUMERO = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const comSinal = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${NUMERO.format(Math.abs(n))}`
+
+// A leitura agregada do motor num horizonte, como o Centro de Decisão a mostra: a etiqueta (a mesma da IA), a confiança,
+// se a direção diverge da IA e o que a formou (cada família com peso e contribuição, o papel do F7, os motivos). Sem a
+// agregação gravada (outros ativos, leituras antigas) ou sem o horizonte, null. Só descreve o que foi gravado.
+export function leituraDoMotor(agregacaoMotor, codigoHorizonte, leituraIa = null) {
+  const h = (agregacaoMotor?.horizontes || []).find((x) => x.horizonte === codigoHorizonte)
+  if (!h) return null
+  const insuficiente = h.tendencia === 'INSUFICIENTE'
+  return {
+    etiqueta: etiquetaLeitura(h.tendencia, h.faixa),
+    confianca: h.confianca ? nivelConfianca(h.confianca) : null,
+    score: comSinal(h.score),
+    cobertura: `${Math.round(h.cobertura * 100)}%`,
+    diverge: Boolean(leituraIa && !insuficiente && leituraIa.tendencia !== 'INSUFICIENTE' && leituraIa.tendencia !== h.tendencia),
+    familias: h.familias.map((f) => ({
+      rotulo: FAMILIAS_MOTOR[f.codigo] || f.codigo,
+      texto: !f.ativa
+        ? 'fora deste horizonte (sem Conab recente)'
+        : f.ausente
+          ? `${Math.round(f.pesoEfetivo * 100)}%, sem dado`
+          : `${Math.round(f.pesoEfetivo * 100)}% × ${comSinal(f.score)} = ${comSinal(f.contribuicao)}`
+    })),
+    fundos: rotuloPapelCot(h.fundos),
+    conflito: h.conflito ? h.conflito.familias.map((c) => FAMILIAS_MOTOR[c] || c).join(' × ') : null,
+    motivos: h.motivosConfianca || [],
+    versao: agregacaoMotor.versao
+  }
+}

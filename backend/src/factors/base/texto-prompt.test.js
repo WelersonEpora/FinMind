@@ -104,3 +104,14 @@ test("fator de contexto (ADR 0054): A, B e D como os outros; sem a regra da pres
   );
   assert.match(t, /\nD — Validação histórica/);
 });
+
+test("sinal defasado (o F6 do milho): a data de efeito esperada, contada do período do dado, depois de C", () => {
+  const fator = { ...FATOR, efeitoDefasado: { mesesMin: 6, mesesMax: 12, sobre: "a safrinha seguinte" } };
+  const calculo = { apresentacao: APRESENTACAO, periodicidade: "MENSAL", parametros: PARAMETROS, origemParametros: null, simulacao: false };
+  const t = montarTextoPrompt({ ativo: "MILHO", fator, calculo, ponto: { ...PONTO, observedAt: "2026-09-01" } });
+  assert.match(
+    t,
+    /- Tendência: Estável\n- Sinal defasado: efeito esperado de mar\/2027 a set\/2027 \(6 a 12 meses depois do dado\), sobre a safrinha seguinte; fora dos horizontes desta leitura\.\n/
+  );
+  assert.doesNotMatch(texto(), /Sinal defasado/);
+});

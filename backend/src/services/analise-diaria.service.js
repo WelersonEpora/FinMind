@@ -115,7 +115,10 @@ function leituraGravada(ativo, registro) {
       t2: t2 ?? null,
       dataAlvo: dataReferenciaHorizontes && Number.isInteger(dias) ? somarDias(dataReferenciaHorizontes, dias) : null
     })),
-    leituras: registro.leituras
+    leituras: registro.leituras,
+    // A leitura agregada do motor que foi ao prompt (o café, ADR 0066), como ficou gravada; null nos outros ativos e nas
+    // leituras anteriores a ela.
+    agregacaoMotor: entrada.agregacaoMotor ?? null
   };
 }
 

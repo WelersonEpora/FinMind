@@ -45,6 +45,22 @@ function trimestre(iso) {
   return `${Math.floor((Number(iso.slice(5, 7)) - 1) / 3) + 1}º/${iso.slice(0, 4)}`;
 }
 
+const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// "abr/2027": o mês de uma data (AAAA-MM-DD) somado de `meses`.
+function mesDepois(iso, meses) {
+  const total = Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7)) - 1 + meses;
+  return `${MESES_CURTOS[total % 12]}/${Math.floor(total / 12)}`;
+}
+
+// A data de efeito de um sinal defasado (metodologia-base.js, `efeitoDefasado`), contada do período do dado.
+function linhaEfeitoDefasado(efeito, observedAt) {
+  return (
+    `- Sinal defasado: efeito esperado de ${mesDepois(observedAt, efeito.mesesMin)} a ${mesDepois(observedAt, efeito.mesesMax)} ` +
+    `(${efeito.mesesMin} a ${efeito.mesesMax} meses depois do dado), sobre ${efeito.sobre}; fora dos horizontes desta leitura.`
+  );
+}
+
 function periodoDoPonto(observedAt, periodicidade) {
   if (periodicidade === "MENSAL") return `Mês de ${dataBr(observedAt).slice(3)}`;
   if (periodicidade === "TRIMESTRAL") return `Trimestre de ${trimestre(observedAt)}`;
@@ -151,6 +167,7 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
         `- Tendência: ${d.tendencia ? r.tendencia[d.tendencia] : "não calculada"}`
       );
     }
+    if (fator.efeitoDefasado) linhas.push(linhaEfeitoDefasado(fator.efeitoDefasado, ponto.observedAt));
   }
 
   // A validação histórica vale com ou sem ponto na data: é sobre a relação do fator com o preço, não sobre o dia.

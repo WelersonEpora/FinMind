@@ -27,6 +27,9 @@ const { FATORES } = require("./fatores-fel1");
 //              cálculo (A e B) continua e vai ao prompt, mas sem leitura própria (nem pressão, nem intensidade): ele
 //              explica o outro fator e não conta a favor nem contra (ex.: a inflação do ouro, contexto do juro real,
 //              ADR 0054).
+//   efeitoDefasado - (opcional) { mesesMin, mesesMax, sobre }: SINAL DEFASADO, pela regra do especialista (ex.: o F6 do
+//              milho age sobre a safrinha seguinte, de 6 a 12 meses depois). O bloco do fator no prompt ganha a data de
+//              efeito esperada, contada do período do dado (texto-prompt.js).
 //   decisoes - (opcional) o que o especialista já decidiu sobre o fator, com a data e o ADR: sai das `perguntas`.
 // O cálculo de um fator (camadas A, B e C simulada) fica em `factors/` e é ligado a ele em metodologia-ativo.service.js.
 //
@@ -47,16 +50,24 @@ const { FATORES } = require("./fatores-fel1");
 //                ativo; null na diagonal] }, observacoes, leitura }. Simétrica: um símbolo diferente entre A×B e B×A
 //                é erro de transcrição.
 //   pares      - (opcional, no lugar da matriz ou junto) as relações por par: { fatores: [A, B], sentido, canal,
-//                defasagem, tratamento }, como o especialista escreveu; `notaPares`, uma ressalva sobre elas.
+//                defasagem, tratamento, noPrompt? }, como o especialista escreveu; `noPrompt`: o item do prompt diário e a
+//                frase que leva o par (o café, ADR 0062); `notaPares`, uma ressalva sobre elas.
 //   agregacao  - as regras de agregação, cada uma { tema, tratamento, fatores, noFinMind: { situacao, texto } }:
 //                como a regra está hoje no FinMind (orientação no prompt, parcial ou fora do motor).
 //   noPrompt   - (opcional) { autorizacao, mesSemDefinicao }: o calendário vai ao prompt diário como uma tabela fixa (o
 //                milho, ADR 0065), com quem autorizou e o que vale no mês que o especialista não definiu. Mudar o que vai
 //                ao prompt sobe a `versao` da metodologia.
+//   agregacaoFinMind - (opcional) a proposta de agregação em código do FinMind, separada da do especialista (o café,
+//                ADR 0066): { versao, situacao, adr, descricao, horizontes, familias: [{ codigo, rotulo,
+//                fatores, magnitudeFel1, pesos: { HORIZONTE: % }, composicao }], modificador, regras: [{ regra,
+//                origem: DAVID | DERIVADA | PROPOSTA, fonte, prompt }] }; `prompt`: a frase exata que vai ao prompt. Vem do agregador (factors/agregacao/), nunca escrita à mão.
 
 const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
+const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const PESOS = ["Alto", "Médio", "Baixo"];
 const SITUACAO_AGREGACAO = { ORIENTACAO: "ORIENTACAO", PARCIAL: "PARCIAL", FORA: "FORA" };
+// A origem de cada regra da agregação do FinMind (ADR 0066): do especialista, derivada do estudo, ou proposta do FinMind.
+const ORIGENS_REGRA = ["DAVID", "DERIVADA", "PROPOSTA"];
 
 // As definições de um ativo -> os fatores com o nome e o peso do FEL 1. Um código fora do catálogo, ou de outro
 // ativo, é erro de programação.
@@ -78,7 +89,8 @@ function montarFatores(ativo, definicoes) {
       perguntas: definicao.perguntas,
       decisoes: definicao.decisoes || [],
       evento: definicao.evento || null,
-      contextoDe: definicao.contextoDe || null
+      contextoDe: definicao.contextoDe || null,
+      efeitoDefasado: definicao.efeitoDefasado || null
     };
   });
 }
@@ -116,20 +128,27 @@ function mesesDoFator(codigo, meses, condicoes = []) {
 // (ou o peso fixo, ou o papel) e as notas. `F1`...`Fn` na ordem do ativo, como o especialista numera.
 function montarPesoFator(fator, indice, definicao) {
   const base = { codigo: fator.codigo, sigla: `F${indice + 1}`, nome: fator.nome, pesoFel1: fator.peso };
-  if (!definicao) return { ...base, sugestao: null, meses: null, fixo: null, papel: null, condicoes: [], notas: [] };
+  if (!definicao) return { ...base, sugestao: null, meses: null, fixo: null, papel: null, condicoes: [], noPrompt: [], notas: [] };
   const formas = ["meses", "fixo", "papel"].filter((chave) => definicao[chave]);
   if (formas.length !== 1) throw new Error(`${fator.codigo}: o peso precisa de um entre meses, fixo e papel`);
   if (definicao.fixo && !PESOS.includes(definicao.fixo)) throw new Error(`${fator.codigo}: peso fixo desconhecido: ${definicao.fixo}`);
   const condicoesSemMes = (definicao.condicoes || []).filter((c) => !c.meses).map((c) => c.texto);
+  const sigla = base.sigla;
+  // O que do fator vai ao prompt além do peso do mês, linha a linha, como vai (ADR 0065): as condições com os meses e as
+  // sem mês. O prompt (prompt-diario.service.js::blocoPesos) e a tela (coluna "Hoje no FinMind") usam estas linhas.
+  const comMes = (definicao.condicoes || [])
+    .filter((c) => c.meses)
+    .map((c) => `${sigla} (${c.meses.map((m) => MESES_CURTOS[m - 1]).join(", ")}): ${c.texto}`);
   return {
     ...base,
     sugestao: definicao.sugestao || null,
     meses: definicao.meses ? mesesDoFator(fator.codigo, definicao.meses, definicao.condicoes) : null,
     fixo: definicao.fixo || null,
     papel: definicao.papel || null,
-    // As condições sem mês, à parte para o prompt (ADR 0065); na tela, elas abrem as notas.
     condicoes: condicoesSemMes,
-    notas: [...condicoesSemMes, ...(definicao.notas || [])]
+    noPrompt: [...comMes, ...condicoesSemMes.map((texto) => `${sigla}: ${texto}`)],
+    // Só a explicação do especialista: as condições estão em `noPrompt`.
+    notas: definicao.notas || []
   };
 }
 
@@ -168,6 +187,13 @@ function montarPesos(ativo, fatores, pesos) {
   if (pesos?.noPrompt && !(pesos.noPrompt.autorizacao && pesos.noPrompt.mesSemDefinicao)) {
     throw new Error(`${ativo}: pesos no prompt sem a autorização ou sem a regra do mês não definido`);
   }
+  const proposta = pesos?.agregacaoFinMind;
+  if (proposta) {
+    const foraDoAtivo = proposta.familias.flatMap((f) => f.fatores).concat(proposta.modificador ? [proposta.modificador.fator] : []).filter((c) => !codigos.includes(c));
+    if (foraDoAtivo.length) throw new Error(`${ativo}: agregação do FinMind com fator fora do ativo: ${foraDoAtivo.join(", ")}`);
+    if (proposta.regras.some((r) => !ORIGENS_REGRA.includes(r.origem))) throw new Error(`${ativo}: agregação do FinMind com regra sem origem`);
+    if (proposta.regras.some((r) => !r.prompt)) throw new Error(`${ativo}: agregação do FinMind com regra que não vai ao prompt`);
+  }
   for (const regra of pesos?.agregacao || []) {
     const desconhecidos = regra.fatores.filter((codigo) => !codigos.includes(codigo));
     if (desconhecidos.length) throw new Error(`${ativo}: agregação "${regra.tema}" com fator fora do ativo: ${desconhecidos.join(", ")}`);
@@ -183,7 +209,8 @@ function montarPesos(ativo, fatores, pesos) {
     pares: pesos?.pares || [],
     notaPares: pesos?.notaPares || null,
     agregacao: pesos?.agregacao || [],
-    noPrompt: pesos?.noPrompt || null
+    noPrompt: pesos?.noPrompt || null,
+    agregacaoFinMind: proposta || null
   };
 }
 
