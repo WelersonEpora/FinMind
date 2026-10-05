@@ -25,7 +25,8 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v4 (2026-10-05): a condição da previsão do NOAA/CPC entra no F1 (ADR 0068, decisão do usuário); a pergunta sai.
 // v5 (2026-10-05): a validação histórica do F1 contra o preço do milho americano do FMI (ADR 0069); a pergunta sai.
 // v6 (2026-10-05): as perguntas do F2 viram decisões; o VHI de MT e do PR vai ao F2 como contexto (ADR 0070).
-const VERSAO = 6;
+// v7 (2026-10-05): as perguntas do F3 viram decisões; a validação contra Chicago; o Brasil (Conab) como contexto (ADR 0071).
+const VERSAO = 7;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -121,18 +122,18 @@ const DEFINICOES = [
     },
     evento: { janelaDias: 7 },
     dados: {
-      observaveis: ["WASDE_MILHO_EUA", "WASDE_MILHO_PAISES", "CONAB_MILHO_BALANCO"],
+      observaveis: ["WASDE_MILHO_EUA", "WASDE_MILHO_PAISES", "CONAB_MILHO_BALANCO", "MILHO_PRECO_FMI"],
       eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para medir o fator: o WASDE tem todas as edições desde 2011, com as revisões, e o estoque/uso dos EUA tem 10 safras anteriores a partir das edições de 2018. Contra o Indicador CEPEA/ESALQ (R$/saca, 95 edições de set/2018 a set/2026), o NÍVEL não antecipa o preço em reais e o sinal sai ao contrário do FEL 1: a posição do estoque/uso contra a mediana tem +0,44 com o indicador 90 dias depois (+0,50 de 2018 a 2021; +0,34 de 2022 a 2026) e -0,08 com os 90 dias anteriores. A REVISÃO tem o sentido esperado, fraco: -0,16 com o indicador 30 dias depois (estoque revisado para baixo, preço depois mais alto). Pela regra, nas edições com pressão de alta o indicador subiu em 16 de 23 casos em 90 dias (média +1,3%), mas com pressão de baixa também subiu em 17 de 30 (+2,5%). O preço em reais mistura o dólar e o mercado interno; contra Chicago (o ZC, pago) a relação pode ser outra."
+          "Suficiente para medir o fator: o WASDE tem todas as edições desde 2011, com as revisões, e o estoque/uso dos EUA tem 10 safras anteriores a partir das edições de 2018. Contra o preço do milho americano (FMI, mensal, em dólar; 186 edições de 2011 a 2026), o fator confirma o sentido do FEL 1 JUNTO com o preço: o estoque/uso dos EUA tem -0,25 com a variação dos 3 meses até o mês da edição, a posição no percentil -0,27 e a revisão do estoque final -0,35 (estoque revisado para baixo, preço mais alto); o mundo menos a China, -0,25. Mas NÃO antecipa: de 1 a 3 meses depois, todas ficam entre +0,02 e +0,10, e pela regra o preço subiu em 13 de 24 edições com pressão de alta e em 18 de 31 com pressão de baixa (o WASDE é público e o mercado o precifica no dia). No preço brasileiro (Indicador CEPEA/ESALQ em reais, 95 edições de set/2018 a set/2026) nem o sentido aparece: o nível tem +0,44 com o indicador 90 dias depois, o sentido contrário; só a revisão tem o sentido esperado, fraco (-0,16 em 30 dias). O fator descreve o balanço americano já refletido em Chicago; não antecipa o preço."
       },
       lacunas: [
         "A expectativa dos analistas antes do WASDE (pesquisa Reuters ou Bloomberg, a surpresa) não é coletada: é paga. A revisão contra a edição anterior é o substituto.",
         "O mundo menos a China só existe no WASDE a partir das edições de 2019 (safra 2017/18): o percentil de 10 safras dele só a partir da safra 2027/28. Vai como nível, de contexto.",
-        "O balanço da Conab (estoque/uso do Brasil, que a regra também cita) ainda não entra no cálculo.",
-        "Sem o ZC, a validação é contra o preço em reais, não contra Chicago."
+        "O balanço da Conab (estoque/uso do Brasil, que a regra também cita) tem as safras desde 2018/19, publicadas desde fev/2025: menos que as 10 do percentil. Vai como contexto, fora da conta (ADR 0071).",
+        "A validação contra Chicago é mensal (o preço do FMI, ADR 0069): um teste no dia da edição depende do ZC, que é pago."
       ]
     },
     proposta: {
@@ -146,10 +147,11 @@ const DEFINICOES = [
         baixa: "R-EST-02 v0: estoque/uso no percentil 75 ou acima, ou revisão do estoque final de 3% ou mais para cima (ou acima da expectativa) → pesa para baixa."
       }
     },
-    perguntas: [
-      "Quando o estoque/uso dos EUA e o do mundo menos a China divergem, qual decide? A v1 usa os EUA (Chicago) e mostra o mundo como contexto.",
-      "No histórico em reais, o nível do estoque/uso não antecipou o Indicador ESALQ (até andou ao contrário); só a revisão teve o sentido esperado. O nível continua dando direção, ou vira contexto e a revisão decide?",
-      "A regra do Brasil (estoque/uso da Conab) entra junto, com que peso?"
+    perguntas: [],
+    decisoes: [
+      "Região que decide (usuário, 2026-10-05, ADR 0071): os EUA (Chicago). O mundo menos a China vai como contexto; o percentil de 10 safras dele só existe a partir de 2027/28, e contra o preço americano ele se comporta como os EUA (-0,25 junto com o preço).",
+      "Nível e revisão (usuário, 2026-10-05, ADR 0071): os dois seguem dando direção, como na regra do especialista. Contra o preço americano do FMI, os dois têm o sentido do FEL 1 junto com o preço e nenhum antecipa; a validação histórica do prompt diz isso.",
+      "Brasil, Conab (usuário, 2026-10-05, ADR 0071): o estoque/uso da safra mais nova vai ao prompt e à tela como contexto, fora da conta, até a base ter as 10 safras do percentil (hoje tem 8)."
     ]
   },
   {

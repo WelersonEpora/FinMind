@@ -2,7 +2,7 @@
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { SERIES, PARAMETROS_PADRAO, METODOLOGIA, percentil, decidirEstoques, derivarEstoquesMilho } = require("./estoques-milho-wasde.factor");
+const { SERIES, SERIES_CONAB, PARAMETROS_PADRAO, METODOLOGIA, percentil, decidirEstoques, derivarEstoquesMilho } = require("./estoques-milho-wasde.factor");
 const { montarTextoPrompt } = require("./base/texto-prompt");
 
 const linha = (seriesCode, observedAt, value, edicao) => ({
@@ -102,4 +102,22 @@ test("o texto do prompt traz a 2ª condição da regra com o limiar em uso", () 
   });
   assert.match(texto, /revisão do estoque final dos EUA contra a edição anterior, de 4,0% ou mais/);
   assert.match(texto, /Mês de 08\/2025/);
+});
+
+test("o estoque/uso do Brasil (Conab) vai como contexto (ADR 0071): o boletim antes da edição seguinte, sem mudar a decisão", () => {
+  const wasde = [...edicaoCompleta("2026-08-12", 150), ...edicaoCompleta("2026-09-11", 140)];
+  const linhasConab = [
+    linha(SERIES_CONAB.estoque, "2025-09-01", 12000, "2026-08-14"),
+    linha(SERIES_CONAB.demanda, "2025-09-01", 120000, "2026-08-14"),
+    // O boletim de setembro sai depois da edição de setembro do WASDE: só a de setembro (a última) o vê.
+    linha(SERIES_CONAB.estoque, "2025-09-01", 15654, "2026-09-15"),
+    linha(SERIES_CONAB.demanda, "2025-09-01", 142119, "2026-09-15")
+  ];
+  const semConab = derivarEstoquesMilho(wasde);
+  const [agosto, setembro] = derivarEstoquesMilho(wasde, { linhasConab });
+  assert.equal(agosto.estoqueUsoBrasil, "10,00% (safra 2025/26)");
+  assert.match(agosto.estoqueUsoBrasilDetalhe, /^Estoque final de 12\.000 mil t ÷ demanda total de 120\.000 mil t, Conab de 14\/08\/2026\. Só contexto/);
+  assert.equal(setembro.estoqueUsoBrasil, "11,01% (safra 2025/26)");
+  assert.deepEqual(setembro.decisao, semConab.at(-1).decisao);
+  assert.equal(semConab.at(-1).estoqueUsoBrasil, null);
 });

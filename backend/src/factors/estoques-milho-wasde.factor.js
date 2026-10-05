@@ -11,6 +11,8 @@ const faixa = require("./base/decisao-por-faixa");
 //   observáveis (observation), uma edição do WASDE por mês (ADR 0015), cada série com todas as revisões:
 //     WASDE.MILHO.EUA.ENDING_STOCKS / USE_TOTAL                         - EUA, milhões de bushels
 //     WASDE.MILHO.MUNDO.<WORLD|WORLD_LESS_CHINA>.ENDING_STOCKS / DOMESTIC_TOTAL / EXPORTS / IMPORTS - milhões de t
+//   e, só como CONTEXTO, fora da conta (ADR 0071), o balanço da Conab, mensal, desde fev/2025 (safras desde 2018/19):
+//     CONAB.MILHO.BALANCO.ESTOQUE_FINAL / DEMANDA_TOTAL - Brasil, mil t
 //   fator (calculado sob demanda, NUNCA gravado), um ponto por EDIÇÃO (o que ela dizia, com o que se sabia nela):
 //     A. o estoque/uso da safra mais nova da edição (a projeção): estoque final ÷ uso total, em %. EUA: o uso total
 //        do WASDE. Mundo e mundo menos a China: consumo interno + exportação - importação (no mundo, as duas se anulam;
@@ -24,12 +26,14 @@ const faixa = require("./base/decisao-por-faixa");
 //        intensidade FORTE com os dois no mesmo sentido ou no P10/P90 (posição 40 ou mais), MODERADA com um só;
 //        tendência pela posição de 3 edições antes
 //
-// A região do nível é a dos EUA (o mercado de Chicago, que chega ao CCM pela paridade); o mundo e o mundo menos a
-// China vão na camada B como contexto, e qual decide quando divergem é pergunta ao David. Propriedades: determinístico,
-// versionado, point-in-time (cada edição só com o que já tinha sido publicado), sem IA.
+// A região do nível é a dos EUA (o mercado de Chicago, que chega ao CCM pela paridade); o mundo, o mundo menos a China
+// e o Brasil (Conab) vão na camada B como contexto (decisão do usuário, ADR 0071: os EUA decidem; o Brasil entra na
+// conta quando houver as 10 safras do percentil). Propriedades: determinístico, versionado, point-in-time (cada edição
+// só com o que já tinha sido publicado), sem IA.
 
 const FACTOR_ID = "estoques_milho_wasde";
-const FACTOR_VERSION = 1;
+// v2 (2026-10-05): o estoque/uso do Brasil (Conab) como contexto, fora da conta (ADR 0071).
+const FACTOR_VERSION = 2;
 
 const PREFIXO_EUA = "WASDE.MILHO.EUA";
 const PREFIXO_MUNDO = "WASDE.MILHO.MUNDO";
@@ -44,6 +48,11 @@ const SERIES = Object.freeze({
 });
 
 const SAFRAS_PERCENTIL = 10;
+
+// O contexto do Brasil (ADR 0071): o balanço da Conab, lido à parte (o WASDE agrupa as edições pela publicação).
+const SERIES_CONAB = Object.freeze({ estoque: "CONAB.MILHO.BALANCO.ESTOQUE_FINAL", demanda: "CONAB.MILHO.BALANCO.DEMANDA_TOTAL" });
+// Um boletim da Conab só entra se for de até 60 dias antes do limite (a Conab publica todo mês).
+const DIAS_CONAB_RECENTE = 60;
 
 // Padrões (2026-10-04). Do David (R-EST v0): o P25/P75 (posição 25) e a revisão de 3%. Do FinMind: o forte no P10/P90
 // (posição 40) e a tendência (3 edições, 20 pontos de percentil). A janela da tendência é em EDIÇÕES (a chave é a dos
@@ -159,10 +168,44 @@ function decidirEstoques(posicao, posicaoAnterior, revisaoPct, parametros) {
   };
 }
 
-// Função PURA: recebe as linhas de obterVersoesAsOf() (todas as versões, em ordem de publicação) e devolve um ponto por
-// edição (a data da publicação). Uma edição que não mudou nenhuma destas séries não aparece (diria o mesmo que a
-// anterior).
-function derivarEstoquesMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO } = {}) {
+const dataBr = (iso) => iso.split("-").reverse().join("/");
+const milT = (v) => v.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+
+// O estoque/uso do Brasil que valia numa edição do WASDE, só contexto: o boletim da Conab mais recente publicado antes de
+// `limite` (quando a edição seguinte saiu; null = a última, até o asOf), a safra mais nova dele. null sem boletim recente.
+function contextoBrasil(linhasConab, observedAt, limite) {
+  const ate = limite ? new Date(limite) : null;
+  // O boletim precisa ser recente: até 60 dias antes do limite (ou da edição, na última).
+  const corte = (ate || new Date(`${observedAt}T00:00:00Z`)).getTime() - DIAS_CONAB_RECENTE * 86400000;
+  const valores = new Map();
+  let boletim = null;
+  for (const linha of linhasConab) {
+    const em = new Date(linha.publishedAt);
+    if (ate && em >= ate) continue;
+    const chave = `${linha.seriesCode}|${linha.observedAt}`;
+    const atual = valores.get(chave);
+    if (!atual || em > atual.em) valores.set(chave, { em, valor: linha.value });
+    if (!boletim || em > boletim) boletim = em;
+  }
+  if (!boletim || boletim.getTime() < corte) return { estoqueUsoBrasil: null, estoqueUsoBrasilDetalhe: null };
+  const safras = [...valores.keys()].filter((k) => k.startsWith(SERIES_CONAB.estoque)).map((k) => k.split("|")[1]).sort();
+  const safra = safras.at(-1);
+  const estoque = valores.get(`${SERIES_CONAB.estoque}|${safra}`)?.valor;
+  const demanda = valores.get(`${SERIES_CONAB.demanda}|${safra}`)?.valor;
+  if (estoque === undefined || !demanda) return { estoqueUsoBrasil: null, estoqueUsoBrasilDetalhe: null };
+  const estoqueUso = arredondar((estoque / demanda) * 100, 2);
+  return {
+    estoqueUsoBrasil: `${estoqueUso.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% (safra ${rotuloSafra(safra)})`,
+    estoqueUsoBrasilDetalhe:
+      `Estoque final de ${milT(estoque)} mil t ÷ demanda total de ${milT(demanda)} mil t, Conab de ${dataBr(boletim.toISOString().slice(0, 10))}. ` +
+      `Só contexto, fora da conta: a base tem as safras desde 2018/19, menos que as 10 do percentil da regra.`
+  };
+}
+
+// Função PURA: recebe as linhas de obterVersoesAsOf() do WASDE (todas as versões, em ordem de publicação) e, como
+// contexto, as da Conab, e devolve um ponto por edição do WASDE (a data da publicação). Uma edição que não mudou
+// nenhuma das séries do WASDE não aparece (diria o mesmo que a anterior).
+function derivarEstoquesMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO, linhasConab = [] } = {}) {
   const porEdicao = new Map();
   for (const linha of linhasVersoes) {
     const edicao = new Date(linha.publishedAt).toISOString().slice(0, 10);
@@ -173,14 +216,15 @@ function derivarEstoquesMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO } 
   const estado = new Map();
   const pontos = [];
   let anterior = null;
-  for (const edicao of [...porEdicao.keys()].sort()) {
+  const edicoes = [...porEdicao.keys()].sort();
+  edicoes.forEach((edicao, indice) => {
     for (const linha of porEdicao.get(edicao)) {
       if (!estado.has(linha.seriesCode)) estado.set(linha.seriesCode, new Map());
       estado.get(linha.seriesCode).set(linha.observedAt, linha.value);
     }
     const safras = [...(estado.get(SERIES.euaEstoque)?.keys() || [])].sort();
     const safra = safras.at(-1);
-    if (!safra) continue;
+    if (!safra) return;
 
     const eua = nivelComPercentil(estado, safra, estoqueUsoEua);
     const exChina = nivelComPercentil(estado, safra, (e, s) => estoqueUsoMundo(e, "WORLD_LESS_CHINA", s));
@@ -206,20 +250,24 @@ function derivarEstoquesMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO } 
       percentilExChina: exChina.percentil,
       estoqueUsoMundoPct: mundo.valor,
       percentilMundo: mundo.percentil,
+      ...contextoBrasil(linhasConab, edicao, edicoes[indice + 1] ? porEdicao.get(edicoes[indice + 1])[0].publishedAt : null),
       decisao: decidirEstoques(posicao, posicaoAnterior, revisao, parametros),
       disponivelEm: porEdicao.get(edicao)[0].publishedAt,
       disponivelEmEhEstimado: porEdicao.get(edicao)[0].publishedAtIsEstimated
     };
     pontos.push(ponto);
     anterior = { safra, estoqueFinalEua: estoqueFinal };
-  }
+  });
   return pontos;
 }
 
 async function calcularEstoquesMilho({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
-  const linhas = await servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES), asOf }, deps);
-  return derivarEstoquesMilho(linhas, { parametros });
+  const [linhas, linhasConab] = await Promise.all([
+    servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES), asOf }, deps),
+    servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES_CONAB), asOf }, deps)
+  ]);
+  return derivarEstoquesMilho(linhas, { parametros, linhasConab });
 }
 
 // --- Camada C: explicação e exemplos ------------------------------------------------------------------------------
@@ -304,7 +352,8 @@ const APRESENTACAO = {
     { camada: "B", rotulo: "Revisão do estoque final dos EUA contra a edição anterior", campo: "revisaoEstoqueEuaPct", casas: 2, sinal: true, unidadeValor: "%" },
     // Sem o percentil: o WASDE só tem o mundo menos a China desde a safra 2017/18 (10 safras anteriores em 2027/28).
     { camada: "B", rotulo: "Estoque/uso do mundo menos a China (contexto)", campo: "estoqueUsoExChinaPct", casas: 2, unidadeValor: "%" },
-    { camada: "B", rotulo: "Estoque/uso do mundo (contexto)", campo: "estoqueUsoMundoPct", casas: 2, unidadeValor: "%", secundario: { prefixo: "percentil", campo: "percentilMundo", casas: 0 } }
+    { camada: "B", rotulo: "Estoque/uso do mundo (contexto)", campo: "estoqueUsoMundoPct", casas: 2, unidadeValor: "%", secundario: { prefixo: "percentil", campo: "percentilMundo", casas: 0 } },
+    { camada: "B", rotulo: "Estoque/uso do Brasil, Conab (contexto, fora da conta)", campo: "estoqueUsoBrasil", detalhe: "estoqueUsoBrasilDetalhe" }
   ],
   graficoAB: {
     titulo: "Estoque/uso da safra de cada edição do WASDE (A), EUA e mundo menos a China, em %",
@@ -334,7 +383,7 @@ const APRESENTACAO = {
   ],
   // A 2ª condição da regra, no texto do prompt (texto-prompt.js), com os parâmetros em uso.
   regraAdicional:
-    "pressão também pela revisão do estoque final dos EUA contra a edição anterior, de {limiarRevisaoPct}% ou mais (para baixo, de alta; para cima, de baixa); nível e revisão em sentidos opostos dão neutra, no mesmo sentido dão forte",
+    "pressão também pela revisão do estoque final dos EUA contra a edição anterior, de {limiarRevisaoPct}% ou mais (para baixo, de alta; para cima, de baixa); nível e revisão em sentidos opostos dão neutra, no mesmo sentido dão forte; decidem os EUA: o mundo, o mundo menos a China e o Brasil (Conab) são contexto",
   exemplos: { colunaValor: "Posição (pontos)" },
   nota:
     "Mensal, não é tempo real: o USDA publica o WASDE por volta do dia 10, ao meio-dia de Nova York. A safra é a mais " +
@@ -356,6 +405,7 @@ module.exports = {
   FACTOR_ID,
   FACTOR_VERSION,
   SERIES,
+  SERIES_CONAB,
   PARAMETROS_PADRAO,
   METODOLOGIA,
   percentil,
