@@ -19,7 +19,8 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 
 // v1 (2026-10-04): os 8 fatores do Motor do Café v1, todos calculados com a calibração do FinMind.
 // v2 (2026-10-05): o vencimento do ICF de cada horizonte e a curva no prompt; a pergunta sai (ADR 0078).
-const VERSAO = 2;
+// v3 (2026-10-05): as faixas calibradas ficam; a pergunta sai (ADR 0079).
+const VERSAO = 3;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
@@ -360,13 +361,13 @@ const DO_ATIVO = {
     `Formato da leitura da IA: tendência por horizonte, com as faixas calibradas (como nos outros ativos), não recomendação de compra ou venda. ${DECISAO_COMITE}.`,
     `Preço de referência no prompt e no Centro de Decisão: o ICF da B3 (US$/saca), o vencimento mais próximo negociado, sem emendar contratos; o KC da ICE fica fora (pago). ${DECISAO_COMITE}.`,
     "Vencimento de cada horizonte: o mais próximo que ainda negocia depois da data-alvo (vale até o dia 15 do mês de vencimento), e a leitura e a avaliação do horizonte usam esse contrato; a curva vai ao prompt. Com o mais próximo para todos, o contrato vencia antes da data-alvo em 78% dos dias no horizonte de 90 dias. Liquidez mínima de 100 contratos negociados no dia, só com aviso: no ICF, pouco líquido, o aviso sai em cerca de um quarto dos dias. Usuário (Welerson), 2026-10-05 (ADR 0078).",
+    "Faixas da leitura da IA: ficam as calibradas no próprio ICF (percentis 40 e 80 da variação, por horizonte), não as 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%): no ICF, em 90 dias 60% das variações seriam \"excepcional\", e em 1 dia 85% caem nas duas primeiras classes, enquanto as calibradas dão cerca de 40% lateral, 40% leve e 20% forte em todos os horizontes. Usuário (Welerson), 2026-10-05 (ADR 0079).",
     `Horizontes em dias corridos (1, 7, 30 e 90), contados da data da análise, como nos outros ativos (o estudo conta em pregões). ${DECISAO_COMITE}.`,
     `Eventos por fator: o David pediu avaliar a leitura de eventos também no café (P12, ADR 0055). Cada fator recebe os eventos que a leitura diária por IA marca com ele (7 dias de janela; 30 na demanda), sem validação humana por ora, e eles vão ao prompt depois do cálculo. ${DECISAO_COMITE}.`,
     "O WASDE não cobre café: o balanço do USDA para o café é o PSD (Coffee: World Markets and Trade). David, 2026-10-03 (P14, ADR 0055).",
     "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET espera o índice do David; o diário de Londres e do KC, orçamento e licença; o diferencial FOB não tem fonte pública."
   ],
   perguntas: [
-    "Faixas da leitura da IA: hoje são os percentis 40 e 80 do ICF no vencimento mais próximo (2022 a 2026, um período de alta forte), por horizonte. Ficam, ou o Comitê prefere outra régua?",
     "Pesos e agregação: o estudo descarta os pesos fixos e a matriz do v0 e propõe regras transversais (neutralidade mandatória com dados faltando ou conflito; controle de dupla contagem F1 → F2 → F3; surpresa contra a expectativa). O prompt da IA já leva essas regras como orientação (e o peso do FEL 1 como o único na base). A agregação em código do FinMind, com famílias e peso por horizonte (ADR 0066), está em produção desde 2026-10-05 (no prompt e no Centro de Decisão), por decisão do usuário: a validação dela é do Comitê.",
     "INMET (F1): qual índice? Geada (temperatura mínima horária de maio a agosto em Varginha, Patrocínio, Franca e Caldas, com qual limiar) ou chuva e balanço hídrico contra a climatologia? A coleta só começa com o índice definido.",
     "Vale a mesma régua para o milho? O estudo critica pesos fixos e limiares sem teste, o que também se aplica ao Motor do Milho v0, já aprovado."
