@@ -24,7 +24,8 @@ const fatorSelecionado = ref(null)
 // O modal do que vale para o ativo inteiro (preço de referência, leitura da IA): decisões e pendências.
 const ativoAberto = ref(false)
 
-const ativo = computed(() => (route.params.ativo || 'PETROLEO').toUpperCase())
+// Sem ativo na URL, o 1º da lista, como no Centro de Decisão.
+const ativo = computed(() => (route.params.ativo || 'OURO').toUpperCase())
 const metodologia = computed(() => resposta.value?.metodologia || null)
 // No card do ativo, a 1ª decisão (o preço de referência) até o primeiro ponto final ou dois-pontos de detalhe.
 const resumoDoAtivo = computed(() => {

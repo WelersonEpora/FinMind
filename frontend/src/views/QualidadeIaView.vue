@@ -51,7 +51,7 @@ const qualidade = ref(null)
 const periodo = ref('90')
 const versao = ref('TODAS')
 
-// A tabela de auditoria: o horizonte e "só as avaliadas" vêm do botão de cada card ou dos filtros dela.
+// A tabela de auditoria: o horizonte e "só as da métrica" vêm do botão de cada card ou dos filtros dela.
 const horizonteTabela = ref('TODOS')
 const somenteAvaliadas = ref(false)
 const tamanhoPagina = ref(20)
@@ -118,7 +118,7 @@ function selecionarAtivo(ativo) {
   router.replace({ query: { ativo } })
 }
 
-// "Ver as linhas": a tabela abaixo, filtrada nas linhas que formaram os números do card (ou, sem nenhuma avaliada, em
+// "Ver as linhas": a tabela abaixo, filtrada nas linhas que formaram os números do card (ou, sem nenhuma na métrica, em
 // todas as do horizonte, com o motivo de cada uma estar fora).
 async function verLinhas(horizonte, soAvaliadas) {
   horizonteTabela.value = horizonte
@@ -209,7 +209,7 @@ watch([periodo, versao], carregar)
                   <span class="celula__dias">{{ celula.dias }} dia{{ celula.dias > 1 ? 's' : '' }}</span>
                 </h2>
                 <span class="celula__n">
-                  <strong>{{ celula.n }}</strong> avaliada{{ celula.n === 1 ? '' : 's' }}
+                  <strong>{{ celula.n }}</strong> na métrica
                 </span>
               </header>
               <p class="celula__cobertura">
@@ -275,7 +275,7 @@ watch([periodo, versao], carregar)
                   {{ visaoGrafico === celula.horizonte ? 'Voltar aos quatro no gráfico' : 'Ver no gráfico' }}
                 </button>
                 <button v-if="celula.n" type="button" class="celula__ver" @click.stop="verLinhas(celula.horizonte, true)">
-                  Ver as {{ celula.n }} linha{{ celula.n === 1 ? '' : 's' }} avaliada{{ celula.n === 1 ? '' : 's' }}
+                  Ver {{ celula.n === 1 ? 'a linha' : `as ${celula.n} linhas` }} na métrica
                   <i class="bi bi-arrow-down-short"></i>
                 </button>
                 <button v-else-if="celula.totalLinhas" type="button" class="celula__ver" @click.stop="verLinhas(celula.horizonte, false)">
@@ -353,7 +353,7 @@ watch([periodo, versao], carregar)
                 </div>
                 <label class="form-check qualidade__check">
                   <input v-model="somenteAvaliadas" type="checkbox" class="form-check-input" @change="primeiroRegistro = 0" />
-                  <span class="form-check-label">Só as avaliadas</span>
+                  <span class="form-check-label">Só as da métrica</span>
                 </label>
               </div>
             </header>

@@ -26,7 +26,7 @@ const MOTIVOS = {
   SEM_BENCHMARK: 'Sem a variação passada (benchmark)'
 }
 
-export const rotuloMotivo = (codigo) => (codigo ? MOTIVOS[codigo] || codigo : 'Avaliada')
+export const rotuloMotivo = (codigo) => (codigo ? MOTIVOS[codigo] || codigo : 'Na métrica')
 
 // Os motivos de uma célula com quantidade, na ordem da verificação.
 export function motivosPresentes(fora = {}) {

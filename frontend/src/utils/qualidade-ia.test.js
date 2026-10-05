@@ -30,7 +30,7 @@ test('motivos de ficar fora, na ordem da verificação, só os presentes', () =>
     motivosPresentes({ INSUFICIENTE: 1, A_APURAR: 3, SEM_PRECO: 0 }).map((m) => [m.codigo, m.quantidade]),
     [['A_APURAR', 3], ['INSUFICIENTE', 1]]
   )
-  assert.equal(rotuloMotivo(null), 'Avaliada')
+  assert.equal(rotuloMotivo(null), 'Na métrica')
   assert.equal(rotuloMotivo('SEM_PREGAO_NA_DATA'), 'Sem pregão na data da análise')
 })
 

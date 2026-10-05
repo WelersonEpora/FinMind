@@ -37,6 +37,9 @@ const PREVISORES = Object.freeze(["IA", "SEMPRE_LATERAL", "PERSISTENCIA"]);
 // da leitura mais antiga do período.
 const DIAS_DE_PRECO = 90;
 
+// Os ativos com leitura diária na ordem do Centro de Decisão: sem ativo no filtro, o 1º (como lá).
+const ATIVOS_DA_TELA = ATIVOS.filter((a) => ATIVOS_COM_ANALISE_DIARIA.includes(a.codigo)).map((a) => a.codigo);
+
 // A escala ordinal das faixas: a distância entre a lida e a realizada vai de 0 a 4.
 const POSICAO_DA_FAIXA = Object.freeze({ BAIXA_FORTE: -2, BAIXA_LEVE: -1, LATERAL: 0, ALTA_LEVE: 1, ALTA_FORTE: 2 });
 
@@ -163,7 +166,7 @@ function resumirHorizonte(horizonte, linhas) {
 }
 
 function validarFiltros({ ativo, desde, ate, versaoConfiguracao } = {}) {
-  const codigo = String(ativo || ATIVOS_COM_ANALISE_DIARIA[0]).trim().toUpperCase();
+  const codigo = String(ativo || ATIVOS_DA_TELA[0]).trim().toUpperCase();
   if (!ATIVOS_COM_ANALISE_DIARIA.includes(codigo)) {
     throw new ValidationError(`"ativo" deve ser um entre: ${ATIVOS_COM_ANALISE_DIARIA.join(", ")}.`);
   }
@@ -206,7 +209,7 @@ async function obterQualidadeIa(filtros = {}, deps = {}) {
   return {
     qualidadeIa: {
       ativo: { codigo: ativo, nome: definicao?.nome || ativo },
-      ativos: ATIVOS_COM_ANALISE_DIARIA.map((codigo) => ({ codigo, nome: ATIVOS.find((a) => a.codigo === codigo)?.nome || codigo })),
+      ativos: ATIVOS_DA_TELA.map((codigo) => ({ codigo, nome: ATIVOS.find((a) => a.codigo === codigo)?.nome || codigo })),
       calculadoEm: agora.toISOString(),
       hoje,
       filtros: { desde, ate, versaoConfiguracao },
