@@ -28,7 +28,9 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v7 (2026-10-05): as perguntas do F3 viram decisões; a validação contra Chicago; o Brasil (Conab) como contexto (ADR 0071).
 // v8 (2026-10-05): as perguntas do F4 viram decisões; a base contra a própria mediana de 52 semanas (ADR 0072).
 // v9 (2026-10-05): a pergunta do F5 vira decisão; a validação contra Chicago (ADR 0073).
-const VERSAO = 9;
+// v10 (2026-10-05): as perguntas do F6 viram decisões; a relação de troca com a ureia importada (Comex Stat) e a margem
+// confortável acima da média das safras anteriores (ADR 0074).
+const VERSAO = 10;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -247,17 +249,18 @@ const DEFINICOES = [
     // Sinal defasado (Motor do Milho v0, regras de agregação): o F6 age sobre a área e a safrinha da safra seguinte.
     efeitoDefasado: { mesesMin: 6, mesesMax: 12, sobre: "a área e a safrinha (F2) da safra seguinte" },
     dados: {
-      observaveis: ["IMEA_CUSTO_MILHO_MES", "IMEA_CUSTO_MILHO_SAFRA", "MILHO_CEPEA_ESALQ"],
+      observaveis: ["IMEA_CUSTO_MILHO_MES", "IMEA_CUSTO_MILHO_SAFRA", "MILHO_CEPEA_ESALQ", "ADUBO_IMPORTACAO"],
       eventos: false,
       avaliacao: {
         suficiente: false,
         texto:
-          "Basta para a margem de hoje, não para validar: o custo por safra do IMEA (média de MT, 5 safras, 2021/22 a 2025/26) só é conhecido na base desde a 1ª coleta, em 2026-09-15, então o fator (point-in-time) tem poucas semanas. Fora do point-in-time, só como leitura dos números: a safra 2023/24 custou R$ 58,60 por saca em MT, e o Indicador ESALQ (Campinas) estava em ~R$ 57 em meados de 2024, no custo, antes da alta para ~R$ 74 em jan/2025; em 2023, com o produtor de MT no prejuízo, o indicador de Campinas (~R$ 55) ficou acima do custo de R$ 48,10 da safra 2022/23 (o frete separa as duas praças). Sem o preço do fertilizante, não há relação de troca nem direção de baixa."
+          "Basta para a margem e para a relação de troca de hoje, ainda não para validar. A relação de troca é a ureia importada (Comex Stat, desde 1997, em R$/t pela PTAX) dividida pelo Indicador ESALQ, que só existe desde 2018-06: o percentil compara com todos os meses anteriores (de 60 a 120), então só existe desde jul/2023. De jul/2023 a set/2026 (154 semanas), o adubo caro por 2 meses (alta) disparou em 50 semanas, e o ESALQ 13 semanas depois subiu em 31 (média +1,0%), contra 63 de 104 nas neutras (+3,0%); a relação do percentil com o ESALQ 13 semanas depois é +0,16. Sem relação no curto prazo, coerente com o sinal defasado da proposta (6 a 12 meses, sobre a safra seguinte). A baixa ainda não disparou: pede a margem, que só existe desde a 1ª coleta do custo do IMEA (2026-09-15). Leitura de 25/09/2026: 31,8 sacas por tonelada de ureia em ago/2026 (P74,5), depois do pico de 47,2 em jun/2026 (ureia a US$ 586/t); margem de +18,5%, abaixo da média de +41,9% das 4 safras anteriores."
       },
       lacunas: [
-        "O preço do milho em MT não é coletado: a margem usa o Indicador ESALQ (Campinas), acima do preço de MT pelo frete.",
-        "O custo é só de Mato Grosso e agregado; o preço isolado de fertilizante (Banco Mundial, importação pelo Comex Stat) e o diesel (ANP) não são coletados.",
-        "O custo de produção de milho da Conab não é coletado (só o do café, ADR 0043)."
+        "O preço do milho em MT não é coletado: a margem e a relação de troca usam o Indicador ESALQ (Campinas), acima do preço de MT pelo frete.",
+        "O Indicador ESALQ só existe desde 2018-06: o percentil da relação de troca usa os meses anteriores disponíveis (de 60 a 120, escolha do FinMind), menos que os 10 anos da proposta até 2028.",
+        "A relação de troca usa o preço médio de importação da ureia (FOB, sem frete interno nem margem da revenda): o nível não é o que o produtor paga; a comparação com o próprio histórico é. O cloreto de potássio e o MAP vão ao prompt como contexto.",
+        "O diesel (ANP) e o custo de produção de milho da Conab não são coletados; o custo do IMEA é só de Mato Grosso e agregado."
       ]
     },
     proposta: {
@@ -265,15 +268,16 @@ const DEFINICOES = [
       objetivo: "Medir se o custo do produtor serve de piso para o preço, e o efeito defasado sobre a área da safra seguinte.",
       medida: "Margem do produtor = preço do milho − custo total por saca; a relação de troca (sacas por tonelada de adubo); a variação dos insumos em 3 e 6 meses.",
       comparacao: "O percentil de 10 anos da relação de troca; a margem contra a média de 5 anos.",
-      leitura: "Relação de troca pior que o P75 por 2 meses, ou margem do produtor ≤ 0, pesa para alta (piso e menos área depois); adubo barato com margem confortável, para baixa (regra do David). O cálculo faz a parte da margem: o Indicador ESALQ contra o custo total por saca do IMEA (MT), e margem de 0% ou menos pesa para alta; sem o preço do fertilizante, não há relação de troca nem direção de baixa. O FinMind acrescentou: forte com o preço no custo operacional efetivo ou abaixo (o caixa); tendência por 4 semanas. Peso: Baixo no horizonte do sistema; Médio para vencimentos a 6 meses ou mais. Sinal defasado de 6 a 12 meses. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
+      leitura: "Relação de troca pior que o P75 por 2 meses, ou margem do produtor ≤ 0, pesa para alta (piso e menos área depois); adubo barato com margem confortável, para baixa (regra do David). O cálculo faz as duas partes. A margem: o Indicador ESALQ contra o custo total por saca do IMEA (MT), e margem de 0% ou menos pesa para alta. A relação de troca: a ureia importada (Comex Stat) em R$/t ÷ o Indicador ESALQ, no P75 ou acima nos 2 últimos meses pesa para alta; no P25 ou abaixo, com a margem acima da média das até 5 safras anteriores (a margem confortável, decisão do usuário), para baixa. O FinMind acrescentou: forte com as duas condições de alta ou com o preço no custo operacional efetivo ou abaixo (o caixa); tendência por 4 semanas. Peso: Baixo no horizonte do sistema; Médio para vencimentos a 6 meses ou mais. Sinal defasado de 6 a 12 meses. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "R-INS-01 v0: relação de troca pior que o percentil 75 por 2 meses ou mais, ou preço do milho igual ou abaixo do custo total por saca (margem ≤ 0) → pesa para alta (retenção de oferta e menor área futura).",
         baixa: "R-INS-02 v0: relação de troca melhor que o percentil 25 (adubo barato) e margem do produtor confortável (limiar a definir) → pesa para baixa (incentivo a mais área e tecnologia na safra seguinte)."
       }
     },
-    perguntas: [
-      "Na v1, a margem do produtor (Indicador ESALQ − custo do IMEA) basta, sem a relação de troca (o David confirmou o IMEA na §5)? O ESALQ é de Campinas e o custo, de MT.",
-      "Qual é a margem \"confortável\" da regra de baixa?"
+    perguntas: [],
+    decisoes: [
+      "A relação de troca entra (usuário, 2026-10-05, ADR 0074): a ureia importada pelo Brasil (Comex Stat, coleta autorizada para este fator), em R$/t pela PTAX, dividida pelo Indicador ESALQ médio do mês. O percentil compara com os meses anteriores disponíveis (o ESALQ começa em 2018-06). A ureia decide; o cloreto de potássio e o MAP são contexto.",
+      "Margem confortável (usuário, 2026-10-05, ADR 0074): a margem de hoje acima da média das margens das até 5 safras anteriores (o ESALQ médio de julho a junho da comercialização contra o custo total da safra do IMEA). A média é do FinMind, a pedido do usuário; o Comitê pode ajustar."
     ]
   },
   {

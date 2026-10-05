@@ -80,6 +80,7 @@ function bootstrapCollectors() {
     registerCollector(criarColetorComexExportacao("milho"));
     registerCollector(criarColetorComexExportacao("cafe"));
     registerCollector(criarColetorComexExportacao("milho-destino"));
+    registerCollector(criarColetorComexExportacao("adubo"));
     registerCollector(eiaEtanolCollector);
     registerCollector(eiaPetroleoCollector);
     registerCollector(anpProducaoPetroleoCollector);

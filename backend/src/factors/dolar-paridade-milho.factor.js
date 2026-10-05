@@ -1,7 +1,7 @@
 "use strict";
 
 const pointInTimeService = require("../services/point-in-time.service");
-const marketQuoteRepository = require("../repositories/market-quote.repository");
+const { lerPtax: lerPtaxBase } = require("./base/ptax");
 const faixa = require("./base/decisao-por-faixa");
 
 // FATOR (PROPOSTA, ADR 0056): dólar e paridade de exportação, fator "Dólar (USDBRL) e paridade de exportação" do FEL 1
@@ -52,7 +52,6 @@ const SERIES = Object.freeze({
 const PREGOES = 10;
 const DIAS_MAX_PRECO = 4;
 const INICIO_DOLAR = "2021-01-01";
-const TAMANHO_MAXIMO = 100_000;
 
 // Do David (R-CAM-01/02 v0): 3% em 10 pregões, 50% do câmbio, base contra zero. Do FinMind: o forte (6%) e a
 // tendência (2 semanas, 3 p.p.). O Comitê ajusta.
@@ -189,18 +188,8 @@ function derivarParidadeMilho(linhasAsOf, ptax, { parametros = PARAMETROS_PADRAO
 }
 
 // A PTAX de venda até o dia de `asOf` (sai à tarde do próprio dia; o market_quote não guarda a publicação).
-async function lerPtax(asOf, deps = {}) {
-  const repo = deps.marketQuoteRepository || marketQuoteRepository;
-  const { registros } = await repo.buscarHistorico({
-    instrumentCode: "USD_BRL",
-    modality: "venda",
-    dataInicio: INICIO_DOLAR,
-    dataFim: asOf.toISOString().slice(0, 10),
-    pagina: 1,
-    tamanhoPagina: TAMANHO_MAXIMO,
-    ordem: "ASC"
-  });
-  return registros.map((r) => ({ data: String(r.reference_date).slice(0, 10), valor: Number(r.value) }));
+function lerPtax(asOf, deps = {}) {
+  return lerPtaxBase({ desde: INICIO_DOLAR, asOf }, deps);
 }
 
 async function calcularParidadeMilho({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {

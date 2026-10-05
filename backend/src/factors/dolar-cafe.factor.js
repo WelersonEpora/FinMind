@@ -1,6 +1,6 @@
 "use strict";
 
-const marketQuoteRepository = require("../repositories/market-quote.repository");
+const { lerPtax } = require("./base/ptax");
 const faixa = require("./base/decisao-por-faixa");
 const { sextaDaSemana } = require("./base/semana-de-dias");
 const { criarFatorPosicaoSemanal, arredondar } = require("./modelos/posicao-historica");
@@ -28,21 +28,10 @@ const FACTOR_VERSION = 1;
 
 const PREGOES = 10;
 const INICIO = "2005-01-01";
-const TAMANHO_MAXIMO = 100000;
 
 // A PTAX de venda até o dia de `asOf` (sai à tarde do próprio dia; o market_quote não guarda a publicação).
-async function carregar(asOf, deps = {}) {
-  const repo = deps.marketQuoteRepository || marketQuoteRepository;
-  const { registros } = await repo.buscarHistorico({
-    instrumentCode: "USD_BRL",
-    modality: "venda",
-    dataInicio: INICIO,
-    dataFim: asOf.toISOString().slice(0, 10),
-    pagina: 1,
-    tamanhoPagina: TAMANHO_MAXIMO,
-    ordem: "ASC"
-  });
-  return registros.map((r) => ({ data: String(r.reference_date).slice(0, 10), valor: Number(r.value) }));
+function carregar(asOf, deps = {}) {
+  return lerPtax({ desde: INICIO, asOf }, deps);
 }
 
 // Função PURA: a PTAX diária ({ data, valor }) -> um registro por semana (o último dia útil), com a variação contra 10

@@ -14,7 +14,9 @@
 // atômico. Com blocos, uma falha só perde o bloco. Reexecutar é seguro
 // (idempotente por valor, ADR 0008).
 //
-// Uso (`--produto` obrigatório: milho ou cafe; npm run backfill:comex-milho / backfill:comex-cafe):
+// Também a importação de adubo (ureia, KCl e MAP, desde 1997, ADR 0074): --produto=adubo (npm run backfill:comex-adubo).
+//
+// Uso (`--produto` obrigatório: milho, cafe, milho-destino ou adubo; npm run backfill:comex-milho / backfill:comex-cafe):
 //   node scripts/backfill-comex-exportacao.js --produto=cafe                              (do início validado até o ano corrente)
 //   node scripts/backfill-comex-exportacao.js --produto=cafe --anoInicial=2020
 //   node scripts/backfill-comex-exportacao.js --produto=cafe --anoInicial=2020 --anoFinal=2022
@@ -43,7 +45,7 @@ function resolverAnos({ anoInicial, anoFinal }, produto, anoAtual = new Date().g
     throw new Error(`Intervalo de anos inválido: ${anoInicial} a ${anoFinal}.`);
   }
   if (inicio < produto.anoInicial) {
-    throw new Error(`Antes de ${produto.anoInicial} o NCM ${produto.ncm} não está validado.`);
+    throw new Error(`Antes de ${produto.anoInicial} o NCM ${produto.ncm || Object.keys(produto.ncms).join(", ")} não está validado.`);
   }
   return { anoInicial: inicio, anoFinal: fim };
 }

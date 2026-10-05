@@ -40,6 +40,9 @@ const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = re
 
 const CAMPOS_ORDENACAO_HISTORICO = ["referenceDate", "value"];
 
+// Os adubos importados do Comex Stat (ADR 0074), pelo código da série.
+const ADUBOS_COMEX = { UREIA: "Ureia", KCL: "Cloreto de potássio", MAP: "MAP (fosfato monoamônico)" };
+
 // O que muda entre um tipo de item e outro: como descobrir/rotular/ordenar os
 // itens que existem no banco, qual deles é o "ativo" e os textos da tela.
 // `descrever(codigo)` devolve null para um código que não pertence ao tipo (é
@@ -271,6 +274,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos uma região.",
       nota:
         "Cada linha é um país, um estado, o mundo ou um hemisfério, com o índice medido só sobre a área da cultura (0 a 100, como a NOAA publica). Abaixo de 40 a NOAA classifica como estresse da vegetação. Mundo e hemisférios são médias de áreas grandes e diluem choques regionais."
+    }
+  }),
+  // Importação de adubo do Comex Stat (ADR 0074): o item é o adubo.
+  "comex-adubo": criarDimensaoRegiao({
+    rotuloModalidade: "Adubo",
+    descreverRegiao: (codigo) => ({ rotulo: ADUBOS_COMEX[codigo] ?? codigo, agregado: false }),
+    textos: {
+      titulo: "Adubos",
+      inativo: "sem importação recente",
+      mostrarInativos: "Mostrar adubos sem importação recente",
+      semSelecao: "Selecione ao menos um adubo.",
+      nota: "Cada linha é um adubo importado pelo Brasil, por mês, como o Comex Stat publica (kg ou US$ FOB). O preço médio (US$/t) é o valor ÷ o volume, calculado no fator de insumos do milho."
     }
   }),
   // Mesmos estados e rótulos da NOAA VH (ADR 0067).

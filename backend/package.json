@@ -28,6 +28,7 @@
     "backfill:comex-milho": "node scripts/backfill-comex-exportacao.js --produto=milho",
     "backfill:comex-cafe": "node scripts/backfill-comex-exportacao.js --produto=cafe",
     "backfill:comex-milho-destino": "node scripts/backfill-comex-exportacao.js --produto=milho-destino",
+    "backfill:comex-adubo": "node scripts/backfill-comex-exportacao.js --produto=adubo",
     "backfill:wasde-milho": "node scripts/backfill-wasde-milho.js",
     "backfill:usda-area-plantada": "node scripts/backfill-usda-area-plantada.js",
     "backfill:usda-grain-stocks": "node scripts/backfill-usda-grain-stocks.js",

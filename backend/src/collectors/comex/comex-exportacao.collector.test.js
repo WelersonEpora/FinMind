@@ -216,3 +216,37 @@ test("por destino: a consulta pede o detalhe por país; o total continua sem det
   assert.deepEqual(corpos[0].details, ["country"]);
   assert.deepEqual(corpos[1].details, []);
 });
+
+test("adubo (ADR 0074): importação dos 3 NCMs numa consulta, detalhada por NCM; duas séries por adubo", async () => {
+  const adubo = comex.criarColetorComexExportacao("adubo");
+  let corpo = null;
+  // Fixture real (2024, reduzida): a resposta traz o NCM em `coNcm`.
+  const lista = [
+    { coNcm: "31021010", year: "2024", monthNumber: "03", ncm: "Ureia...", metricFOB: "200000000", metricKG: "600000000" },
+    { coNcm: "31042090", year: "2024", monthNumber: "03", ncm: "Outros cloretos de potássio", metricFOB: "300000000", metricKG: "1100000000" },
+    { coNcm: "99999999", year: "2024", monthNumber: "03", ncm: "Outro", metricFOB: "1", metricKG: "1" }
+  ];
+  const linhas = await adubo.consultarAno(2024, {
+    fetchFn: async (_url, opcoes) => {
+      corpo = JSON.parse(opcoes.body);
+      return ok(lista);
+    }
+  });
+  assert.equal(corpo.flow, "import");
+  assert.deepEqual(corpo.filters, [{ filter: "ncm", values: ["31021010", "31042090", "31054000"] }]);
+  assert.deepEqual(corpo.details, ["ncm"]);
+
+  const { validos, invalidos } = adubo.normalize(adubo.parse(linhas));
+  assert.deepEqual(
+    validos.map((v) => [v.series_code, v.observed_at, v.value]),
+    [
+      ["COMEX.ADUBO.UREIA.IMPORT.KG", "2024-03-01", 600000000],
+      ["COMEX.ADUBO.UREIA.IMPORT.FOB_USD", "2024-03-01", 200000000],
+      ["COMEX.ADUBO.KCL.IMPORT.KG", "2024-03-01", 1100000000],
+      ["COMEX.ADUBO.KCL.IMPORT.FOB_USD", "2024-03-01", 300000000]
+    ]
+  );
+  assert.deepEqual([validos[0].metadata.ncm, validos[0].metadata.fluxo], ["31021010", "import"]);
+  assert.equal(invalidos.length, 1);
+  assert.match(invalidos[0].motivo, /NCM fora do produto/);
+});

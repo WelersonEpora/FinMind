@@ -67,7 +67,7 @@ medidas contra o preço realizado, na tela Qualidade da IA (ADR 0064).
 |---|---|---|---|---|
 | Petróleo (10 fatores) | David, em reunião, 2026-10-03; respostas por escrito a caminho | Brent, desde 2026-10-04 | Os fatores seguem marcados como proposta no código até as respostas por escrito; faixas provisórias; peso e agregação (ponto 3 da conversa) | ADRs 0050, 0051 e 0052 |
 | Ouro (8) | David, 2026-10-03 | GLD da B3, vencimento mais próximo | Instrumento (ponto 1); série contínua do GLD: o horizonte de 90 dias fica muitas vezes sem a variação (ADR 0044); faixas provisórias; peso e agregação | ADRs 0053 e 0054 |
-| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, à espera do Comitê; o peso do F1 de janeiro a maio e do F2 em janeiro e fevereiro (por ora, o do FEL 1); agregação em código (etapa 5) (ADRs 0059 e 0065); vencimentos do CCM por horizonte; faixas provisórias, recalibradas no próprio CCM na configuração v2 em 2026-10-05 (ADR 0058, adendo; as classes fixas do David seguem como alternativa); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072 e 0073 |
+| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, à espera do Comitê; o peso do F1 de janeiro a maio e do F2 em janeiro e fevereiro (por ora, o do FEL 1); agregação em código (etapa 5) (ADRs 0059 e 0065); vencimentos do CCM por horizonte; faixas provisórias, recalibradas no próprio CCM na configuração v2 em 2026-10-05 (ADR 0058, adendo; as classes fixas do David seguem como alternativa); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072, 0073 e 0074 |
 | Café (8) | Comitê, 2026-10-05 (Motor do Café v1) | ICF | Faixas (o período do ICF é de alta forte); vencimentos do ICF por horizonte; janelas críticas do clima e índice do INMET; como os dados novos entram no F3 e no F6 (ADR 0061); agregação em código em produção (ADR 0066): a validar pelo Comitê, com o histórico no servidor e o backtest | ADRs 0060, 0061, 0062 e 0066 |
 | **Comum aos quatro** | — | — | Eventos vão à IA sem validação humana (ponto 4); o formato de apresentação; o horizonte de 90 dias dos três futuros não tem preço na avaliação (o contrato da leitura vence antes; ADR 0064) | ADRs 0055 e 0064 |
 
@@ -111,7 +111,7 @@ medidas contra o preço realizado, na tela Qualidade da IA (ADR 0064).
 
 | Ativo | O que temos | Preço |
 |---|---|---|
-| Milho | Lavoura e clima dos EUA (Crop Progress, NOAA STAR), balanço mundial (WASDE), estoques trimestrais e área plantada dos EUA (USDA), safra, balanço e paridade de exportação do Brasil (Conab) e de MT (IMEA), exportação total e por destino (Comex Stat), etanol (EIA), posição dos fundos (CFTC) | Futuro CCM da B3, desde 2022; Indicador CEPEA/ESALQ, desde 2018 |
+| Milho | Lavoura e clima dos EUA (Crop Progress, NOAA STAR), balanço mundial (WASDE), estoques trimestrais e área plantada dos EUA (USDA), safra, balanço e paridade de exportação do Brasil (Conab) e de MT (IMEA), exportação total e por destino e importação de adubo (Comex Stat), etanol (EIA), posição dos fundos (CFTC) | Futuro CCM da B3, desde 2022; Indicador CEPEA/ESALQ, desde 2018 |
 | Café | Safra e custo de produção (Conab), clima (NOAA STAR), balanço por país (USDA PSD), estoques certificados (ICE), exportação (Comex Stat e Cecafé), posição dos fundos (CFTC) | Futuro ICF da B3, desde 2022; preço mensal do FMI, desde 1992 |
 | Ouro | Juros, inflação e meta do Fed, índices do dólar e moedas da cesta do DXY (FRED), ouro dos bancos centrais (FMI), ETFs e oferta e demanda (World Gold Council), posição dos fundos (CFTC) | LBMA de 1968 a 2026-09-30 (encerrada); futuro GLD da B3, desde 2025-07-21 |
 | Petróleo | Estoques, produção, refino e consumo dos EUA (EIA), produção do Brasil (ANP), produção e demanda por país (JODI), posição dos fundos (CFTC) | WTI à vista (EIA), desde 1986; o futuro é pago |
@@ -151,15 +151,16 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Comex Stat (MDIC) · Milho, café · API · nível 5 · Dev e servidor</summary>
+<summary>Comex Stat (MDIC) · Milho, café, adubo · API · nível 5 · Dev e servidor</summary>
 
-**Acesso:** API (JSON, sem chave). **Ressalva principal:** Milho só desde 2005 (NCM anterior não mapeado); café só o verde; revisões da fonte não confirmadas; limite de requisições rígido (429). **Evidência:** ADRs 0013, 0028, 0034.
+**Acesso:** API (JSON, sem chave). **Ressalva principal:** Milho só desde 2005 (NCM anterior não mapeado); café só o verde; revisões da fonte não confirmadas; limite de requisições rígido (429). **Evidência:** ADRs 0013, 0028, 0034 e 0074.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | Milho - exportação (volume e valor FOB) | kg e US$, total do Brasil | Mensal | 2005-01 | Estimado (dia 15 do mês seguinte) | Dev e servidor |
 | Exportação de milho por destino | Volume e valor FOB por país de destino | Mensal | 2005-01 | Estimado (dia 15 do mês seguinte) | Dev e servidor |
 | Café - exportação (volume e valor FOB) | Café verde (NCM 09011110) | Mensal | 1997-01 | Estimado (dia 15 do mês seguinte) | Dev e servidor |
+| Adubo - importação (volume e valor FOB) | Ureia, cloreto de potássio e MAP, por NCM (relação de troca do milho) | Mensal | 1997-01 | Estimado (dia 15 do mês seguinte) | Dev (servidor depois da carga) |
 
 </details>
 
@@ -1534,6 +1535,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Pendências dos insumos do milho (F6) | As duas perguntas viram decisões do usuário: a relação de troca entra, com a ureia importada do Comex Stat (coleta nova, autorizada só para este fator; ureia, cloreto de potássio e MAP desde 1997, card de importação de adubo) em R$/t pela PTAX ÷ o Indicador ESALQ, e o percentil contra os meses anteriores (o ESALQ começa em 2018); a margem confortável é a margem acima da média das até 5 safras anteriores. De jul/2023 a set/2026 o adubo caro não antecipou o ESALQ em 13 semanas (sinal defasado, como na proposta). Cálculo v2, metodologia do milho v10. No servidor: `npm run backfill:comex-adubo` | ADR 0074 |
 | Pendência do etanol do milho (F5) | A pergunta vira decisão do usuário: a v1 roda só com a parte dos EUA (a EIA), declarando a falta do etanol brasileiro e da margem (fonte nova). Contra o preço americano do FMI (2010 a 2026) o fator não mostra relação, nem junto com o preço; a validação histórica do prompt diz isso, e o peso do David não muda. Metodologia do milho v9 | ADR 0073 |
 | Pendências do dólar e da paridade do milho (F4) | As quatro perguntas viram decisões do usuário: a praça é Campinas; a paridade pronta do IMEA fica, com a parte do câmbio declarada; a base (ESALQ − paridade) passa a ser comparada com a própria mediana de 52 semanas (contra zero a alta nunca disparava; agora dispara em 7 semanas de 2021 a 2026, com o ESALQ +3,5% em 13 semanas); a pergunta do peso fica só no ativo (FEL 1 revisado). Cálculo v2, metodologia do milho v8 | ADR 0072 |
 | Pendências dos estoques do milho (F3) | As três perguntas viram decisões do usuário: os EUA decidem (o mundo menos a China é contexto); o nível e a revisão seguem dando direção, e a validação contra o preço americano do FMI (186 edições) vai ao prompt: sentido do FEL 1 junto com o preço, sem antecipação; o estoque/uso do Brasil (Conab) vai como contexto até haver 10 safras. Cálculo v2, metodologia do milho v7 | ADR 0071 |

@@ -83,8 +83,9 @@ function comUnidade(valor, unidade) {
 }
 
 // Um texto com os parâmetros entre chaves ("{limiarRevisaoPct}"), preenchidos com os em uso. As janelas em semanas ou
-// levantamentos ("semanas...", "levantamentos...") e os estados ("estadosMinimos") são contagens: sem casa decimal.
-const CONTAGEM = /^(semanas|levantamentos|estados)/;
+// levantamentos ("semanas...", "levantamentos...", "meses...") e os estados ("estadosMinimos") são contagens: sem casa
+// decimal.
+const CONTAGEM = /^(semanas|levantamentos|meses|estados)/;
 function preencher(texto, parametros) {
   return texto.replace(/\{(\w+)\}/g, (_, chave) => (CONTAGEM.test(chave) ? String(parametros[chave]) : limiar(parametros[chave])));
 }

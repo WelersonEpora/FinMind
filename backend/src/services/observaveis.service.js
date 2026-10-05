@@ -716,6 +716,41 @@ const CATALOGO_OBSERVAVEIS = [
     }
   })),
 
+  // --- Comex Stat - importação de adubo (ureia, cloreto de potássio, MAP), mensal (ADR 0074) ---
+  // Séries `COMEX.ADUBO.<UREIA|KCL|MAP>.IMPORT.<KG|FOB_USD>`: o adubo é o item, kg e US$ no seletor de métrica.
+  {
+    instrumentCode: "ADUBO_IMPORTACAO",
+    origem: "observation",
+    nome: "Adubo - importação (ureia, cloreto de potássio, MAP)",
+    unidade: "kg",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    toleranciaDias: 75,
+    fonte: "Comex Stat (MDIC)",
+    fonteCollectorCode: "comex-adubo-importacao",
+    porRegiao: {
+      prefixoSerie: "COMEX.ADUBO",
+      campoReferencia: "IMPORT.KG",
+      itemPrincipal: "UREIA",
+      itensPadrao: ["UREIA", "KCL", "MAP"],
+      descritor: "comex-adubo"
+    },
+    campoPrincipal: "IMPORT.KG",
+    campos: [
+      { codigo: "IMPORT.KG", nome: "Volume importado", unidade: "kg", casasDecimais: 0 },
+      { codigo: "IMPORT.FOB_USD", nome: "Valor FOB importado", unidade: "US$", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Importação brasileira mensal de três adubos, por NCM, como o Comex Stat do MDIC publica: ureia (31021010), cloreto de potássio (31042090) e MAP, o fosfato monoamônico (31054000). O Brasil importa a maior parte do adubo que usa: o preço médio de importação (valor ÷ volume) é a referência do custo do adubo. Atende a relação de troca do fator de insumos do milho (sacas de milho por tonelada de ureia).",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês), desde jan/1997, o primeiro ano do Comex Stat. Uma consulta por ano com os três NCMs, detalhada por NCM. A fonte não informa quando publicou nem se revisa meses já divulgados: a data de disponibilidade é ESTIMADA em 15 do mês seguinte, e a coleta diária relê o ano corrente e o anterior. Conferido: 2008 mostra o pico conhecido do adubo (ureia a US$ 549/t; 2024: US$ 323/t).",
+      escopo: "só ureia, cloreto de potássio e MAP, só importação, só o total do Brasil (sem país de origem). Não coletados: outros adubos (DAP, sulfato de amônio, NPK formulado) e o preço no mercado interno.",
+      formatoOrigem: "JSON (API de dados do Comex Stat, sem chave)",
+      urlOficial: "https://comexstat.mdic.gov.br"
+    }
+  },
+
   // --- Comex Stat - exportação de milho por país de destino, mensal (ADR 0034) ---
   // Séries `COMEX.MILHO.EXPORT_DESTINO.<CODIGO_PAIS>.<CAMPO>`, com o código de país da tabela do Comex Stat (China = 160):
   // os países são descobertos no banco; vêm marcados os maiores destinos de 2025 e o destaque do card é a China.

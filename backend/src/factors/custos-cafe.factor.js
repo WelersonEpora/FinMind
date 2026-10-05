@@ -2,7 +2,7 @@
 
 const pointInTimeService = require("../services/point-in-time.service");
 const observationRepository = require("../repositories/observation.repository");
-const marketQuoteRepository = require("../repositories/market-quote.repository");
+const { lerPtax: lerPtaxBase } = require("./base/ptax");
 const faixa = require("./base/decisao-por-faixa");
 const { sextaDaSemana } = require("./base/semana-de-dias");
 const { arredondar, percentil } = require("./modelos/posicao-historica");
@@ -158,18 +158,8 @@ function derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros = PARA
   return pontos;
 }
 
-async function lerPtax(asOf, deps = {}) {
-  const repo = deps.marketQuoteRepository || marketQuoteRepository;
-  const { registros } = await repo.buscarHistorico({
-    instrumentCode: "USD_BRL",
-    modality: "venda",
-    dataInicio: INICIO_PTAX,
-    dataFim: asOf.toISOString().slice(0, 10),
-    pagina: 1,
-    tamanhoPagina: 100000,
-    ordem: "ASC"
-  });
-  return registros.map((r) => ({ data: String(r.reference_date).slice(0, 10), valor: Number(r.value) }));
+function lerPtax(asOf, deps = {}) {
+  return lerPtaxBase({ desde: INICIO_PTAX, asOf }, deps);
 }
 
 async function calcularCustosCafe({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {

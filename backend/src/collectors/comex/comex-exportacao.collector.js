@@ -28,10 +28,15 @@ const { codigoDoPaisComex } = require("../../shared/utils/comex-pais");
 //   - A fonte NÃO informa se revisa meses já publicados: a coleta diária relê o ano
 //     corrente e o anterior, e uma revisão vira uma nova versão (append-only).
 //
-// Só EXPORTAÇÃO: é o que o relatório FEL 1 descreve. Duas séries mensais por mês:
+// Exportação, como o relatório FEL 1 descreve. Duas séries mensais por mês:
 //   COMEX.<PRODUTO>.EXPORT.KG       (metricKG, kg)
 //   COMEX.<PRODUTO>.EXPORT.FOB_USD  (metricFOB, US$)
 // observed_at = primeiro dia do mês (a fonte é mensal); o mês fica em metadata.
+//
+// IMPORTAÇÃO DE ADUBO (`porNcm`, desde 2026-10-05, ADR 0074): ureia (31021010), cloreto de potássio (31042090) e MAP
+// (31054000), numa consulta só por ano, com `details: ["ncm"]`. Duas séries por (mês, adubo):
+// COMEX.ADUBO.<UREIA|KCL|MAP>.IMPORT.KG e .FOB_USD. Verificado em 2026-10-05: os três NCMs têm dado desde 1997 (1997:
+// ureia 0,56 Mt a US$ 130/t; 2008: 2,23 Mt a US$ 549/t, o pico conhecido; 2024: 8,31 Mt a US$ 323/t).
 //
 // POR PAÍS DE DESTINO (`porPais`, milho desde 2026-10-01, ADR 0034): a mesma consulta com `details: ["country"]`.
 // Duas séries por (mês, país): COMEX.<PRODUTO>.EXPORT_DESTINO.<CODIGO_PAIS>.KG e .FOB_USD, com o código de 3 dígitos
@@ -56,6 +61,15 @@ const PRODUTOS = {
     prefixoSerie: "COMEX.MILHO.EXPORT_DESTINO",
     anoInicial: 2005,
     porPais: true
+  },
+  // A relação de troca do fator de insumos do milho (ADR 0074): o preço médio de importação do adubo.
+  adubo: {
+    codigo: "comex-adubo-importacao",
+    fluxo: "import",
+    ncms: { 31021010: "UREIA", 31042090: "KCL", 31054000: "MAP" },
+    prefixoSerie: "COMEX.ADUBO",
+    anoInicial: 1997,
+    porNcm: true
   }
 };
 const PAUSA_MS = 13_000;
@@ -68,28 +82,32 @@ const TIMEOUT_MS = 120_000;
 const DIA_PUBLICACAO_ESTIMADA = 15;
 
 const SERIES = [
-  { campo: "metricKG", sufixo: "EXPORT.KG", sufixoPais: "KG", unit: "kg" },
-  { campo: "metricFOB", sufixo: "EXPORT.FOB_USD", sufixoPais: "FOB_USD", unit: "USD" }
+  { campo: "metricKG", sufixo: "KG", unit: "kg" },
+  { campo: "metricFOB", sufixo: "FOB_USD", unit: "USD" }
 ];
+
+// O fluxo do produto na API ("export" ou "import") e no código da série ("EXPORT" ou "IMPORT").
+const fluxoDe = (produto) => produto.fluxo || "export";
+const ncmsDe = (produto) => (produto.ncms ? Object.keys(produto.ncms) : [produto.ncm]);
 
 function aguardar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function corpoDaConsulta(ncm, ano, porPais = false) {
+function corpoDaConsulta(produto, ano) {
   return JSON.stringify({
-    flow: "export",
+    flow: fluxoDe(produto),
     monthDetail: true,
     period: { from: `${ano}-01`, to: `${ano}-12` },
-    filters: [{ filter: "ncm", values: [ncm] }],
-    details: porPais ? ["country"] : [],
+    filters: [{ filter: "ncm", values: ncmsDe(produto) }],
+    details: produto.porPais ? ["country"] : produto.porNcm ? ["ncm"] : [],
     metrics: ["metricFOB", "metricKG"]
   });
 }
 
 // Um ano. Em 429, espera e tenta de novo (até MAX_TENTATIVAS_429); qualquer outro
 // erro HTTP ou de formato falha a execução inteira.
-async function consultarAno(ncm, ano, { signal, fetchFn = fetch, esperar = aguardar, porPais = false } = {}) {
+async function consultarAno(produto, ano, { signal, fetchFn = fetch, esperar = aguardar } = {}) {
   for (let tentativa = 1; ; tentativa += 1) {
     let response;
     try {
@@ -97,7 +115,7 @@ async function consultarAno(ncm, ano, { signal, fetchFn = fetch, esperar = aguar
         method: "POST",
         signal,
         headers: { "Content-Type": "application/json", "user-agent": "FinMind/0.1 (coleta de dados de mercado)" },
-        body: corpoDaConsulta(ncm, ano, porPais)
+        body: corpoDaConsulta(produto, ano)
       });
     } catch (err) {
       throw new UpstreamServiceError(`Falha de rede ao consultar ${new URL(URL_API).host}: ${err.message}`);
@@ -120,13 +138,13 @@ async function consultarAno(ncm, ano, { signal, fetchFn = fetch, esperar = aguar
 }
 
 // Anos em sequência, com a pausa exigida pelo rate limit entre as chamadas.
-async function baixarAnos(ncm, anos, opcoes = {}) {
+async function baixarAnos(produto, anos, opcoes = {}) {
   const esperar = opcoes.esperar || aguardar;
   const linhas = [];
 
   for (const [i, ano] of anos.entries()) {
     if (i > 0) await esperar(PAUSA_MS);
-    linhas.push(...(await consultarAno(ncm, ano, opcoes)));
+    linhas.push(...(await consultarAno(produto, ano, opcoes)));
   }
   return linhas;
 }
@@ -166,6 +184,15 @@ function normalizar(produto, rawItems) {
     const observedAt = `${ano}-${String(mes).padStart(2, "0")}-01`;
     const publishedAt = publicadoEm(ano, mes);
 
+    let nomeNcm = null;
+    if (produto.porNcm) {
+      nomeNcm = produto.ncms[String(r?.coNcm)];
+      if (!nomeNcm) {
+        invalidos.push({ item: r, motivo: `NCM fora do produto: "${r?.coNcm}".` });
+        continue;
+      }
+    }
+
     let codigoPais = null;
     if (produto.porPais) {
       codigoPais = codigoDoPaisComex(r?.country);
@@ -182,8 +209,13 @@ function normalizar(produto, rawItems) {
         continue;
       }
 
+      const fluxo = fluxoDe(produto).toUpperCase();
       validos.push({
-        series_code: codigoPais ? `${produto.prefixoSerie}.${codigoPais}.${serie.sufixoPais}` : `${produto.prefixoSerie}.${serie.sufixo}`,
+        series_code: codigoPais
+          ? `${produto.prefixoSerie}.${codigoPais}.${serie.sufixo}`
+          : nomeNcm
+            ? `${produto.prefixoSerie}.${nomeNcm}.${fluxo}.${serie.sufixo}`
+            : `${produto.prefixoSerie}.${fluxo}.${serie.sufixo}`,
         observed_at: observedAt,
         value: valor,
         unit: serie.unit,
@@ -193,8 +225,8 @@ function normalizar(produto, rawItems) {
         published_at_basis: "lag_rule",
         metadata: {
           fonte: "Comex Stat (MDIC)",
-          ncm: produto.ncm,
-          fluxo: "export",
+          ncm: nomeNcm ? String(r.coNcm) : produto.ncm,
+          fluxo: fluxoDe(produto),
           periodo: `${ano}-${String(mes).padStart(2, "0")}`,
           ...(codigoPais && { paisDestino: r.country, codigoPais }),
           regraPublicacao: "dia_15_do_mes_seguinte"
@@ -212,7 +244,7 @@ function produtoComex(chave) {
   return produto;
 }
 
-// Coletor de um produto ("milho", "cafe", "milho-destino").
+// Coletor de um produto ("milho", "cafe", "milho-destino", "adubo").
 function criarColetorComexExportacao(chave) {
   const produto = produtoComex(chave);
 
@@ -227,17 +259,17 @@ function criarColetorComexExportacao(chave) {
     // qualquer revisão tardia do ano passado).
     download({ signal }) {
       const anoAtual = new Date().getUTCFullYear();
-      return baixarAnos(produto.ncm, [anoAtual - 1, anoAtual], { signal, porPais: produto.porPais });
+      return baixarAnos(produto, [anoAtual - 1, anoAtual], { signal });
     },
     // Backfill: de anoInicial (padrão: o início validado do NCM) até anoFinal.
     downloadIntervalo({ anoInicial = produto.anoInicial, anoFinal = new Date().getUTCFullYear(), signal }) {
-      return baixarAnos(produto.ncm, intervaloDeAnos(anoInicial, anoFinal), { signal, porPais: produto.porPais });
+      return baixarAnos(produto, intervaloDeAnos(anoInicial, anoFinal), { signal });
     },
     parse,
     normalize: (rawItems) => normalizar(produto, rawItems),
     persist: persistirObservacoes,
-    consultarAno: (ano, opcoes) => consultarAno(produto.ncm, ano, { porPais: produto.porPais, ...opcoes }),
-    baixarAnos: (anos, opcoes) => baixarAnos(produto.ncm, anos, { porPais: produto.porPais, ...opcoes })
+    consultarAno: (ano, opcoes) => consultarAno(produto, ano, opcoes),
+    baixarAnos: (anos, opcoes) => baixarAnos(produto, anos, opcoes)
   };
 }
 
