@@ -52,7 +52,7 @@ async function persistirPorEdicao(validos, contexto, deps, { sourceCode, exigirC
 }
 
 // Download HTTP comum: erro de rede/HTTP vira UpstreamServiceError (o runner
-// marca a execução como failed).
+// marca a execução como failed). `as`: "text" (padrão), "json" ou "buffer" (binário, ex.: um ZIP).
 async function baixar(url, { signal, headers = {}, as = "text" }) {
   const { UpstreamServiceError } = require("../../shared/errors");
   let response;
@@ -64,7 +64,9 @@ async function baixar(url, { signal, headers = {}, as = "text" }) {
   if (!response.ok) {
     throw new UpstreamServiceError(`${new URL(url).host} respondeu com status ${response.status}.`);
   }
-  return as === "json" ? response.json() : response.text();
+  if (as === "json") return response.json();
+  if (as === "buffer") return Buffer.from(await response.arrayBuffer());
+  return response.text();
 }
 
 module.exports = { persistirObservacoes, persistirPorEdicao, baixar };

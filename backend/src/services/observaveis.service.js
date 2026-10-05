@@ -1008,6 +1008,47 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- NOAA CPC - previsão de temperatura e precipitação de 6 a 10 e de 8 a 14 dias no Corn Belt (fator do milho
+  // "Clima e safra nos EUA", ADR 0067) ---
+  // Séries `NOAA_CPC.<ESTADO>.<CAMPO>`: um item por estado (os 5 do card da NOAA VH), horizonte e variável no seletor
+  // de métrica.
+  {
+    instrumentCode: "NOAA_CPC_MILHO",
+    origem: "observation",
+    nome: "Previsão do tempo no Corn Belt - 6 a 10 e 8 a 14 dias (NOAA CPC)",
+    unidade: "% (+ acima, - abaixo do normal)",
+    casasDecimais: 0,
+    frequencia: "DIARIA",
+    // Emitida todo dia, inclusive no fim de semana.
+    toleranciaDias: 2,
+    fonte: "NOAA CPC - 6-10 and 8-14 Day Outlooks",
+    fonteCollectorCode: "noaa-cpc",
+    porRegiao: {
+      prefixoSerie: "NOAA_CPC",
+      campoReferencia: "TEMP_8_14",
+      itemPrincipal: "EUA_IA",
+      itensPadrao: ["EUA_IA", "EUA_IL", "EUA_NE", "EUA_MN", "EUA_IN"],
+      descritor: "noaa-cpc"
+    },
+    campoPrincipal: "TEMP_8_14",
+    campos: [
+      { codigo: "TEMP_8_14", nome: "Temperatura - 8 a 14 dias", unidade: "% (+ acima, - abaixo do normal)", casasDecimais: 0 },
+      { codigo: "PRCP_8_14", nome: "Precipitação - 8 a 14 dias", unidade: "% (+ acima, - abaixo do normal)", casasDecimais: 0 },
+      { codigo: "TEMP_6_10", nome: "Temperatura - 6 a 10 dias", unidade: "% (+ acima, - abaixo do normal)", casasDecimais: 0 },
+      { codigo: "PRCP_6_10", nome: "Precipitação - 6 a 10 dias", unidade: "% (+ acima, - abaixo do normal)", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Previsão oficial do Climate Prediction Center da NOAA para os próximos 6 a 10 e 8 a 14 dias: a probabilidade de a temperatura e a chuva ficarem acima, perto ou abaixo do normal, lida num ponto de cada um dos 5 maiores estados de milho dos EUA. O valor é a probabilidade da categoria mais provável: positivo se acima do normal (+40 = 40% de chance de acima), negativo se abaixo, zero onde o CPC dá chances iguais. É o dado que a condição do CPC da regra de alta do fator de clima do milho pede (ADR 0056); como ele entra no fator é definição do especialista.",
+      metodologia:
+        "Uma previsão por dia de emissão, desde 2026-10-05 (a fonte só publica a mais recente: não há histórico). O CPC publica um Shapefile por horizonte e variável, com faixas de probabilidade (33-40, 40-50...) e um polígono de fundo, gravado com categoria \"Normal\" e 36%, que é a área de chances iguais do mapa (assim no histórico de geoprocessamento do próprio arquivo); esse fundo vale 0 e fica marcado nos metadados. O ponto de cada estado fica aproximadamente no centro da área de milho (Iowa 42,0°N 93,5°W; Illinois 40,5°N 89,0°W; Nebraska 41,0°N 97,5°W; Minnesota 44,0°N 94,5°W; Indiana 40,3°N 86,3°W). A data da observação é a de emissão; o período previsto (início e fim) fica nos metadados. Data de disponibilidade ESTIMADA como o fim do dia de emissão (o CPC publica por volta das 15h do leste dos EUA). Não revisa. Licença: dado do governo dos EUA (domínio público).",
+      escopo:
+        "só as previsões de 6 a 10 e de 8 a 14 dias, de temperatura e de precipitação, em 5 pontos (Iowa, Illinois, Nebraska, Minnesota, Indiana). Não coletados: o resto do mapa, as previsões de 3 a 4 semanas, mensal e sazonal, e o U.S. Drought Monitor. O FinMind não combina os estados nem os horizontes.",
+      formatoOrigem: "ZIP com Shapefile (servidor de arquivos do CPC, sem chave; endpoint não documentado como API)",
+      urlOficial: "https://www.cpc.ncep.noaa.gov/products/predictions/610day/"
+    }
+  },
+
   // --- NOAA STAR - saúde da vegetação sobre a área do milho, semanal (fator do milho "Clima e safra", ADR 0025) ---
   // Séries `NOAA_VH.MILHO.<REGIAO>.<INDICE>`: um item por país ou estado, o índice (VHI, VCI, TCI) no seletor de métrica.
   {

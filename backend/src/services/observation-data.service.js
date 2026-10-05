@@ -272,6 +272,19 @@ const DIMENSOES_REGIAO = {
       nota:
         "Cada linha é um país, um estado, o mundo ou um hemisfério, com o índice medido só sobre a área da cultura (0 a 100, como a NOAA publica). Abaixo de 40 a NOAA classifica como estresse da vegetação. Mundo e hemisférios são médias de áreas grandes e diluem choques regionais."
     }
+  }),
+  // Mesmos estados e rótulos da NOAA VH (ADR 0067).
+  "noaa-cpc": criarDimensaoRegiao({
+    rotuloModalidade: "Estado",
+    descreverRegiao: descreverRegiaoNoaaVh,
+    textos: {
+      titulo: "Estados",
+      inativo: "descontinuado",
+      mostrarInativos: "Mostrar estados descontinuados",
+      semSelecao: "Selecione ao menos um estado.",
+      nota:
+        "Cada linha é a previsão do CPC num ponto do estado (no centro da área de milho), na data em que foi emitida: a probabilidade da categoria mais provável, positiva se acima do normal e negativa se abaixo. Zero é a área de chances iguais (o CPC não inclina para nenhum lado)."
+    }
   })
 };
 

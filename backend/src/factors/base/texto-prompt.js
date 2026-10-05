@@ -27,13 +27,16 @@ function formatarValor(valor, { casas = 0, sinal = false, unidadeValor = "", agr
 }
 
 // "- Rótulo: valor (linha de baixo)": a linha de baixo do quadro na tela (o valor secundário ou o sufixo) vai entre
-// parênteses. Sem valor na semana, diz isso em vez de "-".
+// parênteses; o `detalhe` (o campo de um texto do ponto, ex.: a previsão do CPC por estado) vai na linha seguinte. Sem
+// valor na semana, diz isso em vez de "-".
 function linhaQuadro(ponto, quadro) {
   const valor = ponto[quadro.campo];
   if (valor === null || valor === undefined) return `- ${quadro.rotulo}: sem dado neste período`;
   const s = quadro.secundario;
   const complemento = s ? [s.prefixo, formatarValor(ponto[s.campo], s), s.sufixo].filter(Boolean).join(" ") : quadro.sufixo;
-  return `- ${quadro.rotulo}: ${formatarValor(valor, quadro)}${complemento ? ` (${complemento})` : ""}`;
+  const linha = `- ${quadro.rotulo}: ${formatarValor(valor, quadro)}${complemento ? ` (${complemento})` : ""}`;
+  return quadro.detalhe && ponto[quadro.detalhe] ? `${linha}
+  ${ponto[quadro.detalhe]}` : linha;
 }
 
 function dataBr(iso) {
@@ -80,8 +83,8 @@ function comUnidade(valor, unidade) {
 }
 
 // Um texto com os parâmetros entre chaves ("{limiarRevisaoPct}"), preenchidos com os em uso. As janelas em semanas ou
-// levantamentos ("semanas...", "levantamentos...") são contagens: sem casa decimal.
-const CONTAGEM = /^(semanas|levantamentos)/;
+// levantamentos ("semanas...", "levantamentos...") e os estados ("estadosMinimos") são contagens: sem casa decimal.
+const CONTAGEM = /^(semanas|levantamentos|estados)/;
 function preencher(texto, parametros) {
   return texto.replace(/\{(\w+)\}/g, (_, chave) => (CONTAGEM.test(chave) ? String(parametros[chave]) : limiar(parametros[chave])));
 }

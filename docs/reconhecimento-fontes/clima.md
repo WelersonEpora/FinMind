@@ -51,6 +51,8 @@ cobre todos os produtores relevantes de milho e de café: não é preciso uma fo
 ADR 0025). Café implementado em 2026-09-28 (coletor `noaa-vh-cafe`, 12 regiões, ADR 0030; mais 7 países escolhidos pela PSD do USDA, ADR 0031): no Brasil as máscaras de arábica e
 robusta cobrem os mesmos pixels, então só o mundo e os hemisférios separam os dois tipos.
 
+**Atualização 2026-10-05:** a previsão do NOAA CPC de 6 a 10 e de 8 a 14 dias foi implementada nos 5 maiores estados de milho dos EUA (ADR 0067). Ver a seção abaixo.
+
 ## Outras fontes possíveis (reconhecidas, não serão implementadas por ora)
 
 | Fonte | O que entrega (verificado) | Por que não agora |
@@ -59,9 +61,27 @@ robusta cobrem os mesmos pixels, então só o mundo e os hemisférios separam os
 | FAO ASIS — Agricultural Stress Index | **% da área agrícola com VHI < 35**, por estado do Brasil, a cada 10 dias, **desde 1984** (CSV aberto no site da FAO GIEWS; só a estação 1 para o Brasil) | Não separa a cultura (lavoura em geral). O VHI por cultura da NOAA é mais específico |
 | NOAA CPC — ONI (El Niño / La Niña) | Anomalia de temperatura do Pacífico (Niño 3.4), mensal (trimestre móvel), **desde 1950**, arquivo texto sem chave | É o regime climático de fundo, não o efeito na lavoura. Ligar La Niña a seca no Sul do Brasil e na Argentina já é uma regra, que é do Comitê |
 
+## NOAA CPC — previsão de 6 a 10 e de 8 a 14 dias no Corn Belt (implementada)
+
+| # | Pergunta | Resposta (evidência de 2026-10-05) |
+|---|---|---|
+| 1 | API oficial? | Não documentada. FTP público: `ftp.cpc.ncep.noaa.gov/GIS/us_tempprcpfcst/` |
+| 2 | Pública? | Sim |
+| 3 | Cadastro/chave? | Não |
+| 4 | Formato? | ZIP (~3,3 MB) com Shapefile; DBF: `Fcst_Date`, `Start_Date`, `End_Date`, `Prob` (%), `Cat` (Above/Normal/Below); ~20 polígonos (faixas disjuntas e um fundo `Normal` 36%, que é a área de chances iguais) |
+| 5 | Documentação? | Apenas a página do produto; endpoint FTP não documentado |
+| 6 | Histórico? | Sem backfill: apenas `_latest.zip` por série. FTP tem 1 arquivo datado (2015-01-25) |
+| 7 | Revisa? | Não. Cada dia publica nova previsão para o período futuro seguinte |
+| 8 | Publicação | Diária, ~15–16h hora do leste |
+| 9 | Limite de req? | Não verificado; 4 downloads/dia (~13 MB) |
+| 10 | Licença? | Governo dos EUA, domínio público |
+| 11 | Riscos? | Endpoint não documentado; parsing SHP (point-in-polygon); sem backfill |
+
+Um ponto por estado (Iowa, Illinois, Nebraska, Minnesota e Indiana, os da NOAA VH), no centro aproximado da área de milho. Coletor `noaa-cpc`, card `NOAA_CPC_MILHO`, ADR 0067.
+
 ## O que continua sem fonte
 
-- **Previsão do tempo** (o que o mercado precifica à frente): só em dado bruto (NOAA CPC, ECMWF).
+- **Previsão do tempo** (o que o mercado precifica à frente): só a do NOAA CPC de 6 a 10 e de 8 a 14 dias no Corn Belt (ADR 0067). Outros países (o Brasil, para o café e a safrinha) e outros horizontes seguem sem fonte.
 - **Risco de geada no café**: não foi encontrado indicador pronto gratuito; o VHI mostra o dano semanas depois.
 
 Esses dois componentes só entram se o Comitê definir que o fator de clima olha a previsão, e não só o estado atual

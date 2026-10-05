@@ -99,11 +99,16 @@ const periodoFator = computed(() => periodoDoFator(calculo.value?.periodicidade)
       <template v-if="ultimo">
         <p class="calculo__semana">{{ periodoFator.referencia(ultimo.observedAt) }}</p>
         <div class="calculo__resumo">
-          <div v-for="quadro in apresentacao.quadros" :key="quadro.campo" class="calculo__quadro">
+          <div
+            v-for="quadro in apresentacao.quadros"
+            :key="quadro.campo"
+            :class="['calculo__quadro', { 'calculo__quadro--largo': quadro.detalhe && ultimo[quadro.detalhe] }]"
+          >
             <span class="calculo__camada">{{ ROTULO_CAMADA[quadro.camada] }}</span>
             <span>{{ quadro.rotulo }}</span>
             <strong>{{ formatarQuadro(ultimo[quadro.campo], quadro) }}</strong>
             <small>{{ linhaSecundaria(ultimo, quadro) }}</small>
+            <small v-if="quadro.detalhe && ultimo[quadro.detalhe]">{{ ultimo[quadro.detalhe] }}</small>
           </div>
         </div>
       </template>
@@ -189,6 +194,11 @@ const periodoFator = computed(() => periodoDoFator(calculo.value?.periodicidade)
   border: 1px solid rgba(19, 33, 59, 0.08);
   border-radius: 10px;
   padding: 0.65rem 0.8rem;
+}
+
+/* Um quadro com detalhe (ex.: a previsão do CPC por estado) ocupa a linha inteira. */
+.calculo__quadro--largo {
+  grid-column: 1 / -1;
 }
 
 .calculo__quadro span,
