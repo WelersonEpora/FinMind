@@ -36,7 +36,8 @@ const { FATORES } = require("./fatores-fel1");
 // ainda decide). Uma pergunta respondida sai das `perguntas` e vira decisão. Não vai ao prompt: não muda a `versao`.
 //
 // E os pesos e as relações entre os fatores (`pesos`, opcional): o que o especialista definiu além do peso do FEL 1.
-// Hoje só o milho tem (Motor do Milho v0, Seções 3 e 4). Também não vai ao prompt: a IA recebe só o peso do FEL 1.
+// Hoje só o milho tem calendário (Motor do Milho v0, Seções 3 e 4). Só vai ao prompt com `noPrompt` (abaixo); sem ele,
+// a IA recebe só o peso do FEL 1.
 //   autoria    - de quem é a definição. `descricao`: o que ela diz do peso, em uma frase (a abertura da seção).
 //   fatores    - por código: `sugestao` (o peso-base que o especialista sugere no lugar do FEL 1, como escrito) e UM de:
 //                `meses` ({ Alto: [7], Médio: [6, 8] }: os meses de 1 a 12 de cada peso; mês fora de todos = não
@@ -49,6 +50,9 @@ const { FATORES } = require("./fatores-fel1");
 //                defasagem, tratamento }, como o especialista escreveu; `notaPares`, uma ressalva sobre elas.
 //   agregacao  - as regras de agregação, cada uma { tema, tratamento, fatores, noFinMind: { situacao, texto } }:
 //                como a regra está hoje no FinMind (orientação no prompt, parcial ou fora do motor).
+//   noPrompt   - (opcional) { autorizacao, mesSemDefinicao }: o calendário vai ao prompt diário como uma tabela fixa (o
+//                milho, ADR 0065), com quem autorizou e o que vale no mês que o especialista não definiu. Mudar o que vai
+//                ao prompt sobe a `versao` da metodologia.
 
 const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
 const PESOS = ["Alto", "Médio", "Baixo"];
@@ -112,7 +116,7 @@ function mesesDoFator(codigo, meses, condicoes = []) {
 // (ou o peso fixo, ou o papel) e as notas. `F1`...`Fn` na ordem do ativo, como o especialista numera.
 function montarPesoFator(fator, indice, definicao) {
   const base = { codigo: fator.codigo, sigla: `F${indice + 1}`, nome: fator.nome, pesoFel1: fator.peso };
-  if (!definicao) return { ...base, sugestao: null, meses: null, fixo: null, papel: null, notas: [] };
+  if (!definicao) return { ...base, sugestao: null, meses: null, fixo: null, papel: null, condicoes: [], notas: [] };
   const formas = ["meses", "fixo", "papel"].filter((chave) => definicao[chave]);
   if (formas.length !== 1) throw new Error(`${fator.codigo}: o peso precisa de um entre meses, fixo e papel`);
   if (definicao.fixo && !PESOS.includes(definicao.fixo)) throw new Error(`${fator.codigo}: peso fixo desconhecido: ${definicao.fixo}`);
@@ -123,6 +127,8 @@ function montarPesoFator(fator, indice, definicao) {
     meses: definicao.meses ? mesesDoFator(fator.codigo, definicao.meses, definicao.condicoes) : null,
     fixo: definicao.fixo || null,
     papel: definicao.papel || null,
+    // As condições sem mês, à parte para o prompt (ADR 0065); na tela, elas abrem as notas.
+    condicoes: condicoesSemMes,
     notas: [...condicoesSemMes, ...(definicao.notas || [])]
   };
 }
@@ -159,6 +165,9 @@ function montarPesos(ativo, fatores, pesos) {
       throw new Error(`${ativo}: relação por par com fator fora do ativo: ${par.fatores.join(" × ")}`);
     }
   }
+  if (pesos?.noPrompt && !(pesos.noPrompt.autorizacao && pesos.noPrompt.mesSemDefinicao)) {
+    throw new Error(`${ativo}: pesos no prompt sem a autorização ou sem a regra do mês não definido`);
+  }
   for (const regra of pesos?.agregacao || []) {
     const desconhecidos = regra.fatores.filter((codigo) => !codigos.includes(codigo));
     if (desconhecidos.length) throw new Error(`${ativo}: agregação "${regra.tema}" com fator fora do ativo: ${desconhecidos.join(", ")}`);
@@ -173,7 +182,8 @@ function montarPesos(ativo, fatores, pesos) {
     relacoes: pesos?.relacoes || null,
     pares: pesos?.pares || [],
     notaPares: pesos?.notaPares || null,
-    agregacao: pesos?.agregacao || []
+    agregacao: pesos?.agregacao || [],
+    noPrompt: pesos?.noPrompt || null
   };
 }
 

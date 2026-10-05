@@ -9,7 +9,8 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { montarPromptDiario, situacaoDoFator } = require("./prompt-diario.service");
+const { montarPromptDiario, situacaoDoFator, blocoPesos } = require("./prompt-diario.service");
+const { obterMetodologiaMilho } = require("../shared/metodologia-milho");
 const config = require("../shared/analise-diaria-petroleo");
 const { ATIVOS } = require("./centro-decisao.service");
 
@@ -70,7 +71,7 @@ const PRECO = {
   ]
 };
 
-function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO } = {}) {
+function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = null } = {}) {
   const chamadas = {};
   return {
     chamadas,
@@ -78,7 +79,9 @@ function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO } = {}) {
     metodologiaAtivoService: {
       async simularFatores(ativo, opcoes) {
         chamadas.simular = [ativo, opcoes.data];
-        return { simulacao: { ativo, data: opcoes.data, versaoMetodologia: "petroleo-v1 (2026-10-02)", fatores } };
+        return {
+          simulacao: { ativo, data: opcoes.data, versaoMetodologia: "petroleo-v1 (2026-10-02)", fatores, ...(pesos ? { pesos } : {}) }
+        };
       }
     },
     centroDecisaoService: {
@@ -249,7 +252,11 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
     dataReferencia: "2026-10-02",
     diasSemDado: 2
   };
-  const d = deps({ fatores: [{ ...CALCULADO, codigo: "MILHO_FUNDOS", textoPrompt: "FATOR — Fundos" }], preco: precoCcm });
+  const d = deps({
+    fatores: [{ ...CALCULADO, codigo: "MILHO_FUNDOS", textoPrompt: "FATOR — Fundos" }],
+    preco: precoCcm,
+    pesos: obterMetodologiaMilho().pesos
+  });
   d.marketQuoteRepository = {
     async buscarHistorico() {
       throw new Error("o milho não converte pela PTAX");
@@ -258,7 +265,12 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
   const { promptDiario: p } = await montarPromptDiario("MILHO", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["CCM", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "milho-analise-diaria@1");
+  assert.equal(p.versaoPrompt, "milho-analise-diaria@2");
+  // O calendário de pesos como tabela fixa (ADR 0065): em outubro, o F1 é Baixo e o F4 é Alto.
+  assert.match(p.prompt, /2\.5 PESO DE CADA FATOR POR MÊS/);
+  assert.match(p.prompt, /F1 MILHO_CLIMA_SAFRA_EUA +\| Alto +\| Alto\* +\|/);
+  assert.match(p.prompt, /F4 MILHO_DOLAR_PARIDADE +\| Médio +\| Alto +\|/);
+  assert.match(p.instrucaoDoSistema, /coluna do mês da data da análise, na tabela 2\.5/);
   assert.match(p.prompt, /Contrato: CCMX26 \(nov\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Último preço: R\$ 71,67 em 02\/10\/2026/);
   assert.doesNotMatch(p.prompt, /US\$|Em reais:/);
@@ -269,6 +281,25 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
   assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
   assert.equal(p.entrada.precoReferencia.serie, "CCM");
   assert.equal(p.entrada.precoReferencia.ptax, undefined);
+});
+
+test("pesos (ADR 0065): o mês não definido sai com o FEL 1 e *, o fator sem peso remete às instruções, e as condições vêm à parte", () => {
+  const mes = (peso, condicao = null) => ({ peso, condicao });
+  const texto = blocoPesos({
+    autoria: "David",
+    noPrompt: { autorizacao: "Usuário", mesSemDefinicao: "vale o peso do FEL 1" },
+    fatores: [
+      { sigla: "F1", codigo: "A", pesoFel1: "Alto", meses: [null, ...Array(10).fill(mes("Baixo")), mes("Alto", "c")], fixo: null, papel: null, condicoes: [] },
+      { sigla: "F2", codigo: "B", pesoFel1: "Médio", meses: null, fixo: "Baixo", papel: null, condicoes: ["geral"] },
+      { sigla: "F3", codigo: "C", pesoFel1: "Médio", meses: null, fixo: null, papel: "não vota", condicoes: [] }
+    ]
+  });
+  assert.match(texto, /^F1 A +\| Alto +\| Alto\* +\| Baixo +\|.*\| Alto$/m);
+  assert.match(texto, /^F2 B +\| Médio \| Baixo +\|/m);
+  assert.match(texto, /^- F3 C: sem peso próprio/m);
+  assert.match(texto, /^- F1 \(dez\): c$/m);
+  assert.match(texto, /^- F2: geral$/m);
+  assert.match(texto, /\* mês que a proposta não define: vale o peso do FEL 1\./);
 });
 
 test("café (ADR 0062): o ICF com o contrato e o preço em reais por saca, sem bloco de curva", async () => {

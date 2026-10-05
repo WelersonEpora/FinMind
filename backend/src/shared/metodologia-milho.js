@@ -18,8 +18,9 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // o preço em que o CCM liquida e o histórico mais longo do milho brasileiro na base.
 
 // v1 (2026-10-04): os 8 fatores com a proposta v0 do David; o F3 (estoques) calculado.
-const VERSAO = 1;
-const DATA_VERSAO = "2026-10-04";
+// v2 (2026-10-05): o calendário de pesos vai ao prompt diário (ADR 0065); os fatores não mudam.
+const VERSAO = 2;
+const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
 
@@ -353,13 +354,14 @@ const DO_ATIVO = {
     "Preço de referência no prompt e no Centro de Decisão: o CCM, o vencimento mais próximo negociado, sem emendar contratos. Comitê, 2026-10-04 (ADR 0058).",
     "Eventos sem validação humana, por ora: cada fator recebe os eventos que a leitura diária por IA marca com ele, como chegam (7 dias de janela; 30 no F8). Pode ser revisto. Comitê, 2026-10-04 (ADR 0058).",
     "Base do F4 (Campinas − paridade de MT): fica como está por ora, com o limiar 0 da regra do David. Comitê, 2026-10-04 (ADR 0058).",
-    `Medidas da camada A confirmadas: COT em managed money (contratos e % dos contratos em aberto), estoque/uso dos EUA e do mundo com a revisão, safrinha em nível e revisão (Conab e IMEA), boa + excelente com o VHI, insumos pelo IMEA na v1. ${DECISAO_DAVID}, §5.`
+    `Medidas da camada A confirmadas: COT em managed money (contratos e % dos contratos em aberto), estoque/uso dos EUA e do mundo com a revisão, safrinha em nível e revisão (Conab e IMEA), boa + excelente com o VHI, insumos pelo IMEA na v1. ${DECISAO_DAVID}, §5.`,
+    "Peso por mês e agregação no prompt: o calendário de pesos da proposta vai ao prompt diário como uma tabela fixa, e as regras de agregação como orientação em texto, sem cálculo novo; a agregação em código continua para o Comitê. Nos meses que a proposta não define (o F1 de janeiro a maio, o F2 em janeiro e fevereiro), vale o peso do FEL 1. Usuário (Welerson), 2026-10-05 (ADR 0065).",
+    "F7 (fundos) não vota, como dizem as regras de agregação: reforça ou enfraquece a firmeza de F1, F3 e F8, sem o multiplicador numérico. Usuário (Welerson), 2026-10-05 (ADR 0065)."
   ],
   perguntas: [
     "Vencimentos do CCM por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima (contratos em aberto), e a curva dos vencimentos no prompt?",
-    "Peso por mês e agregação (Seção 4 da proposta): o mapa sazonal (fator × mês) não está no motor (a seção \"Pesos e relações\" mostra o calendário, só na tela). O prompt da IA já leva, como orientação, o bloco de oferta como um argumento só, os fundos como contexto e não voto, o F3 como filtro e o conflito entre blocos reduzindo a confiança: a agregação em código continua para o Comitê.",
-    "Calendário de pesos: qual o peso do F1 (clima dos EUA) de janeiro a maio e do F2 (safrinha) em janeiro e fevereiro? A proposta não define esses meses.",
-    "F7 (fundos): a tabela do fator dá peso Médio (Alto com o COT Index em 10 ou abaixo), e as regras de agregação dizem que ele não vota, só multiplica o peso de F1, F3 e F8. Vale o multiplicador?",
+    "Agregação em código (Seção 4 da proposta): o teto do bloco de oferta, o multiplicador dos fundos (×1,25) e a paridade líquida (Chicago × câmbio) só existem como orientação no prompt. O Comitê quer a agregação calculada pelo motor, com o backtest?",
+    "Calendário de pesos: qual o peso do F1 (clima dos EUA) de janeiro a maio e do F2 (safrinha) em janeiro e fevereiro? A proposta não define esses meses; por ora vale o do FEL 1 (ADR 0065).",
     "Faixas da leitura da IA: hoje são os percentis 40 e 80 do Indicador ESALQ (2018 a 2026), por horizonte. As 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%) substituem?",
     "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto e F6 para Baixo-Médio): entram no FEL 1 revisado (até 2026-10-15)?",
     "Fatores ausentes propostos (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio): entram na v1, ou depois?"
@@ -368,10 +370,15 @@ const DO_ATIVO = {
 
 // Os pesos e as relações do Motor do Milho v0 (formato em metodologia-base.js), copiados da proposta do David: o peso de
 // cada regra (Seção 3), a "Sugestão" de peso-base de cada fator, a matriz de correlações e as regras de agregação
-// (Seção 4). O mês que ele não definiu fica sem peso (ex.: o F1 de janeiro a maio): não se completa por inferência. Só
-// na tela: o prompt diário continua com o peso do FEL 1 (o mapa sazonal aguarda o Comitê, ADR 0058).
+// (Seção 4). O mês que ele não definiu fica sem peso (ex.: o F1 de janeiro a maio): não se completa por inferência. O
+// calendário vai ao prompt diário como uma tabela fixa (ADR 0065, bloco 2.5); a matriz e as regras de agregação, não: a
+// orientação de agregação é texto fixo do prompt (ai/prompts/milho-analise-diaria.md, bloco 4).
 const PESOS_MILHO = {
   autoria: AUTORIA_DAVID,
+  noPrompt: {
+    autorizacao: "Usuário (Welerson), 2026-10-05 (ADR 0065), antes da aprovação do Comitê",
+    mesSemDefinicao: "vale o peso do FEL 1"
+  },
   descricao:
     "o peso separa-se da direção e depende do peso-base do fator, do mês e da força do sinal. Pesos ilustrativos, a calibrar em backtest.",
   fatores: {
@@ -421,7 +428,8 @@ const PESOS_MILHO = {
       sugestao: "Médio. Não é fundamento: é amplificador e termômetro de timing.",
       papel: "Não vota: multiplica o peso de F1, F3 e F8 (ex.: ×1,25) quando o extremo de posição está alinhado ao sinal; contra o sinal, vira regra de risco.",
       notas: [
-        "Na tabela do fator, a regra diz \"Peso: Médio; Alto se o COT Index está em 10 ou abaixo e a variação em 4 semanas muda de sinal\"; nas regras de agregação (Seção 4), o F7 não vota."
+        "Na tabela do fator, a regra diz \"Peso: Médio; Alto se o COT Index está em 10 ou abaixo e a variação em 4 semanas muda de sinal\"; nas regras de agregação (Seção 4), o F7 não vota.",
+        "Vale o das regras de agregação: o F7 não vota, sem o multiplicador numérico (usuário, 2026-10-05, ADR 0065)."
       ]
     },
     MILHO_POLITICA_COMERCIAL: {
@@ -467,7 +475,7 @@ const PESOS_MILHO = {
       tratamento:
         "F1, F2 e F3 medem a mesma cadeia (clima e produção viram estoque). Os sinais do bloco formam um só, com teto de peso: três sinais do bloco na mesma direção contam como um sinal Alto, não como três.",
       fatores: ["MILHO_CLIMA_SAFRA_EUA", "MILHO_SAFRINHA", "MILHO_ESTOQUES_WASDE"],
-      noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: o bloco é um argumento só, sem contar o mesmo choque duas vezes. O teto não é calculado." }
+      noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: o bloco é um argumento só, com o teto de um fator de peso Alto, sem contar o mesmo choque duas vezes. O teto não é calculado." }
     },
     {
       tema: "Paridade líquida",
@@ -481,13 +489,13 @@ const PESOS_MILHO = {
       tratamento:
         "F7 não vota. Multiplica o peso de F1, F3 e F8 quando o extremo de posição está alinhado ao sinal, e vira regra de risco quando está contra.",
       fatores: ["MILHO_FUNDOS", "MILHO_CLIMA_SAFRA_EUA", "MILHO_ESTOQUES_WASDE", "MILHO_POLITICA_COMERCIAL"],
-      noFinMind: { situacao: "PARCIAL", texto: "No prompt: o COT é contexto e não voto, com leitura de reversão. O multiplicador (×1,25) não é aplicado." }
+      noFinMind: { situacao: "PARCIAL", texto: "No prompt: o COT não vota; alinhado ao sinal de F1, F3 ou F8, reforça a firmeza deles; contra o sinal, é risco de reversão. O multiplicador (×1,25) não é aplicado." }
     },
     {
       tema: "F3 como filtro",
       tratamento: "Sinal de F1, F2 ou F5 confirmado por F3 sobe de confiança; contradito por F3, perde peso.",
       fatores: ["MILHO_ESTOQUES_WASDE", "MILHO_CLIMA_SAFRA_EUA", "MILHO_SAFRINHA", "MILHO_ETANOL"],
-      noFinMind: { situacao: "PARCIAL", texto: "No prompt: os estoques confirmam ou enfraquecem o clima e a safrinha. O F5 não está na orientação." }
+      noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: os estoques confirmam ou enfraquecem o clima, a safrinha e o etanol." }
     },
     {
       tema: "Mapa sazonal de pesos",
@@ -503,7 +511,10 @@ const PESOS_MILHO = {
         "MILHO_FUNDOS",
         "MILHO_POLITICA_COMERCIAL"
       ],
-      noFinMind: { situacao: "FORA", texto: "Só nesta tela. O prompt leva o peso do FEL 1 e proíbe a IA de criar um peso por mês." }
+      noFinMind: {
+        situacao: "ORIENTACAO",
+        texto: "No prompt: o calendário vai como tabela fixa (bloco 2.5), e a IA usa o peso do mês da análise; nos meses não definidos, o do FEL 1 (ADR 0065). O motor não calcula com o peso."
+      }
     },
     {
       tema: "Sinais defasados",

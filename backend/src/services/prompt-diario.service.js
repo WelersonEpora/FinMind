@@ -172,6 +172,45 @@ function blocoFaixas(config) {
   return linhas.join("\n");
 }
 
+// --- 2.5 Peso de cada fator por mês --------------------------------------------------------------------------------
+
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// O calendário de pesos da metodologia (o milho, ADR 0065), como uma tabela fixa: o mesmo texto todo dia, sem cálculo.
+// O mês que o especialista não definiu sai com o peso do FEL 1 marcado com "*"; o fator sem peso próprio (`papel`)
+// remete às instruções.
+function blocoPesos(pesos) {
+  const colunas = (f) => {
+    if (f.meses) return f.meses.map((m) => (m ? m.peso : `${f.pesoFel1}*`));
+    if (f.fixo) return Array(12).fill(f.fixo);
+    if (f.papel) return Array(12).fill("-");
+    return Array(12).fill(`${f.pesoFel1}*`);
+  };
+  const rotulo = (f) => `${f.sigla} ${f.codigo}`;
+  const largura = Math.max(...pesos.fatores.map((f) => rotulo(f).length));
+  const linha = (inicio, fel1, celulas) => [inicio.padEnd(largura), fel1.padEnd(5), ...celulas.map((c) => c.padEnd(6))].join(" | ").trimEnd();
+
+  const condicoes = pesos.fatores.flatMap((f) => {
+    const porMes = new Map();
+    (f.meses || []).forEach((m, i) => {
+      if (m?.condicao) porMes.set(m.condicao, [...(porMes.get(m.condicao) || []), MESES[i]]);
+    });
+    return [...[...porMes].map(([texto, meses]) => `- ${f.sigla} (${meses.join(", ")}): ${texto}`), ...f.condicoes.map((texto) => `- ${f.sigla}: ${texto}`)];
+  });
+  const semPeso = pesos.fatores.filter((f) => f.papel && !f.meses && !f.fixo);
+
+  return [
+    `O peso de cada fator em cada mês, da proposta de ${pesos.autoria}. Vale a coluna do mês da data da análise.`,
+    "",
+    linha("Fator", "FEL 1", MESES),
+    ...pesos.fatores.map((f) => linha(rotulo(f), f.pesoFel1, colunas(f))),
+    "",
+    `* mês que a proposta não define: ${pesos.noPrompt.mesSemDefinicao}.`,
+    ...semPeso.map((f) => `- ${f.sigla} ${f.codigo}: sem peso próprio; o papel dele está nas instruções.`),
+    ...(condicoes.length ? ["", "Condições (só valem quando a BASE mostra que estão atendidas):", ...condicoes] : [])
+  ].join("\n");
+}
+
 // --- Montagem ------------------------------------------------------------------------------------------------------
 
 // A leitura do motor de um fator calculado, como foi ao prompt. Um fator de CONTEXTO não leva pressão nem intensidade
@@ -254,6 +293,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     ...(config.CURVA.aplica ? { bloco_curva: blocoCurva(null, config) } : {}),
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
     bloco_faixas: blocoFaixas(config),
+    ...(simulacao.pesos ? { bloco_pesos: blocoPesos(simulacao.pesos) } : {}),
     blocos_fatores: simulacao.fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt).join("\n\n")
   });
 
@@ -273,4 +313,4 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
   };
 }
 
-module.exports = { montarPromptDiario, blocoPreco, blocoCurva, blocoCobertura, blocoFaixas, situacaoDoFator, lerPtax };
+module.exports = { montarPromptDiario, blocoPreco, blocoCurva, blocoCobertura, blocoFaixas, blocoPesos, situacaoDoFator, lerPtax };

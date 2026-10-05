@@ -343,7 +343,14 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
   // O prompt completo (com o preço, a cobertura e as faixas) é montado pelo prompt-diario.service.js, que usa estes
   // mesmos resultados: a simulação não monta um texto próprio.
   return {
-    simulacao: { ativo: codigo, data: dia, versaoMetodologia: `${codigo.toLowerCase()}-v${metodologia.versao} (${metodologia.dataVersao})`, fatores }
+    simulacao: {
+      ativo: codigo,
+      data: dia,
+      versaoMetodologia: `${codigo.toLowerCase()}-v${metodologia.versao} (${metodologia.dataVersao})`,
+      fatores,
+      // O calendário de pesos, quando vai ao prompt (o milho, ADR 0065): a tabela fixa do bloco 2.5.
+      ...(metodologia.pesos.noPrompt ? { pesos: metodologia.pesos } : {})
+    }
   };
 }
 

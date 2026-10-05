@@ -2,9 +2,10 @@
 import { computed } from 'vue'
 import { MESES_CURTOS, ROTULO_AGREGACAO, classePeso, indiceDoMes, tomRelacao } from '../../utils/metodologia.js'
 
-// Pesos e relações entre os fatores de um ativo: o peso do FEL 1 (o que vai ao prompt) e, quando o especialista
-// definiu, a sugestão de peso-base, o calendário de pesos (fator × mês), a matriz de relações e as regras de agregação
-// (o milho, Motor do Milho v0). Tudo vem da API (`metodologia.pesos`); só a tela mostra, nada daqui vai ao prompt.
+// Pesos e relações entre os fatores de um ativo: o peso do FEL 1 e, quando o especialista definiu, a sugestão de
+// peso-base, o calendário de pesos (fator × mês), a matriz de relações e as regras de agregação (o milho, Motor do Milho
+// v0). Tudo vem da API (`metodologia.pesos`). O prompt usa o peso do FEL 1, ou o calendário quando `pesos.noPrompt`
+// existe (o milho, ADR 0065).
 const props = defineProps({
   pesos: { type: Object, required: true },
   nomeAtivo: { type: String, required: true },
@@ -40,7 +41,8 @@ function tituloCelula(fator, mes, i) {
     <article class="pesos-relacoes__card">
       <header class="pesos-relacoes__card-cabecalho">
         <h3>Peso por fator<template v-if="temCalendario"> e por mês</template></h3>
-        <span v-if="doEspecialista" class="pesos-relacoes__situacao">Proposta do especialista, aguardando o Comitê</span>
+        <span v-if="pesos.noPrompt" class="pesos-relacoes__situacao">No prompt diário, aguardando o Comitê</span>
+        <span v-else-if="doEspecialista" class="pesos-relacoes__situacao">Proposta do especialista, aguardando o Comitê</span>
       </header>
       <p class="pesos-relacoes__texto">
         <template v-if="doEspecialista">Proposta de {{ pesos.autoria }}: {{ pesos.descricao }}{{ ' ' }}</template>
@@ -48,7 +50,11 @@ function tituloCelula(fator, mes, i) {
           O especialista ainda não definiu peso por mês ou por condição, relações entre os fatores nem regras de agregação
           para o {{ nomeAtivo.toLowerCase() }}: vale o peso do FEL 1.
         </template>
-        <strong>O prompt diário usa só a coluna "FEL 1".</strong>
+        <strong v-if="pesos.noPrompt">
+          O prompt diário leva este calendário como uma tabela fixa e a IA usa o peso do mês da análise; no mês não definido
+          (—), {{ pesos.noPrompt.mesSemDefinicao }}. {{ pesos.noPrompt.autorizacao }}.
+        </strong>
+        <strong v-else>O prompt diário usa só a coluna "FEL 1".</strong>
       </p>
 
       <div class="pesos-relacoes__rolagem">

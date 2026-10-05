@@ -1,6 +1,6 @@
 # Prompt — Análise diária do milho (leitura de tendência em quatro horizontes)
 
-**Versão:** 1
+**Versão:** 2
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0058), no molde do prompt do ouro (`ouro-analise-diaria.md`, v1;
 ADR 0054): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -14,6 +14,13 @@ defasado; o conflito entre blocos explicado, com a confiança reduzida. Os event
 como chegam da leitura diária de eventos por IA (decisão do Comitê, 2026-10-04, que pode ser revista); cada fator
 recebe os eventos marcados com ele, depois do cálculo. Os números das faixas e dos horizontes NÃO são
 escritos aqui: vêm da configuração (`shared/analise-diaria-milho.js`), no bloco 2.4.
+
+v2 (2026-10-05) - o peso por mês e as regras de agregação do Motor do Milho v0 (ADR 0065, autorização do usuário antes
+do Comitê): o calendário de pesos vai como tabela fixa no bloco 2.5 (montada de `shared/metodologia-milho.js`, o mesmo
+dado da tela de metodologia; nos meses que a proposta não define, o peso do FEL 1); os itens 2, 4, 5, 6 e 7 do bloco 4
+passam a orientar pelo peso do mês, pelo teto do bloco de oferta, pelo F3 como filtro também do etanol, pelas relações
+inversas do câmbio e pelo F7 que não vota (fora das listas de argumentos); peso não é direção (um fator neutro não é
+argumento). Tudo qualitativo: nenhuma conta, pontuação ou multiplicador vai para a IA.
 
 Enviado ao Gemini uma vez por dia pelo coletor `milho-analise-ia-diario` (ADR 0058).
 
@@ -51,26 +58,37 @@ Para cada horizonte, separadamente:
    um relatório de ontem pode dizer muito. O custo de produção (MILHO_INSUMOS) é um sinal defasado: age sobre a área e a
    safrinha seguintes, de 6 a 12 meses depois, e informa pouco os horizontes desta leitura. Diga quais fatores pesaram
    pouco e por quê.
-2. Pesos do FEL 1. Comece pelos fatores de peso Alto; os de peso Médio e Baixo confirmam ou enfraquecem a leitura.
-   Nunca altere um peso nem crie um peso por mês. A validação histórica (parte D de cada fator) qualifica a confiança
-   na evidência; ela não muda o peso, a pressão nem a intensidade de nenhum fator.
+2. Peso do mês. O peso de cada fator é o da coluna do mês da data da análise, na tabela 2.5; a coluna FEL 1 é só
+   referência. Comece pelos fatores de peso Alto nesse mês; os de peso Médio e Baixo confirmam ou enfraquecem a
+   leitura. Uma condição da tabela 2.5 só muda o peso quando a BASE mostra que ela está atendida; sem isso, vale o peso
+   da coluna. Não altere um peso, não use o de outro mês e não interpole entre meses. Peso não é direção: o peso diz
+   quanto a pressão de um fator conta, não para que lado ela vai. Um fator com pressão neutra, mesmo de peso Alto, não
+   é argumento a favor nem contra a leitura: não o ponha em fatoresAFavor nem em fatoresContra. A validação histórica
+   (parte D de cada fator) qualifica a confiança na evidência; ela não muda o peso, a pressão nem a intensidade de
+   nenhum fator.
 3. Leitura do motor. A pressão, a intensidade e a tendência de cada fator (parte C) são resultado das regras do motor:
    não as recalcule, não as contradiga e não as troque por uma interpretação sua. Se uma leitura informa pouco para o
    horizonte (por exemplo, porque a parte D diz que a relação com o preço é fraca), diga isso e dê a ela menos papel.
-4. Agregação. Não existe uma fórmula validada que junte os oito fatores: não invente uma, não conte votos e não crie
-   pontuação. Explique quais forças atuam, qual delas domina naquele horizonte e por quê.
+4. Agregação. As regras de agregação são as dos itens 5 a 9: orientações para o seu julgamento, não uma fórmula. Não
+   some pesos, não conte votos, não crie pontuação nem multiplicador. Explique quais forças atuam, qual delas domina
+   naquele horizonte e por quê, com o peso do mês de cada uma.
 5. Bloco de oferta. Clima dos EUA (MILHO_CLIMA_SAFRA_EUA), safrinha (MILHO_SAFRINHA) e estoques (MILHO_ESTOQUES_WASDE)
-   medem a mesma cadeia: o clima vira produção, e a produção vira estoque. Três sinais desse bloco na mesma direção
-   são UM argumento forte, não três: não conte o mesmo choque duas vezes. Os estoques consolidam os outros dois: um
-   sinal de clima ou de safrinha confirmado pelos estoques ganha firmeza; contradito por eles, perde.
+   medem a mesma cadeia: o clima vira produção, e a produção vira estoque. O bloco tem teto: três sinais dele na mesma
+   direção são UM argumento, com no máximo o peso de um fator Alto, não três; não conte o mesmo choque duas vezes. Os
+   estoques são o filtro do bloco: um sinal de clima, de safrinha ou do etanol (MILHO_ETANOL) confirmado pelos estoques
+   ganha firmeza; contradito por eles, perde.
 6. Câmbio e paridade (MILHO_DOLAR_PARIDADE). É o conversor dos fatores de fora para o preço em reais. A paridade é a de
    Mato Grosso e o preço interno do fator é o de Campinas: a base entre os dois é quase sempre positiva, então a
-   pressão de alta desse fator quase nunca aparece, e a ausência dela não é sinal de baixa.
-7. Posicionamento dos fundos (MILHO_FUNDOS, o COT de Chicago). No milho, a leitura do motor é de reversão: posição
-   extrema tende a se desfazer. Não conte o COT como mais um voto de alta ou de baixa. Diga qual é o papel dele no
-   horizonte: confirma a leitura dos fatores de oferta ou de exportação, indica excesso de posicionamento, indica risco
-   de reversão ou enfraquece a leitura. O COT é de Chicago e segue o preço de lá: não o trate como evidência
-   independente dos outros fatores.
+   pressão de alta desse fator quase nunca aparece, e a ausência dela não é sinal de baixa. O real tende a se mover
+   contra as commodities em momentos de apetite a risco: uma alta em Chicago (clima, estoques, fundos) pode chegar ao
+   CCM atenuada pelo câmbio. Sem o preço de Chicago na BASE, não estime esse efeito líquido: diga só que ele existe.
+7. Posicionamento dos fundos (MILHO_FUNDOS, o COT de Chicago). Os fundos não votam e não têm peso próprio (tabela 2.5):
+   MILHO_FUNDOS nunca entra em fatoresAFavor nem em fatoresContra; o papel dele vai só em posicionamentoCot.
+   No milho, a leitura do motor é de reversão: posição extrema tende a se desfazer. Quando o extremo de posição está
+   alinhado ao sinal do clima dos EUA, dos estoques ou da política comercial, ele reforça a firmeza desses fatores;
+   contra o sinal deles, é risco de reversão. Diga qual é o papel dele no horizonte: confirma a leitura dos fatores de
+   oferta ou de exportação, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O COT é
+   de Chicago e segue o preço de lá: não o trate como evidência independente dos outros fatores.
 8. Eventos. Cada fator traz, depois do cálculo, os eventos que a leitura diária de eventos por IA marcou com ele
    (tarifas, habilitações e embargos no MILHO_POLITICA_COMERCIAL; seca, geada ou chuva excepcional no clima ou na
    safrinha; e assim por diante). O cálculo não usa os eventos: eles complementam a leitura do fator. Use a idade e o
@@ -163,11 +181,14 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 2.4 HORIZONTES E FAIXAS DE VARIAÇÃO — definidos pela metodologia
 {{bloco_faixas}}
 
+2.5 PESO DE CADA FATOR POR MÊS — definido pela metodologia, o mesmo todos os dias
+{{bloco_pesos}}
+
 [3. LEITURA DO MOTOR — o resultado das regras dos 8 fatores, aplicadas em código, sem IA]
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
 Eventos de cada fator: os aceitos da leitura diária por IA marcados com ele, na janela do fator, depois do cálculo.
-O motor ainda não fornece confiança por fator, horizonte por fator, peso por mês nem relações entre fatores.
+O motor ainda não fornece confiança por fator nem horizonte por fator; o peso por mês está na tabela 2.5.
 
 {{blocos_fatores}}
 ```

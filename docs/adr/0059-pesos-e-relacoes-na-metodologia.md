@@ -1,6 +1,7 @@
 # 0059 — Pesos e relações entre os fatores na Metodologia do Ativo
 
-**Status:** aceita (2026-10-04).
+**Status:** aceita (2026-10-04). O limite "só na tela" caiu para o milho em 2026-10-05: o calendário de pesos e as
+regras de agregação vão ao prompt diário (ADR 0065).
 
 ## Contexto
 
