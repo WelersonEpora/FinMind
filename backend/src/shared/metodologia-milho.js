@@ -30,7 +30,11 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v9 (2026-10-05): a pergunta do F5 vira decisão; a validação contra Chicago (ADR 0073).
 // v10 (2026-10-05): as perguntas do F6 viram decisões; a relação de troca com a ureia importada (Comex Stat) e a margem
 // confortável acima da média das safras anteriores (ADR 0074).
-const VERSAO = 10;
+// v11 (2026-10-05): as perguntas do F7 viram decisões; a validação contra Chicago (ADR 0075).
+// v12 (2026-10-05): as perguntas do F8 viram decisões; a validação contra Chicago (ADR 0076).
+// v13 (2026-10-05): o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio); o ajuste do F1 pela
+// colheita da safrinha, com o andamento de MT no F2 (ADR 0077).
+const VERSAO = 13;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -290,12 +294,12 @@ const DEFINICOES = [
     },
     evento: { janelaDias: 7 },
     dados: {
-      observaveis: ["COT_MILHO"],
+      observaveis: ["COT_MILHO", "MILHO_PRECO_FMI"],
       eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o COT da CFTC traz o managed money do milho da CBOT toda semana desde 2006, o que dá a janela de 10 anos da proposta a partir de 2016. Contra o Indicador CEPEA/ESALQ (417 semanas, 2018 a 2026), a posição relativa de 10 anos tem -0,44 com o indicador 26 semanas depois (-0,40 em 2018 a 2021; -0,54 em 2022 a 2026), a REVERSÃO da proposta do David (o FEL 1 diz \"amplifica\"): com os fundos no P90 ou acima, o indicador subiu em 4 de 38 semanas (média -7,8% em 26 semanas); no P10 ou abaixo, em 40 de 62 (+20,4%); fora dos extremos, em 112 de 198 (+4,9%). Com a janela de 3 anos do petróleo e do ouro, a relação cai para -0,20. Ressalva: são poucos episódios independentes (cerca de 6 de vendidos e 4 de comprados), e as semanas de um episódio andam juntas."
+          "Suficiente: o COT da CFTC traz o managed money do milho da CBOT toda semana desde 2006, o que dá a janela de 10 anos da proposta a partir de 2016. Contra o Indicador CEPEA/ESALQ (417 semanas, 2018 a 2026), a posição relativa de 10 anos tem -0,44 com o indicador 26 semanas depois (-0,40 em 2018 a 2021; -0,54 em 2022 a 2026), a REVERSÃO da proposta do David (o FEL 1 diz \"amplifica\"): com os fundos no P90 ou acima, o indicador subiu em 4 de 38 semanas (média -7,8% em 26 semanas); no P10 ou abaixo, em 40 de 62 (+20,4%); fora dos extremos, em 112 de 198 (+4,9%). Com a janela de 3 anos do petróleo e do ouro, a relação cai para -0,20. Contra o preço do milho americano (FMI, mensal, em dólar; 546 semanas de 2016 a 2026, cerca de 11 episódios de vendidos e 6 de comprados), a reversão dos VENDIDOS se confirma: no P10 ou abaixo, o preço subiu 3 meses depois em 70% das semanas (média +4,3%) e 6 meses depois em 55% (+6,8%), contra 47% e 44% fora dos extremos. A dos COMPRADOS, não: no P90 ou acima, o preço subiu 3 meses depois em 63% das semanas (+9,1%), puxado pelo ciclo de alta de nov/2021 a mai/2022 (a guerra na Ucrânia, +39% em 6 meses); em reais, no Indicador ESALQ, a baixa veio. O gatilho de alta de F1, F3 ou F8 da regra não melhorou a leitura: vendidos com gatilho, o preço americano subiu 3 meses depois em 73% das semanas; sem gatilho, em 67% (e o ESALQ, 26 semanas depois, em 30% e 89%). Ressalva: são poucos episódios independentes, e as semanas de um episódio andam juntas."
       },
       lacunas: [
         "A posição no CCM por tipo de investidor (B3) não é coletada: o COT mede Chicago, não a B3.",
@@ -313,9 +317,10 @@ const DEFINICOES = [
         baixa: "R-FUN-02 v0: managed money comprado em extremo (P90 ou acima) sem gatilho de alta em F1 ou F3, ou com variação em 4 semanas negativa → pesa para baixa (liquidação de posições compradas)."
       }
     },
-    perguntas: [
-      "A leitura de reversão da proposta (que o histórico confirma) substitui o \"amplifica\" do FEL 1 na revisão do documento?",
-      "Sem o gatilho de F1, F3 ou F8, o extremo sozinho já é pressão (a v1), ou só vale com o gatilho, como na regra?"
+    perguntas: [],
+    decisoes: [
+      "Reversão, com ressalva (usuário, 2026-10-05, ADR 0075): nos extremos, a leitura de reversão da regra substitui o \"amplifica\" do FEL 1. A ressalva dos comprados (o preço americano não confirmou a baixa, por causa do ciclo de 2021-22) vai na validação histórica do prompt.",
+      "Extremo sozinho (usuário, 2026-10-05, ADR 0075): na v1, o extremo já é pressão, sem esperar o gatilho de F1, F3 ou F8, que no histórico não melhorou a leitura. A orientação do prompt continua: alinhado ao sinal desses fatores, reforça; contra, é risco de reversão."
     ]
   },
   {
@@ -328,12 +333,12 @@ const DEFINICOES = [
     },
     evento: { janelaDias: 30 },
     dados: {
-      observaveis: ["EXPORTACAO_MILHO_DESTINO", "COMEX_MILHO_VOLUME"],
+      observaveis: ["EXPORTACAO_MILHO_DESTINO", "COMEX_MILHO_VOLUME", "MILHO_PRECO_FMI"],
       eventos: true,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para medir o ritmo: o Comex Stat tem a exportação de milho mensal desde 2005, com o destino (a China, código 160). O ritmo é o acumulado do ano comercial (fevereiro a janeiro) contra a média do mesmo trecho nos 5 anos anteriores: o mês sozinho salta na entressafra (+67% e -35% em mar e mai/2026, sobre volumes pequenos). Contra o Indicador CEPEA/ESALQ (97 meses, 2018 a 2026, contados da publicação de cada mês), não há relação estável: -0,06 com o indicador 3 meses depois no período todo, +0,35 em 2018 a 2021 (o sentido do FEL 1) e -0,31 em 2022 a 2026 (o contrário). As exportações seguem a competitividade do milho brasileiro, e a relação troca de regime. A parte de eventos (tarifas, habilitações) não entra na conta e não tem validação no passado (P12: buscar eventos antigos hoje repete o problema do vintage)."
+          "Suficiente para medir o ritmo: o Comex Stat tem a exportação de milho mensal desde 2005, com o destino (a China, código 160). O ritmo é o acumulado do ano comercial (fevereiro a janeiro) contra a média do mesmo trecho nos 5 anos anteriores: o mês sozinho salta na entressafra (+67% e -35% em mar e mai/2026, sobre volumes pequenos). Contra o Indicador CEPEA/ESALQ (97 meses, 2018 a 2026, contados da publicação de cada mês), não há relação estável: -0,06 com o indicador 3 meses depois no período todo, +0,35 em 2018 a 2021 (o sentido do FEL 1) e -0,31 em 2022 a 2026 (o contrário). As exportações seguem a competitividade do milho brasileiro, e a relação troca de regime. Contra o preço do milho americano (FMI, mensal, em dólar; 199 meses de 2010 a 2026, contados da publicação), a relação é INVERSA à regra: o desvio do acumulado tem -0,27 com o preço 3 meses depois e -0,39 6 meses depois (-0,54 em 3 meses de 2022 a 2026); com embarques 10% ou mais acima da média, o preço subiu 6 meses depois em 38% dos meses (média -1,6%); 10% ou mais abaixo, em 61% (+12,2%). Uma leitura possível: o Brasil exporta muito quando tem safra grande e milho competitivo, oferta mundial maior. O mês contra a média do mesmo mês dá o mesmo sentido, mais fraco (-0,22 em 6 meses), e troca de direção 63 vezes em 198 meses, contra 39 do acumulado. A parte de eventos (tarifas, habilitações) não entra na conta e não tem validação no passado (P12: buscar eventos antigos hoje repete o problema do vintage)."
       },
       lacunas: [
         "USDA Export Sales, ANEC e o Secex semanal não são coletados: o ritmo de embarque é mensal (Comex Stat).",
@@ -351,10 +356,12 @@ const DEFINICOES = [
         baixa: "R-POL-02 v0: evento oficial que restringe o milho brasileiro (embargo sanitário, tarifa de grande comprador, cancelamento de compras), acordo que devolve compras de milho dos EUA a mercados asiáticos, imposto ou restrição à exportação no Brasil, ou embarques 10% ou mais abaixo da média de 5 anos → pesa para baixa."
       }
     },
-    perguntas: [
-      "Qual o valor do \"volume estimado relevante\" que torna um evento uma pressão?",
-      "Qual o valor do decaimento de um evento: em quanto tempo ele deixa de pesar na leitura?",
-      "O ritmo de embarque pelo acumulado do ano comercial (o cálculo) atende, ou o especialista quer o mês contra a média do mesmo mês (que salta na entressafra)?"
+    perguntas: [],
+    decisoes: [
+      "Evento relevante pela intensidade (usuário, 2026-10-05, ADR 0076): sem um volume em toneladas (o evento não traz o volume), conta como pressão o ato oficial com intensidade média ou alta na leitura diária por IA; com intensidade baixa, é contexto.",
+      "Decaimento de 30 dias (usuário, 2026-10-05, ADR 0076): o evento pesa enquanto está na janela de 30 dias do fator, mais quanto mais recente; depois, sai do prompt.",
+      "Ritmo pelo acumulado do ano comercial (usuário, 2026-10-05, ADR 0076): o cálculo continua; o mês contra a média do mesmo mês troca de direção quase duas vezes mais e dá sinal mais fraco.",
+      "Validação contra Chicago no prompt (usuário, 2026-10-05, ADR 0076): a relação inversa ao preço americano vai à validação histórica; a direção da regra e o peso do especialista não mudam."
     ]
   }
 ];
@@ -376,15 +383,15 @@ const DO_ATIVO = {
     "Base do F4 (Campinas − paridade de MT): fica como está por ora, com o limiar 0 da regra do David. Comitê, 2026-10-04 (ADR 0058).",
     `Medidas da camada A confirmadas: COT em managed money (contratos e % dos contratos em aberto), estoque/uso dos EUA e do mundo com a revisão, safrinha em nível e revisão (Conab e IMEA), boa + excelente com o VHI, insumos pelo IMEA na v1. ${DECISAO_DAVID}, §5.`,
     "Peso por mês e agregação no prompt: o calendário de pesos da proposta vai ao prompt diário como uma tabela fixa, e as regras de agregação como orientação em texto, sem cálculo novo; a agregação em código continua para o Comitê. Nos meses que a proposta não define (o F1 de janeiro a maio, o F2 em janeiro e fevereiro), vale o peso do FEL 1. Usuário (Welerson), 2026-10-05 (ADR 0065).",
-    "F7 (fundos) não vota, como dizem as regras de agregação: reforça ou enfraquece a firmeza de F1, F3 e F8, sem o multiplicador numérico. Usuário (Welerson), 2026-10-05 (ADR 0065)."
+    "F7 (fundos) não vota, como dizem as regras de agregação: reforça ou enfraquece a firmeza de F1, F3 e F8, sem o multiplicador numérico. Usuário (Welerson), 2026-10-05 (ADR 0065).",
+    "Ajuste do F1 ao CCM: o andamento da colheita de MT (IMEA) vai ao bloco do F2 como contexto, e de junho a agosto, com 50% ou mais colhido, o peso do F1 cai um nível (o nível é do FinMind). De 2018 a 2026, o ESALQ acompanhou Chicago em reais 0,95 com menos de 50% colhido e 0,45 com 50% ou mais. Usuário (Welerson), 2026-10-05 (ADR 0077).",
+    "Calendário de pesos nos meses que a proposta não define: o F1 de janeiro a maio, Baixo (o fator não tem leitura nesses meses); o F2 em janeiro e fevereiro, Médio (o plantio). Usuário (Welerson), 2026-10-05 (ADR 0077)."
   ],
   perguntas: [
     "Vencimentos do CCM por horizonte: hoje vale o mais próximo negociado em todos os prazos. Um vencimento por horizonte, com a liquidez mínima (contratos em aberto), e a curva dos vencimentos no prompt?",
     "Agregação em código (Seção 4 da proposta): o teto do bloco de oferta e a paridade líquida (Chicago × câmbio) só existem como orientação no prompt. O Comitê quer a agregação calculada pelo motor, com o backtest?",
-    "Ajuste do F1 ao CCM: a proposta reduz o peso do F1 de junho a agosto enquanto a colheita da safrinha passa de 50%. O andamento da colheita (IMEA) é coletado, mas não está na BASE do prompt: levamos o andamento ao prompt (como contexto do F2) ou a regra fica de fora?",
-    "Calendário de pesos: qual o peso do F1 (clima dos EUA) de janeiro a maio e do F2 (safrinha) em janeiro e fevereiro? A proposta não define esses meses; por ora vale o do FEL 1 (ADR 0065).",
-    "Faixas da leitura da IA: hoje são os percentis 40 e 80 do Indicador ESALQ (2018 a 2026), por horizonte. As 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%) substituem?",
-    "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto e F6 para Baixo-Médio): entram no FEL 1 revisado (até 2026-10-15)?",
+    "Faixas da leitura da IA: hoje são os percentis 40 e 80 da variação do próprio CCM (2022 a 2026), por horizonte, provisórias (ADR 0058, adendo). As 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%) substituem?",
+    "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto, F6 para Baixo-Médio e, no F7, a reversão nos extremos no lugar de \"amplifica\", ADR 0075): entram no FEL 1 revisado (até 2026-10-15)?",
     "Fatores ausentes propostos (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio): entram na v1, ou depois?"
   ]
 };
@@ -395,6 +402,9 @@ const DO_ATIVO = {
 // calendário vai ao prompt diário como uma tabela fixa (ADR 0065, bloco 2.5); as frases das relações também
 // (bloco 2.5); a matriz de símbolos, não. A orientação de agregação é texto fixo do prompt (ai/prompts/milho-analise-diaria.md,
 // bloco 4).
+// Os meses que o David não definiu (ADR 0065), decididos pelo usuário: o F1 de janeiro a maio e o F2 em janeiro e fevereiro.
+const DECISAO_CALENDARIO = "Usuário (Welerson), 2026-10-05 (ADR 0077)";
+
 const PESOS_MILHO = {
   autoria: AUTORIA_DAVID,
   noPrompt: {
@@ -407,21 +417,28 @@ const PESOS_MILHO = {
     MILHO_CLIMA_SAFRA_EUA: {
       sugestao: "Alto para Chicago (ZC); Médio-Alto para o CCM, porque o efeito chega por paridade e é atenuado pela colheita da safrinha.",
       meses: { Alto: [7], Médio: [6, 8], Baixo: [9, 10, 11, 12] },
+      mesesDecididos: { origem: DECISAO_CALENDARIO, meses: { Baixo: [1, 2, 3, 4, 5] } },
       condicoes: [
         {
           texto:
             "Pressão de baixa (lavoura boa + excelente acima da média): peso Médio; Alto quando a polinização está concluída (90% ou mais da área)."
+        },
+        {
+          texto:
+            "Com 50% ou mais da safrinha de MT colhida (o andamento vai no bloco do F2), o peso cai um nível: Alto vira Médio, Médio vira Baixo (regra do especialista; o nível é do FinMind, decisão do usuário, ADR 0077).",
+          meses: [6, 7, 8]
         }
       ],
       notas: [
-        "A fase da lavoura define o peso: junho (pré-polinização), julho (polinização), agosto (enchimento), setembro a novembro (maturação e colheita). \"Baixo de setembro em diante\"; de janeiro a maio, não definido."
+        "A fase da lavoura define o peso: junho (pré-polinização), julho (polinização), agosto (enchimento), setembro a novembro (maturação e colheita). \"Baixo de setembro em diante\"; de janeiro a maio, o especialista não definiu: Baixo por decisão do usuário (2026-10-05, ADR 0077), porque o fator não tem leitura nesses meses."
       ]
     },
     MILHO_SAFRINHA: {
       sugestao: "Alto de março a julho, decrescente depois (a safra já está colhida em setembro).",
       meses: { Alto: [3, 4, 5, 6, 7], Médio: [8, 9], Baixo: [10, 11, 12] },
+      mesesDecididos: { origem: DECISAO_CALENDARIO, meses: { Médio: [1, 2] } },
       condicoes: [{ texto: "Revisão para cima que não atinge os limiares do fator: viés baixista fraco, com peso Baixo." }],
-      notas: ["\"Baixo de outubro em diante, quando o fator passa para F3 (estoque de passagem)\"; janeiro e fevereiro, não definidos."]
+      notas: ["\"Baixo de outubro em diante, quando o fator passa para F3 (estoque de passagem)\"; janeiro e fevereiro (o plantio), o especialista não definiu: Médio por decisão do usuário (2026-10-05, ADR 0077), uma transição até o Alto de março."]
     },
     MILHO_ESTOQUES_WASDE: {
       sugestao: "Alto. É o hub do motor: recebe e consolida os fatores F1, F2, F5 e F8.",
@@ -560,7 +577,7 @@ const PESOS_MILHO = {
       fatores: ["MILHO_POLITICA_COMERCIAL"],
       noFinMind: {
         situacao: "PARCIAL",
-        texto: "Os eventos vão ao prompt com data e tipo, numa janela de 30 dias, sem validação humana (decidido: Comitê, ADR 0058, e usuário, 2026-10-05). Falta definir o valor do volume estimado relevante e o do decaimento."
+        texto: "Os eventos vão ao prompt com data e tipo, numa janela de 30 dias, sem validação humana (decidido: Comitê, ADR 0058, e usuário, 2026-10-05). No lugar do volume, a intensidade da leitura por IA (média ou alta conta como pressão); o decaimento é a janela de 30 dias, com o mais recente pesando mais (usuário, 2026-10-05, ADR 0076)."
       }
     },
     {

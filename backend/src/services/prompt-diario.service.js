@@ -177,11 +177,11 @@ function blocoFaixas(config) {
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 // O calendário de pesos da metodologia (o milho, ADR 0065), como uma tabela fixa: o mesmo texto todo dia, sem cálculo.
-// O mês que o especialista não definiu sai com o peso do FEL 1 marcado com "*"; o fator sem peso próprio (`papel`)
-// remete às instruções.
+// O mês que o especialista não definiu sai com o peso do FEL 1 marcado com "*", ou, se alguém o decidiu depois, com o
+// peso decidido marcado com "†" e a origem na nota; o fator sem peso próprio (`papel`) remete às instruções.
 function blocoPesos(pesos) {
   const colunas = (f) => {
-    if (f.meses) return f.meses.map((m) => (m ? m.peso : `${f.pesoFel1}*`));
+    if (f.meses) return f.meses.map((m) => (!m ? `${f.pesoFel1}*` : m.decididoPor ? `${m.peso}†` : m.peso));
     if (f.fixo) return Array(12).fill(f.fixo);
     if (f.papel) return Array(12).fill("-");
     return Array(12).fill(`${f.pesoFel1}*`);
@@ -193,6 +193,7 @@ function blocoPesos(pesos) {
   // As condições e as regras de peso de cada fator, como a tela as mostra (metodologia-base.js, `noPrompt`).
   const condicoes = pesos.fatores.flatMap((f) => f.noPrompt.map((texto) => `- ${texto}`));
   const semPeso = pesos.fatores.filter((f) => f.papel && !f.meses && !f.fixo);
+  const decididos = [...new Set(pesos.fatores.flatMap((f) => (f.meses || []).filter((m) => m?.decididoPor).map((m) => m.decididoPor)))];
   // As frases das relações entre os fatores, como a tela as mostra; a matriz de símbolos fica só na tela.
   const relacoes = pesos.relacoes ? [...pesos.relacoes.leitura, ...pesos.relacoes.observacoes].map((frase) => `- ${frase}`) : [];
 
@@ -203,6 +204,7 @@ function blocoPesos(pesos) {
     ...pesos.fatores.map((f) => linha(rotulo(f), f.pesoFel1, colunas(f))),
     "",
     `* mês que a proposta não define: ${pesos.noPrompt.mesSemDefinicao}.`,
+    ...decididos.map((origem) => `† mês que a proposta não define, com o peso decidido depois (não é do especialista): ${origem}.`),
     ...semPeso.map((f) => `- ${f.sigla} ${f.codigo}: sem peso próprio; o papel dele está nas instruções.`),
     ...(condicoes.length ? ["", "Condições e regras de peso (só valem quando a BASE mostra que estão atendidas):", ...condicoes] : []),
     ...(relacoes.length ? ["", "Relações entre os fatores (orientação para o julgamento, não fórmula):", ...relacoes] : [])

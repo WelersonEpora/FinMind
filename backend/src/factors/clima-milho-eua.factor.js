@@ -90,7 +90,8 @@ function pesoDoMes(mes) {
   if (mes === 7) return "Alto";
   if (mes === 6 || mes === 8) return "Médio";
   if (mes >= 9) return "Baixo";
-  return "Fora da regra";
+  // De janeiro a maio o especialista não definiu: Baixo por decisão do usuário (ADR 0077).
+  return "Baixo (janeiro a maio: do usuário, ADR 0077)";
 }
 
 // Percentil da mesma semana nos 10 anos anteriores (com meio peso para empate), ou null se faltar algum.

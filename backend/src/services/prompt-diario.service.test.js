@@ -265,10 +265,11 @@ test("milho (ADR 0058): o CCM em reais, sem PTAX e sem bloco de curva; os evento
   const { promptDiario: p } = await montarPromptDiario("MILHO", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["CCM", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "milho-analise-diaria@4");
+  assert.equal(p.versaoPrompt, "milho-analise-diaria@5");
   // O calendário de pesos como tabela fixa (ADR 0065): em outubro, o F1 é Baixo e o F4 é Alto.
   assert.match(p.prompt, /2\.5 PESO DE CADA FATOR POR MÊS/);
-  assert.match(p.prompt, /F1 MILHO_CLIMA_SAFRA_EUA +\| Alto +\| Alto\* +\|/);
+  assert.match(p.prompt, /F1 MILHO_CLIMA_SAFRA_EUA +\| Alto +\| Baixo† +\|/);
+  assert.match(p.prompt, /† mês que a proposta não define, com o peso decidido depois \(não é do especialista\): Usuário \(Welerson\), 2026-10-05 \(ADR 0077\)\./);
   assert.match(p.prompt, /F4 MILHO_DOLAR_PARIDADE +\| Médio +\| Alto +\|/);
   assert.match(p.instrucaoDoSistema, /coluna do mês da data da análise, na tabela 2\.5/);
   // As frases das relações entre os fatores vão ao bloco 2.5, as mesmas da tela; a matriz de símbolos não vai.

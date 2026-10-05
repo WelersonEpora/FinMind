@@ -46,6 +46,9 @@ const { FATORES } = require("./fatores-fel1");
 //                `meses` ({ Alto: [7], Médio: [6, 8] }: os meses de 1 a 12 de cada peso; mês fora de todos = não
 //                definido, nunca preenchido por inferência), `fixo` (o mesmo peso o ano todo, sem calendário) ou `papel`
 //                (o fator não tem peso próprio, ex.: multiplica o dos outros). `condicoes` ({ texto, meses }) e `notas`.
+//                `mesesDecididos` (opcional, com `meses`): { origem, meses: { Baixo: [1, 2] } }, o peso dos meses que o
+//                especialista não definiu, decidido depois por quem pode (o usuário, num ADR); cada um sai com
+//                `decididoPor` (a origem), para a tela e o prompt não o atribuírem ao especialista.
 //   relacoes   - { descricao, simbolos: [{ simbolo: "++", significado: "forte" }, ...] (a legenda, na ordem), matriz: { CODIGO: [o símbolo contra cada fator, na ordem do
 //                ativo; null na diagonal] }, observacoes, leitura }. Simétrica: um símbolo diferente entre A×B e B×A
 //                é erro de transcrição.
@@ -105,15 +108,22 @@ function montarDoAtivo(ativo, doAtivo) {
 }
 
 // { Alto: [7], Médio: [6, 8] } -> os 12 meses (janeiro primeiro), cada um { peso, condicao } ou null (não definido).
-function mesesDoFator(codigo, meses, condicoes = []) {
+function mesesDoFator(codigo, meses, condicoes = [], decididos = null) {
   const lista = Array(12).fill(null);
-  for (const [peso, numeros] of Object.entries(meses)) {
-    if (!PESOS.includes(peso)) throw new Error(`${codigo}: peso desconhecido no calendário: ${peso}`);
-    for (const mes of numeros) {
-      if (!Number.isInteger(mes) || mes < 1 || mes > 12) throw new Error(`${codigo}: mês inválido: ${mes}`);
-      if (lista[mes - 1]) throw new Error(`${codigo}: o mês ${mes} tem dois pesos`);
-      lista[mes - 1] = { peso, condicao: null };
+  const preencher = (porPeso, decididoPor) => {
+    for (const [peso, numeros] of Object.entries(porPeso)) {
+      if (!PESOS.includes(peso)) throw new Error(`${codigo}: peso desconhecido no calendário: ${peso}`);
+      for (const mes of numeros) {
+        if (!Number.isInteger(mes) || mes < 1 || mes > 12) throw new Error(`${codigo}: mês inválido: ${mes}`);
+        if (lista[mes - 1]) throw new Error(`${codigo}: o mês ${mes} tem dois pesos`);
+        lista[mes - 1] = decididoPor ? { peso, condicao: null, decididoPor } : { peso, condicao: null };
+      }
     }
+  };
+  preencher(meses, null);
+  if (decididos) {
+    if (!decididos.origem) throw new Error(`${codigo}: mesesDecididos sem a origem`);
+    preencher(decididos.meses, decididos.origem);
   }
   for (const { texto, meses: numeros } of condicoes) {
     for (const mes of numeros || []) {
@@ -142,7 +152,7 @@ function montarPesoFator(fator, indice, definicao) {
   return {
     ...base,
     sugestao: definicao.sugestao || null,
-    meses: definicao.meses ? mesesDoFator(fator.codigo, definicao.meses, definicao.condicoes) : null,
+    meses: definicao.meses ? mesesDoFator(fator.codigo, definicao.meses, definicao.condicoes, definicao.mesesDecididos) : null,
     fixo: definicao.fixo || null,
     papel: definicao.papel || null,
     condicoes: condicoesSemMes,

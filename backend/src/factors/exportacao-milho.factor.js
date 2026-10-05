@@ -8,7 +8,8 @@ const { somarMeses } = require("./base/meses");
 // para o milho, o ritmo das exportações. A regra é a parte de embarques da R-POL v0 do David ("Motor do Milho",
 // 2026-10-02, ADR 0055); a participação da China é a medida que ele pediu na P12. Camadas A e B calculadas, C simulada.
 // Os EVENTOS (tarifas, habilitações, embargos) ficam fora do cálculo: vêm da leitura diária por IA (ADR 0049), e o
-// David pediu validação humana antes do prompt (pendência).
+// David pediu validação humana antes do prompt (o Comitê decidiu enviá-los sem ela, ADR 0058). Decisões do usuário
+// (2026-10-05, ADR 0076): o ritmo fica pelo acumulado; o evento relevante é o de intensidade média ou alta, por 30 dias.
 //
 // OBSERVÁVEL → FATOR (ver ADR 0008):
 //   observáveis (observation), Comex Stat, mensal (ADRs 0013 e 0034):

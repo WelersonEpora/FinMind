@@ -56,7 +56,8 @@ function siglas(codigos) {
 
 function tituloCelula(fator, mes, i) {
   if (!mes) return `${fator.sigla}, ${MESES_CURTOS[i]}: não definido pelo especialista`
-  return `${fator.sigla}, ${MESES_CURTOS[i]}: ${mes.peso}${mes.condicao ? `. ${mes.condicao}` : ''}`
+  const decidido = mes.decididoPor ? ` (não definido pelo especialista; decidido por: ${mes.decididoPor})` : ''
+  return `${fator.sigla}, ${MESES_CURTOS[i]}: ${mes.peso}${decidido}${mes.condicao ? `. ${mes.condicao}` : ''}`
 }
 </script>
 
@@ -121,7 +122,7 @@ function tituloCelula(fator, mes, i) {
                   ]"
                   :title="tituloCelula(fator, mes, i)"
                 >
-                  {{ mes ? mes.peso : '—' }}<sup v-if="mes?.condicao">*</sup>
+                  {{ mes ? mes.peso : '—' }}<sup v-if="mes?.condicao">*</sup><sup v-if="mes?.decididoPor">†</sup>
                 </td>
               </template>
               <td

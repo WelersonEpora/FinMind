@@ -55,7 +55,7 @@ test("o ativo: o CCM como preço de referência e a aprovação do Comitê entre
   assert.ok(!doAtivo.perguntas.some((p) => p.startsWith("Aprovação do Comitê")));
 });
 
-test("pesos do Motor v0: calendário com os meses não definidos em branco, matriz 8×8 e as 9 regras de agregação", () => {
+test("pesos do Motor v0: calendário com os meses decididos pelo usuário marcados, matriz 8×8 e as 9 regras de agregação", () => {
   const { pesos, fatores } = obterMetodologiaMilho();
   assert.match(pesos.autoria, /David, Motor do Milho v0/);
   assert.equal(pesos.situacao, SITUACAO.PROPOSTA);
@@ -68,12 +68,14 @@ test("pesos do Motor v0: calendário com os meses não definidos em branco, matr
   for (const fator of fatores) assert.equal(porCodigo[fator.codigo].pesoFel1, fator.peso);
   assert.equal(porCodigo.MILHO_DOLAR_PARIDADE.pesoFel1, "Médio");
   assert.match(porCodigo.MILHO_DOLAR_PARIDADE.sugestao, /^Alto/);
-  // F1: de janeiro a maio não definido; Alto em julho.
+  // F1: de janeiro a maio o especialista não definiu: Baixo, decidido pelo usuário (ADR 0077); Alto em julho.
   const clima = porCodigo.MILHO_CLIMA_SAFRA_EUA.meses;
-  assert.deepEqual(clima.slice(0, 5), [null, null, null, null, null]);
+  assert.deepEqual(clima.slice(0, 5).map((m) => m.peso), ["Baixo", "Baixo", "Baixo", "Baixo", "Baixo"]);
+  assert.match(clima[0].decididoPor, /Usuário.*ADR 0077/);
+  assert.equal(clima[8].decididoPor, undefined);
   assert.equal(clima[6].peso, "Alto");
-  // F2: janeiro e fevereiro não definidos.
-  assert.deepEqual(porCodigo.MILHO_SAFRINHA.meses.slice(0, 2), [null, null]);
+  // F2: janeiro e fevereiro, Médio, decidido pelo usuário (ADR 0077).
+  assert.deepEqual(porCodigo.MILHO_SAFRINHA.meses.slice(0, 2).map((m) => [m.peso, Boolean(m.decididoPor)]), [["Médio", true], ["Médio", true]]);
   // F4: Alto de julho a janeiro.
   assert.deepEqual(
     porCodigo.MILHO_DOLAR_PARIDADE.meses.map((m) => m.peso),

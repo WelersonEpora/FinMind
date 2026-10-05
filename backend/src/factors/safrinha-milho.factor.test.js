@@ -93,3 +93,25 @@ test("o VHI de MT e do PR vai como contexto (ADR 0070): as 2 semanas mais recent
   assert.deepEqual(novembro.decisao, semVhi.at(-1).decisao);
   assert.equal(semVhi.at(-1).vhiContexto, null);
 });
+
+test("a colheita de MT vai como contexto do peso do F1 (ADR 0077): o último informe recente, sem mudar a decisão", () => {
+  const colheita = (semana, valor) => ({
+    seriesCode: "IMEA.MILHO.ANDAMENTO.MATO_GROSSO.COLHEITA",
+    observedAt: semana,
+    value: valor,
+    publishedAt: new Date(`${semana}T21:00:00Z`),
+    publishedAtIsEstimated: false
+  });
+  const conab = [producao("2025-09-01", 100000, "2026-06-12"), producao("2025-09-01", 101000, "2026-07-01")];
+  const linhasColheita = [colheita("2026-06-12", 21.4), colheita("2026-07-03", 78.9)];
+  const semColheita = derivarSafrinhaMilho(conab);
+  const [junho, julho] = derivarSafrinhaMilho(conab, { linhasColheita });
+  assert.equal(junho.colheitaMtPct, 21.4);
+  assert.match(junho.colheitaMtDetalhe, /^21,4% da área de MT colhida no informe de 12\/06\/2026 \(IMEA\)\. Abaixo de 50%/);
+  assert.equal(julho.colheitaMtPct, 78.9);
+  assert.match(julho.colheitaMtDetalhe, /Com 50% ou mais colhido, de junho a agosto o peso do F1/);
+  assert.deepEqual(julho.decisao, semColheita.at(-1).decisao);
+  // Fora da safra (informe de mais de 21 dias), sem contexto.
+  const [, , outubro] = derivarSafrinhaMilho([...conab, producao("2025-09-01", 101500, "2026-10-09")], { linhasColheita });
+  assert.equal(outubro.colheitaMtPct, null);
+});

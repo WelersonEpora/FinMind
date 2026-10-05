@@ -1,6 +1,6 @@
 # Prompt — Análise diária do milho (leitura de tendência em quatro horizontes)
 
-**Versão:** 4
+**Versão:** 5
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0058), no molde do prompt do ouro (`ouro-analise-diaria.md`, v1;
 ADR 0054): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -33,6 +33,14 @@ influenciam os demais, as correlações inversas e a defasagem de F2 × F6) vão
 de símbolos fica só na tela. O item 9 do bloco 4 cita a lista. O texto vem de `shared/metodologia-milho.js`, o mesmo
 do card "Relações entre os fatores" da tela. O bloco do F6 (MILHO_INSUMOS) ganha a data de efeito esperada do sinal
 defasado (de 6 a 12 meses depois do dado, regra de agregação "Sinais defasados"), e o item 1 a cita.
+
+v5 (2026-10-05, ADR 0076) - o item 8 do bloco 4 ganha a regra dos eventos da política comercial (MILHO_POLITICA_COMERCIAL),
+decidida pelo usuário no lugar do "volume estimado relevante" e do decaimento da R-POL v0: conta como pressão o ato
+oficial com intensidade média ou alta; com intensidade baixa, é contexto; pesa na janela de 30 dias, mais quanto mais
+recente.
+Na mesma versão (ADR 0077): a tabela 2.5 marca com "†" os meses que a proposta não define e o usuário decidiu (o F1
+de janeiro a maio, Baixo; o F2 em janeiro e fevereiro, Médio), com a origem na nota; o F1 ganha a regra da colheita
+da safrinha (de junho a agosto, com 50% ou mais de MT colhido, um nível abaixo), e o bloco do F2 traz o andamento.
 
 Enviado ao Gemini uma vez por dia pelo coletor `milho-analise-ia-diario` (ADR 0058).
 
@@ -105,7 +113,9 @@ Para cada horizonte, separadamente:
 8. Eventos. Cada fator traz, depois do cálculo, os eventos que a leitura diária de eventos por IA marcou com ele
    (tarifas, habilitações e embargos no MILHO_POLITICA_COMERCIAL; seca, geada ou chuva excepcional no clima ou na
    safrinha; e assim por diante). O cálculo não usa os eventos: eles complementam a leitura do fator. Use a idade e o
-   tipo de cada evento para julgar se ele ainda pesa no horizonte. A pressão de um evento é leitura de outra IA sobre o
+   tipo de cada evento para julgar se ele ainda pesa no horizonte. No MILHO_POLITICA_COMERCIAL, um evento só conta como
+   pressão quando é ato oficial com intensidade média ou alta; com intensidade baixa, é contexto; e pesa mais quanto
+   mais recente, até sair da janela de 30 dias. A pressão de um evento é leitura de outra IA sobre o
    fato isolado, não um cálculo, e não passou por validação humana: dê a ele menos firmeza que a um dado medido. Um
    evento que também já aparece num dado calculado (uma quebra de safra que já entrou numa estimativa) não conta duas
    vezes. "Nenhum evento", com leitura diária na janela, é informação; "dia sem leitura" é falta de informação.

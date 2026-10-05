@@ -12,6 +12,10 @@ const faixa = require("./base/decisao-por-faixa");
 //     CONAB.MILHO.BRASIL.PRODUCAO_2A / AREA_2A / PRODUTIVIDADE_2A - a 2ª safra do Brasil (mil t, mil ha, kg/ha)
 //   e NOAA STAR, semanal (ADR 0025), só como CONTEXTO, fora da conta (ADR 0070):
 //     NOAA_VH.MILHO.BR_MT.VHI / BR_PR.VHI - a saúde da vegetação sobre a área de milho de MT e do PR (0 a 100)
+//   e IMEA, semanal na safra (ADR 0039), também só como CONTEXTO (ADR 0077):
+//     IMEA.MILHO.ANDAMENTO.MATO_GROSSO.COLHEITA - a colheita do milho de MT, em % da área. Com 50% ou mais colhido, de
+//     junho a agosto, o peso do F1 (clima dos EUA) cai um nível (regra do David; "um nível" é do FinMind, decisão do
+//     usuário): o dado vai aqui para a IA aplicar a regra do calendário
 //   fator (calculado sob demanda, NUNCA gravado), um ponto por LEVANTAMENTO (o que ele dizia da safra mais nova):
 //     A. a produção, a área e a produtividade; a revisão contra o levantamento anterior; a revisão acumulada contra a
 //        1ª estimativa da safra
@@ -30,12 +34,13 @@ const faixa = require("./base/decisao-por-faixa");
 // disse de uma série é a última versão até ele. Um levantamento que a base não tem (a fonte não publicou o arquivo:
 // mar a jun/2025 e jan/2026) não vira "mesmo estágio": a comparação fica sem dado.
 //
-// O peso do mês (Alto de março a julho; Médio em agosto e setembro; Baixo de outubro a fevereiro) é do David e vai no
-// ponto como texto, sem entrar na conta. Propriedades: determinístico, versionado, point-in-time, sem IA.
+// O peso do mês (Alto de março a julho; Médio em agosto e setembro; Baixo de outubro a dezembro) é do David; o de
+// janeiro e fevereiro (Médio) é do usuário (ADR 0077). Vai no ponto como texto, sem entrar na conta. Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "safrinha_milho_conab";
 // v2 (2026-10-05): o VHI de MT e do PR como contexto, fora da conta (ADR 0070).
-const FACTOR_VERSION = 2;
+// v3 (2026-10-05): a colheita de MT como contexto; o peso de janeiro e fevereiro, Médio (ADR 0077).
+const FACTOR_VERSION = 3;
 
 const SERIES = Object.freeze({
   producao: "CONAB.MILHO.BRASIL.PRODUCAO_2A",
@@ -53,6 +58,10 @@ const VHI_ESTRESSE = 40;
 const SEMANAS_VHI = 2;
 // Uma semana do VHI só entra se for de até 21 dias antes do limite (uma semana velha não é o momento do levantamento).
 const DIAS_VHI_RECENTE = 21;
+
+// O andamento da colheita de MT (ADR 0077), com a mesma janela de 21 dias: fora da safra, o informe velho não entra.
+const SERIE_COLHEITA = "IMEA.MILHO.ANDAMENTO.MATO_GROSSO.COLHEITA";
+const COLHEITA_AJUSTE_F1 = 50;
 
 // Do David (R-SAF v0): 3% contra a safra anterior; 2% de revisão acumulada em 2 levantamentos seguidos. O Comitê ajusta.
 const PARAMETROS_PADRAO = Object.freeze({
@@ -76,6 +85,7 @@ function numeroDoLevantamento(mes) {
 function pesoDoMes(mes) {
   if (mes >= 3 && mes <= 7) return "Alto";
   if (mes === 8 || mes === 9) return "Médio";
+  if (mes <= 2) return "Médio (janeiro e fevereiro: do usuário, ADR 0077)";
   return "Baixo";
 }
 
@@ -167,9 +177,30 @@ function vhiDoLevantamento(vhi, observedAt, limite) {
   };
 }
 
-// Função PURA: recebe as linhas de obterVersoesAsOf() da Conab (e, como contexto, as de obterAsOf() do VHI) e devolve
-// um ponto por levantamento.
-function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO, linhasVhi = [] } = {}) {
+const fmtPct1 = (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// A colheita de MT de um levantamento, só contexto (ADR 0077): o último informe publicado antes de `limite` (null = até o
+// asOf), de até 21 dias antes. null fora da safra.
+function colheitaDoLevantamento(linhasColheita, observedAt, limite) {
+  const corte = somarDias(limite ? new Date(limite).toISOString().slice(0, 10) : observedAt, -DIAS_VHI_RECENTE);
+  const conhecidas = linhasColheita.filter((l) => !limite || l.publishedAt < limite).sort((a, b) => a.observedAt.localeCompare(b.observedAt));
+  const ultima = conhecidas.at(-1);
+  if (!ultima || ultima.observedAt < corte) return { colheitaMtPct: null, colheitaMtDetalhe: null };
+  const data = ultima.observedAt.split("-").reverse().join("/");
+  const passou = ultima.value >= COLHEITA_AJUSTE_F1;
+  return {
+    colheitaMtPct: arredondar(ultima.value, 1),
+    colheitaMtDetalhe:
+      `${fmtPct1(ultima.value)}% da área de MT colhida no informe de ${data} (IMEA). ` +
+      (passou
+        ? "Com 50% ou mais colhido, de junho a agosto o peso do F1 (clima dos EUA) cai um nível (regra do especialista; o nível é do FinMind)."
+        : "Abaixo de 50%: o peso do F1 de junho a agosto não muda.")
+  };
+}
+
+// Função PURA: recebe as linhas de obterVersoesAsOf() da Conab (e, como contexto, as de obterAsOf() do VHI e da colheita
+// de MT) e devolve um ponto por levantamento.
+function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO, linhasVhi = [], linhasColheita = [] } = {}) {
   const vhi = vhiPorEstado(linhasVhi);
   const porEdicao = new Map();
   for (const linha of linhasVersoes) {
@@ -233,6 +264,7 @@ function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO, l
       variacaoSafraAnteriorPct: variacaoSafraAnterior,
       pesoDoMes: pesoDoMes(mes),
       ...vhiDoLevantamento(vhi, edicao, edicoes[indice + 1] ? porEdicao.get(edicoes[indice + 1])[0].publishedAt : null),
+      ...colheitaDoLevantamento(linhasColheita, edicao, edicoes[indice + 1] ? porEdicao.get(edicoes[indice + 1])[0].publishedAt : null),
       decisao: decidirSafrinha({ variacaoSafraAnteriorPct: variacaoSafraAnterior, acumuladasPct, revisaoPct: revisao }, parametros),
       disponivelEm: porEdicao.get(edicao)[0].publishedAt,
       disponivelEmEhEstimado: porEdicao.get(edicao)[0].publishedAtIsEstimated
@@ -245,11 +277,12 @@ function derivarSafrinhaMilho(linhasVersoes, { parametros = PARAMETROS_PADRAO, l
 
 async function calcularSafrinhaMilho({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
-  const [linhas, linhasVhi] = await Promise.all([
+  const [linhas, linhasVhi, linhasColheita] = await Promise.all([
     servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES), asOf }, deps),
-    servico.obterAsOf({ seriesCodes: ESTADOS_VHI.map((e) => e.serie), asOf }, deps)
+    servico.obterAsOf({ seriesCodes: ESTADOS_VHI.map((e) => e.serie), asOf }, deps),
+    servico.obterAsOf({ seriesCodes: [SERIE_COLHEITA], asOf }, deps)
   ]);
-  return derivarSafrinhaMilho(linhas, { parametros, linhasVhi });
+  return derivarSafrinhaMilho(linhas, { parametros, linhasVhi, linhasColheita });
 }
 
 // --- Camada C: explicação e exemplos ------------------------------------------------------------------------------
@@ -332,7 +365,8 @@ const APRESENTACAO = {
     { camada: "B", rotulo: "Safra anterior no mesmo levantamento", campo: "producaoSafraAnteriorMilT", casas: 1, sufixo: "mil t" },
     { camada: "B", rotulo: "Variação contra a safra anterior (mesmo levantamento)", campo: "variacaoSafraAnteriorPct", casas: 2, sinal: true, unidadeValor: "%" },
     { camada: "B", rotulo: "Peso do mês na proposta do especialista (fora da conta)", campo: "pesoDoMes" },
-    { camada: "B", rotulo: "Saúde da vegetação sobre o milho de MT e do PR (VHI da NOAA; contexto, fora da conta)", campo: "vhiContexto", detalhe: "vhiContextoDetalhe" }
+    { camada: "B", rotulo: "Saúde da vegetação sobre o milho de MT e do PR (VHI da NOAA; contexto, fora da conta)", campo: "vhiContexto", detalhe: "vhiContextoDetalhe" },
+    { camada: "B", rotulo: "Colheita do milho de MT (IMEA; contexto do peso do F1, fora da conta)", campo: "colheitaMtPct", casas: 1, unidadeValor: "%", detalhe: "colheitaMtDetalhe" }
   ],
   graficoAB: {
     titulo: "Produção da 2ª safra em cada levantamento (A) × a safra anterior no mesmo levantamento (B), em mil t",

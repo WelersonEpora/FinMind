@@ -16,6 +16,8 @@ const { criarFatorFundosCot } = require("./modelos/fundos-cot");
 //
 // O "gatilho de alta de F1, F3 ou F8" das regras do David cruza fatores: não entra aqui (é a agregação, pendência do
 // ativo). Sem ele, o fator dá a pressão do extremo; o prompt o trata como qualificador, como no petróleo e no ouro.
+// Decisões do usuário (2026-10-05, ADR 0075): a reversão vale nos extremos, com a ressalva dos comprados (contra o preço
+// americano do FMI, de 2016 a 2026, a baixa não veio por causa do ciclo de 2021-22); o extremo sozinho já é pressão.
 
 const FACTOR_ID = "fundos_milho_cot_cbot";
 const FACTOR_VERSION = 1;
