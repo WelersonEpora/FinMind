@@ -27,7 +27,8 @@ test("os 8 fatores do milho do FEL 1, na ordem da planilha, todos como proposta 
     assert.match(fator.proposta.regrasEspecialista.alta, /^R-[A-Z]+-01 v0/, fator.codigo);
     assert.match(fator.proposta.regrasEspecialista.baixa, /^R-[A-Z]+-02 v0/, fator.codigo);
     for (const campo of ["tipo", "direcao", "mecanismo", "fonte"]) assert.ok(fator.fel1[campo], `${fator.codigo}.${campo}`);
-    assert.ok(fator.perguntas.length > 0, fator.codigo);
+    // Uma pergunta respondida vira decisão: o fator tem uma ou outra.
+    assert.ok(fator.perguntas.length > 0 || fator.decisoes.length > 0, fator.codigo);
   }
 });
 

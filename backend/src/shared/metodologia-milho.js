@@ -23,7 +23,8 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // lado das que já iam (ADR 0065, adendo); o ajuste do F1 pela colheita da safrinha sai da tela e vira pergunta (o
 // andamento da colheita não está na BASE).
 // v4 (2026-10-05): a condição da previsão do NOAA/CPC entra no F1 (ADR 0068, decisão do usuário); a pergunta sai.
-const VERSAO = 4;
+// v5 (2026-10-05): a validação histórica do F1 contra o preço do milho americano do FMI (ADR 0069); a pergunta sai.
+const VERSAO = 5;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -39,12 +40,12 @@ const DEFINICOES = [
     },
     evento: { janelaDias: 7 },
     dados: {
-      observaveis: ["USDA_MILHO_CONDICAO", "USDA_MILHO_PROGRESSO", "NOAA_VH_MILHO", "NOAA_CPC_MILHO"],
+      observaveis: ["USDA_MILHO_CONDICAO", "USDA_MILHO_PROGRESSO", "NOAA_VH_MILHO", "NOAA_CPC_MILHO", "MILHO_PRECO_FMI"],
       eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para medir o fator: a condição da lavoura do USDA é semanal desde 1986, o que dá a média de 5 anos da mesma semana desde 1991 e o percentil de 10 anos desde 1996; os episódios conhecidos aparecem (a seca de 2012, -36 p.p. contra a média; a seca-relâmpago de junho de 2023, -17 p.p.). Contra o Indicador CEPEA/ESALQ (115 semanas de junho a agosto, 2018 a 2026), não há relação: o desvio tem +0,15 com o indicador 13 semanas depois (o sentido contrário ao do FEL 1), e nas semanas com pressão de baixa o indicador subiu em 25 de 26 (média +13,6%), puxado por 2024 e 2025. São só 9 safras, e o efeito do clima americano chega ao CCM por Chicago e pela paridade, atenuado pela colheita da safrinha (o que a proposta do especialista já diz). Sem o ZC, não há como validar onde o efeito é direto."
+          "Suficiente para medir o fator: a condição da lavoura do USDA é semanal desde 1986, o que dá a média de 5 anos da mesma semana desde 1991 e o percentil de 10 anos desde 1996; os episódios conhecidos aparecem (a seca de 2012, -36 p.p. contra a média; a seca-relâmpago de junho de 2023, -17 p.p.). Contra o preço do milho americano (FMI, mensal, em dólar; 34 safras de 1992 a 2025, semanas de junho a agosto), o fator confirma o sentido do FEL 1 JUNTO com o preço: o desvio tem -0,57 com a variação de abril até o mês da semana (-0,50 sem 2012); com pressão de alta o preço estava acima do de abril em 63% das semanas (média +3,6%), com pressão de baixa em 15% (média -8,9%). Mas NÃO antecipa: do mês da semana até 1, 2 ou 3 meses depois, a correlação fica entre -0,02 e +0,09 (o Crop Progress é público e o mercado o precifica na mesma semana). No preço brasileiro (Indicador CEPEA/ESALQ, 9 safras de 2018 a 2026) a relação não aparece nem em dólar: +0,19 com a variação em 8 semanas em reais e +0,31 em dólar, o sentido contrário (o mercado interno tem fatores próprios: em 2020 o indicador subiu 34% em dólar sem choque nos EUA). O fator descreve o estado atual da oferta americana, já refletido em Chicago; não antecipa o preço."
       },
       lacunas: [
         "A previsão do NOAA/CPC (nos 5 maiores estados de milho) é coletada desde 2026-10-05, sem histórico (ADR 0067): antes disso o fator roda sem a condição dela, e ela não tem como ser testada no passado. O U.S. Drought Monitor, que a regra de alta também usa, não é coletado (fonte nova).",
@@ -62,10 +63,9 @@ const DEFINICOES = [
         baixa: "R-CLI-02 v0 (jun–ago): G/E 3 p.p. ou mais acima da média de 5 anos por 3 semanas seguidas, sem previsão adversa → pesa para baixa."
       }
     },
-    perguntas: [
-      "No preço em reais o fator não mostrou relação (9 safras): ele fica como está, à espera de uma validação contra Chicago (o ZC, Fase 2 da P8), ou entra com peso reduzido no CCM?"
-    ],
+    perguntas: [],
     decisoes: [
+      "Validação contra Chicago e peso (usuário, 2026-10-05, ADR 0069): validado contra o preço mensal do milho americano do FMI (34 safras), no lugar do ZC; o fator confirma o sentido do FEL 1 junto com o preço, mas não o antecipa, nem em Chicago nem no CCM. O peso do calendário do David não muda; a validação histórica do prompt diz isso.",
       "Previsão do CPC como condição da regra (usuário, 2026-10-05, ADR 0068): a previsão de 8 a 14 dias é adversa com calor acima e chuva abaixo do normal em 3 ou mais dos 5 estados do Corn Belt (o \"3 de 5\" é do FinMind, ajustável no card C); a pressão de alta só vale com ela e a de baixa só sem ela (senão, neutra). Sem previsão na semana (antes de 2026-10-05), a condição não é aplicada, e o texto do fator diz isso."
     ]
   },

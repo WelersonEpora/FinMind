@@ -22,6 +22,7 @@ const jodiDemandaPetroleoCollector = require("./jodi/jodi-demanda-petroleo.colle
 const { criarColetorFred, SERIES_COLETADAS: SERIES_FRED } = require("./fred/fred.collector");
 const fredCpiCollector = require("./fred/fred-cpi.collector");
 const fredCafeFmiCollector = require("./fred/fred-cafe-fmi.collector");
+const fredMilhoFmiCollector = require("./fred/fred-milho-fmi.collector");
 const { criarColetorCot } = require("./cftc/cftc-cot.collector");
 const usdaCropProgressCollector = require("./usda/usda-crop-progress.collector");
 const { criarColetorFuturoB3 } = require("./b3/b3-futuro.collector");
@@ -104,13 +105,14 @@ function bootstrapCollectors() {
     registerCollector(criarColetorVh("cafe"));
     registerCollector(coletorCpc);
 
-    // O CPI e o preço do café do FMI vêm do ALFRED (versões com a data real), que só existe na API do FRED (ADRs 0033
-    // e 0045).
+    // O CPI e os preços do café e do milho do FMI vêm do ALFRED (versões com a data real), que só existe na API do
+    // FRED (ADRs 0033, 0045 e 0069).
     if (env.collectors.fredApiKey) {
       registerCollector(fredCpiCollector);
       registerCollector(fredCafeFmiCollector);
+      registerCollector(fredMilhoFmiCollector);
     } else {
-      logger.warn("FRED_API_KEY não definida - coletores do ALFRED (CPI dos EUA e preço do café do FMI) não registrados.");
+      logger.warn("FRED_API_KEY não definida - coletores do ALFRED (CPI dos EUA e preços do café e do milho do FMI) não registrados.");
     }
 
     if (env.collectors.nassApiKey) {

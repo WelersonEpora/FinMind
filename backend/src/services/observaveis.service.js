@@ -1412,6 +1412,32 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- FMI - preço mensal do milho americano, pelo ALFRED, com todas as versões (ADR 0069) ---
+  {
+    instrumentCode: "MILHO_PRECO_FMI",
+    origem: "observation",
+    nome: "Milho - preço mensal do FMI (EUA)",
+    unidade: "US$/t",
+    casasDecimais: 2,
+    frequencia: "MENSAL",
+    // O mesmo release do café (ADR 0045): o último mês fica até ~80 dias sem sucessor, e o FRED já passou meses sem
+    // atualizar.
+    toleranciaDias: 100,
+    fonte: "FMI - Primary Commodity Prices (pelo ALFRED)",
+    fonteCollectorCode: "fred-milho-fmi",
+    porCampo: { prefixoSerie: "FRED" },
+    campoPrincipal: "PMAIZMTUSDM",
+    campos: [{ codigo: "PMAIZMTUSDM", nome: "Milho (EUA)", unidade: "US$/t", casasDecimais: 2 }],
+    fonteDetalhe: {
+      descricao:
+        "Preço mensal do milho do FMI (Primary Commodity Prices, \"Global price of Corn\"): o preço do maior exportador (os EUA), em dólares por tonelada métrica, média do mês. É o preço do milho americano em dólar, onde o efeito do clima dos EUA é direto; serve para validar os fatores do milho contra Chicago (o ZC da CME é pago). Valores como publicados, sem conversão.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês), desde jan/1992. O preço é revisado: vem do ALFRED, o arquivo de versões do FRED, cada versão na data em que chegou ao FRED (91 versões, desde 06/11/2015; os meses anteriores entram com a data dessa versão, um limite superior). O FRED atualiza o release de forma irregular: a data é quando o dado ficou disponível pelo FRED, não quando o FMI publicou. Mensal: serve para a validação histórica e para ciclos longos, não para regras diárias (o preço diário é o futuro CCM da B3). Licença: \"Copyright © 2016, International Monetary Fund. Reprinted with permission\" (termos do FMI não lidos). Uso atual: pesquisa interna (ADR 0069).",
+      formatoOrigem: "API REST do FRED/ALFRED (com chave; sem reserva)",
+      urlOficial: "https://www.imf.org/en/Research/commodity-prices"
+    }
+  },
+
   // --- ICE Futures U.S. - estoques certificados do café "C", diário desde 2016-01-04 (ADR 0032) ---
   {
     instrumentCode: "ICE_CAFE_ESTOQUES",
