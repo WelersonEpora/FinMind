@@ -9,9 +9,9 @@ sendo o padrão de tudo que ainda não tem definição: falha explicitamente, nu
 fica versionado em `prompts/geopolitica-diaria.md` (carregado por `carregar-prompt.js`) e quem interpreta a resposta é o
 parser do coletor `collectors/geopolitica/`. A leitura é **contexto** para o prompt do ativo, não regra nem sinal.
 
-**E a leitura diária de tendência do petróleo e do ouro** (ADRs 0051, 0052 e 0054): o prompt de cada ativo
-(`prompts/petroleo-analise-diaria.md`, com os 10 fatores e o WTI; `prompts/ouro-analise-diaria.md`, com os 8 fatores e
-o GLD), montado por `services/prompt-diario.service.js` com a configuração do ativo (`shared/analise-diaria.js`), vai
+**E a leitura diária de tendência do petróleo, do ouro, do milho e do café** (ADRs 0051, 0052, 0054, 0058 e 0062): o
+prompt de cada ativo (`prompts/<ativo>-analise-diaria.md`: o petróleo com os 10 fatores e o Brent, o ouro com os 8 e o
+GLD, o milho com os 8 e o CCM, o café com os 8 e o ICF), montado por `services/prompt-diario.service.js` com a configuração do ativo (`shared/analise-diaria.js`), vai
 ao Gemini **sem busca** e com a resposta em JSON (`gemini-search.provider.js::gerarJson`), por um coletor por ativo
 (`collectors/analise/`). A resposta é validada por `shared/resposta-analise-diaria.js` (fora do formato, nada é
 gravado) e aparece no Centro de Decisão do ativo: **leitura de tendência em quatro horizontes, não recomendação**.

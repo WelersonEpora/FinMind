@@ -98,10 +98,12 @@ citado na especificação.
 
 Cada um é um módulo com um arquivo de contrato (`*.interface.js`) e,
 onde aplicável, uma implementação nula que lança
-`NotConfiguredError` explícito. Nenhum dos três tem qualquer lógica de
-domínio hoje — só o contrato de entrada/saída, para que o resto do
-sistema (dashboard, status) possa referenciá-los sem acoplar a uma
-implementação futura específica.
+`NotConfiguredError` explícito, para que o resto do sistema possa
+referenciá-los sem acoplar a uma implementação futura específica. A
+coleta e a IA (Gemini) já têm implementação real; o motor roda por fator
+nos quatro ativos (fatores, prompt diário e leitura de tendência, ver
+`backend/src/analytics-engine/README.md`), e só a agregação dos fatores
+em código segue como contrato vazio.
 
 ## Banco de dados
 

@@ -46,8 +46,8 @@ FinMind/
       collectors/fred|cftc|usda|b3|.../  # ouro/milho/café/petróleo -> observation (point-in-time, ADR 0008/0009); lbma/ encerrado (ADR 0044)
       factors/               # fatores derivados (funções determinísticas sobre asOf(); ADR 0008)
       factors/modelos/       # moldes de fator comuns a vários ativos (COT, dólar, juros): o ativo dá séries e textos (ADR 0053)
-      analytics-engine/      # contrato do motor de regras (placeholder)
-      ai/                     # contrato de provedor de IA (placeholder)
+      analytics-engine/      # mapa do motor (fatores, prompt diário, leitura de tendência) + contrato da agregação, ainda vazio
+      ai/                     # provedor Gemini (eventos e leitura de tendência) e prompts versionados
     database/
       migrations/             # fonte da verdade do schema
       seeders/                # usuário admin inicial (papel admin)
@@ -97,9 +97,14 @@ em um espaço. Detalhes e justificativa em `docs/decisoes-tecnicas.md`.
 ## Coleta de dados / motor analítico / IA
 
 Os três módulos vivem isolados em seus próprios diretórios, cada um com um
-arquivo de contrato (`*.interface.js`). O motor analítico e a IA continuam
-contratos vazios (`NotConfiguredError`), aguardando as definições do
-especialista David e do Comitê (ver `STATUS_DO_PROJETO.md`, §4).
+arquivo de contrato (`*.interface.js`). Desde 2026-10-05, os quatro ativos
+(petróleo, ouro, milho e café) têm o motor rodando por fator: os fatores em
+`factors/` (camadas A, B e C), o prompt diário montado por
+`services/prompt-diario.service.js` e a leitura de tendência do Gemini
+(`collectors/analise/`), no Centro de Decisão (ADRs 0052, 0054, 0058 e 0062).
+O mapa está em `backend/src/analytics-engine/README.md`. Continua vazio
+(`NotConfiguredError`) o contrato da agregação dos fatores em código e de
+qualquer sinal, à espera do David e do Comitê (`STATUS_DO_PROJETO.md`, §4).
 
 A coleta (`collectors/`) tem, desde a primeira integração real, um pipeline
 completo (`collectors/base/collector-runner.js` + `retry.js`): download com

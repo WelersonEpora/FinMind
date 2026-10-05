@@ -1,8 +1,9 @@
 "use strict";
 
 const sequelize = require("../config/database");
+const env = require("../config/env");
 const { listCollectors } = require("../collectors/base/collector.interface");
-const nullAiProvider = require("../ai/null-provider");
+const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 
 const startedAt = Date.now();
 
@@ -13,6 +14,8 @@ async function getStatus() {
   } catch (_err) {
     dbStatus = "error";
   }
+
+  const geminiConfigurado = Boolean(env.gemini.apiKeyFree || env.gemini.apiKey);
 
   return {
     uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
@@ -25,13 +28,19 @@ async function getStatus() {
         status: listCollectors().length > 0 ? "ok" : "not_configured",
         registered: listCollectors().length
       },
+      // O motor de hoje: os fatores de cada ativo (camadas A, B e C) e o prompt diário (ADRs 0052, 0054, 0058 e 0062),
+      // em factors/ e nos serviços de metodologia e de prompt (analytics-engine/README.md). A agregação dos fatores em
+      // código ainda é do David.
       analyticsEngine: {
-        status: "not_configured",
-        message: "Aguardando regras e cálculos do especialista de mercado."
+        status: "ok",
+        ativos: ATIVOS_COM_ANALISE_DIARIA.length,
+        message: "Fatores e prompt diário por ativo; a agregação dos fatores em código aguarda o especialista de mercado."
       },
       ai: {
-        status: nullAiProvider.nome === "none" ? "not_configured" : "ok",
-        message: "Aguardando definição de provedor e critérios de avaliação da IA."
+        status: geminiConfigurado ? "ok" : "not_configured",
+        message: geminiConfigurado
+          ? "Gemini: leitura diária de eventos e de tendência."
+          : "GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas."
       }
     }
   };

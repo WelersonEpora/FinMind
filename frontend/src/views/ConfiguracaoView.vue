@@ -49,7 +49,7 @@ onMounted(async () => {
         <li class="list-group-item d-flex justify-content-between align-items-center">
           Motor analítico
           <span class="badge" :class="badgeClass(status.modules.analyticsEngine.status)">
-            {{ status.modules.analyticsEngine.status }}
+            {{ status.modules.analyticsEngine.status }} ({{ status.modules.analyticsEngine.ativos }} ativos)
           </span>
         </li>
         <li class="list-group-item d-flex justify-content-between align-items-center">
