@@ -139,9 +139,13 @@ export function montarLeque({ linhas, precos, horizontes, modo, horizonte, persi
       : []
   const segmentos = segmentosDoPreco(precos, linhas, { ini, fim: hoje < fim ? hoje : fim })
 
-  // A escala segue o preço (a linha e os pontos realizados), com folga; as faixas que passam da borda são cortadas.
-  const valores = [...segmentos.flat().map((p) => p.valor), ...marcadores.map((m) => m.valor)]
-  if (valores.length === 0) valores.push(...barras.flatMap((b) => [b.precoDe, b.precoAte]))
+  // A escala cobre o preço (a linha e os pontos realizados) e as faixas inteiras, com folga (a seta da FORTE cabe nela):
+  // nenhuma faixa fica cortada na borda, nem as largas do longo prazo.
+  const valores = [
+    ...segmentos.flat().map((p) => p.valor),
+    ...marcadores.map((m) => m.valor),
+    ...[...barras, ...persistencias].flatMap((b) => [b.precoDe, b.precoAte])
+  ]
   const folga = modo === 'quatro' ? FOLGA_QUATRO : FOLGA_UM[diasHorizonte] ?? FOLGA_QUATRO
   const escala = valores.length
     ? { min: Math.min(...valores) * (1 - folga), max: Math.max(...valores) * (1 + folga) }

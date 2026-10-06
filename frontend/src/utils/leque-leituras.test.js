@@ -76,7 +76,7 @@ test('a linha do preço: o contrato que as leituras de cada dia usavam, partida 
   ])
 })
 
-test('montarLeque: as barras em preço a partir da base da avaliação, o marcador e a escala pelo preço', () => {
+test('montarLeque: as barras em preço a partir da base da avaliação, o marcador e a escala pelo preço e pelas faixas', () => {
   const precos = [{ seriesCode: 'B3.CCM.CCMU26.SETTLE', pontos: [{ data: '2026-09-01', valor: 100 }, { data: '2026-09-08', valor: 102 }] }]
   const quatro = montarLeque({ linhas: [linha()], precos, horizontes: HORIZONTES, modo: 'quatro', hoje: '2026-09-20' })
   assert.equal(quatro.barras.length, 1)
@@ -84,8 +84,8 @@ test('montarLeque: as barras em preço a partir da base da avaliação, o marcad
   assert.deepEqual([barra.indice, barra.estado, barra.seta], [1, 'dentro', null])
   assert.ok(Math.abs(barra.precoDe - 101) < 1e-9 && Math.abs(barra.precoAte - 103) < 1e-9)
   assert.equal(quatro.marcadores.length, 0)
-  // A escala sai do preço da janela (100 a 102), com 6% de folga.
-  assert.ok(Math.abs(quatro.escala.min - 94) < 1e-9 && Math.abs(quatro.escala.max - 108.12) < 1e-9)
+  // A escala cobre o preço da janela (100 a 102) e a faixa inteira (101 a 103), com 6% de folga: a faixa não é cortada.
+  assert.ok(Math.abs(quatro.escala.min - 94) < 1e-9 && Math.abs(quatro.escala.max - 103 * 1.06) < 1e-9)
 
   const um = montarLeque({ linhas: [linha()], precos, horizontes: HORIZONTES, modo: 'um', horizonte: 'CURTO', persistencia: true, hoje: '2026-09-20' })
   assert.deepEqual(um.marcadores, [{ data: '2026-09-08', valor: 102, distancia: 0, foraDaMetrica: null }])
