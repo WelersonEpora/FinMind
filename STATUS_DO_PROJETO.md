@@ -521,6 +521,9 @@ mês, correlações e um prompt para a IA, como proposta para o Comitê. As resp
 2026-10-03; onde divergem, vale a decisão mais nova (ex.: o GLD no ouro). Os **10 pontos em aberto** entre as respostas
 e o que já roda estão em `docs/conversa-david-respostas-fel1.md`, para a conversa com o David. **Ponto 1, petróleo: resolvido em 2026-10-04**: o David confirmou o Brent como o instrumento operado, e a leitura diária passou do WTI ao Brent (ADR 0052, adendo). O ouro segue em aberto.
 
+**Para a próxima reunião com o David (preparado em 2026-10-05):** os ajustes do FEL 1 no milho, com as decisões de
+2026-10-05 (ADRs 0067 a 0079), em "Ajustes do FEL 1 no milho", abaixo da tabela.
+
 **Prioridade da próxima reunião (decidido em 2026-09-22, auditoria da camada de
 dados; a 2 somada em 2026-09-23; a 8 e a ordem, em 2026-09-27):** primeiro o
 **"Backtest em detalhe"** (abaixo da tabela: o que é e o que o Comitê define), depois
@@ -1077,6 +1080,74 @@ frete.** O dólar (desde 1994) e a exportação do Comex Stat (desde 2005) já e
 
 Evidência: `STATUS_DO_PROJETO.md` §2 (ressalvas, linha "Frete e paridade de exportação") e os boletins do catálogo
 de arquivos do IMEA (`api1.imea.com.br/api/arquivo?cadeia=3`, "Boletim Semanal - Milho").
+
+</details>
+
+<details>
+<summary>Ajustes do FEL 1 no milho — para a próxima reunião com o David (preparado em 2026-10-05)</summary>
+
+**O que é:** tudo o que muda no texto do milho no FEL 1 revisado (prazo do David: 2026-10-15, P13), em quatro partes:
+as correções da tabela que o próprio David propôs, os ajustes que saíram das decisões de 2026-10-05, os ajustes de
+documento já combinados e, para ciência, as outras decisões do dia. Cada item aponta para o ADR com os números.
+Decisão do usuário registrada em ADR vale como a do David até ele revisar (`CLAUDE.md`); se ele discordar de alguma,
+ela volta a ser pergunta.
+
+**Parte 1 — As correções da tabela que o David propôs.** Do Motor do Milho v0 (2026-10-02, próximos passos): "Corrigir
+a tabela original dos fatores: 'Copea' para 'Cepea'; câmbio com fonte BCB; etanol com fontes brasileiras (UNEM, ANP);
+reponderar F4 (Alto) e F6 (Baixo-Médio)."
+
+| Fator | No FEL 1 v1.1 hoje | Ajuste | Situação | Onde |
+|---|---|---|---|---|
+| Fontes | "Cepea" no relatório e na planilha | "Copea" para "Cepea" | **Já corrigido**: não há "Copea" no relatório v1.1 nem na planilha | — |
+| F4 Dólar e paridade | Fonte "Cepea, Comex Stat" no relatório; "Cepea, BCB" na planilha | Câmbio com fonte BCB também no relatório | **Corrigir o relatório.** O FinMind já usa a PTAX do BCB e a paridade pronta do IMEA | ADRs 0057 e 0072 |
+| F4 Dólar e paridade | Peso Médio | Peso Alto | **Corrigir o peso.** Decidido Alto pelo usuário; o calendário do David já dá Alto de julho a janeiro | ADR 0072 |
+| F5 Etanol | Fonte "EIA, USDA" | Incluir UNEM e ANP | **Corrigir a fonte.** O FinMind não coleta as duas (fonte nova): a v1 roda só com a EIA | ADR 0073 |
+| F6 Insumos | Peso Médio | Peso Baixo-Médio | **Corrigir o peso.** No calendário do David, o F6 é Baixo; Médio a 6 meses ou mais e com margem ≤ 0 | ADR 0065 |
+
+**Parte 2 — Ajustes que saíram das decisões de 2026-10-05.** As pendências de cada fator foram testadas contra o preço
+do milho americano do FMI (no lugar do ZC, pago) e contra o Indicador ESALQ.
+
+| Fator | No FEL 1 v1.1 hoje | Ajuste | Por quê | Onde |
+|---|---|---|---|---|
+| F7 Fundos | Direção "Amplifica movimentos em ambos os sentidos"; mecanismo "Posições de fundos amplificam tendências" | Reversão nos extremos: vendido no P10 ou abaixo (10 anos) pesa para alta; comprado no P90 ou acima, para baixa (a regra R-FUN v0 do David) | Contra Chicago (2016 a 2026), com os fundos muito vendidos o preço subiu em 70% das semanas nos 3 meses seguintes, contra 47% fora dos extremos. Ressalva: com os fundos muito comprados, Chicago não caiu (ciclo de 2021-22); no ESALQ, caiu. O gatilho de F1, F3 ou F8 não melhorou a leitura: o extremo sozinho já é pressão na v1 | ADR 0075 |
+| F6 Insumos | Fonte "Conab, IMEA" | Incluir o Comex Stat (preço médio da ureia importada) | A relação de troca da regra do David precisava do preço do adubo: ureia importada (desde 1997) em R$ pela PTAX ÷ ESALQ; cloreto de potássio e MAP como contexto. Margem confortável = acima da média das até 5 safras anteriores | ADR 0074 |
+| Calendário de pesos | O Motor v0 não define o F1 de janeiro a maio nem o F2 em janeiro e fevereiro | F1 de janeiro a maio: Baixo. F2 em janeiro e fevereiro: Médio | O F1 não tem leitura de janeiro a maio (sem lavoura nos EUA); no F2 é o plantio, uma transição até o Alto de março. Na tela e no prompt, esses meses aparecem como decisão do usuário (†) | ADR 0077 |
+
+**Parte 3 — Ajustes de documento já combinados (P13 e P14).** Estão na lista do David para o FEL 1 revisado; o detalhe
+está na "Pergunta 13 em detalhe", acima.
+
+| Onde | O que está escrito | Ajuste |
+|---|---|---|
+| Página 1 × fim | "Ver Seção 16 — Registro de Revisão", mas o documento termina na Seção 14 | Incluir a Seção 16 ou tirar a referência |
+| §6.5.2 | O COTAHIST "atende ICF e CCM" | Não atende (só mercado à vista); os futuros vêm do Up2Data e do Boletim Diário da B3 |
+| Planilha, "Calendário de Relatórios" | WASDE com "Milho, Café" | "Milho", e incluir o Coffee: World Markets and Trade (USDA FAS), como na P14 |
+| §7.4 × planilha | Crop Progress "abr-nov" no texto e "mar-nov" na planilha | Unificar o período |
+| §4 × §12 | Demo: "mínimo de 3 meses" na §4; a §12 diz que a §4 previa "60 dias" | Corrigir a frase da §12 |
+| §4 × §12.1 | Backtest: 1 a 5 anos × 10 a 15 anos | Escrever as duas fases da resposta P8: Fase 1 no CCM (desde 2022), Fase 2 no ZC se houver orçamento |
+
+**Parte 4 — Para ciência: as outras decisões de 2026-10-05 no milho.** Não mudam o texto da tabela do FEL 1, mas
+fecham perguntas que eram do David.
+
+- **F1 Clima (ADRs 0068 e 0069):** a previsão de 8 a 14 dias do NOAA/CPC entra na regra (calor e seca em 3 dos 5
+  estados do Corn Belt); contra Chicago, o fator acompanha o preço, mas não o antecipa. O peso não muda.
+- **F2 Safrinha (ADR 0070):** o alerta agroclimático fica fora da conta (o VHI dispararia em 19 de 27 safrinhas,
+  inclusive nas recordes); o VHI de MT e do PR vai como contexto.
+- **F3 Estoques (ADR 0071):** os EUA decidem; o mundo sem a China e o Brasil (Conab) entram como contexto.
+- **F4 Dólar e paridade (ADR 0072):** a praça é Campinas; a base passa a ser comparada com a própria mediana de 52
+  semanas (contra zero, a alta nunca disparava).
+- **F5 Etanol (ADR 0073):** só a parte dos EUA; contra Chicago, o fator não mostrou relação.
+- **F8 Política comercial (ADR 0076):** evento relevante pela intensidade da leitura por IA, por 30 dias; o ritmo segue
+  pelo acumulado do ano comercial. Contra Chicago, a relação é inversa à regra (embarques fortes, Chicago mais fraco
+  depois); a regra não mudou.
+- **Ajuste do F1 pela colheita da safrinha (ADR 0077):** com 50% ou mais de MT colhido, de junho a agosto, o peso do F1
+  cai um nível ("um nível" é a leitura do FinMind para "reduz").
+- **Vencimento de cada horizonte (ADR 0078):** cada horizonte usa o vencimento do CCM que ainda negocia depois da
+  data-alvo, com a curva no prompt; com o mais próximo para todos, o horizonte de 90 dias nunca era avaliável.
+- **Faixas da leitura da IA (ADR 0079):** ficam as calibradas no próprio CCM, não as 6 classes fixas (no CCM em 1 dia,
+  "irrelevante" seria 80% dos dias).
+
+**Fica em aberto no milho:** a agregação em código, com backtest (Comitê), e os fatores ausentes que o David listou
+(ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio), que pedem fonte nova.
 
 </details>
 
