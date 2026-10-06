@@ -36,7 +36,8 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // colheita da safrinha, com o andamento de MT no F2 (ADR 0077).
 // v14 (2026-10-05): o vencimento do CCM de cada horizonte e a curva no prompt; a pergunta sai (ADR 0078).
 // v15 (2026-10-05): as faixas calibradas ficam; a pergunta sai (ADR 0079).
-const VERSAO = 15;
+// v16 (2026-10-05): os fatores ausentes ficam para depois da v1; a pergunta sai (ADR 0080).
+const VERSAO = 16;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -383,6 +384,7 @@ const DO_ATIVO = {
     "Preço de referência no prompt e no Centro de Decisão: o CCM, o vencimento mais próximo negociado, sem emendar contratos. Comitê, 2026-10-04 (ADR 0058).",
     "Vencimento de cada horizonte: o mais próximo que ainda negocia depois da data-alvo (vale até o dia 15 do mês de vencimento), e a leitura e a avaliação do horizonte usam esse contrato; a curva (ajuste e contratos negociados de cada vencimento) vai ao prompt. Com o mais próximo para todos, o contrato vencia antes da data-alvo em todos os dias no horizonte de 90 dias e na metade deles no de 30. Liquidez mínima de 100 contratos negociados no dia, só com aviso (os contratos em aberto não vêm mais da B3). Usuário (Welerson), 2026-10-05 (ADR 0078).",
     "Faixas da leitura da IA: ficam as calibradas no próprio CCM (percentis 40 e 80 da variação, por horizonte), não as 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%): no CCM, em 1 dia 80% das variações seriam \"irrelevante\" e 99% caem nas duas primeiras classes, enquanto as calibradas dão cerca de 40% lateral, 40% leve e 20% forte em todos os horizontes. Usuário (Welerson), 2026-10-05 (ADR 0079).",
+    "Fatores ausentes propostos pelo especialista (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio): ficam para depois da v1. Pedem fonte nova, e a aquisição está encerrada; cada um volta com uma demanda e uma autorização próprias. Hoje, o clima brasileiro chega como contexto do F2 (o VHI de MT e do PR) e pelos eventos do INMET, e o frete até o porto está dentro da paridade do IMEA (F4). Usuário (Welerson), 2026-10-05 (ADR 0080).",
     "Eventos sem validação humana, por ora: cada fator recebe os eventos que a leitura diária por IA marca com ele, como chegam (7 dias de janela; 30 no F8). Comitê, 2026-10-04 (ADR 0058); confirmado pelo usuário (Welerson), 2026-10-05: não haverá validação humana.",
     "Base do F4 (Campinas − paridade de MT): fica como está por ora, com o limiar 0 da regra do David. Comitê, 2026-10-04 (ADR 0058).",
     `Medidas da camada A confirmadas: COT em managed money (contratos e % dos contratos em aberto), estoque/uso dos EUA e do mundo com a revisão, safrinha em nível e revisão (Conab e IMEA), boa + excelente com o VHI, insumos pelo IMEA na v1. ${DECISAO_DAVID}, §5.`,
@@ -394,7 +396,6 @@ const DO_ATIVO = {
   perguntas: [
     "Agregação em código (Seção 4 da proposta): o teto do bloco de oferta e a paridade líquida (Chicago × câmbio) só existem como orientação no prompt. O Comitê quer a agregação calculada pelo motor, com o backtest?",
     "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto, F6 para Baixo-Médio e, no F7, a reversão nos extremos no lugar de \"amplifica\", ADR 0075): entram no FEL 1 revisado (até 2026-10-15)?",
-    "Fatores ausentes propostos (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio): entram na v1, ou depois?"
   ]
 };
 
