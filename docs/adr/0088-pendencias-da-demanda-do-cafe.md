@@ -51,3 +51,11 @@ O contrário da hipótese: com o arábica caro, ele caiu menos, e a diferença n
 - O cálculo do F6 vai à v2 (`demanda-cafe.factor.js`: `limiarModeradoPct` de 0,5 para 2); com a safra de 2026 (+3,6%,
   desvio de 2,1 p.p.), a leitura segue de alta moderada.
 - A metodologia do café vai à v9; o F6 não tem pergunta pendente.
+
+## Nota (2026-10-06, revisão crítica)
+
+A faixa calibrada reduz o ruído (o fator deixa de pressionar todo ano); ela não tem poder preditivo validado. O teste
+acima mede 12 meses com o valor final do PSD, não os 30 a 90 dias em que o fator vota nem o dado como era conhecido.
+A faixa implementada (−0,5% a 3,5%) arredonda os percentis 30 e 70 (−0,6% e 3,6%); a safra de 2026 (+3,6%, desvio de
+2,1 p.p.) fica perto da borda. Para o Comitê: o F6 tem cerca de um terço do peso da agregação no Médio e no Longo sem
+evidência a favor no histórico.

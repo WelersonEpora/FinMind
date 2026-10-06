@@ -43,3 +43,10 @@ aperta. É o padrão do F3 do milho (confirma, não antecipa; ADR 0071).
 - O cálculo do F3 vai à v2 (`estoques-cafe-ice.factor.js`): lê também `ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE` e
   `ECF.CAFE.ESTOQUE_TOTAL`, só para o texto; a decisão não muda.
 - A metodologia do café vai à v6; o F3 não tem pergunta pendente.
+
+## Correção (2026-10-06, revisão crítica)
+
+A v2 lia a ECF pela última versão de cada mês (`obterAsOf`): um mês revisado depois da semana sumia do histórico, e a
+semana mostrava um mês mais antigo (na de 2026-08-07, fevereiro em vez de abril). A v3 do cálculo lê todas as versões
+(`obterVersoesAsOf`) e usa, de cada mês, a mais nova publicada até a semana. Não havia uso de dado futuro, e o ponto
+de hoje não muda.

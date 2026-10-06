@@ -107,6 +107,17 @@ test("estoques: as pendentes da semana e o último mês da ECF publicado até el
   assert.equal(semanas[0].ecfMes, "2026-05");
 });
 
+test("estoques: um mês da ECF revisado depois da semana aparece com a versão que a semana conhecia (ADR 0085)", () => {
+  const ECF = "ECF.CAFE.ESTOQUE_TOTAL";
+  const semanas = medirEstoques([
+    v(ICE, "2026-08-07", "2026-08-07T20:00:00Z", 250000),
+    v(ECF, "2026-03-01", "2026-05-01T12:00:00Z", 410000),
+    v(ECF, "2026-04-01", "2026-06-01T12:00:00Z", 408956),
+    v(ECF, "2026-04-01", "2026-09-01T12:00:00Z", 400000)
+  ]);
+  assert.deepEqual([semanas[0].ecfMes, semanas[0].ecfToneladas, semanas[0].ecfToneladasAnterior], ["2026-04", 408956, 410000]);
+});
+
 test("estoques: sem 200 semanas de histórico não decide; com ele, a queda fora do normal pesa para alta", () => {
   const linhas = [];
   let valor = 100000;
@@ -226,7 +237,7 @@ test("fundos e juros do café usam os moldes comuns, com as séries do café", (
   assert.equal(juros.METODOLOGIA.factorId, "juros_cafe_treasury_10a");
 });
 
-test("juros: o juro subindo só pesa para baixa com o dólar global subindo em 26 semanas (ADR 0090)", () => {
+test("juros: o dólar global em 26 semanas vai como contexto, sem mudar a decisão (ADR 0090, revisão)", () => {
   // O Treasury sobe 1 p.p. em 26 semanas (de 3% a 4%), um valor por sexta; o índice do dólar, também por sexta.
   const linhas = (dolarFinal) => {
     const out = [];
@@ -238,26 +249,13 @@ test("juros: o juro subindo só pesa para baixa com o dólar global subindo em 2
     }
     return out;
   };
-  const comDolar = juros.derivarJurosCafe(linhas(126)).at(-1);
-  assert.equal(comDolar.variacaoDolar26Semanas, 5);
-  assert.deepEqual([comDolar.decisao.direcao, comDolar.decisao.intensidade], ["BAIXA", "FORTE"]);
-  const semDolar = juros.derivarJurosCafe(linhas(114)).at(-1);
-  assert.equal(semDolar.decisao.direcao, "NEUTRA");
-  assert.equal(semDolar.decisao.semCondicaoDolar, true);
-  assert.match(juros.METODOLOGIA.explicar(semDolar)[1], /dólar global não/);
-  // Sem o índice, a condição não é aplicada.
+  const subindo = juros.derivarJurosCafe(linhas(126)).at(-1);
+  assert.equal(subindo.variacaoDolar26Semanas, 5);
+  assert.deepEqual([subindo.decisao.direcao, subindo.decisao.intensidade], ["BAIXA", "FORTE"]);
+  const caindo = juros.derivarJurosCafe(linhas(114)).at(-1);
+  assert.equal(caindo.variacaoDolar26Semanas, -5);
+  assert.equal(caindo.decisao.direcao, "BAIXA");
+  assert.match(juros.METODOLOGIA.explicar(caindo)[0], /contexto, fora da decisão/);
   const semIndice = juros.derivarJurosCafe(linhas(126).filter((l) => l.seriesCode !== "FRED.DTWEXBGS")).at(-1);
   assert.equal(semIndice.variacaoDolar26Semanas, null);
-  assert.equal(semIndice.decisao.direcao, "BAIXA");
-});
-
-test("juros: na alta, sem condição do dólar (ADR 0090)", () => {
-  const out = [];
-  let sexta = "2026-01-02";
-  for (let i = 0; i <= 26; i += 1) {
-    out.push(v("FRED.DGS10", sexta, `${somarDias(sexta, 3)}T12:00:00Z`, 4 - i / 26));
-    out.push(v("FRED.DTWEXBGS", sexta, `${somarDias(sexta, 3)}T12:00:00Z`, 120 + i));
-    sexta = somarDias(sexta, 7);
-  }
-  assert.equal(juros.derivarJurosCafe(out).at(-1).decisao.direcao, "ALTA");
 });

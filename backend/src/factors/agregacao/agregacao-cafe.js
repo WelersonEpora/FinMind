@@ -12,7 +12,7 @@ const { FATORES: FATORES_FEL1 } = require("../../shared/fatores-fel1");
 //   -> score da família (a Oferta junta F1 + F2 + F3 por precedência e confirmação: UM voto)
 //   -> peso da família no horizonte
 //   -> score agregado S, cobertura, conflito
-//   -> tendência, faixa e confiança; o F7 (fundos) só como modificador da confiança
+//   -> tendência, faixa e confiança; o F7 (fundos) só como informação (desde a v3, não muda a confiança)
 //
 // A ORIGEM de cada regra e de cada número está em ORIGEM (abaixo) e no ADR 0066, em três classes:
 //   DAVID     - insumo do estudo do David (Motor do Café v1, 2026-10-04) ou do FEL 1, sem mudança;
@@ -23,7 +23,10 @@ const { FATORES: FATORES_FEL1 } = require("../../shared/fatores-fel1");
 
 // v2 (2026-10-06): o F7 só baixa a confiança com o catalisador do estudo (F1 ou F2 na mesma direção dele); sem ele, sem
 // papel. No histórico do café, o extremo dos fundos sozinho foi seguido de continuação, não de reversão (ADR 0089).
-const VERSAO = 2;
+// v3 (2026-10-06): o F7 não muda mais a confiança, em nenhum caso; fica só como informação do papel dele. O
+// catalisador da v2 quase nunca acontecia (em 2009 a 2026, nenhuma semana de extremo forte com o F1 na mesma direção) e
+// o do F2 nunca foi testado; o extremo sozinho não mostrou reversão (ADR 0089, revisão).
+const VERSAO = 3;
 const DATA_VERSAO = "2026-10-06";
 
 const HORIZONTES = Object.freeze(["IMEDIATO", "CURTO", "MEDIO", "LONGO"]);
@@ -70,7 +73,7 @@ const FAMILIAS = Object.freeze([
   { codigo: "CUSTOS", rotulo: "Custos (F5)", fatores: ["CAFE_CUSTO_PRECO_MINIMO"] }
 ]);
 
-const MODIFICADOR = Object.freeze({ fator: "CAFE_FUNDOS", horizontes: ["CURTO", "MEDIO"], catalisadores: ["CAFE_CLIMA", "CAFE_SAFRA_BRASIL"] });
+const MODIFICADOR = Object.freeze({ fator: "CAFE_FUNDOS", horizontes: ["CURTO", "MEDIO"] });
 
 // A família está no horizonte quando um fator dela está (DERIVADA). O Imediato da Oferta depende da publicação recente.
 const familiaNoHorizonte = (familia, horizonte) => familia.fatores.some((f) => HORIZONTE_DO_FATOR[f].horizontes.includes(horizonte));
@@ -213,10 +216,10 @@ const ORIGEM_DAS_REGRAS = Object.freeze([
     prompt: "A confiança do motor parte de MEDIA e não passa disso até a validação; o piso é BAIXA."
   },
   {
-    regra: `Confiança desce com cobertura < ${pctRegra(PARAMETROS.coberturaPlena)}, família ≥ ${pctRegra(PARAMETROS.pesoContraMinimo)} contra ou F7 contra com catalisador`,
+    regra: `Confiança desce com cobertura < ${pctRegra(PARAMETROS.coberturaPlena)} ou família ≥ ${pctRegra(PARAMETROS.pesoContraMinimo)} contra`,
     origem: ORIGEM.PROPOSTA,
     fonte: "Parâmetros desta proposta",
-    prompt: `A confiança desce um nível com cobertura abaixo de ${pctRegra(PARAMETROS.coberturaPlena)}, com uma família de ${pctRegra(PARAMETROS.pesoContraMinimo)} ou mais de peso contra a direção ou com CAFE_FUNDOS contra com catalisador.`
+    prompt: `A confiança desce um nível com cobertura abaixo de ${pctRegra(PARAMETROS.coberturaPlena)}, com uma família de ${pctRegra(PARAMETROS.pesoContraMinimo)} ou mais de peso contra a direção .`
   },
   {
     regra: "F7 sem peso e sem voto, só modificador de risco",
@@ -225,18 +228,11 @@ const ORIGEM_DAS_REGRAS = Object.freeze([
     prompt: "CAFE_FUNDOS sem peso e sem voto: não muda S, a direção nem a faixa."
   },
   {
-    regra: "F7 contra a direção só pesa com o catalisador: F1 ou F2 na mesma direção dele",
-    origem: ORIGEM.DAVID,
-    fonte: "Regra do F7 no estudo (o catalisador fundamental de F1 ou F2); decisão do usuário, 2026-10-06 (ADR 0089)",
+    regra: "F7 só como informação: não muda a confiança",
+    origem: ORIGEM.PROPOSTA,
+    fonte: "Decisão do usuário, 2026-10-06 (ADR 0089, revisão): o extremo sozinho não mostrou reversão no histórico, e o catalisador do estudo quase nunca aconteceu",
     prompt:
-      "CAFE_FUNDOS em extremo contra a direção agregada só é RISCO_DE_REVERSAO com CAFE_CLIMA ou CAFE_SAFRA_BRASIL apontando na mesma direção dele (o catalisador); sem catalisador, SEM_PAPEL e a confiança não muda."
-  },
-  {
-    regra: "F7 só no Curto e no Médio, só no extremo (intensidade forte: percentis 10 e 90)",
-    origem: ORIGEM.DERIVADA,
-    fonte: "Horizonte do F7 no estudo (7 a 30 dias); o extremo é a calibração do FinMind (ADR 0060)",
-    prompt:
-      "CAFE_FUNDOS só age no CURTO e no MEDIO, e só no extremo (pressão forte): contra a direção agregada e com catalisador, RISCO_DE_REVERSAO e a confiança desce um nível; a favor, EXCESSO, sem subir a confiança."
+      "CAFE_FUNDOS não muda a confiança do motor: o papel dele (só no CURTO e no MEDIO, só no extremo, a pressão forte) vai como informação. Contra a direção agregada, SEM_PAPEL (extremo contra, só informação); a favor, EXCESSO."
   }
 ]);
 
@@ -346,20 +342,15 @@ function rebaixar(nivel) {
 }
 
 // O papel do F7 (fundos) no horizonte, pela leitura C dele (a de reversão: comprados em extremo pressionam para
-// baixa). Contra = a pressão do F7 oposta à direção agregada E o catalisador do estudo: F1 ou F2 apontando na mesma
-// direção do F7 (ADR 0089). Sem catalisador, o extremo não tem papel.
-function papelDosFundos(fundos, horizonte, tendencia, scores = {}) {
+// baixa), só como informação: desde a v3, nunca muda a confiança (ADR 0089, revisão). O papel na leitura gravada usa os
+// valores que o formato da resposta já conhece: contra a direção, SEM_PAPEL com o motivo; a favor, EXCESSO.
+function papelDosFundos(fundos, horizonte, tendencia) {
   const d = fundos?.decisao;
   if (!d) return { papel: "SEM_DADO", contra: false };
   if (!MODIFICADOR.horizontes.includes(horizonte)) return { papel: "SEM_PAPEL", contra: false, motivo: "fora do horizonte do F7 (7 a 30 dias)" };
   if (d.intensidade !== "FORTE" || d.direcao === "NEUTRA") return { papel: "SEM_PAPEL", contra: false, motivo: "fora do extremo" };
   if (tendencia !== "ALTA" && tendencia !== "BAIXA") return { papel: "SEM_PAPEL", contra: false, motivo: "sem direção agregada" };
-  if (d.direcao !== tendencia) {
-    const direcaoF7 = d.direcao === "ALTA" ? 1 : -1;
-    const catalisador = MODIFICADOR.catalisadores.find((c) => sinal(scores[c]?.score ?? 0) === direcaoF7);
-    if (!catalisador) return { papel: "SEM_PAPEL", contra: false, motivo: "extremo contra a direção sem catalisador (F1 ou F2)" };
-    return { papel: "RISCO_DE_REVERSAO", contra: true, catalisador };
-  }
+  if (d.direcao !== tendencia) return { papel: "SEM_PAPEL", contra: false, extremoContra: true, motivo: "extremo contra a direção, só informação" };
   return { papel: "EXCESSO", contra: false };
 }
 
@@ -391,7 +382,7 @@ function agregarHorizonte(horizonte, scores, fundos, contexto) {
       confianca: null,
       conflito: null,
       motivosConfianca: [`cobertura de ${pct(cobertura)}, abaixo de ${pct(PARAMETROS.coberturaMinima)} (sem dado: ${faltando.join(", ")})`],
-      fundos: papelDosFundos(fundos, horizonte, null, scores)
+      fundos: papelDosFundos(fundos, horizonte, null)
     };
   }
 
@@ -439,8 +430,7 @@ function agregarHorizonte(horizonte, scores, fundos, contexto) {
     const contra = familias.filter((f) => f.ativa && f.pesoEfetivo >= PARAMETROS.pesoContraMinimo && sinal(f.score) === -direcao);
     if (contra.length) descer(`família contra a direção com peso de ${pct(PARAMETROS.pesoContraMinimo)} ou mais: ${contra.map((f) => f.codigo).join(", ")}`);
   }
-  const papelFundos = papelDosFundos(fundos, horizonte, tendencia, scores);
-  if (papelFundos.contra) descer(`F7 (fundos) em extremo contra a direção, com o catalisador ${papelFundos.catalisador}: risco de reversão`);
+  const papelFundos = papelDosFundos(fundos, horizonte, tendencia);
   if (imediatoSemOferta && confianca !== "BAIXA") {
     confianca = "BAIXA";
     motivos.push("Imediato sem Oferta: confiança limitada a BAIXA");

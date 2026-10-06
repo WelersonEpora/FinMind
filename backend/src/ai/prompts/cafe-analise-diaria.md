@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 4
+**Versão:** 5
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -30,6 +30,10 @@ bloco 1 diz como usar os dois. Montados por `prompt-diario.service.js`; a config
 v4 (2026-10-06, ADR 0089) - o item 9 do bloco 4: o extremo dos fundos sem o catalisador de clima ou de safra não tem
 papel (antes: "menos papel"), e a IA não lê reversão por conta própria. No histórico do café (2009 a 2026), o extremo
 sozinho foi seguido de continuação. A agregação do bloco 3B passou à v2, com a mesma regra.
+
+v5 (2026-10-06, ADR 0089, revisão) - o item 9 volta atrás no catalisador: ele quase nunca acontece, e o histórico não
+mostrou reversão nem continuação com significância. Os fundos não mudam a confiança, nem na agregação (v3) nem na
+leitura da IA; o papel deles vai só como informação.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -104,11 +108,10 @@ Para cada horizonte, separadamente:
    câmbio como causa direta do preço em dólar. O efeito é maior no pico da colheita e da comercialização.
 9. Posicionamento dos fundos (CAFE_FUNDOS, o COT de Nova York). É modificador de risco, sem voto próprio: não conte o
    COT como mais um voto de alta ou de baixa. Diga qual é o papel dele no horizonte: confirma a leitura dos fatores de
-   oferta, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. A leitura do motor é de
-   reversão, e a regra do especialista pede um catalisador de clima ou de safra (CAFE_CLIMA ou CAFE_SAFRA_BRASIL na
-   mesma direção da pressão dos fundos) para o extremo pesar: sem ele, o extremo não tem papel (SEM_PAPEL). Não leia
-   reversão por conta própria: no histórico do café, o extremo sozinho foi seguido de continuação (veja a validação
-   histórica do fator). Câmbio e fundos podem interagir com alguns pregões de defasagem:
+   oferta, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O papel é informação:
+   não baixe nem suba a confiança por causa dos fundos. No histórico do café, o extremo sozinho não mostrou reversão
+   (veja a validação histórica do fator), e o catalisador de clima ou de safra que a regra do especialista pede quase
+   nunca coincidiu com ele. Câmbio e fundos podem interagir com alguns pregões de defasagem:
    não os trate como evidências independentes quando andarem juntos.
 10. Juros (CAFE_JUROS). Agem pelo custo de carregar estoque e pela liquidez para commodities, de forma lenta. Juro e
     estoques certificados podem apontar a mesma força: diga quando for o caso.

@@ -37,6 +37,24 @@ assimétrica: separa a baixa e não melhora a alta. Ressalva: semanas sobreposta
 ## Consequências
 
 - O cálculo do F8 vai à v2 (`juros-cafe.factor.js`: lê também `FRED.DTWEXBGS`; o índice da semana é o último dia
-  publicado até o ponto). De 2007 a 2026, 91 das 126 semanas de baixa ficam neutras. Em 2026-10-02 (Treasury +0,93 p.p.,
+  publicado até o ponto). De 2007 a 2026, 91 das 217 semanas de baixa ficam neutras. Em 2026-10-02 (Treasury +0,93 p.p.,
   dólar −0,27%), a leitura passa de baixa a neutra; isso entra na família Juros da agregação do café (Médio e Longo).
 - A metodologia do café vai à v11; o F8 não tem pergunta pendente.
+
+## Revisão (2026-10-06, usuário, depois da revisão crítica): a condição é revertida
+
+A revisão crítica do mesmo dia reproduziu a tabela e mostrou que ela não sustenta a condição:
+
+- **Poucos episódios.** As 123 semanas de baixa com o dólar subindo são cerca de 12 episódios; só 2022 responde por 46
+  delas (37%). Pela 1ª semana de cada episódio: queda em 3 meses em 58% (7/12) com o dólar subindo, contra 31% (5/16)
+  com ele caindo (Fisher p = 0,25); com uma semana por trimestre, 12/19 contra 5/17 (p = 0,054; contra a base, p = 0,16).
+- **Ajuste ao dado.** A regra de alta do estudo também cita o dólar ("enfraquecimento do índice DXY"); aplicar a
+  condição só na baixa, porque ali ajudava, foi uma escolha feita na mesma amostra. O preço testado é em dólar: parte
+  do efeito pode ser do próprio dólar, não do juro.
+- **Limiar em zero.** A leitura de 2026-10-02 virou de baixa a neutra por um dólar de −0,27%; em ago e set/2026 ela
+  alternou entre as duas.
+
+**Decisão revista:** o F8 volta à regra da v1 (o juro sozinho decide). O índice amplo do dólar do Fed vai ao texto do
+fator como contexto, fora da decisão; a variação conta 26 semanas a partir do último dia publicado (a v2 ancorava na
+sexta e media 25 semanas). O cálculo vai à v3; o juro nominal fica. A validação histórica no prompt diz que o dólar é
+contexto, não condição.

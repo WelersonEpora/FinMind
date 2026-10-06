@@ -27,7 +27,8 @@ const { criarFatorPosicaoSemanal, arredondar } = require("./modelos/posicao-hist
 
 const FACTOR_ID = "estoques_cafe_ice_certificado";
 // v2 (2026-10-06): as sacas aguardando classificação e os portos europeus como contexto (ADR 0085).
-const FACTOR_VERSION = 2;
+// v3 (2026-10-06): a ECF pelas versões publicadas até a semana (um mês revisado depois aparecia sumido; ADR 0085).
+const FACTOR_VERSION = 3;
 
 const SERIE = "ICE.CAFE_C.ESTOQUE.TOTAL.CERTIFICADO";
 const SERIE_PENDENTE = "ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE";
@@ -53,16 +54,19 @@ function ultimoPregaoPorSemana(linhasAsOf, serie) {
 function medirEstoques(linhasAsOf) {
   const porSemana = ultimoPregaoPorSemana(linhasAsOf, SERIE);
   const pendentes = ultimoPregaoPorSemana(linhasAsOf, SERIE_PENDENTE);
+  // Todas as versões da ECF (obterVersoesAsOf): em cada semana, de cada mês, a versão mais nova publicada até ela.
   const ecf = linhasAsOf
     .filter((l) => l.seriesCode === SERIE_ECF)
     .map((l) => ({ mes: l.observedAt.slice(0, 7), valor: l.value, em: new Date(l.publishedAt).toISOString() }))
-    .sort((a, b) => a.mes.localeCompare(b.mes));
+    .sort((a, b) => a.mes.localeCompare(b.mes) || a.em.localeCompare(b.em));
   return [...porSemana.keys()].sort().map((sexta) => {
     const semana = porSemana.get(sexta);
     const antes = porSemana.get(somarDias(sexta, -7 * SEMANAS_VARIACAO));
     const medida = antes && antes.valor > 0 ? arredondar((semana.valor / antes.valor - 1) * 100, 2) : null;
     const ate = new Date(semana.disponivelEm).toISOString();
-    const ecfConhecida = ecf.filter((e) => e.em <= ate);
+    const porMes = new Map();
+    for (const e of ecf) if (e.em <= ate) porMes.set(e.mes, e);
+    const ecfConhecida = [...porMes.values()];
     const ecfUltimo = ecfConhecida.at(-1) || null;
     const ecfAnterior = ecfConhecida.at(-2) || null;
     return {
@@ -84,7 +88,11 @@ function medirEstoques(linhasAsOf) {
 
 async function carregar(asOf, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
-  return servico.obterAsOf({ seriesCodes: [SERIE, SERIE_PENDENTE, SERIE_ECF], asOf }, deps);
+  const [ice, ecf] = await Promise.all([
+    servico.obterAsOf({ seriesCodes: [SERIE, SERIE_PENDENTE], asOf }, deps),
+    servico.obterVersoesAsOf({ seriesCodes: [SERIE_ECF], asOf }, deps)
+  ]);
+  return [...ice, ...ecf];
 }
 
 // O contexto, fora da conta (ADR 0085): só o que existe na semana.

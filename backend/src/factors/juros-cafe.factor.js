@@ -15,15 +15,15 @@ const { criarFatorJuroVariacao } = require("./modelos/juro-variacao-semanal");
 // são os do petróleo, calibrados na mesma série (percentis 40/60/80 de |variação em 26 semanas| desde 2010: 0,28 /
 // 0,47 / 0,79 p.p.). Propriedades: determinístico, versionado, point-in-time, sem IA.
 //
-// A condição do dólar (ADR 0090), só na regra de BAIXA: o juro subindo só pesa para baixa com o dólar global (o índice
-// amplo do Fed, FRED.DTWEXBGS, o substituto do DXY) subindo em 26 semanas, como a regra do estudo escreve; sem isso,
-// neutra. Na regra de alta, sem condição: no histórico (2007 a 2026), exigir o dólar caindo não melhorou a alta. Sem o
-// índice (antes de 2006), a condição não é aplicada, e o ponto diz isso. O índice da semana é o último dia conhecido
-// até a publicação do ponto (o Fed o divulga às segundas, H.10).
+// O dólar global (ADR 0090, revisão): o índice amplo do Fed (FRED.DTWEXBGS, o substituto do DXY) em 26 semanas vai ao
+// texto como CONTEXTO, fora da decisão. A condição só na baixa (v2) foi revertida: por episódio, a diferença não tem
+// significância, e aplicá-la só onde ajudava era ajuste ao dado. O índice da semana é o último dia publicado até o
+// ponto (o Fed o divulga às segundas, H.10), e a variação conta 26 semanas a partir desse dia.
 
 const FACTOR_ID = "juros_cafe_treasury_10a";
 // v2 (2026-10-06): o dólar global como condição da regra de baixa (ADR 0090).
-const FACTOR_VERSION = 2;
+// v3 (2026-10-06): a condição revertida; o dólar só como contexto (ADR 0090, revisão).
+const FACTOR_VERSION = 3;
 
 const SERIES = { treasury10a: "FRED.DGS10", metaFed: "FRED.DFEDTARU", dolarAmplo: "FRED.DTWEXBGS" };
 const SEMANAS_DOLAR = 26;
@@ -44,8 +44,8 @@ const TEXTOS = {
     `26 semanas antes: ${faixa.comSinal(p.variacao26Semanas)}${UNIDADE} (B).` +
     (p.metaFed === null ? "" : ` A meta do Fed está em ${faixa.fmt(p.metaFed)}% (contexto).`) +
     (p.variacaoDolar26Semanas === null || p.variacaoDolar26Semanas === undefined
-      ? " Sem o índice amplo do dólar (Fed) na semana: a condição da regra de baixa não é aplicada."
-      : ` O índice amplo do dólar (Fed) variou ${faixa.comSinal(p.variacaoDolar26Semanas)}% em 26 semanas (condição da regra de baixa: dólar subindo).`),
+      ? ""
+      : ` O índice amplo do dólar (Fed) variou ${faixa.comSinal(p.variacaoDolar26Semanas)}% em 26 semanas (contexto, fora da decisão).`),
   nomeValor: "a variação",
   abaixo: "juro em queda barateia o carregamento de estoque e atrai liquidez para commodities",
   acima: "juro em alta encarece o carregamento de estoque (a indústria opera com estoque mínimo) e afasta liquidez",
@@ -77,7 +77,7 @@ const APRESENTACAO = {
     },
     { camada: "B", rotulo: "Treasury 26 semanas antes", campo: "treasury10a26SemanasAntes", casas: 2, unidadeValor: "%" },
     { camada: "B", rotulo: "Variação em 26 semanas", campo: "variacao26Semanas", casas: 2, sinal: true, sufixo: "p.p." },
-    { camada: "B", rotulo: "Índice amplo do dólar (Fed) em 26 semanas (condição da baixa)", campo: "variacaoDolar26Semanas", casas: 2, sinal: true, unidadeValor: "%" }
+    { camada: "B", rotulo: "Índice amplo do dólar (Fed) em 26 semanas (contexto)", campo: "variacaoDolar26Semanas", casas: 2, sinal: true, unidadeValor: "%" }
   ],
   graficoAB: {
     titulo: "Treasury de 10 anos (A) × o mesmo 26 semanas antes (B), com a meta do Fed",
@@ -137,23 +137,19 @@ function dolarAte(linhasDolar, sexta, ate) {
   return melhor;
 }
 
-// Função PURA: as linhas de obterAsOf() -> os pontos do molde, com a variação do dólar em 26 semanas e a condição da
-// regra de baixa aplicada (ADR 0090).
+// Função PURA: as linhas de obterAsOf() -> os pontos do molde (a decisão é a dele, sem mudança), com a variação do
+// dólar em 26 semanas como contexto (ADR 0090, revisão).
 function derivarJurosCafe(linhasAsOf, opcoes = {}) {
   const linhasDolar = linhasAsOf.filter((l) => l.seriesCode === SERIES.dolarAmplo);
   return fator.derivar(linhasAsOf, opcoes).map((p) => {
     const ate = new Date(p.disponivelEm).toISOString();
     const agora = dolarAte(linhasDolar, p.observedAt, ate);
-    const antes = dolarAte(linhasDolar, somarDias(p.observedAt, -7 * SEMANAS_DOLAR), ate);
+    const antes = agora ? dolarAte(linhasDolar, somarDias(agora.observedAt, -7 * SEMANAS_DOLAR), ate) : null;
     const variacaoDolar26Semanas =
       agora && antes && antes.value > 0 && agora.observedAt > somarDias(p.observedAt, -14)
         ? Math.round((agora.value / antes.value - 1) * 10000) / 100
         : null;
-    let decisao = p.decisao;
-    if (decisao?.direcao === faixa.DIRECAO.BAIXA && variacaoDolar26Semanas !== null && variacaoDolar26Semanas <= 0) {
-      decisao = { ...decisao, direcao: faixa.DIRECAO.NEUTRA, intensidade: faixa.INTENSIDADE.FRACA, semCondicaoDolar: true };
-    }
-    return { ...p, factorVersion: FACTOR_VERSION, variacaoDolar26Semanas, decisao };
+    return { ...p, factorVersion: FACTOR_VERSION, variacaoDolar26Semanas };
   });
 }
 
@@ -163,18 +159,6 @@ async function calcularJurosCafe({ asOf, parametros = PARAMETROS_PADRAO }, deps 
   return derivarJurosCafe(linhas, { parametros });
 }
 
-function explicarJurosCafe(ponto, parametros = PARAMETROS_PADRAO) {
-  const passos = fator.METODOLOGIA.explicar(ponto, parametros);
-  if (ponto?.decisao?.semCondicaoDolar) {
-    passos.splice(
-      1,
-      2,
-      `Direção: o juro subiu, mas o dólar global não (${faixa.comSinal(ponto.variacaoDolar26Semanas)}% em 26 semanas); a regra de baixa pede os dois (ADR 0090) → Neutra, sem intensidade.`
-    );
-  }
-  return passos;
-}
-
-const METODOLOGIA = { ...fator.METODOLOGIA, factorVersion: FACTOR_VERSION, calcular: calcularJurosCafe, explicar: explicarJurosCafe };
+const METODOLOGIA = { ...fator.METODOLOGIA, factorVersion: FACTOR_VERSION, calcular: calcularJurosCafe };
 
 module.exports = { FACTOR_ID, FACTOR_VERSION, SERIES, PARAMETROS_PADRAO, METODOLOGIA, derivarJurosCafe };

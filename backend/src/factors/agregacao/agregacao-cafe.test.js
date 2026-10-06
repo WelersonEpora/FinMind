@@ -177,17 +177,23 @@ test("confiança: teto MÉDIA (nunca ALTA); família de 25% ou mais contra a dir
   assert.match(medio.motivosConfianca.join(" "), /DEMANDA/);
 });
 
-test("F7: sem voto; no extremo contra a direção sem catalisador, sem papel (ADR 0089); a favor, EXCESSO sem subir", () => {
+test("F7: sem voto e sem mudar a confiança (ADR 0089, revisão); contra, só informação; a favor, EXCESSO", () => {
   const base = [f("CAFE_SAFRA_BRASIL", "ALTA", "FORTE", CONAB_ANTIGA), f("CAFE_CLIMA", "ALTA", "FORTE")];
   const sem = ag.agregarCafe(com(...base), { dataAnalise: DATA });
-  // Comprados em extremo: a leitura de reversão do F7 é BAIXA, contra a ALTA agregada; F1 e F2 de alta: sem catalisador.
+  // Comprados em extremo: a leitura de reversão do F7 é BAIXA, contra a ALTA agregada.
   const contra = ag.agregarCafe(com(...base, f("CAFE_FUNDOS", "BAIXA", "FORTE")), { dataAnalise: DATA });
   for (const h of ["CURTO", "MEDIO"]) {
     assert.equal(horizonte(contra, h).score, horizonte(sem, h).score); // não vota
     assert.equal(horizonte(contra, h).fundos.papel, "SEM_PAPEL");
-    assert.match(horizonte(contra, h).fundos.motivo, /sem catalisador/);
+    assert.equal(horizonte(contra, h).fundos.extremoContra, true);
     assert.equal(horizonte(contra, h).confianca, horizonte(sem, h).confianca);
   }
+  // Nem com o F1 na direção do F7 (o catalisador da v2) a confiança muda.
+  const comF1 = [f("CAFE_SAFRA_BRASIL", "ALTA", "FORTE", CONAB_ANTIGA), f("CAFE_CLIMA", "BAIXA", "MODERADA"), f("CAFE_ESTOQUES", "ALTA", "FORTE"), f("CAFE_DOLAR", "ALTA", "FORTE"), f("CAFE_DEMANDA", "ALTA", "FORTE"), f("CAFE_JUROS", "ALTA", "FORTE")];
+  assert.equal(
+    horizonte(ag.agregarCafe(com(...comF1, f("CAFE_FUNDOS", "BAIXA", "FORTE")), { dataAnalise: DATA }), "CURTO").confianca,
+    horizonte(ag.agregarCafe(com(...comF1), { dataAnalise: DATA }), "CURTO").confianca
+  );
   assert.equal(horizonte(contra, "LONGO").fundos.papel, "SEM_PAPEL"); // fora do horizonte do F7
   const favor = ag.agregarCafe(com(...base, f("CAFE_FUNDOS", "ALTA", "FORTE")), { dataAnalise: DATA });
   assert.equal(horizonte(favor, "CURTO").fundos.papel, "EXCESSO");
@@ -195,26 +201,6 @@ test("F7: sem voto; no extremo contra a direção sem catalisador, sem papel (AD
   // Fora do extremo (moderada): sem papel.
   const moderado = ag.agregarCafe(com(...base, f("CAFE_FUNDOS", "BAIXA", "MODERADA")), { dataAnalise: DATA });
   assert.equal(horizonte(moderado, "CURTO").fundos.papel, "SEM_PAPEL");
-});
-
-test("F7: com o catalisador (F1 ou F2 na direção dele), RISCO_DE_REVERSAO e confiança -1 (ADR 0089)", () => {
-  // A ALTA agregada vem da safra, dos estoques, do câmbio, da demanda e dos juros; o F1 aponta BAIXA, como o F7
-  // (comprados em extremo): o catalisador.
-  const base = [
-    f("CAFE_SAFRA_BRASIL", "ALTA", "FORTE", CONAB_ANTIGA),
-    f("CAFE_CLIMA", "BAIXA", "MODERADA"),
-    f("CAFE_ESTOQUES", "ALTA", "FORTE"),
-    f("CAFE_DOLAR", "ALTA", "FORTE"),
-    f("CAFE_DEMANDA", "ALTA", "FORTE"),
-    f("CAFE_JUROS", "ALTA", "FORTE")
-  ];
-  const sem = ag.agregarCafe(com(...base), { dataAnalise: DATA });
-  const contra = ag.agregarCafe(com(...base, f("CAFE_FUNDOS", "BAIXA", "FORTE")), { dataAnalise: DATA });
-  const h = horizonte(contra, "CURTO");
-  assert.equal(h.tendencia, "ALTA");
-  assert.equal(h.fundos.papel, "RISCO_DE_REVERSAO");
-  assert.equal(h.fundos.catalisador, "CAFE_CLIMA");
-  assert.notEqual(h.confianca, horizonte(sem, "CURTO").confianca);
 });
 
 test("F5 (custos) nunca entra no score, em nenhum horizonte", () => {

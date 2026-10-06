@@ -28,7 +28,9 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 // v9 (2026-10-06): as perguntas do F6 viram decisões; a faixa neutra calibrada; a validação histórica (ADR 0088).
 // v10 (2026-10-06): as perguntas do F7 viram decisões; o catalisador na agregação; a validação histórica (ADR 0089).
 // v11 (2026-10-06): as perguntas do F8 viram decisões; o dólar global como condição da baixa (ADR 0090).
-const VERSAO = 11;
+// v12 (2026-10-06): a revisão crítica: o F8 volta à v1, com o dólar como contexto (ADR 0090, revisão); o F7 não muda a
+// confiança (ADR 0089, revisão); os textos do F6 e do F7 dizem o que o histórico sustenta.
+const VERSAO = 12;
 const DATA_VERSAO = "2026-10-06";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
@@ -281,7 +283,7 @@ const DEFINICOES = [
     perguntas: [],
     decisoes: [
       "Consumo do PSD (usuário, 2026-10-06, ADR 0088): substitui as importações e o desaparecimento aparente da ICO na v1. As estatísticas de comércio da ICO são só para membros, e a aquisição de dados está encerrada.",
-      "Faixa neutra calibrada (usuário, 2026-10-06, ADR 0088): 2 p.p. em torno de 1,5% (de -0,5% a 3,5%, perto dos percentis 30 e 70 de 2003 a 2026), no lugar da faixa de 1% a 2% do estudo, em que nenhum ano era neutro. O forte segue em 4 p.p.",
+      "Faixa neutra calibrada (usuário, 2026-10-06, ADR 0088): 2 p.p. em torno de 1,5% (de -0,5% a 3,5%, perto dos percentis 30 e 70 de 2003 a 2026), no lugar da faixa de 1% a 2% do estudo, em que nenhum ano era neutro. O forte segue em 4 p.p. A faixa maior reduz o ruído (o fator deixa de pressionar todo ano); ela não tem poder preditivo validado: o crescimento do consumo não separa o preço em nenhuma versão, e o teste foi de 12 meses com o valor final do PSD, não nos 30 a 90 dias do fator nem com o dado da época.",
       "Arbitragem Nova York ÷ Londres (usuário, 2026-10-06, ADR 0088): não entra na regra, porque o histórico vai contra a hipótese da substituição; fica como contexto (a razão arábica ÷ robusta do FMI, que já vai ao prompt)."
     ]
   },
@@ -301,7 +303,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o COT desagregado da CFTC traz o managed money do Coffee C toda semana desde 2006, com a publicação real desde 2022-08 (P05 do estudo já atendida). Os extremos aparecem: o recorde de venda em ago/2018 (-34,7% dos contratos em aberto) e o de compra em fev/2025 (+37,5%). Hoje (29/09/2026) os fundos estão no percentil 7,7 dos 3 anos anteriores. Validação histórica (ADR 0089), de 2009 a 2026 contra o preço mensal do arábica do FMI: no café, o extremo foi seguido de continuação, não de reversão. Com os fundos vendidos em extremo, o preço subiu em 3 meses em 33% das semanas (46% em todas); comprados em extremo, caiu em 39% (54% em todas). O mesmo na janela de 1 ano. Com o catalisador do F1, só 8 semanas: sem conclusão."
+          "Suficiente: o COT desagregado da CFTC traz o managed money do Coffee C toda semana desde 2006, com a publicação real desde 2022-08 (P05 do estudo já atendida). Os extremos aparecem: o recorde de venda em ago/2018 (-34,7% dos contratos em aberto) e o de compra em fev/2025 (+37,5%). Hoje (29/09/2026) os fundos estão no percentil 7,7 dos 3 anos anteriores. Validação histórica (ADR 0089), de 2009 a 2026 contra o preço mensal do arábica do FMI: o extremo sozinho não mostrou reversão. Nas semanas, os vendidos em extremo foram seguidos de alta em 3 meses em 33% (46% em todas) e os comprados, de queda em 39% (54% em todas), mas são cerca de 20 episódios de cada lado e, com uma semana por trimestre, a diferença some (sem significância). O catalisador de F1 ou F2 que a regra pede quase nunca coincidiu com o extremo."
       },
       lacunas: ["A posição por tipo de investidor no ICF (B3) não é coletada: o COT mede Nova York."]
     },
@@ -320,7 +322,7 @@ const DEFINICOES = [
     perguntas: [],
     decisoes: [
       "Janela de 3 anos (usuário, 2026-10-06, ADR 0089): como na v1. No histórico, as duas janelas dão o mesmo resultado; a de 3 anos, um pouco menos ruim em 6 meses.",
-      "Só com o catalisador (usuário, 2026-10-06, ADR 0089): o extremo contra a direção agregada só baixa a confiança da agregação com o F1 ou o F2 apontando na mesma direção dele, como a regra do estudo pede; sem ele, sem papel. Sozinho, o histórico vai contra a leitura de reversão. No prompt, a IA não lê reversão por conta própria."
+      "Só como informação (usuário, 2026-10-06, ADR 0089 e revisão): o extremo não muda a confiança da agregação nem da leitura da IA; o papel dele vai como informação. O catalisador de F1 ou F2 que a regra pede foi tentado e revertido: em 2009 a 2026, nenhuma semana de extremo forte teve o F1 na mesma direção, e o caminho pelo F2 nunca foi testado. O extremo sozinho não mostrou reversão."
     ]
   },
   {
@@ -339,7 +341,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para o canal do custo de carregar estoque: o Treasury de 10 anos e a meta do Fed (FRED) estão na base desde antes de 2010, os mesmos do fator de juros do petróleo. O DXY oficial é licenciado (o índice amplo do Fed é o substituto, condição da regra de baixa desde o ADR 0090) e a inclinação das curvas não é calculada. Validação histórica (ADR 0090), de 2007 a 2026 contra o preço mensal do arábica do FMI: o fator confirma o sentido do estudo. Com o juro caindo, o preço subiu em 3 meses em 57% das semanas e em 6 meses em 63% (49% e 52% em todas); com o juro subindo, caiu em 57% e 55% (51% e 48% em todas); com o juro e o dólar subindo juntos, caiu em 70% e 67%, e com o juro subindo e o dólar caindo, só em 38%."
+          "Suficiente para o canal do custo de carregar estoque: o Treasury de 10 anos e a meta do Fed (FRED) estão na base desde antes de 2010, os mesmos do fator de juros do petróleo. O DXY oficial é licenciado (o índice amplo do Fed é o substituto, como contexto, ADR 0090) e a inclinação das curvas não é calculada. Validação histórica (ADR 0090), de 2007 a 2026 contra o preço mensal do arábica do FMI: o fator confirma o sentido do estudo. Com o juro caindo, o preço subiu em 3 meses em 57% das semanas e em 6 meses em 63% (49% e 52% em todas); com o juro subindo, caiu em 57% e 55% (51% e 48% em todas); com o juro e o dólar subindo juntos, caiu em 70% e 67%, e com o juro subindo e o dólar caindo, só em 38%, mas por episódio (cerca de 12) a diferença não tem significância (p = 0,25), e só 2022 responde por 37% das semanas. Leia o dólar como contexto, não como condição."
       },
       lacunas: [
         "O DXY oficial (ICE) é licenciado: o índice amplo do Fed o substitui; a inclinação das curvas de juros não é calculada.",
@@ -350,9 +352,9 @@ const DEFINICOES = [
       autoria: AUTORIA,
       objetivo: "Medir o custo de carregar estoque de café e a liquidez para commodities.",
       medida: "O Treasury de 10 anos na média da semana; a meta do Fed como contexto.",
-      comparacao: "A variação do Treasury em 26 semanas, em p.p.; na regra de baixa, a variação do índice amplo do dólar (Fed) em 26 semanas, em %.",
+      comparacao: "A variação do Treasury em 26 semanas, em p.p.; o índice amplo do dólar (Fed) em 26 semanas, em %, como contexto.",
       leitura:
-        "Juro em queda pesa para alta (estoque mais barato de carregar, liquidez para commodities); em alta, com o dólar global também subindo em 26 semanas, para baixa (regras candidatas do estudo; a condição do dólar só na baixa, ADR 0090). Limiares do FinMind, os mesmos do petróleo, calibrados na mesma série: faixa neutra de 0,5 p.p. (percentil 60 de |variação em 26 semanas| desde 2010), forte a partir de 1 p.p. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
+        "Juro em queda pesa para alta (estoque mais barato de carregar, liquidez para commodities); em alta, para baixa (regras candidatas do estudo). O dólar global, que as regras citam, vai como contexto, fora da decisão (ADR 0090, revisão). Limiares do FinMind, os mesmos do petróleo, calibrados na mesma série: faixa neutra de 0,5 p.p. (percentil 60 de |variação em 26 semanas| desde 2010), forte a partir de 1 p.p. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "Sinal de Alta: Ciclo de flexibilização monetária global com corte sincronizado de taxas de juros pelos bancos centrais e enfraquecimento do índice DXY, reduzindo o custo financeiro de estocagem de café e atraindo alocação de liquidez para cestas de matérias-primas. [Hipótese v0 — não validada; não usar para ordem].",
         baixa: "Sinal de Baixa: Aperto monetário quantitativo agressivo com elevação das taxas reais de juros nos EUA e fortalecimento do Dólar global, elevando drasticamente o custo financeiro para manutenção de estoques comerciais e desestimulando a exposição comprada em ativos reais. [Hipótese v0 — não validada; não usar para ordem]."
@@ -360,7 +362,7 @@ const DEFINICOES = [
     },
     perguntas: [],
     decisoes: [
-      "Dólar global como condição, só na baixa (usuário, 2026-10-06, ADR 0090): o juro subindo só pesa para baixa com o índice amplo do dólar (Fed) subindo em 26 semanas; sem isso, neutra. Com o dólar subindo junto, a queda veio em 3 meses em 70% das semanas; com o dólar caindo, em 38%. Na alta, sem condição: exigir o dólar caindo não melhorou (57% nos dois casos em 3 meses) e cortaria as semanas que foram melhor em 6 meses (69%).",
+      "Dólar global como contexto (usuário, 2026-10-06, ADR 0090 e revisão): o índice amplo do Fed em 26 semanas vai ao texto do fator, fora da decisão. A condição só na baixa foi tentada e revertida no mesmo dia: por episódio, a diferença não tem significância, e aplicá-la só onde ajudava era ajuste ao dado (a regra de alta do estudo também cita o dólar).",
       "Juro nominal (usuário, 2026-10-06, ADR 0090): fica o Treasury de 10 anos, como na v1. O juro real (DFII10) foi pior nos dois lados: alta em 3 meses em 51% das semanas e queda em 55%, contra 57% e 57% do nominal."
     ]
   }
@@ -481,7 +483,7 @@ const PESOS_CAFE = {
       noFinMind: {
         situacao: "ORIENTACAO",
         texto:
-          "No prompt: o COT não vota; o papel dele vai em posicionamentoCot (confirma, excesso, risco de reversão ou enfraquece), e sem catalisador de clima ou de safra o extremo pesa menos. Na agregação do motor (ADR 0066, bloco 3B): sem peso; no extremo contra a direção, a confiança desce um nível."
+          "No prompt: o COT não vota nem muda a confiança; o papel dele vai em posicionamentoCot (confirma, excesso, risco de reversão ou enfraquece) como informação. Na agregação do motor (ADR 0066, bloco 3B): sem peso e sem efeito na confiança; o extremo aparece como informação (ADR 0089, revisão)."
       }
     }
   ],
