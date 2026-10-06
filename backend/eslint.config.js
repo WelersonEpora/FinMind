@@ -20,7 +20,8 @@ module.exports = [
         setTimeout: "readonly",
         clearTimeout: "readonly",
         AbortController: "readonly",
-        AbortSignal: "readonly"
+        AbortSignal: "readonly",
+        structuredClone: "readonly"
       }
     },
     rules: {
