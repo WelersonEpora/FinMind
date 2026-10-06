@@ -9,12 +9,14 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // Desde a aprovação do David (2026-10-03), a leitura dos fatores vai ao prompt diário e a leitura de tendência da IA
 // aparece no Centro de Decisão (ADR 0052). Nada daqui gera sinal de compra ou venda.
 
-const VERSAO = 1;
-const DATA_VERSAO = "2026-10-02";
+// v2 (2026-10-06): a OPEP+ (F1) passa a fator calculado com eventos, pelo STEO da EIA; as perguntas viram decisões (ADR 0091).
+const VERSAO = 2;
+const DATA_VERSAO = "2026-10-06";
 
 const DEFINICOES = [
   {
     codigo: "PETROLEO_OPEP",
+    nome: "Decisões da OPEP+ (produção e capacidade ociosa da OPEP, com os eventos)",
     fel1: {
       tipo: "Geopolítico/Fundamentalista",
       direcao: "Alta com cortes de produção; baixa com aumento de cotas",
@@ -23,28 +25,31 @@ const DEFINICOES = [
     },
     evento: { janelaDias: 45 },
     dados: {
-      observaveis: ["PETROLEO_PRODUCAO_JODI"],
+      observaveis: ["PETROLEO_OPEP_STEO", "PETROLEO_PRODUCAO_JODI"],
       eventos: true,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente como fator de evento: as decisões da OPEP+ chegam pela leitura diária de eventos de mercado (o site da OPEP é fonte autorizada). A produção, não: dos grandes da OPEP+, o JODI perdeu os Emirados e o Irã (2018), a Rússia (2023) e o Iraque (2024); hoje reportam a Arábia Saudita, o Kuwait, o Cazaquistão, a Nigéria, a Argélia, a Venezuela, a Líbia, o Azerbaijão e o México. Sem esses quatro, a soma não mede a OPEP+, e o cumprimento das cotas não é medido."
+          "Basta para a pegada das decisões, não para as cotas. No STEO da EIA (225 edições de 2008 a 2026, cada uma com o que se sabia nela), o Brent subiu 6 meses depois em 73% das edições em corte (produção caindo e ociosa subindo; média +11,3%) e em 41% das em aumento (−0,2%), contra 53% em todas (+3,8%): o sentido do especialista. Sem a crise de 2008-09 e sem 2020, 62% e 46%, contra 50%, e a variação média some: o efeito vem sobretudo dos grandes cortes, em 5 episódios de corte e 7 de aumento. A interrupção (as duas caindo: guerra, ataque ou perda de capacidade) não é decisão da OPEP e não é lida pelo fator. A variação da produção sozinha não diz nada (−0,13 com o Brent 6 meses depois)."
       },
       lacunas: [
-        "O cumprimento das cotas (produção contra a meta de cada membro) não é medido: as cotas não são coletadas (o MOMR da OPEP não foi acessível de forma automática, ADR 0042) e a produção da Rússia, do Iraque, dos Emirados e do Irã não está no JODI.",
-        "A leitura diária registra a decisão da OPEP+ só quando ela é \"extraordinária\" (o tipo Política de oferta do prompt): uma reunião que só mantém as cotas pode não virar evento.",
-        "A data do evento é a da leitura que o registrou (o fato é das 24 a 48 horas anteriores); o evento não diz até quando vale: a janela de 45 dias faz esse papel."
+        "As cotas e o cumprimento delas não são medidos: só estão nos comunicados da OPEP, cujo site bloqueia acesso automático (desafio do Cloudflare, 2026-10-06; ADR 0091).",
+        "A capacidade ociosa existe só para a OPEP, não para a OPEP+; a produção da OPEP+ por país só existe nas edições do STEO desde 2024 (contexto).",
+        "O STEO estima o mês anterior e revisa os meses seguintes (mediana de 100 mil barris/dia em 3 edições): a decisão de um mês aparece no cálculo com um a dois meses de atraso; a do mês chega pelos eventos.",
+        "A filiação da OPEP muda (Angola sai em 2024, os Emirados em 2026), e a edição que tira um país refaz o total para trás; meses antigos guardam a filiação da edição deles."
       ]
     },
     proposta: {
-      objetivo: "Levar à análise as decisões da OPEP+ que seguem valendo, e não só as do dia.",
-      medida: "Fator de evento, sem cálculo: os eventos aceitos da leitura diária marcados com este fator nos últimos 45 dias, cada um com a data da leitura que o registrou e a idade, o tipo, o resumo (com a data do fato, quando a fonte a dá), o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte autorizada.",
-      comparacao: "Sem comparação numérica: a idade de cada evento e o retrato do ativo na leitura mais recente. Os oito países dos cortes voluntários se reúnem todo mês: 45 dias pegam a última decisão com folga.",
-      leitura: "Fica com a IA do ativo, com os outros fatores: corte de produção pressiona para cima, aumento de cotas para baixo (a direção indicada pelo especialista), e o que move o preço é a surpresa contra o esperado, que só aparece quando a fonte fala dela."
+      objetivo: "Medir a pegada das decisões da OPEP+ na oferta e levar à análise as decisões que seguem valendo.",
+      medida: "A produção de petróleo bruto e a capacidade ociosa da OPEP no STEO da EIA, mensais; a OPEP+, a Rússia e a Arábia Saudita como contexto. E os eventos aceitos da leitura diária marcados com este fator nos últimos 45 dias, cada um com a data, a idade, o tipo, o resumo, o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte.",
+      comparacao: "A média de 3 meses da produção e a da ociosa contra os mesmos 3 meses do ano anterior. Nos eventos, a idade de cada um; os oito países dos cortes voluntários se reúnem todo mês, e toda decisão de produção vira evento, inclusive a que mantém as cotas.",
+      leitura: "Corte (produção caindo e ociosa subindo) pesa para alta; aumento (produção subindo e ociosa caindo), para baixa: a direção do especialista. Interrupção, expansão e o resto ficam neutros. Os limiares (±1,5% na produção e ±400 mil barris/dia na ociosa, forte a partir de 5%) são do FinMind, da validação no STEO, ajustáveis pelo Comitê no card C. Decidir. Os eventos ficam com a IA do ativo."
     },
-    perguntas: [
-      "A janela de 45 dias basta como memória da política em vigor, ou a leitura diária deve registrar a vigência de cada decisão (exige mudar o prompt)?",
-      "O cumprimento das cotas é necessário? Sem a produção dos quatro grandes que saíram do JODI, ele só seria medido com uma fonte nova (ex.: o STEO da EIA)."
+    perguntas: [],
+    decisoes: [
+      "Memória da política em vigor (usuário, 2026-10-06, ADR 0091): fica a janela de 45 dias dos eventos, sem registrar a vigência de cada decisão.",
+      "Toda decisão de produção da OPEP+ é evento (usuário, 2026-10-06, ADR 0091): a leitura diária (prompt de eventos v13) registra também a reunião que só mantém as cotas.",
+      "Cumprimento das cotas (usuário, 2026-10-06, ADR 0091): as cotas só estão no site da OPEP, bloqueado; no lugar delas, o STEO da EIA (fonte nova autorizada pelo usuário), com a produção e a capacidade ociosa da OPEP lidas em quatro casos (corte, aumento, interrupção e neutro), validados no histórico do STEO."
     ]
   },
   {

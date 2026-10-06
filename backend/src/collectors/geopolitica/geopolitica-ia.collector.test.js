@@ -104,7 +104,7 @@ function chamada(frente, texto, grounding, extra = {}) {
 
 const RESPOSTA = {
   dataReferencia: "2026-10-02",
-  versaoPrompt: "geopolitica-diaria@12",
+  versaoPrompt: "geopolitica-diaria@13",
   instrucaoDoSistema: "instrução enviada",
   chamadas: [chamada("OURO_PETROLEO", TEXTO_OP, GROUNDING_OP), chamada("MILHO_CAFE", TEXTO_MC, GROUNDING_MC, { chave: "paga", tokens: 234 })]
 };
@@ -349,7 +349,7 @@ test("normalize: uma leitura com as duas chamadas; uma linha por (evento, ativo 
   assert.match(leitura.texto_bruto, /^=== OURO E PETRÓLEO ===\nOURO\n/);
   assert.match(leitura.texto_bruto, /\n\n=== MILHO E CAFÉ ===\nMILHO\n/);
   assert.match(leitura.prompt, /prompt OURO_PETROLEO[\s\S]*prompt MILHO_CAFE/);
-  assert.equal(leitura.versao_prompt, "geopolitica-diaria@12");
+  assert.equal(leitura.versao_prompt, "geopolitica-diaria@13");
   // Uma chamada usou a chave paga: a leitura registra "paga"; os tokens somam.
   assert.equal(leitura.chave, "paga");
   assert.equal(leitura.tokens, 1234);
@@ -511,7 +511,7 @@ test("normalize: detalhes das chamadas para a execução, com as fontes lidas de
       modelo: "gemini-flash-latest",
       tokens: 1234,
       repeticoesPeloPiso: 0,
-      versaoPrompt: "geopolitica-diaria@12",
+      versaoPrompt: "geopolitica-diaria@13",
       chamadas: 2,
       buscas: 3,
       paginasLidas: 4,
@@ -560,7 +560,7 @@ test("download: duas chamadas, cada uma com os seus ativos, o seu piso, as suas 
 
   assert.equal(recebidos.length, 2);
   assert.deepEqual(resposta.chamadas.map((c) => c.frente), ["OURO_PETROLEO", "MILHO_CAFE"]);
-  assert.equal(resposta.versaoPrompt, "geopolitica-diaria@12");
+  assert.equal(resposta.versaoPrompt, "geopolitica-diaria@13");
   // A instrução do sistema é a mesma; o prompt muda por chamada.
   assert.equal(recebidos[0].systemInstruction, recebidos[1].systemInstruction);
   assert.match(recebidos[0].systemInstruction, /Não procure notícias gerais\. Procure somente acontecimentos relevantes nas fontes autorizadas/);

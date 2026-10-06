@@ -16,7 +16,7 @@ const TIPOS = [
   { codigo: "REGULACAO", rotulo: "Regulação", descricao: "regra nova de governo ou de bolsa que muda o acesso, o uso ou a negociação do produto" },
   { codigo: "CHOQUE_LOGISTICO", rotulo: "Choque logístico", descricao: "interrupção extraordinária de transporte, porto, rio ou rota, sem causa geopolítica" },
   { codigo: "SANIDADE", rotulo: "Sanidade", descricao: "praga, doença ou problema fitossanitário com efeito sobre oferta ou comércio" },
-  { codigo: "POLITICA_OFERTA", rotulo: "Política de oferta", descricao: "decisão da OPEP+ ou de grande produtor que corta ou aumenta a oferta de forma extraordinária" }
+  { codigo: "POLITICA_OFERTA", rotulo: "Política de oferta", descricao: "toda decisão de produção da OPEP+, inclusive a que mantém as cotas; ou decisão de outro grande produtor que corta ou aumenta a oferta de forma extraordinária" }
 ];
 const CODIGOS_TIPO = TIPOS.map((tipo) => tipo.codigo);
 

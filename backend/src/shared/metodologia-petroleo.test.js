@@ -64,10 +64,10 @@ test("toda proposta sai marcada como PROPOSTA: nenhuma foi validada pelo David a
   assert.ok(fatores.every((fator) => fator.proposta.situacao === SITUACAO.PROPOSTA));
 });
 
-test("todo fator tem dado (observável ou eventos) e ao menos uma pergunta ao David", () => {
+test("todo fator tem dado (observável ou eventos) e ao menos uma pergunta ao David ou uma decisão (a OPEP+, ADR 0091)", () => {
   for (const fator of fatores) {
     assert.ok(fator.dados.observaveis.length > 0 || fator.dados.eventos, `${fator.codigo} sem dado`);
-    assert.ok(fator.perguntas.length > 0, `${fator.codigo} sem pergunta`);
+    assert.ok(fator.perguntas.length > 0 || fator.decisoes.length > 0, `${fator.codigo} sem pergunta nem decisão`);
   }
 });
 
@@ -97,11 +97,11 @@ test("a API devolve o observável com o nome do card", () => {
   assert.deepEqual(estoques.dados.observaveis, [{ codigo: "PETROLEO_ESTOQUES_EIA", nome: "Petróleo EUA - estoques (EIA)" }]);
 });
 
-test("os fatores de estoques, demanda, dólar, produção, juros, fundos, refino e oferta não-OPEP saem marcados como calculados; os demais não", () => {
+test("a OPEP+ e os fatores de estoques, demanda, dólar, produção, juros, fundos, refino e oferta não-OPEP saem marcados como calculados; a geopolítica não", () => {
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
   assert.deepEqual(
     metodologia.fatores.filter((fator) => fator.calculado).map((fator) => fator.codigo),
-    ["PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_JUROS", "PETROLEO_FUNDOS", "PETROLEO_REFINO", "PETROLEO_OFERTA_NAO_OPEP"]
+    ["PETROLEO_OPEP", "PETROLEO_ESTOQUES_EIA", "PETROLEO_DEMANDA", "PETROLEO_DOLAR", "PETROLEO_PRODUCAO_EUA", "PETROLEO_JUROS", "PETROLEO_FUNDOS", "PETROLEO_REFINO", "PETROLEO_OFERTA_NAO_OPEP"]
   );
 });
 
@@ -115,7 +115,8 @@ const LINHAS_SINTETICAS = {
   PETROLEO_DOLAR: { gerar: diasDoDolar },
   PETROLEO_FUNDOS: { gerar: semanasDoCot },
   PETROLEO_JUROS: { gerar: diasDosJuros },
-  PETROLEO_OFERTA_NAO_OPEP: { gerar: mesesDaOferta }
+  PETROLEO_OFERTA_NAO_OPEP: { gerar: mesesDaOferta },
+  PETROLEO_OPEP: { gerar: mesesDoSteo }
 };
 
 // A oferta não-OPEP lê o Brasil da ANP (m³ por UF) e Noruega e Canadá do JODI, mensais: 3 anos.
@@ -127,6 +128,29 @@ function mesesDaOferta() {
     linhas.push(linha("ANP.PETROLEO_PRODUCAO.RJ.MAR", observedAt, 15000000 + i * 50000));
     linhas.push(linha("JODI.PETROLEO_PRODUCAO.NO.PRODUCAO", observedAt, 1800 + (i % 5) * 10));
     linhas.push(linha("JODI.PETROLEO_PRODUCAO.CA.PRODUCAO", observedAt, 4000 + i * 5));
+  }
+  return linhas;
+}
+
+// A OPEP+ lê a produção, a capacidade ociosa e a capacidade da OPEP e, como contexto, a OPEP+, a Rússia e a Arábia
+// Saudita, do STEO, mensais: 3 anos, com a produção caindo e a ociosa subindo (um corte).
+function mesesDoSteo() {
+  const linhas = [];
+  const linha = (item, campo, observedAt, value) => ({
+    seriesCode: `EIA_STEO.PETROLEO.${item}.${campo}`,
+    observedAt,
+    value,
+    publishedAt: new Date(),
+    publishedAtIsEstimated: true
+  });
+  for (let i = 0; i < 36; i += 1) {
+    const observedAt = new Date(Date.UTC(2023, i, 1)).toISOString().slice(0, 10);
+    linhas.push(linha("OPEP", "PRODUCAO", observedAt, 28000 - i * 60));
+    linhas.push(linha("OPEP", "CAPACIDADE_OCIOSA", observedAt, 2000 + i * 60));
+    linhas.push(linha("OPEP", "CAPACIDADE", observedAt, 30000));
+    linhas.push(linha("OPEP_MAIS", "PRODUCAO", observedAt, 40000 - i * 50));
+    linhas.push(linha("RU", "PRODUCAO", observedAt, 9200));
+    linhas.push(linha("SA", "PRODUCAO", observedAt, 9500 - i * 20));
   }
   return linhas;
 }
@@ -224,7 +248,8 @@ for (const codigo of Object.keys(LINHAS_SINTETICAS)) {
     assert.ok(calculo.exemplos.episodios.length > 0 && calculo.exemplos.cenarios.every((c) => c.decisao));
     // O bloco do prompt: o fator, a decisão e a regra; nenhum quadro sem valor vira "undefined".
     assert.match(calculo.textoPrompt, /^FATOR — .* — PETRÓLEO \(peso (Alto|Médio)\)\n/);
-    assert.match(calculo.textoPrompt, /\n- Regra aplicada \(parâmetros padrão do FinMind\): neutra entre .*\nC — Leitura do fator:\n- Pressão: (alta|baixa|neutra)\n/);
+    // A regra é a da decisão por faixa ("neutra entre ..."), ou a regra própria do fator (a OPEP+, pelos quatro casos).
+    assert.match(calculo.textoPrompt, /\n- Regra aplicada \(parâmetros padrão do FinMind\): (neutra entre|o caso pela produção) .*\nC — Leitura do fator:\n- Pressão: (alta|baixa|neutra)\n/);
     assert.match(calculo.textoPrompt, /\nD — Validação histórica \(contexto para avaliar a relação; não entra na leitura acima\):\n- /);
     assert.doesNotMatch(calculo.textoPrompt, /[Dd]ecisão sugerida/);
     assert.doesNotMatch(calculo.textoPrompt, /undefined|NaN/);
@@ -238,7 +263,7 @@ test("o cálculo devolve a proposta com a situação dela e recusa fator sem cá
   assert.equal(calculo.tempoReal, false);
   assert.deepEqual(calculo.pontos, []);
   assert.ok(calculo.exemplos.cenarios.length > 0);
-  await assert.rejects(calcularFator("PETROLEO", "PETROLEO_OPEP", {}, deps), (err) => err.statusCode === 404);
+  await assert.rejects(calcularFator("PETROLEO", "PETROLEO_GEOPOLITICA", {}, deps), (err) => err.statusCode === 404);
   await assert.rejects(calcularFator("PETROLEO", "PETROLEO_ESTOQUES_EIA", { desde: "02/01/2026" }, deps), (err) => err.statusCode === 400);
 });
 
@@ -313,11 +338,15 @@ test("salvar ao mesmo tempo que outro admin vira 409; o histórico lista as vers
   assert.deepEqual(parametros, { versoes: [], padrao: PARAMETROS_PADRAO });
 });
 
-test("OPEP+ e geopolítica saem como fatores de evento, sem cálculo; os demais não", () => {
+test("a geopolítica sai como fator de evento, sem cálculo; a OPEP+, calculada e com eventos (ADR 0091)", () => {
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
   assert.deepEqual(
     metodologia.fatores.filter((fator) => fator.deEvento).map((fator) => [fator.codigo, fator.evento.janelaDias]),
-    [["PETROLEO_OPEP", 45], ["PETROLEO_GEOPOLITICA", 7]]
+    [["PETROLEO_GEOPOLITICA", 7]]
+  );
+  assert.deepEqual(
+    metodologia.fatores.filter((fator) => fator.comEventos).map((fator) => [fator.codigo, fator.evento.janelaDias]),
+    [["PETROLEO_OPEP", 45]]
   );
   for (const fator of metodologia.fatores.filter((item) => item.deEvento)) assert.equal(fator.calculado, false);
 });
@@ -331,13 +360,15 @@ test("o resultado de um fator de evento são os eventos dele na janela do fator 
     }
   };
   // 02h UTC de 04/10 ainda é 03/10 em São Paulo.
-  const { eventosFator } = await obterEventosFator("petroleo", "petroleo_opep", {}, { geopoliticaService, agora: new Date("2026-10-04T02:00:00Z") });
-  assert.deepEqual(pedido, ["PETROLEO", "PETROLEO_OPEP", "2026-10-03", { janelaDias: 45, comCalculo: false }]);
+  const opcoes = { geopoliticaService, agora: new Date("2026-10-04T02:00:00Z") };
+  const { eventosFator } = await obterEventosFator("petroleo", "petroleo_geopolitica", {}, opcoes);
+  assert.deepEqual(pedido, ["PETROLEO", "PETROLEO_GEOPOLITICA", "2026-10-03", { janelaDias: 7, comCalculo: false }]);
   // Logo abaixo do título, a identificação do fator no catálogo (o código que a IA cita, o peso e o tipo no FEL 1).
-  assert.equal(
-    eventosFator.contexto,
-    "EVENTOS DO FATOR\nCódigo: PETROLEO_OPEP | Peso no FEL 1: Alto | Tipo no FEL 1: Geopolítico/Fundamentalista | Regra: fator de evento (janela de 45 dias)"
-  );
+  assert.match(eventosFator.contexto, /^EVENTOS DO FATOR\nCódigo: PETROLEO_GEOPOLITICA \| Peso no FEL 1: [^|]+\| Tipo no FEL 1: [^|]+\| Regra: fator de evento \(janela de 7 dias\)$/);
+  // A OPEP+ é calculada e com eventos (ADR 0091): o bloco vai depois do texto do cálculo, que já identifica o fator.
+  const opep = await obterEventosFator("petroleo", "petroleo_opep", {}, opcoes);
+  assert.deepEqual(pedido, ["PETROLEO", "PETROLEO_OPEP", "2026-10-03", { janelaDias: 45, comCalculo: true }]);
+  assert.equal(opep.eventosFator.contexto, "EVENTOS DO FATOR");
   await assert.rejects(obterEventosFator("PETROLEO", "PETROLEO_DOLAR", {}, { geopoliticaService }), (err) => err.statusCode === 404);
 });
 
@@ -357,10 +388,11 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   assert.equal(asOf.toISOString(), "2022-03-16T02:59:59.999Z");
   assert.deepEqual([...new Set(datasEventos)], ["2022-03-15"]);
   assert.equal(simulacao.fatores.length, 10);
-  assert.deepEqual(simulacao.fatores.filter((f) => f.tipo === "EVENTO").map((f) => f.codigo), ["PETROLEO_OPEP", "PETROLEO_GEOPOLITICA"]);
+  assert.deepEqual(simulacao.fatores.filter((f) => f.tipo === "EVENTO").map((f) => f.codigo), ["PETROLEO_GEOPOLITICA"]);
   assert.ok(simulacao.fatores.filter((f) => f.tipo === "CALCULADO").every((f) => f.medida === null && f.textoPrompt.startsWith("FATOR — ")));
-  assert.equal(simulacao.versaoMetodologia, "petroleo-v1 (2026-10-02)");
-  assert.match(simulacao.fatores[0].textoPrompt, /^EVENTOS DO FATOR PETROLEO_OPEP\nCódigo: PETROLEO_OPEP \| Peso no FEL 1: Alto/);
+  assert.equal(simulacao.versaoMetodologia, "petroleo-v2 (2026-10-06)");
+  // A OPEP+ é calculada e com eventos: o texto do cálculo e, depois, o bloco dos eventos.
+  assert.match(simulacao.fatores[0].textoPrompt, /^FATOR — Decisões da OPEP\+[^\n]*\n[\s\S]*\n\nEVENTOS DO FATOR PETROLEO_OPEP$/);
   // O prompt completo é do prompt-diario.service.js: a simulação não monta um texto próprio.
   assert.equal(simulacao.promptCompleto, undefined);
 });

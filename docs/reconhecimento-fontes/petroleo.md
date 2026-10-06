@@ -15,7 +15,8 @@ foi implementado está no ADR 0040.
 | ANP, dados abertos | Oferta fora da OPEP (Médio) | **Implementada** (ADR 0041): CSV mensal por UF e terra/mar, desde 1997 | 4 |
 | JODI Oil | Demanda global (Alto); OPEP+ (Alto) | **Produção implementada** (ADR 0042): ZIP com CSV mundial, mensal, desde 2002. **O Brasil para em 2022-12, a Rússia em 2023-03 e a Guiana não aparece**. **Demanda implementada** (ADR 0046): outro arquivo (derivados), 105 países desde 2002; **sem a Rússia, Brasil até 2022-02** | 4 |
 | Baker Hughes, contagem de sondas | Produção e shale (Médio) | **Inacessível**: sem resposta daqui nem do servidor (2026-10-01) | 0 |
-| OPEP, Monthly Oil Market Report | Decisões da OPEP+ (Alto); demanda global (Alto) | PDF; links montados por script | 0 (incerteza) |
+| EIA, Short-Term Energy Outlook (STEO), arquivo de edições | Decisões da OPEP+ (Alto) | **Implementada** (ADR 0091, 2026-10-06): produção da OPEP e da OPEP+ por país e capacidade ociosa da OPEP, uma planilha por edição desde jan/2008, sem as cotas | 5 |
+| OPEP, Monthly Oil Market Report e comunicados | Decisões da OPEP+ (Alto); demanda global (Alto) | **Bloqueada**: 403 com o desafio do Cloudflare em todas as páginas (2026-10-06) | 0 |
 | IEA, Oil Market Report | Demanda global (Alto) | 403; assinatura (FEL 1) | Pago |
 | API, Weekly Statistical Bulletin | Estoques (Alto) | A página citada dá 404; assinatura | Pago (a confirmar) |
 | MME | — | Boletins em PDF, não testado | 0 |
@@ -71,8 +72,10 @@ foi implementado está no ADR 0040.
 
 - **Baker Hughes (sondas): inacessível.** `rigcount.bakerhughes.com` e o endereço histórico não responderam (conexão sem resposta)
   em 2026-10-01, nem desta máquina nem do servidor (teste do usuário no container, timeout de 30 s). Não implementar; só volta se o site passar a responder.
-- **OPEP (MOMR):** o site responde, mas a página do relatório monta os links por script; o PDF não foi localizado. A
-  produção da OPEP por país também está no JODI (a conferir).
+- **OPEP (MOMR e comunicados):** em 2026-10-01 o site respondia, mas a página do relatório montava os links por script.
+  Em 2026-10-06, todas as páginas (`monthly-oil-market-report.html`, `press-releases.html`, `momr.opec.org`) respondem
+  403 com o desafio do Cloudflare ("Just a moment..."): acesso automático bloqueado. As cotas por país só estão nos
+  comunicados. A produção da OPEP por país vem do STEO da EIA (abaixo).
 - **IEA (OMR):** 403 a acesso automático; assinatura, segundo o FEL 1.
 - **API (Weekly Statistical Bulletin):** a página citada redireciona para um 404; o boletim é vendido por assinatura
   (a confirmar). Os estoques semanais da EIA saem um dia depois e são públicos.
@@ -93,3 +96,20 @@ foi implementado está no ADR 0040.
   2004), Japão, Coreia e Alemanha até jul/2026, Índia até mar/2026; **Rússia sem dado, Brasil até fev/2022, Irã até
   jul/2018**. EUA em jul/2026: 21.160 mil barris/dia, contra 21.050 a 21.500 da EIA semanal. Implementada, autorizada
   pelo usuário (ADR 0046).
+
+## EIA — Short-Term Energy Outlook (STEO), arquivo de edições (2026-10-06)
+
+Pedido do F1 do petróleo (decisões da OPEP+), pelo usuário, no lugar das cotas, inacessíveis (ADR 0091).
+
+| # | Pergunta | Resposta (evidência) |
+|---|---|---|
+| 1 | API oficial? | Sim, a API v2 (`api.eia.gov/v2/steo`), que exige chave e só guarda a edição atual. O arquivo de edições (`/outlooks/steo/archives/<mmm><aa>_base.xlsx`; XLS até 2013) guarda cada edição |
+| 2–3 | Pública? Chave? | O arquivo é público, sem chave. A `DEMO_KEY` da API bateu no limite em ~10 chamadas |
+| 4 | Formato | Planilha por edição. A produção de petróleo bruto da OPEP está na tabela 3c até 2023 (por país, com a capacidade e a ociosa de cada um) e na 3d de 2024 em diante (OPEP e OPEP+ por país; capacidade e ociosa só da OPEP). 1ª coluna = código da série da EIA (`copr_sa`, às vezes em maiúsculas), linhas 3 e 4 = ano e mês |
+| 5 | Documentação | As notas de rodapé de cada tabela (filiação da OPEP e da OPEP+); o site do STEO |
+| 6 | Histórico | Edições mensais de jan/2008 a out/2026 lidas (226); a de jan/2005 não tem a tabela por país. Cada edição traz ~4 anos de histórico e a previsão até o fim do ano seguinte (só o histórico é gravado) |
+| 7 | Revisões | **Sim, medidas:** a OPEP total muda em 96% dos meses entre a 1ª estimativa e 3 edições depois (mediana de 100 mil barris/dia; p90 de 470 mil) e em 98% em 12 edições (mediana de 290 mil). A edição que tira um país da OPEP refaz o total para trás |
+| 8 | Fuso e publicação | Mensal. Sai na terça depois da 1ª quinta do mês (5 edições conferidas). O `Last-Modified` é de 1 a 5 dias ANTES da divulgação (o arquivo fica pronto antes); a "Forecast date" (desde 2024) é o fechamento da previsão, também antes. `published_at` estimado: fim da quarta seguinte |
+| 9 | Limite | ~10 s por pedido (servidor lento); nenhum 429 em ~450 pedidos com 4 em paralelo |
+| 10 | Licença | Domínio público (governo dos EUA), como as demais séries da EIA |
+| 11 | Riscos | O layout muda (3c → 3d); a filiação muda (Indonésia 2009, Catar 2019, Equador 2020, Angola 2024, Emirados 2026); o `oct13_base.xls` responde 200 com uma página de erro em HTML (a edição está no `.xlsx`); a capacidade por país só existe até 2023; as cotas não estão na fonte |

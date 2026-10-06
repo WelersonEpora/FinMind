@@ -43,6 +43,7 @@
     "backfill:noaa-vh-cafe": "node scripts/backfill-noaa-vh.js --cultura=cafe",
     "backfill:ice-cafe-estoques": "node scripts/backfill-ice-cafe-estoques.js",
     "backfill:ico-cafe": "node scripts/backfill-ico-cafe.js",
+    "backfill:eia-steo": "node scripts/backfill-eia-steo.js",
     "backfill:ecf-cafe": "node scripts/backfill-ecf-cafe.js"
   },
   "dependencies": {

@@ -1010,6 +1010,44 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- EIA STEO - produção de petróleo da OPEP e da OPEP+ por país e capacidade ociosa da OPEP, mensal (ADR 0091) ---
+  // Séries `EIA_STEO.PETROLEO.<ITEM>.<CAMPO>`: o item é o país (ISO alfa-2) ou o grupo; a capacidade e a capacidade
+  // ociosa só existem para a OPEP.
+  {
+    instrumentCode: "PETROLEO_OPEP_STEO",
+    origem: "observation",
+    nome: "Petróleo - produção e capacidade ociosa da OPEP (EIA STEO)",
+    unidade: "mil barris/dia",
+    casasDecimais: 0,
+    frequencia: "MENSAL",
+    // O STEO sai na 2ª semana do mês com o mês anterior: o último ponto fica até ~45 dias sem sucessor.
+    toleranciaDias: 50,
+    fonte: "EIA - Short-Term Energy Outlook (STEO)",
+    fonteCollectorCode: "eia-steo",
+    porRegiao: {
+      prefixoSerie: "EIA_STEO.PETROLEO",
+      campoReferencia: "PRODUCAO",
+      itemPrincipal: "OPEP",
+      itensPadrao: ["OPEP", "OPEP_MAIS", "SA", "RU", "IQ"],
+      descritor: "steo-item"
+    },
+    campoPrincipal: "PRODUCAO",
+    campos: [
+      { codigo: "PRODUCAO", nome: "Produção de petróleo bruto", unidade: "mil barris/dia", casasDecimais: 0 },
+      { codigo: "CAPACIDADE_OCIOSA", nome: "Capacidade ociosa (só OPEP)", unidade: "mil barris/dia", casasDecimais: 0 },
+      { codigo: "CAPACIDADE", nome: "Capacidade de produção (só OPEP)", unidade: "mil barris/dia", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Produção mensal de petróleo bruto de cada país da OPEP e, desde 2024, da OPEP+ (com a Rússia e o Cazaquistão), os totais da OPEP e da OPEP+ e a capacidade de produção e a capacidade ociosa da OPEP, em mil barris por dia, como estimados pela EIA no Short-Term Energy Outlook. Atende o fator do petróleo \"Decisões da OPEP+\": a pegada das decisões na produção e na ociosa, sem as cotas, que só estão no site da OPEP.",
+      metodologia:
+        "Uma planilha por edição mensal, desde jan/2008, com ~4 anos de histórico; só os meses históricos são gravados (a previsão não). Cada edição revisa os meses anteriores (mediana de 100 mil barris/dia em 3 edições): cada revisão vira uma versão nova, com a data da edição que a trouxe. A data de disponibilidade é estimada: o fim da quarta depois da 1ª quinta do mês (o STEO sai na terça; o arquivo fica pronto alguns dias antes). Os grupos usam a filiação de cada edição: a Indonésia sai em 2009, o Catar em 2019, o Equador em 2020, Angola em 2024 e os Emirados em 2026, e a edição que tira um país refaz o total da OPEP para trás. A planilha traz milhões de barris por dia; o FinMind grava em mil. Domínio público (governo dos EUA).",
+      escopo: "só a tabela de produção de petróleo bruto da OPEP e da OPEP+ (3c até 2023, 3d desde 2024). Não coletados: a previsão, as demais tabelas do STEO, a capacidade por país (só nas edições até 2023) e as cotas.",
+      formatoOrigem: "XLSX (XLS até 2013), arquivo de edições do STEO, sem chave",
+      urlOficial: "https://www.eia.gov/outlooks/steo/"
+    }
+  },
+
   // --- JODI - demanda mensal de derivados de petróleo por país (ADR 0046) ---
   // Séries `JODI.PETROLEO_DEMANDA.<PAIS>.DEMANDA`, país em ISO alfa-2: os países são descobertos no banco.
   {

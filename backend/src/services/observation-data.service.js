@@ -15,6 +15,7 @@ const { descreverPaisFmi } = require("../shared/utils/fmi-pais");
 const { descreverRegiaoWgc } = require("../shared/utils/wgc-regiao");
 const { descreverUnidadeCecafe } = require("../shared/utils/cecafe-unidade");
 const { descreverPaisJodi } = require("../shared/utils/jodi-pais");
+const { descreverItemSteo } = require("../shared/utils/steo-item");
 const { descreverLocalCustoCafe } = require("../shared/utils/conab-custo-cafe-local");
 const { descreverOrigemIce } = require("../shared/utils/ice-origem");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
@@ -142,6 +143,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos um país.",
       nota:
         "Cada linha é um país, com a produção de petróleo em mil barris por dia como o país reporta ao JODI. Há lacunas da fonte: o Brasil para em 2022, a Rússia em 2023, e a Guiana não reporta. Não há total mundial, e o FinMind não soma países."
+    }
+  }),
+  "steo-item": criarDimensaoRegiao({
+    rotuloModalidade: "País ou grupo",
+    descreverRegiao: descreverItemSteo,
+    textos: {
+      titulo: "Países e grupos",
+      inativo: "sem dado recente",
+      mostrarInativos: "Mostrar países sem dado recente",
+      semSelecao: "Selecione ao menos um país ou grupo.",
+      nota:
+        "Cada linha é um país ou um grupo (OPEP, OPEP+), em mil barris por dia, com a estimativa mais recente do STEO da EIA. A capacidade e a capacidade ociosa existem só para a OPEP. Os grupos usam a filiação de cada edição (Angola sai em 2024 e os Emirados em 2026), e a OPEP+ por país só existe desde 2024."
     }
   }),
   "jodi-pais-demanda": criarDimensaoRegiao({

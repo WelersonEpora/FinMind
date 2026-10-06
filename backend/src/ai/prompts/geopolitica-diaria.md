@@ -1,6 +1,6 @@
 # Prompt — Leitura diária de eventos de mercado (ouro, petróleo, milho e café)
 
-**Versão:** 12
+**Versão:** 13
 
 Histórico: v1 (2026-10-01) - formato inicial. v2 (2026-10-01) - rótulo `Pressão sobre o preço` em cada evento (alta,
 baixa ou ambígua): a direção em que o fato, sozinho e com o resto constante, empurra o preço do ativo. Não é previsão
@@ -42,6 +42,11 @@ v12 (2026-10-02) - o piso do ouro passa a exigir uma busca na AP News ou no Teso
 o texto do piso é gerado pelo coletor, este arquivo não mudou além da versão). Motivo: num diagnóstico de 10 leituras, a
 chamada de ouro e petróleo leu só o UKMTO em 4 e declarou o ouro NORMAL sem olhar as fontes de escalada e sanções. O
 mesmo diagnóstico mostrou que a temperatura 0 não reduz a variação entre leituras: segue a temperatura padrão (ADR 0049).
+v13 (2026-10-06) - toda decisão de produção da OPEP+ é evento (POLITICA_OFERTA), inclusive a que só mantém as cotas,
+com o que foi decidido, para quando e a comparação com o esperado quando a fonte a dá; antes, só a decisão
+"extraordinária". Motivo: os oito países dos cortes voluntários decidem todo mês, e a decisão mensal é o que o fator
+da OPEP+ do petróleo lê; sem o "manter", o fator ficava vazio e podia ser lido como calmaria (decisão do usuário,
+ADR 0091).
 
 Usado pelo coletor `geopolitica-ia-diario` (ADRs 0047 e 0049), em DUAS chamadas diárias ao Gemini com busca na web
 (desde a v11: ouro e petróleo numa, milho e café na outra; a mesma instrução do sistema e um prompt por chamada, com os
@@ -130,6 +135,11 @@ ROTINA NÃO É EVENTO
 - Uma sanção só é evento se atinge um país produtor, a frota que transporta o seu petróleo, reservas ou pagamentos
   internacionais, ou se é ampla e nova. Um aviso do INMET só é evento se for de geada ou onda de frio sobre as regiões
   do café ou da safrinha. Uma abertura de mercado só é evento se mudar de forma relevante quem compra o milho ou o café.
+- Exceção: toda decisão de produção da OPEP+ (a reunião mensal dos países dos cortes voluntários ou a reunião
+  ministerial) é evento do tipo POLITICA_OFERTA, mesmo quando só mantém as cotas: manter também é uma decisão. O
+  resumo diz o que foi decidido, para que mês ou período, e, se a fonte disser, como isso se compara ao esperado.
+  Uma decisão que só confirma o rumo anterior não muda, sozinha, o nível do ativo; a pressão dela é ambígua quando a
+  fonte não diz o que se esperava.
 
 NÍVEL DE CADA ATIVO (escala provisória)
 - NORMAL: nenhum evento novo fora do padrão para este ativo.

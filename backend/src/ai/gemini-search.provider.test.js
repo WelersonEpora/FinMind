@@ -126,7 +126,7 @@ test("carregarPrompt: o prompt dos eventos de mercado tem versão, instrução f
     fatores: "- F",
     sugestoes_busca: "- C"
   });
-  assert.equal(versao, "geopolitica-diaria@12");
+  assert.equal(versao, "geopolitica-diaria@13");
   assert.doesNotMatch(instrucaoDoSistema, /\{\{/);
   // A instrução é a mesma para as duas chamadas: o exemplo de formato e a seção EVENTOS; os ativos vêm do prompt.
   assert.match(instrucaoDoSistema, /^PETRÓLEO$/m);

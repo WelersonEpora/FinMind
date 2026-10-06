@@ -1,6 +1,6 @@
 # Prompt — Análise diária do petróleo (leitura de tendência em quatro horizontes)
 
-**Versão:** 3
+**Versão:** 4
 
 Histórico: v1 (2026-10-03) - formato inicial (ADR 0051): seis blocos, no molde do prompt do milho (`STATUS_DO_PROJETO.md`,
 §5): os fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do sistema; os
@@ -12,6 +12,9 @@ v2 (2026-10-03) - os horizontes contam da data da análise, não da data do últ
 "Como analisar" diz que o preço entre as duas datas é desconhecido e não deve ser estimado.
 v3 (2026-10-04) - o preço analisado passa do WTI ao Brent, o instrumento que o Comitê opera (decisão do David, ADR 0052,
 adendo). O papel diz que o COT e parte das validações dos fatores são do WTI, a referência americana do mesmo mercado.
+v4 (2026-10-06) - a OPEP+ passa a ser fator calculado COM eventos (ADR 0091): o caso da produção e da capacidade ociosa da
+OPEP no STEO da EIA (corte, aumento, interrupção) e, depois, os eventos da janela. O item 4 de "Como analisar" e a
+legenda do bloco 3 dizem isso; a interrupção (guerra) não é lida pelo fator e fica com a geopolítica.
 
 Enviado ao Gemini uma vez por dia pelo coletor `petroleo-analise-ia-diario` (ADR 0052).
 
@@ -51,9 +54,12 @@ Para cada horizonte, separadamente:
    não as recalcule, não as contradiga e não as troque por uma interpretação sua. Se uma leitura informa pouco para o
    horizonte (por exemplo, porque a parte D diz que o fator acompanha o preço em vez de antecipá-lo), diga isso e dê a
    ela menos papel na leitura.
-4. Fatores de evento (OPEP+ e geopolítica). Use a idade e o tipo de cada evento para julgar se ele ainda pesa no
-   horizonte. A pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com
-   leitura diária na janela, é informação; "dia sem leitura" é falta de informação.
+4. Eventos (a geopolítica e os eventos da OPEP+). Use a idade e o tipo de cada evento para julgar se ele ainda pesa
+   no horizonte. A pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com
+   leitura diária na janela, é informação; "dia sem leitura" é falta de informação. Na OPEP+, o cálculo mostra a
+   pegada das decisões na produção e na capacidade ociosa com um a dois meses de atraso, e os eventos trazem as
+   decisões recentes: diga quando uma decisão ainda não aparece no cálculo. Quando o cálculo diz "interrupção", a
+   queda da oferta não é decisão da OPEP: o efeito vem pelos eventos de geopolítica; não o conte duas vezes.
 5. Posicionamento (COT). Não conte o COT como mais um voto de alta ou de baixa. Diga qual é o papel dele no horizonte:
    confirma a leitura, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O
    posicionamento segue o preço e os demais fatores: não o trate como evidência independente deles.
@@ -149,6 +155,7 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
 Fator de evento: os eventos aceitos da leitura diária por IA na janela do fator, com a data, a idade e a fonte.
+Fator calculado com eventos (a OPEP+): o texto do cálculo (A a D) e, depois, os eventos da janela do fator.
 O motor ainda não fornece confiança por fator, horizonte por fator nem relações entre fatores.
 
 {{blocos_fatores}}

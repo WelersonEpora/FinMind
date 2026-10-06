@@ -28,6 +28,7 @@ const ATIVOS_COM_PROMPT_DIARIO = ATIVOS_COM_ANALISE_DIARIA;
 // (calcular, explicar, exemplos, parâmetros padrão e a apresentação que a tela genérica desenha). Um fator novo é
 // só uma linha aqui.
 const CALCULOS = {
+  PETROLEO_OPEP: require("../factors/opep-petroleo.factor").METODOLOGIA,
   PETROLEO_ESTOQUES_EIA: require("../factors/estoques-petroleo-eia.factor").METODOLOGIA,
   PETROLEO_PRODUCAO_EUA: require("../factors/producao-petroleo-eua.factor").METODOLOGIA,
   PETROLEO_DEMANDA: require("../factors/demanda-petroleo-eua.factor").METODOLOGIA,
@@ -84,15 +85,17 @@ const MOTIVO_MIN = 5;
 const MOTIVO_MAX = 500;
 const SEMANAS_TENDENCIA_MAX = 26;
 
-// Parâmetros da camada C (simulação): os padrões do fator, trocados pelos que vierem na query. Só números de 0 a 100;
+// Parâmetros da camada C (simulação): os padrões do fator, trocados pelos que vierem na query. Só números de 0 a 100
+// (ou até o `maximo` que a apresentação do fator declara para o parâmetro, ex.: a ociosa da OPEP em mil barris/dia);
 // nos fatores da decisão por faixa, o limiar moderado abaixo do forte; a tendência em semanas inteiras, de 1 a 26. Um
 // fator com regra própria (ex.: o clima do milho, com limiares de alta e de baixa diferentes) só tem as chaves dele.
-function lerParametros(padrao, valores = {}) {
+function lerParametros(padrao, valores = {}, descritores = []) {
   const parametros = { ...padrao };
   for (const chave of Object.keys(padrao)) {
     if (valores[chave] === undefined || valores[chave] === "") continue;
     const valor = Number(valores[chave]);
-    if (!Number.isFinite(valor) || valor < 0 || valor > 100) throw new ValidationError(`"${chave}" deve ser um número entre 0 e 100.`);
+    const maximo = descritores.find((p) => p.chave === chave)?.maximo ?? 100;
+    if (!Number.isFinite(valor) || valor < 0 || valor > maximo) throw new ValidationError(`"${chave}" deve ser um número entre 0 e ${maximo}.`);
     parametros[chave] = valor;
   }
   if ("limiarModeradoPct" in padrao && "limiarFortePct" in padrao && !(parametros.limiarModeradoPct < parametros.limiarFortePct)) {
@@ -187,7 +190,7 @@ async function calcularFator(ativo, codigoFator, { desde, data, ...opcoes } = {}
     throw new ValidationError('"desde" deve estar em AAAA-MM-DD.');
   }
   const sistema = await parametrosDoSistema(fator, calculo, deps);
-  const parametros = lerParametros(sistema.parametros, opcoes);
+  const parametros = lerParametros(sistema.parametros, opcoes, calculo.apresentacao.parametros);
 
   // O histórico inteiro (~2.300 semanas, uma consulta): os exemplos da camada C são semanas antigas; `desde` só recorta
   // o que vai para o gráfico.
@@ -373,7 +376,7 @@ async function salvarParametros(ativo, codigoFator, { parametros, motivo } = {},
   const valores = parametros && typeof parametros === "object" ? parametros : {};
   const faltando = Object.keys(calculo.parametrosPadrao).filter((chave) => valores[chave] === undefined || valores[chave] === "");
   if (faltando.length > 0) throw new ValidationError(`Faltam parâmetros: ${faltando.join(", ")}.`);
-  const novos = lerParametros(calculo.parametrosPadrao, valores);
+  const novos = lerParametros(calculo.parametrosPadrao, valores, calculo.apresentacao.parametros);
 
   const texto = String(motivo || "").trim();
   if (texto.length < MOTIVO_MIN || texto.length > MOTIVO_MAX) {

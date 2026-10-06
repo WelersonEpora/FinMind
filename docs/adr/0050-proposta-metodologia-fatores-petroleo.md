@@ -240,3 +240,10 @@ Assim, a validação das pendências com o David cobre o ativo e os fatores no m
   validação dos eventos.
 - **Ouro:** decididos o GLD e a leitura diária; pendentes o instrumento operado, o GLD como aproximação com série
   contínua, a exportação do XAUUSD, e as mesmas três do petróleo.
+
+## Adendo (2026-10-06): a OPEP+ deixa de ser só fator de evento
+
+O item 16 tratava a OPEP+ como fator de evento, sem cálculo. Por decisão do usuário, ela passa a fator calculado com
+eventos: a produção e a capacidade ociosa da OPEP no STEO da EIA, lidas em quatro casos (corte, aumento, interrupção e
+neutro), e os eventos da janela de 45 dias depois do cálculo; toda decisão de produção da OPEP+ vira evento. Detalhe,
+validação histórica e a fonte nova: ADR 0091. A geopolítica segue como fator de evento.

@@ -16,6 +16,7 @@ const fmiIrfclOuroCollector = require("./fmi/fmi-irfcl-ouro.collector");
 const { criarColetorWgc } = require("./wgc/wgc-ouro.collector");
 const eiaEtanolCollector = require("./eia/eia-etanol.collector");
 const eiaPetroleoCollector = require("./eia/eia-petroleo.collector");
+const eiaSteoCollector = require("./eia/eia-steo.collector");
 const anpProducaoPetroleoCollector = require("./anp/anp-producao-petroleo.collector");
 const jodiProducaoPetroleoCollector = require("./jodi/jodi-producao-petroleo.collector");
 const jodiDemandaPetroleoCollector = require("./jodi/jodi-demanda-petroleo.collector");
@@ -83,6 +84,7 @@ function bootstrapCollectors() {
     registerCollector(criarColetorComexExportacao("adubo"));
     registerCollector(eiaEtanolCollector);
     registerCollector(eiaPetroleoCollector);
+    registerCollector(eiaSteoCollector);
     registerCollector(anpProducaoPetroleoCollector);
     registerCollector(jodiProducaoPetroleoCollector);
     registerCollector(jodiDemandaPetroleoCollector);
