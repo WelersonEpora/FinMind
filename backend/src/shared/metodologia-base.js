@@ -31,6 +31,10 @@ const { FATORES } = require("./fatores-fel1");
 //              milho age sobre a safrinha seguinte, de 6 a 12 meses depois). O bloco do fator no prompt ganha a data de
 //              efeito esperada, contada do período do dado (texto-prompt.js).
 //   decisoes - (opcional) o que o especialista já decidiu sobre o fator, com a data e o ADR: sai das `perguntas`.
+//   ajustesFel1 - (opcional) o que muda na tabela do FEL 1 sem reescrever o `fel1` (o milho, ADR 0082): cada um
+//              { campo, noFel1, ajuste, origem }; `campo` é um dos de CAMPOS_FEL1, `noFel1` o texto como está (conferido
+//              contra o `fel1` ou, no peso, o catálogo: a tela nunca mostra um "de" que não existe) e `origem` quem
+//              decidiu, quando e o ADR. Só na tela: não vai ao prompt.
 // O cálculo de um fator (camadas A, B e C simulada) fica em `factors/` e é ligado a ele em metodologia-ativo.service.js.
 //
 // Além dos fatores, cada ativo tem o que vale para o ATIVO e não para um fator (`doAtivo`): o preço de referência (o
@@ -72,6 +76,27 @@ const SITUACAO_AGREGACAO = { ORIENTACAO: "ORIENTACAO", PARCIAL: "PARCIAL", FORA:
 // A origem de cada regra da agregação do FinMind (ADR 0066): do especialista, derivada do estudo, ou proposta do FinMind.
 const ORIGENS_REGRA = ["DAVID", "DERIVADA", "PROPOSTA"];
 
+// Os campos da tabela do FEL 1 que um ajuste pode mudar: o rótulo na tela -> onde está o texto original.
+const CAMPOS_FEL1 = Object.freeze({
+  Tipo: (fator, fel1) => fel1.tipo,
+  "Direção do impacto": (fator, fel1) => fel1.direcao,
+  "Mecanismo de transmissão": (fator, fel1) => fel1.mecanismo,
+  Fonte: (fator, fel1) => fel1.fonte,
+  Peso: (fator) => fator.peso
+});
+
+function montarAjustesFel1(fator, definicao) {
+  return (definicao.ajustesFel1 || []).map((ajuste) => {
+    const original = CAMPOS_FEL1[ajuste.campo];
+    if (!original) throw new Error(`${fator.codigo}: campo de ajuste ao FEL 1 desconhecido: ${ajuste.campo}`);
+    if (!ajuste.ajuste || !ajuste.origem) throw new Error(`${fator.codigo}: ajuste ao FEL 1 sem o ajuste ou a origem (${ajuste.campo})`);
+    if (ajuste.noFel1 !== original(fator, definicao.fel1)) {
+      throw new Error(`${fator.codigo}: o ajuste de "${ajuste.campo}" não parte do texto do FEL 1: ${ajuste.noFel1}`);
+    }
+    return { campo: ajuste.campo, noFel1: ajuste.noFel1, ajuste: ajuste.ajuste, origem: ajuste.origem };
+  });
+}
+
 // As definições de um ativo -> os fatores com o nome e o peso do FEL 1. Um código fora do catálogo, ou de outro
 // ativo, é erro de programação.
 function montarFatores(ativo, definicoes) {
@@ -91,6 +116,7 @@ function montarFatores(ativo, definicoes) {
       proposta: { situacao: SITUACAO.PROPOSTA, ...definicao.proposta },
       perguntas: definicao.perguntas,
       decisoes: definicao.decisoes || [],
+      ajustesFel1: montarAjustesFel1(fator, definicao),
       evento: definicao.evento || null,
       contextoDe: definicao.contextoDe || null,
       efeitoDefasado: definicao.efeitoDefasado || null

@@ -1,8 +1,8 @@
 # 0081 — Agregação determinística do milho: o calendário e as regras do David em código
 
 **Status:** aceita (2026-10-06) como proposta na tela de metodologia; **fora do prompt, do Centro de Decisão e da
-Qualidade da IA** até o usuário decidir, depois do histórico. A escala do score, os limiares e a confiança são do
-FinMind, não do David.
+Qualidade da IA**: o usuário decidiu mantê-la fora em 2026-10-06, depois do histórico (adendo). A escala do score, os
+limiares e a confiança são do FinMind, não do David.
 
 ## Contexto
 
@@ -76,3 +76,13 @@ queda, as semanas de um mesmo episódio andam juntas, e o F2 (Conab) só tem dec
   não vai ao prompt. A metodologia do milho vai à v17.
 - A ida à produção é decisão do usuário, sobre estes números. Os parâmetros desta versão não se ajustam ao histórico:
   revisar é versão nova, com o motivo.
+
+## Adendo (2026-10-06): fica fora do prompt
+
+**Decisão do usuário (Welerson, 2026-10-06):** com os números da primeira rodada, a agregação em código fica fora do
+prompt, do Centro de Decisão e da Qualidade da IA. Segue na tela de metodologia como referência, com o script
+`npm run agregacao:milho` para medir de novo. A IA continua combinando os fatores pelo prompt, com o calendário de
+pesos como tabela fixa e as regras do David como orientação em texto (ADR 0065).
+
+A pergunta sai das pendências do milho; a metodologia vai à v18. Voltar a discutir pede um motivo novo (mais histórico,
+uma revisão das regras pelo David ou uma versão nova da agregação), registrado num adendo ou ADR novo.

@@ -257,6 +257,9 @@ watch(ativo, carregar, { immediate: true })
                     <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> Proposta calculada</span>
                     <span v-if="fator.deEvento" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Fator de evento</span>
                     <span v-if="fator.comEventos" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Com eventos</span>
+                    <span v-if="fator.ajustesFel1?.length" class="metodologia-ativo__calculado" :title="fator.ajustesFel1.map((a) => a.campo).join(', ')">
+                      <i class="bi bi-pencil-square"></i> Ajustado ao FEL 1
+                    </span>
                     <span v-if="fator.contextoDe" class="metodologia-ativo__calculado">
                       <i class="bi bi-info-circle"></i> Contexto de {{ nomeDoFator(fator.contextoDe) }}
                     </span>
@@ -326,6 +329,17 @@ watch(ativo, carregar, { immediate: true })
               <li><strong>Mecanismo de transmissão:</strong> {{ fatorSelecionado.fel1.mecanismo }}</li>
               <li><strong>Fonte:</strong> {{ fatorSelecionado.fel1.fonte }}</li>
             </ul>
+            <!-- O que muda na tabela do FEL 1 sem reescrevê-la (ADR 0082): o texto original, o novo e quem decidiu. -->
+            <template v-if="fatorSelecionado.ajustesFel1?.length">
+              <p class="metodologia-ativo__lacunas-titulo">Ajustes ao FEL 1</p>
+              <ul class="metodologia-ativo__ajustes-fel1">
+                <li v-for="ajuste in fatorSelecionado.ajustesFel1" :key="ajuste.campo">
+                  <strong>{{ ajuste.campo }}:</strong>
+                  <s>{{ ajuste.noFel1 }}</s> → {{ ajuste.ajuste }}
+                  <small>{{ ajuste.origem }}</small>
+                </li>
+              </ul>
+            </template>
           </section>
 
           <section class="metodologia-ativo__bloco">
@@ -837,6 +851,15 @@ watch(ativo, carregar, { immediate: true })
 .metodologia-ativo__bloco--fel1 {
   background: rgba(17, 102, 255, 0.04);
   border-color: rgba(17, 102, 255, 0.18);
+}
+
+.metodologia-ativo__ajustes-fel1 s {
+  color: var(--bs-secondary-color);
+}
+
+.metodologia-ativo__ajustes-fel1 small {
+  display: block;
+  color: var(--bs-secondary-color);
 }
 
 .metodologia-ativo__bloco--proposta {

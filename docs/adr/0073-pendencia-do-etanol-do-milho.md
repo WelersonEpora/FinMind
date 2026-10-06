@@ -36,3 +36,28 @@ A pergunta sai das Pendências do F5 e vira decisão. O cálculo não muda. A me
 
 - O F5 não tem mais pendências com o especialista. A regra de alta continua sem dado (a margem).
 - A margem e o etanol brasileiro só entram com uma demanda e uma autorização próprias (fonte nova).
+
+## Adendo (2026-10-06): as fontes brasileiras do etanol (UNEM e ANP) não foram aprovadas
+
+**Contexto.** No Motor do Milho v0 (próximos passos), o David pediu para corrigir a fonte do F5 no FEL 1: "etanol com
+fontes brasileiras (UNEM, ANP)". Com a delegação do David ao usuário para seguir com os ajustes do FEL 1 no milho, foi
+feito um estudo preliminar das duas fontes (2026-10-06), com chamada real:
+
+| Fonte | O que publica | Viável? |
+|---|---|---|
+| UNEM (`etanoldemilho.com.br/dados-setoriais/`) | Gráficos em imagem (produção, moagem, DDG) e um mapa das usinas; os números saem como projeções anuais em notícias | **Não**: nenhum arquivo, tabela ou série para baixar |
+| ANP (Painel Dinâmico de Produtores de Etanol, `pb-da-etanol.zip`) | CSV mensal da matéria-prima processada por estado, com o milho separado, de jan/2017 a ago/2026 (atualizado em 2026-09-22, cerca de 3 semanas de atraso); a produção e a capacidade por usina, sem a matéria-prima | **Sim** (nível 4, o padrão do coletor de petróleo da ANP, ADR 0041); sem versões (sobrescreve) |
+
+O milho moído para etanol no Brasil, pela ANP: 0,95 Mt em 2017, 5,8 Mt em 2020, 13,3 Mt em 2023 e 21,5 Mt em 2025; em
+2026, cerca de 2,2 Mt por mês, 60% em Mato Grosso.
+
+**Por que a ANP sozinha não basta.** A regra de alta do David (R-ETA-01) pede a margem no percentil 70 ou acima **e** a
+moagem crescendo contra o ano anterior. A moagem da ANP cresceu contra o ano anterior em **104 de 104 meses** (2018 a
+2026): a condição é sempre verdadeira e não distingue nada. Quem decide a regra é a margem, que pede o preço do etanol e
+do DDG (outra fonte nova, o Cepea, com licença não comercial). A queda mensal da moagem (parte da R-ETA-02) não foi
+testada.
+
+**Decisão (usuário, Welerson, 2026-10-06):** no estudo preliminar, as duas fontes **não foram aprovadas**: a UNEM não tem
+dado para coletar, e a ANP, apesar de viável, não é capaz de ligar a regra sozinha. O F5 continua só com a EIA, e a
+correção da fonte no FEL 1 fica registrada como pedida e não aprovada. A pergunta sai das pendências; a metodologia do
+milho vai à v19. Voltar a discutir pede uma demanda nova (por exemplo, a margem com uma fonte de preço autorizada).

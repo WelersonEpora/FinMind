@@ -87,3 +87,14 @@ test("pesos do Motor v0: calendário com os meses decididos pelo usuário marcad
   assert.equal(Object.keys(pesos.relacoes.matriz).length, 8);
   assert.equal(pesos.agregacao.length, 9);
 });
+
+test("ajustes ao FEL 1 (ADR 0082): só no F4, F5, F6 e F7, cada um com a origem; nenhuma pergunta do ativo pendente", () => {
+  const { fatores, doAtivo } = obterMetodologiaMilho();
+  const comAjuste = fatores.filter((f) => f.ajustesFel1.length).map((f) => f.codigo);
+  assert.deepEqual(comAjuste, ["MILHO_DOLAR_PARIDADE", "MILHO_ETANOL", "MILHO_INSUMOS", "MILHO_FUNDOS"]);
+  const insumos = fatores.find((f) => f.codigo === "MILHO_INSUMOS");
+  assert.equal(insumos.ajustesFel1.find((a) => a.campo === "Peso").ajuste, "Baixo (Médio para vencimentos de 6 meses ou mais, com margem ≤ 0)");
+  for (const f of fatores) for (const a of f.ajustesFel1) assert.match(a.origem, /ADRs? \d{4}/, `${f.codigo}.${a.campo}`);
+  assert.deepEqual(doAtivo.perguntas, []);
+  assert.ok(doAtivo.decisoes.some((d) => d.startsWith("Ajustes ao FEL 1")));
+});

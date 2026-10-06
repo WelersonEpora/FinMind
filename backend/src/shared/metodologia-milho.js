@@ -39,8 +39,12 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-milho");
 // v15 (2026-10-05): as faixas calibradas ficam; a pergunta sai (ADR 0079).
 // v16 (2026-10-05): os fatores ausentes ficam para depois da v1; a pergunta sai (ADR 0080).
 // v17 (2026-10-06): a agregação em código do FinMind na tela, fora do prompt (ADR 0081).
-const VERSAO = 17;
-const DATA_VERSAO = "2026-10-05";
+// v18 (2026-10-06): a agregação em código fica fora do prompt; a pergunta sai (ADR 0081, adendo).
+// v19 (2026-10-06): as fontes brasileiras do etanol (UNEM e ANP) não aprovadas; sai das correções do FEL 1 (ADR 0073,
+// adendo).
+// v20 (2026-10-06): os ajustes ao FEL 1 em cada fator, sem revisão do documento; a pergunta sai (ADR 0082).
+const VERSAO = 20;
+const DATA_VERSAO = "2026-10-06";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
 
@@ -175,6 +179,20 @@ const DEFINICOES = [
       mecanismo: "Preço interno reflete paridade de exportação em R$",
       fonte: "Cepea, Comex Stat"
     },
+    ajustesFel1: [
+      {
+        campo: "Fonte",
+        noFel1: "Cepea, Comex Stat",
+        ajuste: "Cepea, Comex Stat, BCB (o câmbio pela PTAX) e IMEA (a paridade de exportação de MT pronta)",
+        origem: "O câmbio pelo BCB, o especialista pediu no Motor do Milho v0 (próximos passos); a paridade do IMEA, escolha do especialista na P16 (ADRs 0057 e 0072)."
+      },
+      {
+        campo: "Peso",
+        noFel1: "Médio",
+        ajuste: "Alto",
+        origem: "O especialista pediu no Motor do Milho v0 (próximos passos); o calendário dele já dá Alto de julho a janeiro (ADRs 0065 e 0072)."
+      }
+    ],
     evento: { janelaDias: 7 },
     dados: {
       observaveis: ["USD_BRL", "IMEA_MILHO_PARIDADE", "MILHO_CEPEA_ESALQ", "COMEX_MILHO_VOLUME"],
@@ -216,6 +234,14 @@ const DEFINICOES = [
       mecanismo: "Milho é matéria-prima de etanol nos EUA; disputa com uso alimentar",
       fonte: "EIA, USDA"
     },
+    ajustesFel1: [
+      {
+        campo: "Fonte",
+        noFel1: "EIA, USDA",
+        ajuste: "EIA, USDA, sem mudança: a UNEM e a ANP, pedidas pelo especialista, não foram aprovadas no estudo preliminar (a UNEM não tem dado para coletar; a ANP não liga a regra de alta sozinha)",
+        origem: "Usuário (Welerson), 2026-10-06 (ADR 0073, adendo)."
+      }
+    ],
     evento: { janelaDias: 7 },
     dados: {
       observaveis: ["ETANOL_EUA_EIA", "WASDE_MILHO_EUA", "MILHO_PRECO_FMI"],
@@ -226,7 +252,7 @@ const DEFINICOES = [
           "Basta para a parte dos EUA, não para o fator inteiro: a produção semanal de etanol da EIA é coletada desde 2010 e os episódios conhecidos aparecem (a pandemia, -19% contra a média de 4 semanas em abr/2020; o frio extremo no Texas, -29% em fev/2021). A margem do etanol de milho e a moagem do Brasil (UNEM, ANP, Cepea), de que dependem a regra de alta e boa parte da de baixa, não são coletadas: o fator só dá pressão de baixa. Contra o Indicador CEPEA/ESALQ (432 semanas, 2018 a 2026), a relação é fraca, no sentido da regra: nas 64 semanas com pressão de baixa o indicador caiu em média 1,4% nas 13 semanas seguintes (subiu em 44% delas), contra +3,5% nas semanas neutras (60%); o desvio tem +0,12 com o indicador 13 semanas depois. Contra o preço do milho americano (FMI, mensal, em dólar; cerca de 840 semanas de 2010 a 2026) não há relação, nem junto com o preço: o desvio contra a média de 4 semanas tem +0,03 com a variação dos 3 meses até o mês da semana e 0,00 a +0,01 de 1 a 3 meses depois; pela regra, com pressão de baixa o preço subiu 3 meses depois em 47% das semanas, contra 49% nas neutras. A queda semanal da produção de etanol é, na maior parte, ruído (frio, feriados, manutenção), não um sinal de demanda que o mercado precifique."
       },
       lacunas: [
-        "O etanol de milho do Brasil (UNEM, ANP, Cepea etanol hidratado) não é coletado: a margem e a moagem brasileiras da proposta dependem dele.",
+        "O etanol de milho do Brasil não é coletado: a margem e a moagem brasileiras da proposta dependem dele. A UNEM e a ANP, pedidas pelo especialista, não foram aprovadas no estudo preliminar (ADR 0073, adendo); a margem pede o preço do etanol e do DDG (Cepea, fonte nova).",
         "A expectativa semanal antes da EIA não é coletada."
       ]
     },
@@ -243,7 +269,8 @@ const DEFINICOES = [
     },
     perguntas: [],
     decisoes: [
-      "Só a parte dos EUA (usuário, 2026-10-05, ADR 0073): a v1 roda com a moagem da EIA, declarando a falta do etanol brasileiro e da margem (que pedem fonte nova: o preço do etanol não está na base). Contra o preço americano o fator não mostrou relação; a validação histórica do prompt diz isso, e o peso do especialista não muda."
+      "Só a parte dos EUA (usuário, 2026-10-05, ADR 0073): a v1 roda com a moagem da EIA, declarando a falta do etanol brasileiro e da margem (que pedem fonte nova: o preço do etanol não está na base). Contra o preço americano o fator não mostrou relação; a validação histórica do prompt diz isso, e o peso do especialista não muda.",
+      "Fontes brasileiras pedidas pelo especialista (UNEM e ANP) não aprovadas no estudo preliminar (usuário, 2026-10-06, ADR 0073, adendo): a UNEM não tem dado para coletar (só gráficos e projeções em notícias); a ANP é viável (o milho moído para etanol por estado, mensal, desde 2017), mas não liga a regra de alta sozinha: a moagem cresceu contra o ano anterior em 104 de 104 meses, e quem decide é a margem, que pede o preço do etanol e do DDG. O F5 segue só com a EIA."
     ]
   },
   {
@@ -254,6 +281,20 @@ const DEFINICOES = [
       mecanismo: "Custo de produção pressiona preço mínimo de equilíbrio",
       fonte: "Conab, IMEA"
     },
+    ajustesFel1: [
+      {
+        campo: "Fonte",
+        noFel1: "Conab, IMEA",
+        ajuste: "Conab, IMEA e Comex Stat (o preço médio da ureia importada, na relação de troca)",
+        origem: "Usuário (Welerson), 2026-10-05 (ADR 0074)."
+      },
+      {
+        campo: "Peso",
+        noFel1: "Médio",
+        ajuste: "Baixo (Médio para vencimentos de 6 meses ou mais, com margem ≤ 0)",
+        origem: "O especialista pediu \"Baixo-Médio\" no Motor do Milho v0; escrito na escala do FEL 1 como o calendário dele aplica, pelo usuário (Welerson), 2026-10-06 (ADR 0065, adendo)."
+      }
+    ],
     evento: { janelaDias: 7 },
     // Sinal defasado (Motor do Milho v0, regras de agregação): o F6 age sobre a área e a safrinha da safra seguinte.
     efeitoDefasado: { mesesMin: 6, mesesMax: 12, sobre: "a área e a safrinha (F2) da safra seguinte" },
@@ -297,6 +338,20 @@ const DEFINICOES = [
       mecanismo: "Posições de fundos amplificam tendências",
       fonte: "CFTC (COT), CME"
     },
+    ajustesFel1: [
+      {
+        campo: "Direção do impacto",
+        noFel1: "Amplifica movimentos em ambos os sentidos",
+        ajuste: "Reversão nos extremos: vendido no P10 ou abaixo (10 anos) pesa para alta; comprado no P90 ou acima, para baixa",
+        origem: "Regra R-FUN v0 do especialista; decidido pelo usuário (Welerson), 2026-10-05 (ADR 0075)."
+      },
+      {
+        campo: "Mecanismo de transmissão",
+        noFel1: "Posições de fundos amplificam tendências",
+        ajuste: "Posições extremas dos fundos tendem a se desfazer (recompra ou liquidação); fora dos extremos, os fundos não votam e só reforçam ou enfraquecem F1, F3 e F8",
+        origem: "Regras R-FUN v0 e de agregação do especialista; decidido pelo usuário (Welerson), 2026-10-05 (ADRs 0065 e 0075)."
+      }
+    ],
     evento: { janelaDias: 7 },
     dados: {
       observaveis: ["COT_MILHO", "MILHO_PRECO_FMI"],
@@ -393,13 +448,11 @@ const DO_ATIVO = {
     "Peso por mês e agregação no prompt: o calendário de pesos da proposta vai ao prompt diário como uma tabela fixa, e as regras de agregação como orientação em texto, sem cálculo novo; a agregação em código continua para o Comitê. Nos meses que a proposta não define (o F1 de janeiro a maio, o F2 em janeiro e fevereiro), vale o peso do FEL 1. Usuário (Welerson), 2026-10-05 (ADR 0065).",
     "F7 (fundos) não vota, como dizem as regras de agregação: reforça ou enfraquece a firmeza de F1, F3 e F8, sem o multiplicador numérico. Usuário (Welerson), 2026-10-05 (ADR 0065).",
     "Ajuste do F1 ao CCM: o andamento da colheita de MT (IMEA) vai ao bloco do F2 como contexto, e de junho a agosto, com 50% ou mais colhido, o peso do F1 cai um nível (o nível é do FinMind). De 2018 a 2026, o ESALQ acompanhou Chicago em reais 0,95 com menos de 50% colhido e 0,45 com 50% ou mais. Usuário (Welerson), 2026-10-05 (ADR 0077).",
-    "Calendário de pesos nos meses que a proposta não define: o F1 de janeiro a maio, Baixo (o fator não tem leitura nesses meses); o F2 em janeiro e fevereiro, Médio (o plantio). Usuário (Welerson), 2026-10-05 (ADR 0077)."
+    "Calendário de pesos nos meses que a proposta não define: o F1 de janeiro a maio, Baixo (o fator não tem leitura nesses meses); o F2 em janeiro e fevereiro, Médio (o plantio). Usuário (Welerson), 2026-10-05 (ADR 0077).",
+    "Agregação em código: a proposta do FinMind com o calendário e as regras do especialista fica na tela como referência, fora do prompt, do Centro de Decisão e da Qualidade da IA. No histórico do CCM (2022 a 2026), ela não supera Sempre Lateral nem Persistência, e fora do LATERAL erra a direção na maioria das vezes no Médio e no Longo; a IA segue combinando os fatores pelo prompt. Usuário (Welerson), 2026-10-06 (ADR 0081, adendo).",
+    "Ajustes ao FEL 1: o especialista delegou ao usuário seguir com as correções da tabela do milho e não revisa o documento. O FEL 1 fica como ele escreveu, e cada ajuste aparece no fator, na definição, com o texto original, o novo e a origem: no F4, o câmbio pelo BCB, a paridade do IMEA e o peso Alto; no F5, a UNEM e a ANP não aprovadas; no F6, o Comex Stat e o peso Baixo (Médio a 6 meses ou mais, com margem ≤ 0); no F7, a reversão nos extremos no lugar de \"amplifica\". O \"Copea\" já estava corrigido. Usuário (Welerson), 2026-10-06 (ADR 0082)."
   ],
-  perguntas: [
-    "Agregação em código: a proposta do FinMind com o calendário e as regras do especialista está na tela, fora do prompt (ADR 0081). No histórico do CCM (2022 a 2026), ela não supera Sempre Lateral nem Persistência. Vai ao prompt e ao Centro de Decisão, ou fica como referência até haver mais histórico?",
-    "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto, F6 para Baixo-Médio e, no F7, a reversão nos extremos no lugar de \"amplifica\", ADR 0075): entram no FEL 1 revisado (até 2026-10-15)?",
-  ]
-};
+  perguntas: []};
 
 // Os pesos e as relações do Motor do Milho v0 (formato em metodologia-base.js), copiados da proposta do David: o peso de
 // cada regra (Seção 3), a "Sugestão" de peso-base de cada fator, a matriz de correlações e as regras de agregação
@@ -618,7 +671,7 @@ const PESOS_MILHO = {
       noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: a tabela da cobertura (a idade e a situação de cada fator) e a confiança rebaixada sem dado." }
     }
   ],
-  // A agregação em código do FinMind (ADR 0081): na tela, ainda fora do prompt.
+  // A agregação em código do FinMind (ADR 0081): na tela, fora do prompt por decisão do usuário (adendo).
   agregacaoFinMind: resumoParaTela()
 };
 

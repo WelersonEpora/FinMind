@@ -108,3 +108,19 @@ test("as relações por par só citam fatores do ativo, dois de cada vez", () =>
   assert.throws(() => comPesos({ pares: [{ ...par, fatores: ["OURO_DOLAR", "MILHO_FUNDOS"] }] }), /fora do ativo/);
   assert.throws(() => comPesos({ pares: [{ ...par, fatores: ["OURO_DOLAR"] }] }), /fora do ativo/);
 });
+
+test("ajustes ao FEL 1: partem do texto original (do fel1 ou, no peso, do catálogo); campo desconhecido ou texto que não existe é erro", () => {
+  const comAjustes = (ajustesFel1) => ({ ...definicao("OURO_DOLAR"), fel1: { tipo: "Macroeconômico", fonte: "FRED" }, ajustesFel1 });
+  const [fator] = montarFatores("OURO", [
+    comAjustes([
+      { campo: "Fonte", noFel1: "FRED", ajuste: "FRED e BCB", origem: "Usuário, ADR X" },
+      { campo: "Peso", noFel1: "Alto", ajuste: "Médio", origem: "Usuário, ADR X" }
+    ])
+  ]);
+  assert.deepEqual(fator.ajustesFel1.map((a) => a.ajuste), ["FRED e BCB", "Médio"]);
+  assert.deepEqual(montarFatores("OURO", [definicao("OURO_DOLAR")])[0].ajustesFel1, []);
+  assert.throws(() => montarFatores("OURO", [comAjustes([{ campo: "Cor", noFel1: "x", ajuste: "y", origem: "z" }])]), /desconhecido/);
+  assert.throws(() => montarFatores("OURO", [comAjustes([{ campo: "Fonte", noFel1: "LBMA", ajuste: "y", origem: "z" }])]), /não parte do texto/);
+  assert.throws(() => montarFatores("OURO", [comAjustes([{ campo: "Peso", noFel1: "Médio", ajuste: "y", origem: "z" }])]), /não parte do texto/);
+  assert.throws(() => montarFatores("OURO", [comAjustes([{ campo: "Fonte", noFel1: "FRED", ajuste: "y" }])]), /origem/);
+});

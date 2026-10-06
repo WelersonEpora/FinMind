@@ -67,7 +67,7 @@ medidas contra o preço realizado, na tela Qualidade da IA (ADR 0064).
 |---|---|---|---|---|
 | Petróleo (10 fatores) | David, em reunião, 2026-10-03; respostas por escrito a caminho | Brent, desde 2026-10-04 | Os fatores seguem marcados como proposta no código até as respostas por escrito; faixas provisórias; peso e agregação (ponto 3 da conversa) | ADRs 0050, 0051 e 0052 |
 | Ouro (8) | David, 2026-10-03 | GLD da B3, vencimento mais próximo | Instrumento (ponto 1); série contínua do GLD: o horizonte de 90 dias fica muitas vezes sem a variação (ADR 0044); faixas provisórias; peso e agregação | ADRs 0053 e 0054 |
-| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, à espera do Comitê; o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio), do usuário (ADR 0077); agregação em código (etapa 5): proposta do FinMind na tela, fora do prompt, sem superar os benchmarks no histórico do CCM (ADR 0081); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); faixas calibradas no próprio CCM (ADR 0058, adendo), não as classes fixas do David (usuário, ADR 0079); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072, 0073, 0074, 0075, 0076, 0077, 0078, 0079, 0080 e 0081 |
+| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, à espera do Comitê; o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio), do usuário (ADR 0077); agregação em código (etapa 5): proposta do FinMind na tela, fora do prompt por decisão do usuário (2026-10-06), sem superar os benchmarks no histórico do CCM (ADR 0081); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); faixas calibradas no próprio CCM (ADR 0058, adendo), não as classes fixas do David (usuário, ADR 0079); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068); os ajustes ao FEL 1 na tela, sem revisão do documento (usuário, por delegação do David, ADR 0082) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072, 0073, 0074, 0075, 0076, 0077, 0078, 0079, 0080, 0081 e 0082 |
 | Café (8) | Comitê, 2026-10-05 (Motor do Café v1) | ICF | Faixas calibradas no ICF, não as classes fixas do David (usuário, ADR 0079); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); janelas críticas do clima e índice do INMET; como os dados novos entram no F3 e no F6 (ADR 0061); agregação em código em produção (ADR 0066): a validar pelo Comitê, com o histórico no servidor e o backtest | ADRs 0060, 0061, 0062, 0066, 0078 e 0079 |
 | **Comum aos quatro** | — | — | Eventos vão à IA sem validação humana (ponto 4); o formato de apresentação; o horizonte de 90 dias dos três futuros não tem preço na avaliação (o contrato da leitura vence antes; ADR 0064) | ADRs 0055 e 0064 |
 
@@ -103,6 +103,39 @@ medidas contra o preço realizado, na tela Qualidade da IA (ADR 0064).
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` na `servidor02` (coleta 04:00, 06:00, 08:00 **UTC**; backup 10:00 UTC, **não versionado**) — ADR 0004, ADR 0026 |
 | CI/CD | Lint + testes + build em toda branch; deploy por push na `main` (imagens `linux/arm64` num runner ARM nativo), que já roda as migrations automaticamente (`scripts/deploy.sh`, passo 4/6) |
+
+</details>
+
+<details>
+<summary>Como tratamos as considerações do FEL 1</summary>
+
+**Critério (usuário, 2026-10-06, por delegação do David; ADR 0082):** o David não revisa o FEL 1. O relatório v1.1 e a
+planilha `controle_fatores.xlsx` ficam como ele escreveu, e não há v1.2. O que muda vive na tela de metodologia e nos
+ADRs.
+
+**Milho, na tela** (`/dados-mercado/metodologia/milho`): o fator ajustado leva a marca "Ajustado ao FEL 1". No detalhe,
+a definição mostra o texto original riscado, o novo e quem decidiu:
+
+| Fator | O que mudou | Onde |
+|---|---|---|
+| F4 Dólar e paridade | Fonte com o BCB e a paridade do IMEA; peso Alto | ADRs 0057, 0065 e 0072 |
+| F5 Etanol | UNEM e ANP pedidas e não aprovadas no estudo preliminar; segue a EIA | ADR 0073 |
+| F6 Insumos | Fonte com o Comex Stat (ureia importada); peso Baixo (Médio a 6 meses ou mais, com margem ≤ 0) | ADRs 0065 e 0074 |
+| F7 Fundos | Reversão nos extremos no lugar de "amplifica" | ADRs 0065 e 0075 |
+
+O "Copea" já estava corrigido. Os meses que o calendário do David não definia (F1 de janeiro a maio, F2 em janeiro e
+fevereiro) ficam no card de pesos, marcados com † (ADR 0077).
+
+**As inconsistências do documento (perguntas 13 e 14), sem corrigir o arquivo:**
+
+| Onde | Como o FinMind lê |
+|---|---|
+| Página 1: "ver Seção 16", que não existe | O registro das mudanças são os ADRs (ADR 0082) |
+| §6.5.2: o COTAHIST "atende ICF e CCM" | Não atende; os futuros vêm do Up2Data e do Boletim Diário da B3 (ADRs 0020 e 0028) |
+| Planilha: WASDE com "Milho, Café" | Vale o texto: o WASDE é só do milho (P14) |
+| Crop Progress: abr-nov no texto, mar-nov na planilha | Vale o texto: abr-nov |
+| Demo: "3 meses" na §4, "60 dias" na §12 | Vale a §4: mínimo de 3 meses ou número mínimo de trades |
+| Backtest: 1 a 5 anos na §4, 10 a 15 na §12.1 | As duas fases da P8: Fase 1 no CCM (desde 2022), Fase 2 no ZC se houver orçamento (ADR 0055) |
 
 </details>
 
@@ -521,9 +554,6 @@ mês, correlações e um prompt para a IA, como proposta para o Comitê. As resp
 2026-10-03; onde divergem, vale a decisão mais nova (ex.: o GLD no ouro). Os **10 pontos em aberto** entre as respostas
 e o que já roda estão em `docs/conversa-david-respostas-fel1.md`, para a conversa com o David. **Ponto 1, petróleo: resolvido em 2026-10-04**: o David confirmou o Brent como o instrumento operado, e a leitura diária passou do WTI ao Brent (ADR 0052, adendo). O ouro segue em aberto.
 
-**Para a próxima reunião com o David (preparado em 2026-10-05):** os ajustes do FEL 1 no milho, com as decisões de
-2026-10-05 (ADRs 0067 a 0079), em "Ajustes do FEL 1 no milho", abaixo da tabela.
-
 **Prioridade da próxima reunião (decidido em 2026-09-22, auditoria da camada de
 dados; a 2 somada em 2026-09-23; a 8 e a ordem, em 2026-09-27):** primeiro o
 **"Backtest em detalhe"** (abaixo da tabela: o que é e o que o Comitê define), depois
@@ -547,7 +577,7 @@ ciência do Comitê. Ver `docs/cobertura-fatores-fel1-milho-ouro.md`, §7.
 | 10 | **Tarefa do Comitê:** fixar os **limites de aprovação da §12.2 antes do primeiro teste**, a "nota que passa" (Sharpe mínimo, perda máxima tolerada, número mínimo de operações etc.). O FEL 1 já exige que seja antes: definir depois de ver o resultado invalida o teste. **Depende das perguntas 8 e 9.** Ver "Backtest em detalhe", abaixo da tabela | | **David, por escrito (2026-10-03, ADR 0055):** **proposta**: Sharpe ≥ 0,5 dentro da amostra e ≥ 0,3 fora; drawdown ≤ 15%; 100 operações; profit factor ≥ 2,0; degradação no walk-forward ≤ 20%. Ainda não fixada: faltam o cálculo do Sharpe, os custos, a métrica da degradação e o mínimo da Fase 1 (ponto 7 da conversa) |
 | 11 | **O papel da IA (para ciência do Comitê):** a IA é a **analista** do processo e **gera a recomendação** (comprar, vender, manter ou ficar de fora, no curto, médio e longo prazo), sempre com base nos dados e nas regras que o motor envia. Uma pessoa decide e executa; nenhuma ordem sai automaticamente. Ver §5, "O papel da IA" | | **David, por escrito (2026-10-03, ADR 0055):** **confirmado** (motor determinístico + IA analista) |
 | 12 | **Como abastecer o fator 8 do milho (política comercial: China, tarifas)?** Proposta: (1) **exportação por destino**, número oficial: **já coletada desde 2026-10-01** (ADR 0034, só aquisição); a medida, B e C são do Comitê, como nos demais fatores; (2) **tarifas e decisões de governo**, que são eventos: **desde 2026-10-02 entram na leitura diária de eventos de mercado** (ADR 0049; USTR, Casa Branca, MOFCOM, MAPA e USDA FAS), com tipo, ativos, fator e link da página oficial, capturados no dia em que saem; a medida, B e C seguem do Comitê. A IA nunca produz um número que entre no motor. **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** **aprovada** em duas partes: a participação da China com a variação contra o mesmo mês do ano anterior; tarifas como eventos, sem backtest do passado. Pede para avaliar os eventos também no milho e no café; a validação humana dos eventos é o ponto 4 da conversa |
-| 13 | **Ajustes no documento FEL 1 (para os autores corrigirem):** inconsistências encontradas no relatório v1.1 e na planilha, reunidas num item só: a Seção 16 citada mas inexistente, o COTAHIST, o WASDE e o café, o período do Crop Progress e o prazo da demo. Nenhuma trava o FinMind. **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** o David revisa o FEL 1 e envia ao Comitê **até 2026-10-15** |
+| 13 | **Ajustes no documento FEL 1 (para os autores corrigirem):** inconsistências encontradas no relatório v1.1 e na planilha, reunidas num item só: a Seção 16 citada mas inexistente, o COTAHIST, o WASDE e o café, o período do Crop Progress e o prazo da demo. Nenhuma trava o FinMind. **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** o David revisa o FEL 1 e envia ao Comitê **até 2026-10-15**. **Usuário, por delegação do David (2026-10-06, ADR 0082):** o David não revisa o documento; como o FinMind lê cada inconsistência está em "Como tratamos as considerações do FEL 1" (§2) |
 | 14 | **WASDE impacta café** (planilha) ou não (texto revisado)? Qual prevalece? **Incluída no item 13** | | **David, por escrito (2026-10-03, ADR 0055):** **vale o texto**: o WASDE não cobre café. A planilha será corrigida e ganha o Coffee: World Markets and Trade (USDA FAS) |
 | 15 | **FAO/AMIS** foi reconhecida e **adiada**: o WASDE já traz o balanço mundial do milho com vintage. Existe necessidade de implantá-la no futuro? **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** **não é necessária**; segue adiada |
 | 16 | **Paridade de exportação do milho:** o FinMind deve guardar a **paridade já calculada pelo IMEA** (valor pronto), os **componentes** dela (frete, prêmio de porto) ou nada por ora? **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** **opção 1, a paridade pronta do IMEA**, sem os componentes, com ressalvas (praça MT, quebra na troca de contrato, porto). **Coletada desde 2026-10-04 (ADR 0057)**, com a tabela diária desde 2021-05-31; a praça é o ponto 5 da conversa |
@@ -1083,75 +1113,6 @@ de arquivos do IMEA (`api1.imea.com.br/api/arquivo?cadeia=3`, "Boletim Semanal -
 
 </details>
 
-<details>
-<summary>Ajustes do FEL 1 no milho — para a próxima reunião com o David (preparado em 2026-10-05)</summary>
-
-**O que é:** tudo o que muda no texto do milho no FEL 1 revisado (prazo do David: 2026-10-15, P13), em quatro partes:
-as correções da tabela que o próprio David propôs, os ajustes que saíram das decisões de 2026-10-05, os ajustes de
-documento já combinados e, para ciência, as outras decisões do dia. Cada item aponta para o ADR com os números.
-Decisão do usuário registrada em ADR vale como a do David até ele revisar (`CLAUDE.md`); se ele discordar de alguma,
-ela volta a ser pergunta.
-
-**Parte 1 — As correções da tabela que o David propôs.** Do Motor do Milho v0 (2026-10-02, próximos passos): "Corrigir
-a tabela original dos fatores: 'Copea' para 'Cepea'; câmbio com fonte BCB; etanol com fontes brasileiras (UNEM, ANP);
-reponderar F4 (Alto) e F6 (Baixo-Médio)."
-
-| Fator | No FEL 1 v1.1 hoje | Ajuste | Situação | Onde |
-|---|---|---|---|---|
-| Fontes | "Cepea" no relatório e na planilha | "Copea" para "Cepea" | **Já corrigido**: não há "Copea" no relatório v1.1 nem na planilha | — |
-| F4 Dólar e paridade | Fonte "Cepea, Comex Stat" no relatório; "Cepea, BCB" na planilha | Câmbio com fonte BCB também no relatório | **Corrigir o relatório.** O FinMind já usa a PTAX do BCB e a paridade pronta do IMEA | ADRs 0057 e 0072 |
-| F4 Dólar e paridade | Peso Médio | Peso Alto | **Corrigir o peso.** Decidido Alto pelo usuário; o calendário do David já dá Alto de julho a janeiro | ADR 0072 |
-| F5 Etanol | Fonte "EIA, USDA" | Incluir UNEM e ANP | **Corrigir a fonte.** O FinMind não coleta as duas (fonte nova): a v1 roda só com a EIA | ADR 0073 |
-| F6 Insumos | Peso Médio | Peso Baixo-Médio | **Corrigir o peso.** No calendário do David, o F6 é Baixo; Médio a 6 meses ou mais e com margem ≤ 0 | ADR 0065 |
-
-**Parte 2 — Ajustes que saíram das decisões de 2026-10-05.** As pendências de cada fator foram testadas contra o preço
-do milho americano do FMI (no lugar do ZC, pago) e contra o Indicador ESALQ.
-
-| Fator | No FEL 1 v1.1 hoje | Ajuste | Por quê | Onde |
-|---|---|---|---|---|
-| F7 Fundos | Direção "Amplifica movimentos em ambos os sentidos"; mecanismo "Posições de fundos amplificam tendências" | Reversão nos extremos: vendido no P10 ou abaixo (10 anos) pesa para alta; comprado no P90 ou acima, para baixa (a regra R-FUN v0 do David) | Contra Chicago (2016 a 2026), com os fundos muito vendidos o preço subiu em 70% das semanas nos 3 meses seguintes, contra 47% fora dos extremos. Ressalva: com os fundos muito comprados, Chicago não caiu (ciclo de 2021-22); no ESALQ, caiu. O gatilho de F1, F3 ou F8 não melhorou a leitura: o extremo sozinho já é pressão na v1 | ADR 0075 |
-| F6 Insumos | Fonte "Conab, IMEA" | Incluir o Comex Stat (preço médio da ureia importada) | A relação de troca da regra do David precisava do preço do adubo: ureia importada (desde 1997) em R$ pela PTAX ÷ ESALQ; cloreto de potássio e MAP como contexto. Margem confortável = acima da média das até 5 safras anteriores | ADR 0074 |
-| Calendário de pesos | O Motor v0 não define o F1 de janeiro a maio nem o F2 em janeiro e fevereiro | F1 de janeiro a maio: Baixo. F2 em janeiro e fevereiro: Médio | O F1 não tem leitura de janeiro a maio (sem lavoura nos EUA); no F2 é o plantio, uma transição até o Alto de março. Na tela e no prompt, esses meses aparecem como decisão do usuário (†) | ADR 0077 |
-
-**Parte 3 — Ajustes de documento já combinados (P13 e P14).** Estão na lista do David para o FEL 1 revisado; o detalhe
-está na "Pergunta 13 em detalhe", acima.
-
-| Onde | O que está escrito | Ajuste |
-|---|---|---|
-| Página 1 × fim | "Ver Seção 16 — Registro de Revisão", mas o documento termina na Seção 14 | Incluir a Seção 16 ou tirar a referência |
-| §6.5.2 | O COTAHIST "atende ICF e CCM" | Não atende (só mercado à vista); os futuros vêm do Up2Data e do Boletim Diário da B3 |
-| Planilha, "Calendário de Relatórios" | WASDE com "Milho, Café" | "Milho", e incluir o Coffee: World Markets and Trade (USDA FAS), como na P14 |
-| §7.4 × planilha | Crop Progress "abr-nov" no texto e "mar-nov" na planilha | Unificar o período |
-| §4 × §12 | Demo: "mínimo de 3 meses" na §4; a §12 diz que a §4 previa "60 dias" | Corrigir a frase da §12 |
-| §4 × §12.1 | Backtest: 1 a 5 anos × 10 a 15 anos | Escrever as duas fases da resposta P8: Fase 1 no CCM (desde 2022), Fase 2 no ZC se houver orçamento |
-
-**Parte 4 — Para ciência: as outras decisões de 2026-10-05 no milho.** Não mudam o texto da tabela do FEL 1, mas
-fecham perguntas que eram do David.
-
-- **F1 Clima (ADRs 0068 e 0069):** a previsão de 8 a 14 dias do NOAA/CPC entra na regra (calor e seca em 3 dos 5
-  estados do Corn Belt); contra Chicago, o fator acompanha o preço, mas não o antecipa. O peso não muda.
-- **F2 Safrinha (ADR 0070):** o alerta agroclimático fica fora da conta (o VHI dispararia em 19 de 27 safrinhas,
-  inclusive nas recordes); o VHI de MT e do PR vai como contexto.
-- **F3 Estoques (ADR 0071):** os EUA decidem; o mundo sem a China e o Brasil (Conab) entram como contexto.
-- **F4 Dólar e paridade (ADR 0072):** a praça é Campinas; a base passa a ser comparada com a própria mediana de 52
-  semanas (contra zero, a alta nunca disparava).
-- **F5 Etanol (ADR 0073):** só a parte dos EUA; contra Chicago, o fator não mostrou relação.
-- **F8 Política comercial (ADR 0076):** evento relevante pela intensidade da leitura por IA, por 30 dias; o ritmo segue
-  pelo acumulado do ano comercial. Contra Chicago, a relação é inversa à regra (embarques fortes, Chicago mais fraco
-  depois); a regra não mudou.
-- **Ajuste do F1 pela colheita da safrinha (ADR 0077):** com 50% ou mais de MT colhido, de junho a agosto, o peso do F1
-  cai um nível ("um nível" é a leitura do FinMind para "reduz").
-- **Vencimento de cada horizonte (ADR 0078):** cada horizonte usa o vencimento do CCM que ainda negocia depois da
-  data-alvo, com a curva no prompt; com o mais próximo para todos, o horizonte de 90 dias nunca era avaliável.
-- **Faixas da leitura da IA (ADR 0079):** ficam as calibradas no próprio CCM, não as 6 classes fixas (no CCM em 1 dia,
-  "irrelevante" seria 80% dos dias).
-
-**Fica em aberto no milho:** a agregação em código vai à produção? (ADR 0081: no histórico, não supera os benchmarks). Os fatores ausentes que o David listou
-(ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio) ficam para depois da
-v1, porque pedem fonte nova (ADR 0080).
-
-</details>
-
 </details>
 
 <details>
@@ -1603,11 +1564,23 @@ Não implementar sem autorização explícita registrada em ADR:
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 <details>
+<summary>Entregas de 2026-10-06</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Ajustes ao FEL 1 do milho na tela | O David delegou e não revisa o documento: cada ajuste à tabela do milho aparece no fator, na tela de metodologia, com o texto original, o novo e a origem (F4, F5, F6 e F7); as inconsistências do documento ficam registradas como o FinMind lê, em "Como tratamos as considerações do FEL 1" (§2). Metodologia do milho v20, sem pergunta do ativo pendente | ADR 0082 |
+| Etanol do milho: UNEM e ANP | Estudo preliminar das fontes pedidas pelo David: a UNEM não tem dado para coletar; a ANP é viável, mas não liga a regra de alta sozinha (a moagem cresceu contra o ano anterior em 104 de 104 meses). Não aprovadas | ADR 0073 (adendo) |
+| Peso do F6 no FEL 1 | "Baixo (Médio para vencimentos de 6 meses ou mais, com margem ≤ 0)", o que o calendário do David aplica, no lugar de "Baixo-Médio" | ADR 0065 (adendo) |
+| Agregação em código do milho fora do prompt | Decisão do usuário: fica na tela como referência, porque no histórico não supera os benchmarks | ADR 0081 (adendo) |
+
+</details>
+
+<details>
 <summary>Entregas de 2026-10-05</summary>
 
 | Entrega | Resultado | Onde |
 |---|---|---|
-| Agregação em código do milho | O calendário de pesos e as regras de agregação do David viram código (o bloco de oferta como um argumento, o F3 como filtro, o F7 multiplicando por 1,25 os fatores alinhados, o conflito com confiança BAIXA), com a escala e os limiares do café. Na tela de metodologia, ainda fora do prompt. No histórico do CCM (2022 a 2026, 235 semanas), o motor não supera Sempre Lateral nem Persistência, e fora do LATERAL erra a direção na maioria das vezes no Médio e no Longo. Script `npm run agregacao:milho` | ADR 0081 |
+| Agregação em código do milho | O calendário de pesos e as regras de agregação do David viram código (o bloco de oferta como um argumento, o F3 como filtro, o F7 multiplicando por 1,25 os fatores alinhados, o conflito com confiança BAIXA), com a escala e os limiares do café. Na tela de metodologia, fora do prompt por decisão do usuário (2026-10-06, ADR 0081, adendo). No histórico do CCM (2022 a 2026, 235 semanas), o motor não supera Sempre Lateral nem Persistência, e fora do LATERAL erra a direção na maioria das vezes no Médio e no Longo. Script `npm run agregacao:milho` | ADR 0081 |
 | Fatores ausentes do milho | A pendência vira decisão do usuário: os fatores que o David propôs incluir (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio) ficam para depois da v1, porque pedem fonte nova; cada um volta com demanda e autorização próprias. O clima brasileiro já chega como contexto do F2 e pelos eventos do INMET, e o frete está dentro da paridade do IMEA | ADR 0080 |
 | Faixas da leitura da IA no milho e no café | A pendência das faixas vira decisão do usuário: ficam as calibradas no próprio futuro (percentis 40 e 80 por horizonte), não as 6 classes fixas do David. Nas classes fixas, o CCM em 1 dia cairia em "irrelevante" 80% das vezes e o ICF em 90 dias, em "excepcional" 60%; as calibradas ficam perto de 40/40/20 em todos os horizontes | ADR 0079 |
 | Vencimento de cada horizonte no milho e no café | A pendência dos vencimentos vira decisão do usuário, no milho e no café: cada horizonte usa o vencimento mais próximo que ainda negocia depois da data-alvo, e a leitura e a avaliação do horizonte usam esse contrato. Com o mais próximo para todos, o contrato vencia antes da data-alvo em todos os dias no horizonte de 90 dias do milho (78% no café) e na metade no de 30: esses horizontes nunca seriam avaliados. A curva (ajuste e contratos negociados de cada vencimento) vai ao prompt; abaixo de 100 contratos no dia, aviso de pouca liquidez. Configuração e prompt do milho e do café nas versões novas | ADR 0078 |

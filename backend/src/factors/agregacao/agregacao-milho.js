@@ -410,7 +410,7 @@ function resumoParaTela() {
     adr: "ADR 0081",
     emProducao: false,
     descricao:
-      "Proposta do FinMind para operacionalizar o Motor do Milho v0: o peso de cada fator é o do mês no calendário do David, com as regras dele que o motor sabe aplicar; o bloco de oferta conta como um argumento, com o teto de um fator Alto; o F7 multiplica o peso dos fatores alinhados; e o score agregado dá a tendência, a faixa e a confiança. A escala do score, os limiares e a confiança são do FinMind (os mesmos do café) e não foram validados. O Motor v0 não diz em que prazo cada fator age: a leitura é a mesma nos 4 horizontes. Ainda fora do prompt: o usuário decide depois de ver o histórico.",
+      "Proposta do FinMind para operacionalizar o Motor do Milho v0: o peso de cada fator é o do mês no calendário do David, com as regras dele que o motor sabe aplicar; o bloco de oferta conta como um argumento, com o teto de um fator Alto; o F7 multiplica o peso dos fatores alinhados; e o score agregado dá a tendência, a faixa e a confiança. A escala do score, os limiares e a confiança são do FinMind (os mesmos do café) e não foram validados. O Motor v0 não diz em que prazo cada fator age: a leitura é a mesma nos 4 horizontes. Fica fora do prompt, como referência: no histórico do CCM, não supera os benchmarks (decisão do usuário, 2026-10-06).",
     horizontes: HORIZONTES.map((codigo) => ({ codigo, rotulo: ROTULOS_HORIZONTE[codigo] })),
     familias: [
       ...FAMILIAS.map((familia) => ({

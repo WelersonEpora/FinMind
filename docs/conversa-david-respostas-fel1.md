@@ -214,7 +214,7 @@ sucesso**) e a regra de não abrir fonte sem pedido, levantamos as que você cit
 | Paridade de exportação do IMEA | F4 | Sim. **Já aprovada (P16)** |
 | NOAA/CPC (previsão 6–10 e 8–14 dias) e U.S. Drought Monitor | F1 | Sim |
 | INMET/CPTEC (chuva e temperatura no Brasil) | F2 | Sim |
-| UNEM, ANP (etanol e diesel), Cepea (etanol hidratado) | F5, F6 | Sim (o Cepea com as restrições de licença da P6) |
+| UNEM, ANP (etanol e diesel), Cepea (etanol hidratado) | F5, F6 | Sim (o Cepea com as restrições de licença da P6). **UNEM e ANP no etanol: não aprovadas no estudo preliminar (usuário, 2026-10-06, ADR 0073, adendo)** |
 | Banco Mundial (Pink Sheet, fertilizantes) | F6 | Sim |
 | USDA Export Sales, ANEC, Secex semanal | F8 | Sim |
 | Posição no CCM por tipo de investidor (B3) | F7 | A validar |

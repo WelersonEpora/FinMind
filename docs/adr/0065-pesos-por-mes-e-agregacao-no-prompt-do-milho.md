@@ -127,3 +127,14 @@ prompt" se o que ele orienta vai ao prompt.
   ADR 0058; a pergunta sai). Falta o David definir o valor do **volume estimado relevante** e o do **decaimento** (as
   duas são perguntas do F8). Sem esses valores, nada disso é inventado no prompt.
 - **Versão:** prompt `milho-analise-diaria` v4 (com o adendo anterior).
+
+## Adendo (2026-10-06): o peso do F6 no ajuste ao FEL 1
+
+O David pediu para "reponderar o F6 para Baixo-Médio" no FEL 1 (Motor do Milho v0, próximos passos), mas a escala da
+tabela do FEL 1 só tem Alto, Médio e Baixo, e o calendário dele dá ao F6 Baixo o ano inteiro, com Médio só para
+vencimentos de 6 meses ou mais e margem do produtor ≤ 0.
+
+**Decisão (usuário, Welerson, 2026-10-06):** no ajuste ao FEL 1, o peso do F6 se escreve **"Baixo (Médio para
+vencimentos de 6 meses ou mais, com margem ≤ 0)"**, o que o calendário já aplica, sem criar o nível "Baixo-Médio". A
+frase do David continua na tela como a sugestão dele. Nada muda no cálculo nem no prompt: a condição do Médio não
+dispara na v1 (o horizonte mais longo é de 90 dias).
