@@ -18,37 +18,64 @@ const { criarFatorPosicaoSemanal, arredondar } = require("./modelos/posicao-hist
 //        para baixa. O "por mais de [CALIBRAR] sessões" vira a variação em 4 semanas contra o próprio histórico
 //        (posição abaixo do percentil 20 = queda fora do normal), calibração do FinMind (modelos/posicao-historica.js)
 //
-// Fora da conta, sem o dado: as sacas aguardando classificação (pending grading) e os estoques dos portos europeus (ECF,
-// fonte nova). O estudo diz: o estoque certificado é só o café entregável na ICE, não o estoque mundial (esse fica no
+// CONTEXTO, fora da conta (ADR 0085): as sacas aguardando classificação (ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE, o mesmo
+// relatório, ADR 0061) e o estoque total dos portos europeus (ECF.CAFE.ESTOQUE_TOTAL, mensal, o último dado publicado até
+// a semana). Vão ao prompt ao lado da medida, sem pressão própria: no histórico (ICO e ECF, 2012 a 2026) a condição pela
+// ECF não teve amostra para entrar na regra. O nível do estoque também fica como contexto (o valor da camada A). O
+// estudo diz: o estoque certificado é só o café entregável na ICE, não o estoque mundial (esse fica no
 // balanço do USDA). Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "estoques_cafe_ice_certificado";
-const FACTOR_VERSION = 1;
+// v2 (2026-10-06): as sacas aguardando classificação e os portos europeus como contexto (ADR 0085).
+const FACTOR_VERSION = 2;
 
 const SERIE = "ICE.CAFE_C.ESTOQUE.TOTAL.CERTIFICADO";
+const SERIE_PENDENTE = "ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE";
+const SERIE_ECF = "ECF.CAFE.ESTOQUE_TOTAL";
 const SEMANAS_VARIACAO = 4;
 
-// Função PURA: as linhas de obterAsOf() -> um registro por semana (o último pregão), com a variação em 4 semanas.
-function medirEstoques(linhasAsOf) {
+// O último pregão de cada semana de uma série do relatório da ICE: sexta -> { dia, valor, disponivelEm, estimado }.
+function ultimoPregaoPorSemana(linhasAsOf, serie) {
   const porSemana = new Map();
   for (const linha of linhasAsOf) {
-    if (linha.seriesCode !== SERIE) continue;
+    if (linha.seriesCode !== serie) continue;
     const sexta = sextaDaSemana(linha.observedAt);
     const atual = porSemana.get(sexta);
     if (!atual || linha.observedAt > atual.dia) {
       porSemana.set(sexta, { dia: linha.observedAt, valor: linha.value, disponivelEm: linha.publishedAt, estimado: linha.publishedAtIsEstimated });
     }
   }
+  return porSemana;
+}
+
+// Função PURA: as linhas de obterAsOf() -> um registro por semana (o último pregão), com a variação em 4 semanas e o
+// contexto (as pendentes da mesma semana e o último mês da ECF publicado até ela).
+function medirEstoques(linhasAsOf) {
+  const porSemana = ultimoPregaoPorSemana(linhasAsOf, SERIE);
+  const pendentes = ultimoPregaoPorSemana(linhasAsOf, SERIE_PENDENTE);
+  const ecf = linhasAsOf
+    .filter((l) => l.seriesCode === SERIE_ECF)
+    .map((l) => ({ mes: l.observedAt.slice(0, 7), valor: l.value, em: new Date(l.publishedAt).toISOString() }))
+    .sort((a, b) => a.mes.localeCompare(b.mes));
   return [...porSemana.keys()].sort().map((sexta) => {
     const semana = porSemana.get(sexta);
     const antes = porSemana.get(somarDias(sexta, -7 * SEMANAS_VARIACAO));
     const medida = antes && antes.valor > 0 ? arredondar((semana.valor / antes.valor - 1) * 100, 2) : null;
+    const ate = new Date(semana.disponivelEm).toISOString();
+    const ecfConhecida = ecf.filter((e) => e.em <= ate);
+    const ecfUltimo = ecfConhecida.at(-1) || null;
+    const ecfAnterior = ecfConhecida.at(-2) || null;
     return {
       observedAt: sexta,
       ultimoPregao: semana.dia,
       estoque: semana.valor,
       estoque4SemanasAntes: antes ? antes.valor : null,
       medida,
+      pendente: pendentes.get(sexta)?.valor ?? null,
+      pendente4SemanasAntes: pendentes.get(somarDias(sexta, -7 * SEMANAS_VARIACAO))?.valor ?? null,
+      ecfMes: ecfUltimo?.mes ?? null,
+      ecfToneladas: ecfUltimo?.valor ?? null,
+      ecfToneladasAnterior: ecfAnterior?.valor ?? null,
       disponivelEm: semana.disponivelEm,
       disponivelEmEhEstimado: semana.estimado
     };
@@ -57,7 +84,26 @@ function medirEstoques(linhasAsOf) {
 
 async function carregar(asOf, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
-  return servico.obterAsOf({ seriesCodes: [SERIE], asOf }, deps);
+  return servico.obterAsOf({ seriesCodes: [SERIE, SERIE_PENDENTE, SERIE_ECF], asOf }, deps);
+}
+
+// O contexto, fora da conta (ADR 0085): só o que existe na semana.
+function contexto(p) {
+  const partes = [];
+  if (p.pendente !== null && p.pendente !== undefined) {
+    partes.push(
+      `${faixa.fmt(p.pendente, 0)} sacas aguardando classificação` +
+        (p.pendente4SemanasAntes !== null ? ` (${faixa.fmt(p.pendente4SemanasAntes, 0)} 4 semanas antes)` : "")
+    );
+  }
+  if (p.ecfToneladas !== null && p.ecfToneladas !== undefined) {
+    const mes = `${p.ecfMes.slice(5, 7)}/${p.ecfMes.slice(0, 4)}`;
+    partes.push(
+      `portos europeus (ECF) com ${faixa.fmt(p.ecfToneladas, 0)} t em ${mes}` +
+        (p.ecfToneladasAnterior !== null ? ` (${faixa.fmt(p.ecfToneladasAnterior, 0)} t no mês anterior)` : "")
+    );
+  }
+  return partes.length ? ` Contexto, fora da conta: ${partes.join("; ")}.` : "";
 }
 
 const fator = criarFatorPosicaoSemanal({
@@ -71,7 +117,8 @@ const fator = criarFatorPosicaoSemanal({
   textos: {
     primeiroPasso: (p) =>
       `O estoque certificado da ICE fechou a semana em ${faixa.fmt(p.estoque, 0)} sacas, contra ${faixa.fmt(p.estoque4SemanasAntes, 0)} ` +
-      `4 semanas antes: ${faixa.comSinal(p.medida)}% (A).`,
+      `4 semanas antes: ${faixa.comSinal(p.medida)}% (A).` +
+      contexto(p),
     abaixo: "o estoque entregável está caindo mais rápido que o normal, aperto na bolsa",
     acima: "o estoque entregável está crescendo mais rápido que o normal, sacas novas aprovadas na certificação",
     subindo: "o estoque está ganhando ritmo de alta (ou perdendo o de queda)",
@@ -100,4 +147,4 @@ const fator = criarFatorPosicaoSemanal({
   ]
 });
 
-module.exports = { FACTOR_ID, FACTOR_VERSION, SERIE, METODOLOGIA: fator.METODOLOGIA, medirEstoques, derivarEstoquesCafe: fator.derivar };
+module.exports = { FACTOR_ID, FACTOR_VERSION, SERIE, SERIE_PENDENTE, SERIE_ECF, METODOLOGIA: fator.METODOLOGIA, medirEstoques, derivarEstoquesCafe: fator.derivar };

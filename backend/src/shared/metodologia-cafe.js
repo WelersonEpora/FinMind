@@ -20,8 +20,16 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 // v1 (2026-10-04): os 8 fatores do Motor do Café v1, todos calculados com a calibração do FinMind.
 // v2 (2026-10-05): o vencimento do ICF de cada horizonte e a curva no prompt; a pergunta sai (ADR 0078).
 // v3 (2026-10-05): as faixas calibradas ficam; a pergunta sai (ADR 0079).
-const VERSAO = 3;
-const DATA_VERSAO = "2026-10-05";
+// v4 (2026-10-06): as perguntas do F1 viram decisões; o INMET fica para depois da v1 (ADR 0083).
+// v5 (2026-10-06): as perguntas do F2 viram decisões; a bienalidade fica como contexto (ADR 0084).
+// v6 (2026-10-06): as perguntas do F3 viram decisões; as pendentes e a ECF como contexto; a validação histórica (ADR 0085).
+// v7 (2026-10-06): as perguntas do F4 viram decisões; a validação histórica (ADR 0086).
+// v8 (2026-10-06): as perguntas do F5 viram decisões; a validação histórica (ADR 0087).
+// v9 (2026-10-06): as perguntas do F6 viram decisões; a faixa neutra calibrada; a validação histórica (ADR 0088).
+// v10 (2026-10-06): as perguntas do F7 viram decisões; o catalisador na agregação; a validação histórica (ADR 0089).
+// v11 (2026-10-06): as perguntas do F8 viram decisões; o dólar global como condição da baixa (ADR 0090).
+const VERSAO = 11;
+const DATA_VERSAO = "2026-10-06";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
   "O limiar é calibração do FinMind (o estudo deixa \"[CALIBRAR COM DADOS POINT-IN-TIME]\"): a posição da medida no próprio histórico, neutra do percentil 20 ao 80 (a faixa que o estudo usa no COT), forte abaixo do 10 ou acima do 90.";
@@ -46,7 +54,7 @@ const DEFINICOES = [
           "Basta para a saúde da vegetação, não para a regra inteira: o VHI da NOAA sobre o café é semanal desde 1982, por UF, e os episódios aparecem (a seca de set/2024, posição de -48 pontos, pressão de alta forte; a seca de jan-fev/2014, -44 pontos). As variáveis que o estudo pede (chuva quinzenal, temperatura mínima, horas de frio, balanço hídrico) são do INMET, que não é coletado. A geada não aparece no VHI na semana em que acontece (jul/2021: -24 pontos): ela vem da leitura diária de eventos. A seca de 2014 cai fora das janelas críticas do estudo (junho a novembro) e fica neutra."
       },
       lacunas: [
-        "INMET (chuva, temperatura mínima, duração do frio, ponto de orvalho, balanço hídrico): fonte nova, pedida pelo estudo.",
+        "INMET (chuva, temperatura mínima, duração do frio, ponto de orvalho, balanço hídrico): fonte nova, pedida pelo estudo; depois da v1 (ADR 0083).",
         "O Paraná não tem região de café na NOAA: fica fora da ponderação (cerca de 1,5% do arábica em 2026).",
         "Os pesos por UF vêm da Conab desde jan/2023; antes, a aproximação pelos pesos do 1º levantamento na base."
       ]
@@ -62,10 +70,11 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Regularidade de precipitação dentro ou moderadamente acima das médias históricas, associada à ausência de alertas de estresse térmico durante as fases de floração e pegamento da safra brasileira. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [
-      "Sem o INMET, o VHI da NOAA (satélite) serve como medida de estresse da v1, com a geada vindo da leitura diária de eventos?",
-      "A seca de jan-fev/2014 (enchimento dos grãos) ficou fora das janelas críticas do estudo (junho a novembro). O enchimento de dezembro a março entra como janela crítica?",
-      "O INMET entra como fonte nova (o estudo pede; a aquisição está encerrada desde 2026-10-01 e precisa de autorização num ADR)?"
+    perguntas: [],
+    decisoes: [
+      "Medida da v1 (usuário, 2026-10-06, ADR 0083): o VHI da NOAA sobre a área de arábica, sem o INMET; a geada vem da leitura diária de eventos.",
+      "Janelas críticas (usuário, 2026-10-06, ADR 0083): ficam as do estudo, junho a novembro; o enchimento (dezembro a março) não entra. No preço do arábica do FMI (2002 a 2026), a pressão de alta de junho a novembro foi seguida de alta em 3 meses em 78% das semanas (56% em todas as semanas da janela); a de dezembro a março, em 44% (46% em todas): não acrescenta. A seca de verão, como a de 2014, quando o preço subiu durante a seca, chega pelos eventos.",
+      "INMET (usuário, 2026-10-06, ADR 0083): fica para depois da v1, como os fatores ausentes do milho (ADR 0080); volta com uma demanda e uma autorização próprias, e o índice (geada ou balanço hídrico) se decide então."
     ]
   },
   {
@@ -104,9 +113,10 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Revisão altista da produção de arábica no levantamento da Conab superior a [CALIBRAR COM DADOS POINT-IN-TIME]% em comparação ao vintage oficial prévio. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [
-      "Com 11 revisões na base, a faixa neutra de 2% e o forte de 5% servem como ponto de partida, até o backtest?",
-      "A bienalidade (a variação contra a safra anterior: +34,8% em 2026) entra na decisão, ou fica como contexto, como o estudo deixa?"
+    perguntas: [],
+    decisoes: [
+      "Limiares (usuário, 2026-10-06, ADR 0084): a faixa neutra de 2% e o forte de 5% ficam como ponto de partida, até o backtest. Nas 11 revisões da base, as duas fortes com preço depois (set/2024, -5,99%; mai/2025, +6,61%) foram seguidas do movimento esperado no arábica do FMI em 3 meses (+23,4% e -8,0%); as moderadas se dividiram. São episódios, não validação.",
+      "Bienalidade (usuário, 2026-10-06, ADR 0084): fica como contexto, fora da decisão, como o estudo deixa. Na safra de arábica do USDA (PSD, 1992 a 2025, valor final), a queda de 10% ou mais contra a safra anterior foi seguida de preço médio de -2,1% em 12 meses (alta em 5 de 14 anos) e a alta de 10% ou mais, de +16,8% (7 de 13): o ciclo é previsível (o sinal trocou em 28 de 33 anos) e o mercado o precifica; o que move o preço é a revisão."
     ]
   },
   {
@@ -125,11 +135,11 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para a regra do estoque certificado: o relatório diário da ICE (o \"Report 42\" do estudo, ADR 0032) está na base por origem e no total, no servidor desde 2016 (no banco de dev, só desde ago/2026: o fator não decide em dev). A série confirma a ordem de grandeza que o estudo marcou como não confirmada: em ago/2026, o estoque foi de 260,7 mil a 224,0 mil sacas."
+          "Suficiente para a regra do estoque certificado: o relatório diário da ICE (o \"Report 42\" do estudo, ADR 0032) está na base por origem e no total, no servidor desde 2016 (no banco de dev, só desde ago/2026: o fator não decide em dev). A série confirma a ordem de grandeza que o estudo marcou como não confirmada: em ago/2026, o estoque foi de 260,7 mil a 224,0 mil sacas. Validação histórica (ADR 0085), no estoque certificado de Nova York do relatório mensal da ICO (2012 a 2026) contra o preço do arábica do FMI: o estoque não antecipa o preço. Depois de uma queda fora do normal, o preço subiu em 3 meses em 40% dos meses (43% em todos); com o estoque perto da mínima de 5 anos, também em 40%. Ele tende a cair junto com a alta (o café sai da bolsa quando o mercado aperta): confirma, não antecipa."
       },
       lacunas: [
-        "As sacas aguardando classificação (pending grading), que a regra de alta cita, estão na base desde o ADR 0061 (só o total, no card da ICE), mas fora da decisão: falta definir o que é \"redução nos lotes pendentes\".",
-        "Os estoques dos portos europeus (ECF, mensal, com ~2 meses de atraso) e o estoque certificado de Londres (ICO, mensal) estão na base desde o ADR 0061, fora da decisão: a regra de baixa cita a ECF sem limiar."
+        "As sacas aguardando classificação (pending grading), que a regra de alta cita, vão ao prompt como contexto, fora da decisão (ADR 0085).",
+        "Os estoques dos portos europeus (ECF, mensal, com ~2 meses de atraso) vão ao prompt como contexto, fora da decisão (ADR 0085); o estoque certificado de Londres (ICO, mensal) está na base, fora do fator."
       ]
     },
     proposta: {
@@ -143,10 +153,11 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Injeção contínua e expressiva de novas sacas aprovadas na certificação da ICE associada à elevação dos estoques portuários europeus apurados pela ECF. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [
-      "A variação em 4 semanas contra o próprio histórico representa a \"queda sustentada\", ou o Comitê prefere contar sessões seguidas de queda?",
-      "O nível do estoque (perto da mínima de anos) também deve dar direção, além do ritmo?",
-      "Com as sacas pendentes de classificação e os portos europeus na base (ADR 0061), como entram na regra? Ex.: queda do certificado só conta com as pendentes também caindo; entrada de sacas só conta com a ECF subindo no último dado."
+    perguntas: [],
+    decisoes: [
+      "Queda sustentada (usuário, 2026-10-06, ADR 0085): fica a variação em 4 semanas contra o próprio histórico (a v1). No dado mensal da ICO (2012 a 2026), 3 meses seguidos de queda tiveram leve vantagem só em 6 meses (alta em 61%, contra 49% em todos), e meses seguidos não são as sessões do estudo; o teste com o dado diário da ICE fica para o servidor.",
+      "Nível do estoque (usuário, 2026-10-06, ADR 0085): não dá direção, fica como contexto (o valor da camada A). Com o estoque abaixo do percentil 20 de 5 anos, o preço subiu em 3 meses em 40% dos meses, contra 43% em todos.",
+      "Pendentes e portos europeus (usuário, 2026-10-06, ADR 0085): vão ao prompt como contexto, fora da regra. O sentido do estudo aparece (com a ECF subindo, a queda do certificado foi seguida de alta em 25% dos meses; com a ECF caindo, em 40%), mas com 12 e 15 meses, pouco para condicionar a regra."
     ]
   },
   {
@@ -165,11 +176,11 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para a medida da regra: a PTAX de venda (BCB) está na base desde o Plano Real (P01 do estudo já atendida). O ritmo de comercialização das cooperativas, que o estudo usa na leitura, não tem fonte estruturada; os embarques do Cecafé são o mais próximo, por mês."
+          "Suficiente para a medida da regra: a PTAX de venda (BCB) está na base desde o Plano Real (P01 do estudo já atendida). O ritmo de comercialização das cooperativas, que o estudo usa na leitura, não tem fonte estruturada; os embarques do Cecafé são o mais próximo, por mês. Validação histórica (ADR 0086), de 2005 a 2026 contra o preço mensal do arábica do FMI: o fator não separa o preço. Depois da pressão de baixa, o preço caiu em 1 mês em 52% das semanas (48% em todas) e em 3 meses em 51% (53% em todas); depois da de alta, subiu em 3 meses em 47% (47% em todas). O teste é grosseiro para um fluxo de 10 pregões (o preço do FMI é a média do mês): não dê ao câmbio mais peso do que isso sustenta."
       },
       lacunas: [
         "O ritmo de comercialização física do produtor (cooperativas) não é coletado.",
-        "A condição da regra de baixa (preço em reais em patamar recorde no pico da safra) não entra na conta."
+        "A condição da regra de baixa (preço em reais em patamar recorde no pico da safra) não entra na conta, por decisão (ADR 0086); a PTAX e o preço do ICF já vão ao prompt."
       ]
     },
     proposta: {
@@ -183,9 +194,10 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Depreciação intensa do BRL que eleve as cotações em moeda corrente nacional em patamares recordes, destravando fluxos expressivos de fixação por parte de cooperativas e exportadores durante o pico da safra. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [
-      "A regra de baixa vale o ano todo, ou só no pico da safra (maio a outubro, como o estudo diz que o efeito é mais relevante)?",
-      "O preço em reais \"em patamar recorde\" entra como condição da baixa (o ICF em reais, pela PTAX, desde 2022)?"
+    perguntas: [],
+    decisoes: [
+      "Regra de baixa o ano todo (usuário, 2026-10-06, ADR 0086): como na v1. Só no pico da safra (maio a outubro), a pressão de baixa foi seguida de queda do preço em 1 mês em 47% das semanas, contra 49% em todas as semanas do pico: restringir não melhora e corta metade dos sinais.",
+      "Preço em reais recorde (usuário, 2026-10-06, ADR 0086): não entra como condição da baixa. Com o arábica do FMI em reais acima do percentil 90 de 5 anos, a pressão de baixa foi seguida de queda em 1 mês em 45% das semanas e em 3 meses em 56%; sem ele, 62% e 53%: o resultado se contradiz. A PTAX e o preço do ICF já vão ao prompt."
     ]
   },
   {
@@ -204,12 +216,12 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: false,
         texto:
-          "Basta para a margem de hoje, não para validar: o custo do arábica da Conab (14 municípios, desde 2003) só é conhecido na base desde a 1ª coleta, em 2026-10-01 (a fonte não informa a publicação), então o fator (point-in-time) começa agora. Hoje o ICF (ICFZ26, US$ 351,90/saca, R$ 1.834,53 pela PTAX) está 75% acima do custo total mediano de 2025 (R$ 1.050,74, 7 municípios): neutro. A regra de baixa pede 2 anos de margem."
+          "Basta para a margem de hoje, não para validar: o custo do arábica da Conab (14 municípios, desde 2003) só é conhecido na base desde a 1ª coleta, em 2026-10-01 (a fonte não informa a publicação), então o fator (point-in-time) começa agora. Hoje o ICF (ICFZ26, US$ 351,90/saca, R$ 1.834,53 pela PTAX) está 75% acima do custo total mediano de 2025 (R$ 1.050,74, 7 municípios): neutro. A regra de baixa pede 2 anos de margem. Validação histórica (ADR 0087), de 2011 a 2026, com o preço do grupo Brazilian Naturals da ICO em reais pela PTAX contra a mediana do custo da Conab do ano anterior: o preço ficou abaixo do custo operacional em 2 meses e do total em 6, todos em 2013-14, um episódio só (seguido de alta, que coincidiu com a seca de 2014); abaixo do custo variável, nunca. O fator raramente pesa, e o histórico não basta para validá-lo."
       },
       lacunas: [
         "O preço mínimo do MAPA não é coletado (bloqueado por reCAPTCHA).",
         "A relação de troca café/fertilizante não é calculada (o preço do fertilizante não é coletado).",
-        "O custo da Conab é anual e por município; o mais novo na base é de 2025, com 7 municípios."
+        "O custo da Conab é anual e por município; o mais novo na base é de 2025, com 7 municípios. A Conab muda a lista de municípios de um ano para outro (10 com custo em 2024, 7 em 2025), o que mexe na mediana."
       ]
     },
     proposta: {
@@ -224,9 +236,10 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Preços de mercado operando em patamares que representem relação de troca favorável aos produtores em níveis historicamente elevados, estimulando tratos culturais intensivos e incrementos de produtividade futura. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [
-      "A mediana dos municípios da Conab representa as \"praças produtoras padrão\", ou o Comitê escolhe municípios (ex.: Sul de Minas e Cerrado)?",
-      "O custo operacional da Conab serve como o \"Custo Operacional Efetivo\" do estudo?"
+    perguntas: [],
+    decisoes: [
+      "Praças produtoras (usuário, 2026-10-06, ADR 0087): fica a mediana dos municípios de arábica da Conab. Só Sul de Minas e Cerrado (Guaxupé, Três Pontas e Patrocínio) dariam R$ 1.113 por saca de custo total em 2025, contra R$ 1.051 da mediana (6%): não muda nenhuma leitura com a margem de hoje.",
+      "Custo Operacional Efetivo (usuário, 2026-10-06, ADR 0087): fica o custo operacional da Conab, com a ressalva de que ele inclui a depreciação e outros custos fixos e fica um pouco acima do COE estrito (o desembolso, mais perto do custo variável da Conab, de 74% a 94% do operacional). Com o variável, a regra não teria disparado em 15 anos; com o operacional, disparou na única crise de margem (2013)."
     ]
   },
   {
@@ -245,7 +258,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: false,
         texto:
-          "Basta para o consumo, não para a regra inteira: o PSD do USDA dá o consumo por país desde 1960, mas as versões antigas têm a publicação estimada e só parte dos países, então o fator só decide desde a 1ª coleta (2026). No histórico da versão atual (2003 a 2026), o consumo mundial cresceu de -2,9% a +10,6% ao ano; só 2 dos 24 anos caem na faixa neutra de 1% a 2% do estudo. A importação por bloco e a moagem (ICO, alfândegas da UE e dos EUA) não são coletadas."
+          "Basta para o consumo, não para a regra inteira: o PSD do USDA dá o consumo por país desde 1960, mas as versões antigas têm a publicação estimada e só parte dos países, então o fator só decide desde a 1ª coleta (2026). No histórico da versão atual (2003 a 2026), o consumo mundial cresceu de -2,9% a +10,6% ao ano; nenhum dos 24 anos cai na faixa neutra de 1% a 2% do estudo (daí a faixa calibrada, ADR 0088). A importação por bloco e a moagem (ICO, alfândegas da UE e dos EUA) não são coletadas. Validação histórica (ADR 0088), contra o preço do arábica do FMI de julho a julho: o crescimento do consumo não separa o preço (nos 12 anos acima de 2%, o preço subiu em 7 de 11; nos 12 abaixo de 1%, em 8 de 12, com média maior). A arbitragem Nova York ÷ Londres da ICO (2011 a 2026) também não antecipou a substituição: com o arábica caro contra o robusta (acima do percentil 80 de 5 anos), Nova York caiu em 3 meses em 44% dos meses, contra 64% no meio da faixa, e a diferença não fechou."
       },
       lacunas: [
         "As estatísticas de comércio da ICO (desaparecimento aparente, importações) são só para membros: não são coletadas.",
@@ -259,16 +272,17 @@ const DEFINICOES = [
       medida: "O consumo mundial da safra mais nova no balanço do USDA (a soma dos países); arábica ÷ robusta no último mês do FMI, como contexto.",
       comparacao: "O crescimento contra a safra anterior, só com os países presentes nas duas; o desvio do meio da faixa neutra do estudo (1,5%).",
       leitura:
-        "Consumo crescendo dentro da \"taxa tendencial de 1% a 2% a.a.\" é neutro (o limiar é do estudo); acima, aceleração pesa para alta; abaixo, desaceleração para baixa (regras candidatas). O forte (4 p.p. de desvio) é calibração do FinMind: o percentil 80 do desvio de 2003 a 2026. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
+        "Consumo crescendo perto da \"taxa tendencial de 1% a 2% a.a.\" do estudo é neutro; bem acima, aceleração pesa para alta; bem abaixo, desaceleração para baixa (regras candidatas). O centro (1,5%) é do estudo; a faixa neutra, de 2 p.p. em torno dele (-0,5% a 3,5%), e o forte, de 4 p.p., são calibração do FinMind sobre 2003 a 2026 (ADR 0088). Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "Sinal de Alta: Aceleração nas importações líquidas de café verde pelos principais blocos consumidores associada a níveis sustentados de desaparecimento aparente reportados pela ICO. [Hipótese v0 — não validada; não usar para ordem].",
         baixa: "Sinal de Baixa: Desaceleração acentuada do volume de café verde absorvido pelas torrefações ou evidência empírica de substituição volumétrica acelerada de arábica por robusta nas indústrias de manufatura. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [
-      "O consumo do PSD (por país) substitui as importações e o desaparecimento aparente da ICO na v1?",
-      "Com o consumo variando de -3% a +11% ao ano, a faixa neutra de 1% a 2% do estudo deixa quase todo ano com pressão. Ela fica, ou vira uma faixa calibrada?",
-      "A arbitragem Nova York − Londres da ICO (mensal, na base desde o ADR 0061) entra como a medida da substituição de arábica por robusta?"
+    perguntas: [],
+    decisoes: [
+      "Consumo do PSD (usuário, 2026-10-06, ADR 0088): substitui as importações e o desaparecimento aparente da ICO na v1. As estatísticas de comércio da ICO são só para membros, e a aquisição de dados está encerrada.",
+      "Faixa neutra calibrada (usuário, 2026-10-06, ADR 0088): 2 p.p. em torno de 1,5% (de -0,5% a 3,5%, perto dos percentis 30 e 70 de 2003 a 2026), no lugar da faixa de 1% a 2% do estudo, em que nenhum ano era neutro. O forte segue em 4 p.p.",
+      "Arbitragem Nova York ÷ Londres (usuário, 2026-10-06, ADR 0088): não entra na regra, porque o histórico vai contra a hipótese da substituição; fica como contexto (a razão arábica ÷ robusta do FMI, que já vai ao prompt)."
     ]
   },
   {
@@ -287,7 +301,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o COT desagregado da CFTC traz o managed money do Coffee C toda semana desde 2006, com a publicação real desde 2022-08 (P05 do estudo já atendida). Os extremos aparecem: o recorde de venda em ago/2018 (-34,7% dos contratos em aberto) e o de compra em fev/2025 (+37,5%). Hoje (29/09/2026) os fundos estão no percentil 7,7 dos 3 anos anteriores."
+          "Suficiente: o COT desagregado da CFTC traz o managed money do Coffee C toda semana desde 2006, com a publicação real desde 2022-08 (P05 do estudo já atendida). Os extremos aparecem: o recorde de venda em ago/2018 (-34,7% dos contratos em aberto) e o de compra em fev/2025 (+37,5%). Hoje (29/09/2026) os fundos estão no percentil 7,7 dos 3 anos anteriores. Validação histórica (ADR 0089), de 2009 a 2026 contra o preço mensal do arábica do FMI: no café, o extremo foi seguido de continuação, não de reversão. Com os fundos vendidos em extremo, o preço subiu em 3 meses em 33% das semanas (46% em todas); comprados em extremo, caiu em 39% (54% em todas). O mesmo na janela de 1 ano. Com o catalisador do F1, só 8 semanas: sem conclusão."
       },
       lacunas: ["A posição por tipo de investidor no ICF (B3) não é coletada: o COT mede Nova York."]
     },
@@ -303,9 +317,10 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Posição comprada líquida de fundos em patamares recordes (percentil superior a [CALIBRAR COM DADOS POINT-IN-TIME]%), desde que confirmada por divergência baixista nos balanços de safra ou recomposição de estoques. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [
-      "Janela de 1 ou de 3 anos para o percentil (o estudo cita as duas)? A v1 usa 3.",
-      "Sem o catalisador de F1 ou F2, o extremo sozinho já é pressão (a v1), ou só vale com ele, como na regra?"
+    perguntas: [],
+    decisoes: [
+      "Janela de 3 anos (usuário, 2026-10-06, ADR 0089): como na v1. No histórico, as duas janelas dão o mesmo resultado; a de 3 anos, um pouco menos ruim em 6 meses.",
+      "Só com o catalisador (usuário, 2026-10-06, ADR 0089): o extremo contra a direção agregada só baixa a confiança da agregação com o F1 ou o F2 apontando na mesma direção dele, como a regra do estudo pede; sem ele, sem papel. Sozinho, o histórico vai contra a leitura de reversão. No prompt, a IA não lê reversão por conta própria."
     ]
   },
   {
@@ -319,15 +334,15 @@ const DEFINICOES = [
     },
     evento: { janelaDias: 7 },
     dados: {
-      observaveis: ["TREASURY_10A", "META_FED"],
+      observaveis: ["TREASURY_10A", "META_FED", "DOLAR_AMPLO_FED"],
       eventos: true,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para o canal do custo de carregar estoque: o Treasury de 10 anos e a meta do Fed (FRED) estão na base desde antes de 2010, os mesmos do fator de juros do petróleo. O DXY oficial é licenciado (o índice do Fed é o substituto) e a inclinação das curvas não é calculada."
+          "Suficiente para o canal do custo de carregar estoque: o Treasury de 10 anos e a meta do Fed (FRED) estão na base desde antes de 2010, os mesmos do fator de juros do petróleo. O DXY oficial é licenciado (o índice amplo do Fed é o substituto, condição da regra de baixa desde o ADR 0090) e a inclinação das curvas não é calculada. Validação histórica (ADR 0090), de 2007 a 2026 contra o preço mensal do arábica do FMI: o fator confirma o sentido do estudo. Com o juro caindo, o preço subiu em 3 meses em 57% das semanas e em 6 meses em 63% (49% e 52% em todas); com o juro subindo, caiu em 57% e 55% (51% e 48% em todas); com o juro e o dólar subindo juntos, caiu em 70% e 67%, e com o juro subindo e o dólar caindo, só em 38%."
       },
       lacunas: [
-        "O DXY oficial (ICE) é licenciado; a inclinação das curvas de juros não é calculada.",
+        "O DXY oficial (ICE) é licenciado: o índice amplo do Fed o substitui; a inclinação das curvas de juros não é calculada.",
         "A Selic e o diferencial de juros Brasil × EUA ficam no F4, pela regra de dupla contagem do estudo."
       ]
     },
@@ -335,17 +350,18 @@ const DEFINICOES = [
       autoria: AUTORIA,
       objetivo: "Medir o custo de carregar estoque de café e a liquidez para commodities.",
       medida: "O Treasury de 10 anos na média da semana; a meta do Fed como contexto.",
-      comparacao: "A variação do Treasury em 26 semanas, em p.p.",
+      comparacao: "A variação do Treasury em 26 semanas, em p.p.; na regra de baixa, a variação do índice amplo do dólar (Fed) em 26 semanas, em %.",
       leitura:
-        "Juro em queda pesa para alta (estoque mais barato de carregar, liquidez para commodities); em alta, para baixa (regras candidatas do estudo). Limiares do FinMind, os mesmos do petróleo, calibrados na mesma série: faixa neutra de 0,5 p.p. (percentil 60 de |variação em 26 semanas| desde 2010), forte a partir de 1 p.p. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
+        "Juro em queda pesa para alta (estoque mais barato de carregar, liquidez para commodities); em alta, com o dólar global também subindo em 26 semanas, para baixa (regras candidatas do estudo; a condição do dólar só na baixa, ADR 0090). Limiares do FinMind, os mesmos do petróleo, calibrados na mesma série: faixa neutra de 0,5 p.p. (percentil 60 de |variação em 26 semanas| desde 2010), forte a partir de 1 p.p. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "Sinal de Alta: Ciclo de flexibilização monetária global com corte sincronizado de taxas de juros pelos bancos centrais e enfraquecimento do índice DXY, reduzindo o custo financeiro de estocagem de café e atraindo alocação de liquidez para cestas de matérias-primas. [Hipótese v0 — não validada; não usar para ordem].",
         baixa: "Sinal de Baixa: Aperto monetário quantitativo agressivo com elevação das taxas reais de juros nos EUA e fortalecimento do Dólar global, elevando drasticamente o custo financeiro para manutenção de estoques comerciais e desestimulando a exposição comprada em ativos reais. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [
-      "O dólar global (o índice do Fed, substituto do DXY) entra como condição das regras, como o estudo escreve, ou fica fora do F8?",
-      "O juro nominal de 10 anos serve, ou o estudo quer o juro real (como no ouro)?"
+    perguntas: [],
+    decisoes: [
+      "Dólar global como condição, só na baixa (usuário, 2026-10-06, ADR 0090): o juro subindo só pesa para baixa com o índice amplo do dólar (Fed) subindo em 26 semanas; sem isso, neutra. Com o dólar subindo junto, a queda veio em 3 meses em 70% das semanas; com o dólar caindo, em 38%. Na alta, sem condição: exigir o dólar caindo não melhorou (57% nos dois casos em 3 meses) e cortaria as semanas que foram melhor em 6 meses (69%).",
+      "Juro nominal (usuário, 2026-10-06, ADR 0090): fica o Treasury de 10 anos, como na v1. O juro real (DFII10) foi pior nos dois lados: alta em 3 meses em 51% das semanas e queda em 55%, contra 57% e 57% do nominal."
     ]
   }
 ];
@@ -365,11 +381,10 @@ const DO_ATIVO = {
     `Horizontes em dias corridos (1, 7, 30 e 90), contados da data da análise, como nos outros ativos (o estudo conta em pregões). ${DECISAO_COMITE}.`,
     `Eventos por fator: o David pediu avaliar a leitura de eventos também no café (P12, ADR 0055). Cada fator recebe os eventos que a leitura diária por IA marca com ele (7 dias de janela; 30 na demanda), sem validação humana por ora, e eles vão ao prompt depois do cálculo. ${DECISAO_COMITE}.`,
     "O WASDE não cobre café: o balanço do USDA para o café é o PSD (Coffee: World Markets and Trade). David, 2026-10-03 (P14, ADR 0055).",
-    "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET espera o índice do David; o diário de Londres e do KC, orçamento e licença; o diferencial FOB não tem fonte pública."
+    "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET fica para depois da v1 (usuário, 2026-10-06, ADR 0083); o diário de Londres e do KC, orçamento e licença; o diferencial FOB não tem fonte pública."
   ],
   perguntas: [
     "Pesos e agregação: o estudo descarta os pesos fixos e a matriz do v0 e propõe regras transversais (neutralidade mandatória com dados faltando ou conflito; controle de dupla contagem F1 → F2 → F3; surpresa contra a expectativa). O prompt da IA já leva essas regras como orientação (e o peso do FEL 1 como o único na base). A agregação em código do FinMind, com famílias e peso por horizonte (ADR 0066), está em produção desde 2026-10-05 (no prompt e no Centro de Decisão), por decisão do usuário: a validação dela é do Comitê.",
-    "INMET (F1): qual índice? Geada (temperatura mínima horária de maio a agosto em Varginha, Patrocínio, Franca e Caldas, com qual limiar) ou chuva e balanço hídrico contra a climatologia? A coleta só começa com o índice definido.",
     "Vale a mesma régua para o milho? O estudo critica pesos fixos e limiares sem teste, o que também se aplica ao Motor do Milho v0, já aprovado."
   ]
 };

@@ -146,7 +146,8 @@ O total é a única parte estável.
 
 ## Fora do escopo
 
-- **Fontes que esperam outra decisão:** o INMET (índice do David), o diário de Londres e do KC (orçamento e licença) e
+- **Fontes que esperam outra decisão:** o INMET (índice do David; em 2026-10-06, o usuário o deixou para depois da v1,
+  ADR 0083), o diário de Londres e do KC (orçamento e licença) e
   o diferencial FOB (sem fonte pública).
 - **Federação do Café da Colômbia:** reconhecida, mas fora da ordem sugerida; entra se o Comitê quiser outras origens.
 - **Uso dos dados novos:** o uso em regra de fator, no prompt ou na IA fica fora.

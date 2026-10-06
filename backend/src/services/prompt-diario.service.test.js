@@ -357,7 +357,7 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@3");
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@4");
   assert.equal(p.versaoConfiguracao, 3);
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
@@ -383,7 +383,7 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
     p.entrada.agregacaoMotor.horizontes.map((h) => h.horizonte),
     ["IMEDIATO", "CURTO", "MEDIO", "LONGO"]
   );
-  assert.match(p.entrada.agregacaoMotor.versao, /^cafe-agregacao-v1/);
+  assert.match(p.entrada.agregacaoMotor.versao, /^cafe-agregacao-v2/);
   // Toda regra que a tela de metodologia mostra está no prompt, com a mesma frase.
   for (const regra of require("../factors/agregacao/agregacao-cafe").ORIGEM_DAS_REGRAS) assert.ok(p.prompt.includes(`- ${regra.prompt}`), regra.regra);
 });

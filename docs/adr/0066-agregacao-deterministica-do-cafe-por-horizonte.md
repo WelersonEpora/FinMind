@@ -296,3 +296,8 @@ As semanas de 2023 a 2025 no servidor (INSUFICIENTE e conflito) ainda não foram
 
 Calendário mensal de pesos; o refinamento do catalisador no F7; a curva a termo; a agregação nos outros ativos; tabela
 nova (a leitura do motor vai na entrada gravada de cada leitura).
+
+## Adendo (2026-10-06): o F7 só com o catalisador
+
+Por decisão do usuário (ADR 0089), o F7 em extremo contra a direção agregada só é RISCO_DE_REVERSAO, e só baixa a
+confiança, com o F1 ou o F2 na mesma direção dele (o catalisador do estudo); sem ele, SEM_PAPEL. A agregação passou à v2.

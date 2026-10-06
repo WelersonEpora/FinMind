@@ -19,9 +19,11 @@ const { arredondar } = require("./modelos/posicao-historica");
 //        (sem decisão com menos de 60 países nas duas safras: as versões antigas do PSD são parciais, ver MINIMO_PAISES)
 //     B. o crescimento do consumo contra a safra anterior, só com os países presentes nas duas (a cobertura do PSD muda);
 //        medida = crescimento - 1,5 p.p.: o desvio do meio da faixa neutra do estudo
-//     C. as regras candidatas do estudo: crescimento "alinhado à taxa tendencial de 1% a 2% a.a." é neutro (o limiar é
-//        dele: faixa neutra de 0,5 p.p. em torno de 1,5%); acima, aceleração = pressão de ALTA; abaixo, desaceleração =
-//        de BAIXA. O forte (4 p.p.) é calibração do FinMind: o percentil 80 de |crescimento - 1,5| de 2003 a 2026
+//     C. as regras candidatas do estudo: crescimento "alinhado à taxa tendencial de 1% a 2% a.a." é neutro, com o
+//        centro do estudo (1,5%) e a faixa calibrada (ADR 0088): 2 p.p. em torno dele, de -0,5% a 3,5% (perto dos
+//        percentis 30 e 70 de 2003 a 2026; com a faixa do estudo, nenhum ano era neutro); acima, aceleração = pressão de
+//        ALTA; abaixo, desaceleração = de BAIXA. O forte (4 p.p.) é calibração do FinMind: o percentil 80 de
+//        |crescimento - 1,5| de 2003 a 2026
 //
 // Fora da conta, sem o dado: as estatísticas da ICO, as importações por bloco e a moagem (fontes novas). A substituição
 // por robusta não entra na decisão (o estudo não dá a regra). Os estoques portuários europeus ficam no F3 (dupla
@@ -29,7 +31,8 @@ const { arredondar } = require("./modelos/posicao-historica");
 // versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "demanda_cafe_usda_psd";
-const FACTOR_VERSION = 1;
+// v2 (2026-10-06): a faixa neutra calibrada, 2 p.p. em torno de 1,5% (ADR 0088).
+const FACTOR_VERSION = 2;
 
 const PREFIXO = "USDA.PSD.CAFE";
 const CAMPO = "CONSUMO";
@@ -41,7 +44,7 @@ const CENTRO_FAIXA = 1.5;
 const MINIMO_PAISES = 60;
 
 const PARAMETROS_PADRAO = Object.freeze({
-  limiarModeradoPct: 0.5,
+  limiarModeradoPct: 2,
   limiarFortePct: 4,
   semanasTendencia: 1,
   limiarTendenciaPp: 1
@@ -140,10 +143,10 @@ const TEXTOS = {
   primeiroPasso: (p) =>
     `No balanço do USDA de ${p.observedAt.split("-").reverse().join("/")}, o consumo mundial da safra ${p.safra} cresce ` +
     `${faixa.comSinal(p.crescimentoPct)}% contra a anterior (${p.paisesComparados} países nas duas): ` +
-    `${faixa.comSinal(p.desvioFaixaPp)} p.p. contra o meio da faixa neutra de 1% a 2% (B).`,
+    `${faixa.comSinal(p.desvioFaixaPp)} p.p. contra 1,5% ao ano, o meio da tendência de 1% a 2% do estudo (B).`,
   nomeValor: "o desvio",
-  abaixo: "o consumo cresce abaixo da tendência de 1% a 2% ao ano, demanda desacelerando",
-  acima: "o consumo cresce acima da tendência de 1% a 2% ao ano, demanda acelerando",
+  abaixo: "o consumo cresce bem abaixo da tendência de 1% a 2% ao ano, demanda desacelerando",
+  acima: "o consumo cresce bem acima da tendência de 1% a 2% ao ano, demanda acelerando",
   subindo: "o crescimento do consumo está ganhando força",
   caindo: "o crescimento do consumo está perdendo força",
   rotulosTendencia: ROTULOS_TENDENCIA,

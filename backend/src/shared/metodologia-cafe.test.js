@@ -28,7 +28,8 @@ test("os 8 fatores do café do FEL 1, na ordem da planilha, como proposta do Mot
     assert.match(fator.proposta.regrasEspecialista.alta, /Hipótese v0 — não validada/, fator.codigo);
     assert.match(fator.proposta.regrasEspecialista.baixa, /Hipótese v0 — não validada/, fator.codigo);
     for (const campo of ["tipo", "direcao", "mecanismo", "fonte"]) assert.ok(fator.fel1[campo], `${fator.codigo}.${campo}`);
-    assert.ok(fator.perguntas.length > 0, fator.codigo);
+    // Uma pergunta respondida sai e vira decisão: o fator tem uma ou outra.
+    assert.ok(fator.perguntas.length > 0 || fator.decisoes.length > 0, fator.codigo);
   }
 });
 
