@@ -32,7 +32,9 @@ const { FATORES } = require("../../shared/fatores-fel1");
 // como estava. Um evento só é aceito se uma PÁGINA de fonte autorizada (domínio e, no gov.br, o caminho da instituição)
 // que a pesquisa daquela chamada de fato leu estiver ligada, pelo grounding, ao texto DESTE evento. A citação da IA não
 // basta. Sem isso, o evento é gravado como rejeitado (aceito = false, vai para a tela, não vai ao Motor) e vira aviso da
-// execução, não falha: é o filtro funcionando. Um ativo NORMAL sem o mínimo de pesquisa vira aviso (piso por ativo).
+// execução, não falha: é o filtro funcionando. Um ativo NORMAL sem o mínimo de pesquisa vira aviso (piso por ativo). Um
+// evento sustentado só por páginas que já sustentaram um evento aceito do mesmo ativo nos últimos dias (ou na mesma
+// leitura) é rejeitado como repetição (ADR 0092).
 //
 // A data de referência é o dia em São Paulo (a análise é feita no Brasil). A busca ao vivo não é reproduzível: a
 // leitura só vale da primeira coleta em diante e não serve para backtest (ADR 0047).
@@ -46,20 +48,23 @@ function hojeEmSaoPaulo(agora = new Date()) {
 const ROTULO_TIPO = Object.fromEntries(TIPOS.map((t) => [t.codigo, t.rotulo]));
 
 // Piso por ativo (ADR 0049, itens 8, 10 e 13): o mínimo de pesquisa antes de declarar um ativo NORMAL. Cada exigência tem o
-// texto do prompt e a regra que o coletor confere pelas fontes de fato lidas. Petróleo: uma fonte do ativo. Ouro: a AP ou o
-// Tesouro.
+// texto do prompt e a regra que o coletor confere pelas fontes de fato lidas. Petróleo: uma fonte de geopolítica ou de
+// oferta do ativo (ADR 0092). Ouro: a AP ou o Tesouro.
 // Milho e café: uma fonte de política comercial ou regulação (o INMET sozinho não basta). Milho, também: a AP News (a
 // guerra no Mar Negro, que nenhuma fonte de comércio cobre). Não reescreve o nível da IA nem rejeita a leitura: vira
 // aviso da execução, para acompanhar a cobertura dia a dia.
 const TIPOS_DO_PISO_AGRO = ["POLITICA_COMERCIAL", "REGULACAO"];
-const DO_ATIVO = (ativo) => ({
-  descricao: "fonte do ativo",
-  instrucao: "ao menos uma busca numa fonte que cobre o ativo (a lista diz os ativos de cada fonte)",
-  vale: (fonte) => fonte.ativos.includes(ativo)
-});
+// Petróleo (ADR 0092): as fontes de furacão (NHC, BSEE) e de rota (Canal do Panamá) cobrem o petróleo, mas um dia sem
+// tempestade não diz nada sobre Ormuz ou a OPEP+: sozinhas, não cumprem o piso.
+const TIPOS_DO_PISO_PETROLEO = ["GEOPOLITICA", "POLITICA_OFERTA"];
+const GEOPOLITICA_OU_OFERTA = {
+  descricao: "fonte de geopolítica ou de oferta do petróleo",
+  instrucao: "ao menos uma busca numa fonte de geopolítica ou de oferta que cobre o ativo (a lista diz os tipos e os ativos de cada fonte); as de furacão e de rota sozinhas não bastam",
+  vale: (fonte) => fonte.ativos.includes("PETROLEO") && fonte.tipos.some((t) => TIPOS_DO_PISO_PETROLEO.includes(t))
+};
 const COMERCIO_DO_ATIVO = (ativo) => ({
   descricao: "fonte de política comercial ou regulação do ativo",
-  instrucao: "ao menos uma busca numa fonte de política comercial ou regulação (USTR, Casa Branca, MOFCOM, União Europeia, MAPA ou USDA FAS); o INMET sozinho não basta",
+  instrucao: "ao menos uma busca numa fonte de política comercial ou regulação que cobre o ativo (a lista diz os tipos e os ativos de cada fonte); o INMET sozinho não basta",
   vale: (fonte) => fonte.ativos.includes(ativo) && fonte.tipos.some((t) => TIPOS_DO_PISO_AGRO.includes(t))
 });
 // Ouro (v12): o UKMTO cobre o ouro, mas só pela rota marítima; o canal do ouro é a escalada e as sanções. No diagnóstico
@@ -77,7 +82,7 @@ const MAR_NEGRO = {
 };
 const PISO = {
   OURO: [ESCALADA_OU_SANCAO],
-  PETROLEO: [DO_ATIVO("PETROLEO")],
+  PETROLEO: [GEOPOLITICA_OU_OFERTA],
   MILHO: [COMERCIO_DO_ATIVO("MILHO"), MAR_NEGRO],
   CAFE: [COMERCIO_DO_ATIVO("CAFE")]
 };
@@ -102,9 +107,63 @@ function fatoresParaPrompt(ativos) {
   return ativos.map((ativo) => [ativo, ...FATORES.filter((f) => f.ativo === ativo).map((f) => `- ${f.codigo}: ${f.nome}`)].join("\n")).join("\n");
 }
 
-// O prompt de uma frente: a mesma instrução do sistema, com os ativos, o piso, as fontes, os fatores e as sugestões dela.
-function montarPrompt(dataReferencia, frente) {
+// REPETIÇÃO (ADR 0092): sem identidade de evento entre dias (ADR 0047), o mesmo fato voltava dia após dia, porque
+// "recente" vale 24 a 48 horas. Duas medidas, sem criar acompanhamento de eventos:
+// - o prompt de cada frente traz os eventos aceitos dos ativos dela nos últimos dias, com a regra de só repetir um
+//   desdobramento novo;
+// - o coletor rejeita o evento cujas páginas que o sustentam já sustentaram um evento aceito do mesmo ativo nessa janela
+//   ou antes, na mesma leitura. As páginas de fonte reescrita na mesma URL (`paginaAtualizada`) não contam.
+const JANELA_REPETICAO_DIAS = 3;
+
+function diasAntes(data, dias) {
+  const d = new Date(`${data}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - dias);
+  return d.toISOString().slice(0, 10);
+}
+
+function ddmm(data) {
+  return `${data.slice(8, 10)}/${data.slice(5, 7)}`;
+}
+
+// "…/sb0644", "…/sb0644/" e "…/sb0644#x" são a mesma página.
+function chaveDaPagina(url) {
+  return String(url).replace(/#.*$/, "").replace(/\/+$/, "");
+}
+
+// Páginas que sustentam o evento (origem "pesquisa") e que servem para reconhecer a repetição.
+function paginasDeRepeticao(fontes) {
+  return fontes
+    .filter((fonte) => fonte.origem === "pesquisa" && fonte.url && !FONTES[fonte.fonteAutorizada]?.paginaAtualizada)
+    .map((fonte) => chaveDaPagina(fonte.url));
+}
+
+// Linhas gravadas -> [{ data, ativo, titulo, paginas }], do repositório (eventos aceitos da janela).
+function eventosRecentesDe(registros) {
+  return registros.map((r) => ({
+    data: r.leitura?.data_referencia ?? r.data,
+    ativo: r.ativo,
+    titulo: r.titulo,
+    paginas: paginasDeRepeticao(r.fontes || [])
+  }));
+}
+
+// "- 05/10 (PETRÓLEO, OURO): Navio-tanque atingido em Ormuz" - um fato com vários ativos vira uma linha só.
+function eventosRecentesParaPrompt(recentes, ativos) {
+  const linhas = new Map();
+  for (const evento of recentes.filter((e) => ativos.includes(e.ativo))) {
+    const chave = `${evento.data}|${evento.titulo}`;
+    if (!linhas.has(chave)) linhas.set(chave, { ...evento, ativos: [] });
+    linhas.get(chave).ativos.push(ROTULO_ATIVO[evento.ativo]);
+  }
+  if (linhas.size === 0) return `Nenhum evento aceito nos últimos ${JANELA_REPETICAO_DIAS} dias.`;
+  return [...linhas.values()].map((e) => `- ${ddmm(e.data)} (${e.ativos.join(", ")}): ${e.titulo}`).join("\n");
+}
+
+// O prompt de uma frente: a mesma instrução do sistema, com os ativos, o piso, as fontes, os fatores, as sugestões e os
+// eventos recentes dela.
+function montarPrompt(dataReferencia, frente, recentes = []) {
   return carregarPrompt(ARQUIVO_PROMPT, {
+    eventos_recentes: eventosRecentesParaPrompt(recentes, frente.ativos),
     data_referencia: dataReferencia,
     ativos: frente.ativos.map((ativo) => ROTULO_ATIVO[ativo]).join(" e "),
     piso: pisoParaPrompt(frente.ativos),
@@ -156,8 +215,8 @@ function faltasDaResposta(frente, resposta) {
 // Uma frente. Se a resposta declarou um ativo NORMAL sem cumprir o piso (ADR 0049, item 14), a chamada desta frente é
 // repetida UMA vez e fica a resposta com menos faltas (no empate, a primeira). Só esta frente repete; os tokens da
 // resposta descartada entram na conta da execução. Se a repetição falhar, fica a primeira resposta.
-async function chamarFrente(frente, { dataReferencia, provedor, signal, fetchFn }) {
-  const { versao, instrucaoDoSistema, prompt } = montarPrompt(dataReferencia, frente);
+async function chamarFrente(frente, { dataReferencia, recentes, provedor, signal, fetchFn }) {
+  const { versao, instrucaoDoSistema, prompt } = montarPrompt(dataReferencia, frente, recentes);
   const contexto = { instrucaoDoSistema, prompt, provedor, signal, fetchFn };
   let resposta = await responderPesquisando(frente, contexto);
   let tokensDescartados = 0;
@@ -194,11 +253,16 @@ async function download({ signal }, deps = {}) {
     return { pular: true, dataReferencia };
   }
 
+  // Os aceitos dos dias anteriores (não os do próprio dia: refazer o dia substitui a leitura dele).
+  const recentes = eventosRecentesDe(
+    await repo.listarEventosAceitosRecentes({ dataInicio: diasAntes(dataReferencia, JANELA_REPETICAO_DIAS), dataFim: diasAntes(dataReferencia, 1) })
+  );
+
   // As duas frentes em paralelo; se uma falhar, nada é gravado (a leitura do dia é uma só).
   const chamadas = await Promise.all(
-    FRENTES.map((frente) => chamarFrente(frente, { dataReferencia, provedor, signal, fetchFn: deps.fetch || fetch }))
+    FRENTES.map((frente) => chamarFrente(frente, { dataReferencia, recentes, provedor, signal, fetchFn: deps.fetch || fetch }))
   );
-  return { dataReferencia, versaoPrompt: chamadas[0].versaoPrompt, instrucaoDoSistema: chamadas[0].instrucaoDoSistema, chamadas };
+  return { dataReferencia, versaoPrompt: chamadas[0].versaoPrompt, instrucaoDoSistema: chamadas[0].instrucaoDoSistema, chamadas, eventosRecentes: recentes };
 }
 
 function parse(resposta) {
@@ -322,6 +386,31 @@ function detalhesDaIa(resposta) {
   };
 }
 
+// Por ativo, as páginas que já sustentaram um evento aceito: { PETROLEO: Map(página -> { data, titulo }) }.
+function paginasVistasDe(recentes) {
+  const vistas = Object.fromEntries(ATIVOS.map((ativo) => [ativo, new Map()]));
+  for (const evento of recentes) {
+    for (const pagina of evento.paginas) {
+      if (vistas[evento.ativo] && !vistas[evento.ativo].has(pagina)) vistas[evento.ativo].set(pagina, evento);
+    }
+  }
+  return vistas;
+}
+
+// O motivo, se a linha aceita repete um evento: TODAS as páginas que a sustentam já sustentaram um evento aceito do mesmo
+// ativo. Uma página nova basta para não ser repetição. Não repetida, as páginas dela passam a contar para as próximas.
+function repeticao(linha, paginasVistas, dataReferencia) {
+  const paginas = paginasDeRepeticao(linha.fontes);
+  const vistas = paginasVistas[linha.ativo];
+  if (paginas.length > 0 && paginas.every((pagina) => vistas.has(pagina))) {
+    const anterior = vistas.get(paginas[0]);
+    const quando = anterior.data === dataReferencia ? "nesta mesma leitura" : `em ${ddmm(anterior.data)}`;
+    return `Repetição: a página que sustenta este evento já sustentou "${anterior.titulo}" ${quando}.`;
+  }
+  for (const pagina of paginas) if (!vistas.has(pagina)) vistas.set(pagina, { data: dataReferencia, titulo: linha.titulo });
+  return null;
+}
+
 function normalize([resposta]) {
   // Já havia leitura de hoje: nada a validar; o persist conta como "ignorado".
   if (resposta.pular) return { validos: [{ pular: true }], invalidos: [], avisos: [] };
@@ -330,6 +419,7 @@ function normalize([resposta]) {
   const avisos = [];
   const secoes = {};
   const eventos = [];
+  const paginasVistas = paginasVistasDe(resposta.eventosRecentes || []);
 
   for (const chamada of resposta.chamadas) {
     const frente = FRENTES.find((f) => f.codigo === chamada.frente);
@@ -363,6 +453,14 @@ function normalize([resposta]) {
       }
       const linhas = normalizarEvento(evento, ativos, fontesLidas, chamada.grounding);
       if (!linhas[0].aceito) avisos.push({ item: { ativos, titulo: linhas[0].titulo }, motivo: linhas[0].motivo_rejeicao });
+      for (const linha of linhas.filter((l) => l.aceito)) {
+        const repetido = repeticao(linha, paginasVistas, resposta.dataReferencia);
+        if (repetido) {
+          linha.aceito = false;
+          linha.motivo_rejeicao = repetido.slice(0, 255);
+          avisos.push({ item: { ativo: linha.ativo, titulo: linha.titulo }, motivo: linha.motivo_rejeicao });
+        }
+      }
       eventos.push(...linhas);
     }
     for (const ativo of frente.ativos) {

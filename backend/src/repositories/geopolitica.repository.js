@@ -99,6 +99,27 @@ async function listarEventosAceitosDoFator({ ativo, fator, dataInicio, dataFim }
   });
 }
 
+// Os eventos ACEITOS de todos os ativos das leituras de uma janela de datas, com a data da leitura: o que a leitura do
+// dia recebe para não repetir um fato já registrado (ADR 0092).
+async function listarEventosAceitosRecentes({ dataInicio, dataFim }) {
+  return GeopoliticaEvento.findAll({
+    where: { aceito: true },
+    attributes: ["ativo", "titulo", "fontes", "ordem"],
+    include: [
+      {
+        model: GeopoliticaLeitura,
+        as: "leitura",
+        where: { data_referencia: { [Op.between]: [dataInicio, dataFim] } },
+        attributes: ["data_referencia"]
+      }
+    ],
+    order: [
+      [{ model: GeopoliticaLeitura, as: "leitura" }, "data_referencia", "ASC"],
+      ["ordem", "ASC"]
+    ]
+  });
+}
+
 // As datas com leitura de um ativo numa janela (o nível do ativo preenchido; as leituras anteriores ao ADR 0049 não
 // têm o milho nem o café) e a data da 1ª leitura do ativo (ou null): os dias sem leitura da janela.
 async function listarDatasDeLeitura({ ativo, dataInicio, dataFim }) {
@@ -124,5 +145,6 @@ module.exports = {
   listarEventos,
   buscarLeituraPorId,
   listarEventosAceitosDoFator,
+  listarEventosAceitosRecentes,
   listarDatasDeLeitura
 };

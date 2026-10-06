@@ -11,13 +11,19 @@ import geopoliticaService from '../services/geopolitica.service.js'
 import { rotuloAtivo, rotuloGrau, formatarData, rotuloTipo, TIPOS, ATIVOS } from '../utils/geopolitica.js'
 
 // Tela Eventos (ADRs 0047 e 0049): os eventos de mercado que a leitura diária encontrou e entregou como contexto ao
-// prompt de cada ativo (ouro, petróleo, milho e café). Só leitura: os eventos aceitos (os que vão ao Motor), um por
-// linha, expandíveis, com filtro por ativo, tipo e período. O nível e o resumo do dia de cada ativo ficam no Centro de
-// Decisão (ADR 0048); aqui a última leitura só alimenta a metodologia (modelo e versão do prompt). Os rejeitados (sem
-// página de fonte autorizada ligada ao evento) não aparecem aqui: ficam no detalhe da execução, na tela Execuções.
+// prompt de cada ativo (ouro, petróleo, milho e café). Só leitura: um evento por linha, expandível, com filtro por
+// situação, ativo, tipo e período. A situação abre nos aceitos (os que vão ao Motor); os rejeitados (sem página de fonte
+// autorizada ligada ao evento, ou repetição de um evento já registrado, ADR 0092) aparecem pelo filtro, com o motivo no
+// detalhe. O nível e o resumo do dia de cada ativo ficam no Centro de Decisão (ADR 0048); aqui a última leitura só
+// alimenta a metodologia (modelo e versão do prompt).
 
 const OPCOES_LINHAS_POR_PAGINA = [25, 50, 100, 200]
 const OPCOES_ATIVO = [{ valor: '', rotulo: 'Todos' }, ...Object.entries(ATIVOS).map(([valor, rotulo]) => ({ valor, rotulo }))]
+const OPCOES_SITUACAO = [
+  { valor: 'aceitos', rotulo: 'Aceitos' },
+  { valor: 'rejeitados', rotulo: 'Rejeitados' },
+  { valor: 'todos', rotulo: 'Todos' }
+]
 
 const leitura = ref(null)
 const fontesConfiaveis = ref(null)
@@ -31,6 +37,7 @@ const ordem = ref('DESC')
 const carregando = ref(true)
 const errorMessage = ref('')
 
+const situacaoFiltro = ref('aceitos')
 const ativoFiltro = ref('')
 const tipoFiltro = ref('')
 const dataInicioFiltro = ref('')
@@ -53,8 +60,7 @@ async function carregar() {
     const resultado = await geopoliticaService.listarEventos({
       ativo: ativoFiltro.value || undefined,
       tipo: tipoFiltro.value || undefined,
-      // Só os aceitos (o que vai ao Motor); os rejeitados aparecem no detalhe da execução, na tela Execuções.
-      situacao: 'aceitos',
+      situacao: situacaoFiltro.value,
       dataInicio: dataInicioFiltro.value || undefined,
       dataFim: dataFimFiltro.value || undefined,
       pagina: paginaAtual.value,
@@ -105,7 +111,7 @@ function atualizarTudo() {
   carregar()
 }
 
-watch([ativoFiltro, tipoFiltro, dataInicioFiltro, dataFimFiltro, tamanhoPagina], () => {
+watch([situacaoFiltro, ativoFiltro, tipoFiltro, dataInicioFiltro, dataFimFiltro, tamanhoPagina], () => {
   paginaAtual.value = 1
   carregar()
 })
@@ -158,7 +164,10 @@ onMounted(atualizarTudo)
             </li>
             <li>
               <strong>Observável não é evento.</strong> Preço, produção, exportação, estoque, previsão do tempo comum e
-              relatórios periódicos (WASDE, Conab, COT, EIA) o FinMind já coleta: não viram evento. A IA é instruída a ser
+              os relatórios periódicos que o FinMind coleta (WASDE, Conab, IMEA, COT, EIA) não viram evento. Mas esses
+              relatórios cobrem o Brasil e os EUA e saem uma vez por mês ou por semana: o fato que os números ainda não
+              mostram pode ser evento, como uma seca confirmada antes do próximo relatório, a safra da Argentina, a
+              mudança de status do El Niño, um furacão no Golfo do México ou um mandato de etanol. A IA é instruída a ser
               conservadora: na dúvida, não é evento, e um dia sem nenhum evento é normal.
             </li>
             <li>
@@ -183,8 +192,15 @@ onMounted(atualizarTudo)
               autorizada</strong> que a pesquisa de fato leu estiver <strong>ligada ao texto do evento</strong>. A página é
               conferida pelo endereço completo: no gov.br, vale só o caminho da instituição (gov.br/agricultura para o
               MAPA). A citação feita pela IA não basta. Sem isso, o evento é <strong>rejeitado</strong> e não vai ao Motor:
-              ele não aparece nesta tela, só como aviso no detalhe da execução (tela Execuções), com o motivo. A regra
+              ele aparece nesta tela pelo filtro <em>Situação</em> (Rejeitados ou Todos), com o motivo no detalhe. A regra
               existe porque, num teste, a IA citou a Reuters sem ter lido nenhuma página dela.
+            </li>
+            <li>
+              <strong>Sem repetição.</strong> Cada dia é uma leitura nova, sem acompanhamento de eventos. Para o mesmo fato
+              não voltar dia após dia, o prompt traz os eventos aceitos dos últimos 3 dias, com a regra de só registrar
+              um desdobramento novo, e o FinMind rejeita como <strong>repetição</strong> o evento sustentado só por
+              páginas que já sustentaram um evento aceito do mesmo ativo nesses dias (ou antes, na mesma leitura). As
+              páginas reescritas na mesma URL (a perspectiva do NHC, a discussão do El Niño) não contam.
             </li>
             <li>
               <strong>Sem pesquisa, sem leitura.</strong> Às vezes a IA responde sem pesquisar, sem dar erro, escrevendo
@@ -211,8 +227,10 @@ onMounted(atualizarTudo)
             milho e o café entraram em 02/10/2026. A escala de nível e o que conta como "fora do normal" são provisórios: a
             régua é do especialista. Intensidade e confiança são declaradas pela própria IA. Ficaram de fora, depois de
             testados: a Reuters (a pesquisa do Gemini não lê o site), o World Gold Council (análise, não fato), APHIS,
-            alfândega da China, SENASA e Federal Register (sem informação nova), e, por ora, MME, EPA, Conab e MDIC.
-            Decisões registradas nos ADRs 0047 e 0049.
+            alfândega da China, SENASA e Federal Register (sem informação nova), e, por ora, Conab, MDIC, a Federação de
+            Cafeteiros da Colômbia e o PIB da Índia. Em 06/10/2026 entraram CENTCOM, NHC, BSEE, Bolsa de Rosario,
+            governo da Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC. Decisões registradas nos ADRs 0047, 0049 e
+            0092.
           </p>
           <dl class="eventos__metodologia-lista">
             <dt>Fonte</dt>
@@ -254,6 +272,12 @@ onMounted(atualizarTudo)
 
       <div v-else class="tabela-card">
         <div class="tabela-card__filtros">
+          <div>
+            <label class="form-label small mb-1 d-block">Situação</label>
+            <select v-model="situacaoFiltro" class="form-select form-select-sm">
+              <option v-for="opcao in OPCOES_SITUACAO" :key="opcao.valor" :value="opcao.valor">{{ opcao.rotulo }}</option>
+            </select>
+          </div>
           <div>
             <label class="form-label small mb-1 d-block">Ativo</label>
             <select v-model="ativoFiltro" class="form-select form-select-sm">
@@ -322,7 +346,16 @@ onMounted(atualizarTudo)
             <template #body="{ data }">{{ rotuloAtivo(data.ativo) }}</template>
           </Column>
           <Column header="Título">
-            <template #body="{ data }"><span class="eventos__titulo-coluna" :title="data.titulo">{{ data.titulo }}</span></template>
+            <template #body="{ data }">
+              <span
+                v-if="data.aceito === false"
+                class="tipo-tag tipo-tag--rejeitado"
+                :title="data.motivoRejeicao || 'Rejeitado: não vai ao Motor.'"
+              >
+                Rejeitado
+              </span>
+              <span class="eventos__titulo-coluna" :title="data.titulo">{{ data.titulo }}</span>
+            </template>
           </Column>
           <Column header="Pressão">
             <template #body="{ data }"><PressaoIndicador :codigo="data.pressao" /></template>
@@ -582,5 +615,10 @@ onMounted(atualizarTudo)
   white-space: nowrap;
   background: var(--p-content-hover-background);
   color: var(--p-text-color);
+}
+.tipo-tag--rejeitado {
+  margin-right: 0.4rem;
+  background: color-mix(in srgb, var(--p-red-500) 14%, transparent);
+  color: var(--p-red-600);
 }
 </style>

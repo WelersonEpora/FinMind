@@ -104,7 +104,7 @@ function chamada(frente, texto, grounding, extra = {}) {
 
 const RESPOSTA = {
   dataReferencia: "2026-10-02",
-  versaoPrompt: "geopolitica-diaria@13",
+  versaoPrompt: "geopolitica-diaria@14",
   instrucaoDoSistema: "instrução enviada",
   chamadas: [chamada("OURO_PETROLEO", TEXTO_OP, GROUNDING_OP), chamada("MILHO_CAFE", TEXTO_MC, GROUNDING_MC, { chave: "paga", tokens: 234 })]
 };
@@ -117,7 +117,7 @@ function comChamada(frente, mudanca) {
 const COMERCIO_LIDO = { groundingChunks: [{ web: { title: "ustr.gov", urlFinal: "https://ustr.gov/x" } }] };
 
 // Repositório falso: ainda não há leitura do dia (o download segue para a IA).
-const SEM_LEITURA_HOJE = { existeLeituraDoDia: async () => false };
+const SEM_LEITURA_HOJE = { existeLeituraDoDia: async () => false, listarEventosAceitosRecentes: async () => [] };
 
 // Provedor falso que responde pela frente do prompt ("Ativos desta chamada: OURO e PETRÓLEO").
 function provedorPorFrente(respostas, recebidos = []) {
@@ -239,8 +239,29 @@ test("parser: fontes em 'Nome - URL', '[Nome](URL)' e só o nome", () => {
 
 // --- fontes autorizadas ---
 
-test("fontes: a lista do ADR 0049 (11 fontes, sem o World Gold Council), cada uma com escopo, tipos e ativos válidos", () => {
-  assert.deepEqual(Object.keys(FONTES), ["UKMTO", "TESOURO", "OPEP", "AP", "USTR", "CASA_BRANCA", "MOFCOM", "COMISSAO_EUROPEIA", "MAPA", "USDA_FAS", "INMET"]);
+test("fontes: as 11 do ADR 0049 e as 9 do ADR 0092, cada uma com escopo, tipos e ativos válidos", () => {
+  assert.deepEqual(Object.keys(FONTES), [
+    "UKMTO",
+    "TESOURO",
+    "OPEP",
+    "AP",
+    "USTR",
+    "CASA_BRANCA",
+    "MOFCOM",
+    "COMISSAO_EUROPEIA",
+    "MAPA",
+    "USDA_FAS",
+    "INMET",
+    "CENTCOM",
+    "NHC",
+    "BSEE",
+    "BCR",
+    "ARGENTINA",
+    "EPA",
+    "MME",
+    "PANAMA",
+    "CPC_ENSO"
+  ]);
   for (const fonte of Object.values(FONTES)) {
     assert.ok(fonte.escopos.length > 0);
     assert.ok(fonte.tipos.every((t) => CODIGOS_TIPO.includes(t)), fonte.nome);
@@ -249,8 +270,34 @@ test("fontes: a lista do ADR 0049 (11 fontes, sem o World Gold Council), cada um
 });
 
 test("fontes: cada chamada recebe só as fontes que cobrem os seus ativos", () => {
-  assert.deepEqual(fontesDosAtivos(["OURO", "PETROLEO"]), ["UKMTO", "TESOURO", "OPEP", "AP", "CASA_BRANCA"]);
-  assert.deepEqual(fontesDosAtivos(["MILHO", "CAFE"]), ["UKMTO", "AP", "USTR", "CASA_BRANCA", "MOFCOM", "COMISSAO_EUROPEIA", "MAPA", "USDA_FAS", "INMET"]);
+  assert.deepEqual(fontesDosAtivos(["OURO", "PETROLEO"]), ["UKMTO", "TESOURO", "OPEP", "AP", "CASA_BRANCA", "CENTCOM", "NHC", "BSEE", "PANAMA"]);
+  assert.deepEqual(fontesDosAtivos(["MILHO", "CAFE"]), [
+    "UKMTO",
+    "AP",
+    "USTR",
+    "CASA_BRANCA",
+    "MOFCOM",
+    "COMISSAO_EUROPEIA",
+    "MAPA",
+    "USDA_FAS",
+    "INMET",
+    "BCR",
+    "ARGENTINA",
+    "EPA",
+    "MME",
+    "PANAMA",
+    "CPC_ENSO"
+  ]);
+});
+
+test("fontes: as do ADR 0092 pela URL - o MME só no caminho dele no gov.br; a Argentina nos dois domínios", () => {
+  assert.equal(fonteDaUrl("https://www.gov.br/mme/pt-br/assuntos/noticias/resolucao-que-institui-o-e32"), "MME");
+  assert.equal(fonteDaUrl("https://www.gov.br/mme-x/a"), null);
+  assert.equal(fonteDaUrl("https://www.boletinoficial.gob.ar/detalleAviso/primera/342702/20260603"), "ARGENTINA");
+  assert.equal(fonteDaUrl("https://www.argentina.gob.ar/noticias/reduccion-derechos-de-exportacion"), "ARGENTINA");
+  assert.equal(fonteDaUrl("https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso_advisory/ensodisc.shtml"), "CPC_ENSO");
+  assert.equal(fonteDaUrl("https://www.centcom.mil/MEDIA/PUBLIC-RELEASES/Article/4619553/x/"), "CENTCOM");
+  assert.equal(fonteDaUrl("https://www.bcr.com.ar/es/mercados/gea/noticias/la-primavera-comienza"), "BCR");
 });
 
 test("fontes: pela URL - domínio e, no gov.br, o caminho da instituição", () => {
@@ -349,7 +396,7 @@ test("normalize: uma leitura com as duas chamadas; uma linha por (evento, ativo 
   assert.match(leitura.texto_bruto, /^=== OURO E PETRÓLEO ===\nOURO\n/);
   assert.match(leitura.texto_bruto, /\n\n=== MILHO E CAFÉ ===\nMILHO\n/);
   assert.match(leitura.prompt, /prompt OURO_PETROLEO[\s\S]*prompt MILHO_CAFE/);
-  assert.equal(leitura.versao_prompt, "geopolitica-diaria@13");
+  assert.equal(leitura.versao_prompt, "geopolitica-diaria@14");
   // Uma chamada usou a chave paga: a leitura registra "paga"; os tokens somam.
   assert.equal(leitura.chave, "paga");
   assert.equal(leitura.tokens, 1234);
@@ -501,6 +548,99 @@ test("normalize: piso por ativo, conferido com as fontes lidas pela chamada do a
   assert.match(avisoDoOuro(["https://www.ukmto.org/aviso.pdf"]).motivo, /NORMAL do ouro sem busca na AP News ou no Tesouro dos EUA lida/);
   assert.equal(avisoDoOuro(["https://www.ukmto.org/aviso.pdf", "https://home.treasury.gov/news/press-releases/x"]), undefined);
   assert.equal(avisoDoOuro(["https://apnews.com/article/x"]), undefined);
+
+  // Petróleo NORMAL (ADR 0092): o NHC, o BSEE e o Canal do Panamá sozinhos não bastam; o CENTCOM basta.
+  const textoPetroleoNormal = TEXTO_OP.replace("Nível: EXCEPCIONAL", "Nível: NORMAL");
+  const avisoDoPetroleo = (urls) =>
+    coletor
+      .normalize(coletor.parse(comChamada("OURO_PETROLEO", { texto: textoPetroleoNormal, grounding: { groundingChunks: urls.map((url) => ({ web: { urlFinal: url } })) } })))
+      .avisos.find((a) => a.item.ativo === "PETROLEO" && /Nível NORMAL/.test(a.motivo));
+  assert.match(
+    avisoDoPetroleo(["https://www.nhc.noaa.gov/gtwo.php", "https://www.bsee.gov/newsroom/x", "https://pancanal.com/en/x"]).motivo,
+    /NORMAL do petróleo sem fonte de geopolítica ou de oferta do petróleo lida/
+  );
+  assert.equal(avisoDoPetroleo(["https://www.centcom.mil/MEDIA/PUBLIC-RELEASES/Article/1/x/"]), undefined);
+});
+
+// --- repetição (ADR 0092) ---
+
+// O EVENTO 1 do TEXTO_OP (petróleo) é sustentado pelo PDF_UKMTO no GROUNDING_OP.
+const RECENTE_UKMTO = { data: "2026-10-01", ativo: "PETROLEO", titulo: "Petroleiro atingido ontem", paginas: [PDF_UKMTO] };
+
+test("repetição: evento sustentado só por página que já sustentou um aceito do mesmo ativo é rejeitado, com o evento anterior", () => {
+  const { validos, avisos } = coletor.normalize(coletor.parse({ ...RESPOSTA, eventosRecentes: [RECENTE_UKMTO] }));
+  const petroleo = validos[0].eventos.find((e) => e.ativo === "PETROLEO" && e.ordem === 1);
+  assert.equal(petroleo.aceito, false);
+  assert.match(petroleo.motivo_rejeicao, /^Repetição: a página que sustenta este evento já sustentou "Petroleiro atingido ontem" em 01\/10\./);
+  assert.ok(avisos.some((a) => a.item.ativo === "PETROLEO" && /^Repetição/.test(a.motivo)));
+  // Outro ativo do mesmo evento (o ouro) não tinha essa página: segue aceito.
+  assert.equal(validos[0].eventos.find((e) => e.ativo === "OURO" && e.ordem === 1).aceito, true);
+});
+
+test("repetição: com uma página nova, não é repetição; a URL compara sem a barra do fim e sem o #", () => {
+  const outraPagina = { ...RECENTE_UKMTO, paginas: ["https://www.ukmto.org/outro.pdf"] };
+  const semRepeticao = coletor.normalize(coletor.parse({ ...RESPOSTA, eventosRecentes: [outraPagina] }));
+  assert.equal(semRepeticao.validos[0].eventos.find((e) => e.ativo === "PETROLEO" && e.ordem === 1).aceito, true);
+
+  const mesmaComBarra = { ...RECENTE_UKMTO, paginas: [`${PDF_UKMTO}`] };
+  const groundingComBarra = { ...GROUNDING_OP, groundingChunks: GROUNDING_OP.groundingChunks.map((c, i) => (i === 0 ? { web: { ...c.web, urlFinal: `${PDF_UKMTO}/#p1` } } : c)) };
+  const repetido = coletor.normalize(coletor.parse({ ...comChamada("OURO_PETROLEO", { grounding: groundingComBarra }), eventosRecentes: [mesmaComBarra] }));
+  assert.equal(repetido.validos[0].eventos.find((e) => e.ativo === "PETROLEO" && e.ordem === 1).aceito, false);
+});
+
+test("repetição: dois eventos da mesma leitura na mesma página - o segundo é rejeitado", () => {
+  const dois = TEXTO_OP.replace(
+    "EVENTO 2\nTítulo: Comentário de mercado sem página ligada",
+    "EVENTO 2\nTítulo: Petroleiro atingido por projétil no Mar Vermelho, de novo\nTipo: GEOPOLITICA\nAtivos: PETRÓLEO\n\nEVENTO 3\nTítulo: Comentário de mercado sem página ligada"
+  );
+  const grounding = {
+    ...GROUNDING_OP,
+    groundingSupports: [...GROUNDING_OP.groundingSupports, { segment: { text: "Petroleiro atingido por projétil no Mar Vermelho, de novo" }, groundingChunkIndices: [0] }]
+  };
+  const { validos } = coletor.normalize(coletor.parse(comChamada("OURO_PETROLEO", { texto: dois, grounding })));
+  const segundo = validos[0].eventos.find((e) => e.ordem === 2);
+  assert.equal(segundo.aceito, false);
+  assert.match(segundo.motivo_rejeicao, /já sustentou "Petroleiro atingido por projétil no Mar Vermelho" nesta mesma leitura\./);
+});
+
+test("repetição: a página reescrita na mesma URL (NHC, CPC) não conta", () => {
+  const nhc = "https://www.nhc.noaa.gov/gtwo.php";
+  const texto = TEXTO_OP.replace("**Título:** Petroleiro atingido por projétil no Mar Vermelho", "**Título:** Tempestade tropical ameaça o Golfo do México");
+  const grounding = {
+    groundingChunks: [{ web: { urlFinal: nhc } }, { web: { urlFinal: "https://apnews.com/article/x" } }],
+    groundingSupports: [{ segment: { text: "Tempestade tropical ameaça o Golfo do México" }, groundingChunkIndices: [0] }]
+  };
+  const recente = { data: "2026-10-01", ativo: "PETROLEO", titulo: "Sistema no Golfo", paginas: [nhc] };
+  const { validos } = coletor.normalize(coletor.parse({ ...comChamada("OURO_PETROLEO", { texto, grounding }), eventosRecentes: [recente] }));
+  assert.equal(validos[0].eventos.find((e) => e.ativo === "PETROLEO" && e.ordem === 1).aceito, true);
+});
+
+test("download: os aceitos dos 3 dias anteriores vão ao prompt da frente deles, um fato com vários ativos numa linha", async () => {
+  const pedidos = [];
+  const repo = {
+    existeLeituraDoDia: async () => false,
+    async listarEventosAceitosRecentes(janela) {
+      pedidos.push(janela);
+      return [
+        { ativo: "PETROLEO", titulo: "Navio-tanque atingido em Ormuz", fontes: [{ origem: "pesquisa", fonteAutorizada: "UKMTO", url: `${PDF_UKMTO}/` }], leitura: { data_referencia: "2026-10-05" } },
+        { ativo: "OURO", titulo: "Navio-tanque atingido em Ormuz", fontes: [], leitura: { data_referencia: "2026-10-05" } },
+        { ativo: "MILHO", titulo: "Seca trava o plantio na Argentina", fontes: [], leitura: { data_referencia: "2026-10-04" } }
+      ];
+    }
+  };
+  const provedor = provedorPorFrente({
+    OURO_PETROLEO: { texto: TEXTO_OP, grounding: { groundingChunks: [{ web: { urlFinal: "https://apnews.com/article/x" } }] } },
+    MILHO_CAFE: { texto: TEXTO_MC, grounding: COMERCIO_LIDO }
+  });
+  const resposta = await coletor.download({ signal: undefined }, { dataReferencia: "2026-10-06", geopoliticaRepository: repo, geminiSearch: provedor });
+  // Os dias anteriores, sem o próprio dia (refazer o dia substitui a leitura dele).
+  assert.deepEqual(pedidos, [{ dataInicio: "2026-10-03", dataFim: "2026-10-05" }]);
+  const [op, mc] = provedor.recebidos.map((r) => r.prompt);
+  assert.match(op, /\n- 05\/10 \(PETRÓLEO, OURO\): Navio-tanque atingido em Ormuz\n/);
+  assert.doesNotMatch(op, /Argentina/);
+  assert.match(mc, /\n- 04\/10 \(MILHO\): Seca trava o plantio na Argentina\n/);
+  // As páginas vão para a conferência da repetição, sem a barra do fim.
+  assert.deepEqual(resposta.eventosRecentes[0], { data: "2026-10-05", ativo: "PETROLEO", titulo: "Navio-tanque atingido em Ormuz", paginas: [PDF_UKMTO] });
 });
 
 test("normalize: detalhes das chamadas para a execução, com as fontes lidas de cada uma", () => {
@@ -511,7 +651,7 @@ test("normalize: detalhes das chamadas para a execução, com as fontes lidas de
       modelo: "gemini-flash-latest",
       tokens: 1234,
       repeticoesPeloPiso: 0,
-      versaoPrompt: "geopolitica-diaria@13",
+      versaoPrompt: "geopolitica-diaria@14",
       chamadas: 2,
       buscas: 3,
       paginasLidas: 4,
@@ -560,7 +700,7 @@ test("download: duas chamadas, cada uma com os seus ativos, o seu piso, as suas 
 
   assert.equal(recebidos.length, 2);
   assert.deepEqual(resposta.chamadas.map((c) => c.frente), ["OURO_PETROLEO", "MILHO_CAFE"]);
-  assert.equal(resposta.versaoPrompt, "geopolitica-diaria@13");
+  assert.equal(resposta.versaoPrompt, "geopolitica-diaria@14");
   // A instrução do sistema é a mesma; o prompt muda por chamada.
   assert.equal(recebidos[0].systemInstruction, recebidos[1].systemInstruction);
   assert.match(recebidos[0].systemInstruction, /Não procure notícias gerais\. Procure somente acontecimentos relevantes nas fontes autorizadas/);
@@ -573,7 +713,8 @@ test("download: duas chamadas, cada uma com os seus ativos, o seu piso, as suas 
   assert.doesNotMatch(op, /MAPA|INMET|USTR/);
   assert.equal((op.match(/^- (OURO|PETROLEO)_[A-Z_]+: /gm) || []).length, 18);
   assert.match(op, /- OURO: ao menos uma busca na AP News .* ou no Tesouro dos EUA .*; o UKMTO sozinho não basta/);
-  assert.match(op, /- PETRÓLEO: ao menos uma busca numa fonte que cobre o ativo/);
+  assert.match(op, /- PETRÓLEO: ao menos uma busca numa fonte de geopolítica ou de oferta que cobre o ativo .*; as de furacão e de rota sozinhas não bastam/);
+  assert.match(op, /Eventos já registrados nos últimos dias .*:\nNenhum evento aceito nos últimos 3 dias\./);
 
   assert.match(mc, /Ativos desta chamada: MILHO e CAFÉ/);
   assert.match(mc, /- MAPA \(Ministério da Agricultura\) \(gov\.br\/agricultura\) - tipos: Política comercial, Sanidade, Regulação - ativos: milho, café: /);
@@ -702,7 +843,7 @@ test("download: já existe leitura de hoje - pula as chamadas e o persist conta 
 test("download: com GEOPOLITICA_REFAZER, chama a IA mesmo com leitura de hoje (e não consulta o banco)", async () => {
   const pagina = { groundingChunks: [{ web: { title: "apnews.com" } }] };
   const provedor = provedorPorFrente({ OURO_PETROLEO: { texto: TEXTO_OP, grounding: pagina }, MILHO_CAFE: { texto: TEXTO_MC, grounding: COMERCIO_LIDO } });
-  const deps = { dataReferencia: "2026-10-02", refazer: true, geopoliticaRepository: { existeLeituraDoDia: async () => assert.fail("não deveria consultar") }, geminiSearch: provedor };
+  const deps = { dataReferencia: "2026-10-02", refazer: true, geopoliticaRepository: { existeLeituraDoDia: async () => assert.fail("não deveria consultar"), listarEventosAceitosRecentes: async () => [] }, geminiSearch: provedor };
   const resposta = await coletor.download({ signal: undefined }, deps);
   assert.equal(provedor.recebidos.length, 2);
   assert.equal(resposta.pular, undefined);

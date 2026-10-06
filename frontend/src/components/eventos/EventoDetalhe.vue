@@ -18,6 +18,11 @@ const emit = defineEmits(['ver-ia'])
   <div class="evento-detalhe">
     <h3 class="evento-detalhe__titulo">{{ evento.titulo }}</h3>
 
+    <!-- Só na tela Eventos, com o filtro de rejeitados: o motivo de o evento não ir ao Motor (ADRs 0049 e 0092). -->
+    <p v-if="evento.aceito === false" class="evento-detalhe__rejeitado">
+      <strong>Rejeitado, não vai ao Motor.</strong> {{ evento.motivoRejeicao || '' }}
+    </p>
+
     <dl class="evento-detalhe__meta">
       <div><dt>Tipo</dt><dd>{{ rotuloTipo(evento.tipo) }}</dd></div>
       <div><dt>Ativo</dt><dd>{{ rotuloAtivo(evento.ativo) }}</dd></div>
@@ -102,6 +107,15 @@ const emit = defineEmits(['ver-ia'])
 </template>
 
 <style scoped>
+.evento-detalhe__rejeitado {
+  margin: -0.4rem 0 0.9rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
+  color: var(--p-text-color);
+}
+
 .evento-detalhe__nota {
   margin: -0.4rem 0 0.9rem;
   font-size: 0.75rem;

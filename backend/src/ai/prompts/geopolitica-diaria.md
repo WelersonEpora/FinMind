@@ -1,6 +1,6 @@
 # Prompt — Leitura diária de eventos de mercado (ouro, petróleo, milho e café)
 
-**Versão:** 13
+**Versão:** 14
 
 Histórico: v1 (2026-10-01) - formato inicial. v2 (2026-10-01) - rótulo `Pressão sobre o preço` em cada evento (alta,
 baixa ou ambígua): a direção em que o fato, sozinho e com o resto constante, empurra o preço do ativo. Não é previsão
@@ -47,6 +47,16 @@ com o que foi decidido, para quando e a comparação com o esperado quando a fon
 "extraordinária". Motivo: os oito países dos cortes voluntários decidem todo mês, e a decisão mensal é o que o fator
 da OPEP+ do petróleo lê; sem o "manter", o fator ficava vazio e podia ser lido como calmaria (decisão do usuário,
 ADR 0091).
+v14 (2026-10-06) - (1) "não é evento" passa a valer só para o NÚMERO que o FinMind coleta (Brasil e EUA): um fato de
+safra ou de clima que esses números ainda não mostram (seca ou quebra confirmada antes do próximo relatório, safra de
+país sem série no FinMind, mudança de status do El Niño ou da La Niña, furacão no Golfo do México) e a decisão que muda a
+demanda (mandato de etanol) podem ser evento. (2) Nove fontes novas: CENTCOM, NOAA NHC, BSEE, Bolsa de Comercio de
+Rosario, governo da Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC, com a rotina de cada uma. (3) O prompt traz
+os eventos aceitos dos últimos 3 dias dos ativos da chamada, com a regra de só repetir um desdobramento novo. (4)
+Cumprido o mínimo de pesquisa, as buscas restantes vão para o que o mínimo não olha (clima, safra fora do Brasil e dos
+EUA, logística, demanda). Motivo: de 02 a 06/10 a tela só teve o petróleo, o mesmo fato de Ormuz dia após dia, enquanto
+a Bolsa de Rosario relatava 70% da região núcleo da Argentina em seca e o NHC acompanhava um sistema no Golfo do México
+(decisão do usuário, ADR 0092).
 
 Usado pelo coletor `geopolitica-ia-diario` (ADRs 0047 e 0049), em DUAS chamadas diárias ao Gemini com busca na web
 (desde a v11: ouro e petróleo numa, milho e café na outra; a mesma instrução do sistema e um prompt por chamada, com os
@@ -76,18 +86,32 @@ expectativa de preço dos ativos.
 
 O QUE O FINMIND JÁ COLETA (NÃO É EVENTO)
 O FinMind já coleta, todos os dias, séries de preço (futuros e indicadores à vista), produção, área e produtividade
-(Conab, USDA, IMEA), balanços de oferta e demanda (WASDE), estoques (EIA, Grain Stocks, estoques certificados da ICE),
-exportações (Comex Stat, Cecafé), posição dos fundos (COT), condição das lavouras e saúde da vegetação, juros, inflação
-e câmbio. Por isso, NÃO são eventos:
+do Brasil e dos EUA (Conab, IMEA, USDA), balanços de oferta e demanda (WASDE), estoques (EIA, Grain Stocks, estoques
+certificados da ICE), exportações (Comex Stat, Cecafé), posição dos fundos (COT), condição das lavouras e saúde da
+vegetação, juros, inflação e câmbio. Por isso, NÃO são eventos:
 - preço, cotação ou variação de preço;
-- produção, safra, área ou produtividade, mesmo quando um relatório as revisa;
+- o NÚMERO de produção, safra, área ou produtividade de um relatório que o FinMind coleta (Conab, IMEA, USDA, WASDE),
+  mesmo quando o relatório o revisa;
 - exportação, importação ou embarque;
 - estoque, inclusive os estoques semanais e os certificados;
 - previsão do tempo comum, chuva ou calor dentro do normal da estação;
-- relatório periódico (WASDE, Conab, Crop Progress, COT, EIA, Grain Stocks, boletins mensais), qualquer que seja o
-  número;
+- os relatórios periódicos que o FinMind coleta (WASDE, Conab, IMEA, Crop Progress, COT, EIA, Grain Stocks),
+  qualquer que seja o número;
 - análise ou opinião de mercado.
 O evento é o fato que esses números ainda não mostram: a tarifa anunciada hoje, a geada de hoje, o ataque de hoje.
+
+O QUE OS NÚMEROS AINDA NÃO MOSTRAM (PODE SER EVENTO)
+Os relatórios que o FinMind coleta saem uma vez por mês ou por semana e cobrem o Brasil e os EUA. Por isso, PODEM ser
+evento, se forem novos, relevantes e publicados numa fonte autorizada:
+- um fato de safra ou de clima que os relatórios ainda não refletem: seca, chuva excepcional, geada ou quebra
+  confirmada numa região produtora, plantio travado fora do padrão da época;
+- a safra e o clima de países que o FinMind não acompanha em série (a Argentina, a Ucrânia, os produtores de café da
+  Ásia e da América Central): um boletim dessas fontes é evento quando traz uma mudança relevante, não quando repete o
+  quadro da semana anterior;
+- a mudança de status do El Niño ou da La Niña (alerta emitido, fenômeno iniciado ou encerrado), não a sua continuação;
+- uma tempestade ou furacão que ameaça ou paralisa a produção de petróleo no Golfo do México;
+- uma decisão que muda a demanda: o mandato de etanol dos EUA ou do Brasil, a mistura obrigatória.
+O número que sair depois num relatório coletado continua não sendo evento.
 
 REGRAS
 - Use a busca na web desta execução. Relate apenas fatos que você encontrou e confirmou na busca; nunca um fato
@@ -96,6 +120,9 @@ REGRAS
 - Recente = ocorrido ou anunciado nas últimas 24 a 48 horas, ou um desdobramento novo nesse período de uma situação
   que já existia. Uma situação crônica sem fato novo (uma guerra em curso, uma tarifa antiga) não é evento: mencione-a
   só se algo mudou.
+- O prompt traz os EVENTOS JÁ REGISTRADOS nos últimos dias. Não repita nenhum deles. Só registre de novo um fato
+  daquela lista se houver um desdobramento novo (outro ataque, a tempestade virou furacão, a medida entrou em vigor),
+  com um título que diga o que é novo e a página que publica o desdobramento. O mesmo fato, contado de novo, é rejeitado.
 - Nunca preveja preço, nunca recomende compra ou venda, nunca diga se o ativo vai subir ou cair. Descreva o fato, o
   canal pelo qual ele pode afetar cada ativo e a PRESSÃO que o fato, sozinho, exerce sobre o preço; o peso disso na
   análise é decidido depois, por outra etapa.
@@ -121,6 +148,8 @@ FONTES
 - PISO POR ATIVO: o prompt diz o mínimo de pesquisa de cada ativo desta chamada. Antes de declarar um ativo NORMAL,
   cumpra esse mínimo (você escolhe as fontes dentro dele). Nunca declare um ativo NORMAL sem ter pesquisado. O
   cumprimento é conferido depois, pelas páginas que a sua pesquisa de fato leu.
+- O mínimo não é o bastante: cumprido o mínimo, use as buscas restantes no que ele não olha - clima e safra (inclusive
+  fora do Brasil e dos EUA), logística e rotas, e decisões que mudam a demanda.
 - Não liste no resumo as fontes que você pesquisou: o FinMind registra isso a partir da própria pesquisa.
 - Só relate um fato se ele estiver publicado numa fonte autorizada. Um fato encontrado apenas em outro site não deve
   ser relatado, por mais relevante que pareça.
@@ -132,6 +161,12 @@ FONTES
 ROTINA NÃO É EVENTO
 - O Tesouro dos EUA publica sanções quase todos os dias; a AP News publica notícias do mundo todo; o INMET publica
   avisos de chuva e vento todos os dias; o MAPA e o USDA FAS publicam muita rotina. A maior parte disso não é evento.
+- O NHC publica a perspectiva tropical todos os dias: só é evento a tempestade que ameaça ou atinge a área de produção
+  ou de refino do Golfo do México. A Bolsa de Rosario publica o estado das lavouras toda semana: só é evento uma mudança
+  relevante (seca que se agrava, plantio travado, greve nos portos), não o quadro repetido. A EPA e o MME publicam
+  muita coisa fora dos biocombustíveis: só conta a decisão sobre o volume ou a mistura de etanol. O Canal do Panamá
+  publica avisos tarifários e de reservas: só conta a restrição de calado ou de trânsito. O CPC só conta quando muda o
+  status do El Niño ou da La Niña.
 - Uma sanção só é evento se atinge um país produtor, a frota que transporta o seu petróleo, reservas ou pagamentos
   internacionais, ou se é ampla e nova. Um aviso do INMET só é evento se for de geada ou onda de frio sobre as regiões
   do café ou da safrinha. Uma abertura de mercado só é evento se mudar de forma relevante quem compra o milho ou o café.
@@ -216,6 +251,9 @@ Fatores do FEL 1 por ativo (use o código; NAO_SE_APLICA quando nenhum se encaix
 
 Sugestões de busca (use as que fizerem sentido e acrescente outras, sempre dentro dessas fontes):
 {{sugestoes_busca}}
+
+Eventos já registrados nos últimos dias (não repita; só um desdobramento novo):
+{{eventos_recentes}}
 
 Faça a leitura de eventos de mercado de {{data_referencia}} para {{ativos}}, no formato pedido.
 ```

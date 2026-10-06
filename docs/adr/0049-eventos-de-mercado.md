@@ -151,6 +151,10 @@ teste usaram a chave paga (a gratuita estava sem cota).
 
 Fonte nova nesta lista só com autorização do usuário registrada aqui.
 
+**2026-10-06:** o usuário autorizou nove fontes novas (CENTCOM, NOAA NHC, BSEE, Bolsa de Comercio de Rosario, governo da
+Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC; a EPA e o MME saem do "talvez"), com o teste de acesso de cada uma,
+no ADR 0092. Ele também muda o piso do petróleo e trata a repetição entre dias.
+
 ## Regra de validação da fonte
 
 Um evento só é aceito quando:

@@ -11,7 +11,8 @@ const { URL } = require("node:url");
 // `gov.br`, o domínio sozinho não prova nada (o título que o Google devolve é "www.gov.br" para o MAPA, a Conab ou
 // qualquer ministério): vale só `gov.br/agricultura`. A conferência é sempre pela URL final da página lida.
 //
-// Testadas com a pesquisa do Gemini em 2026-10-02 (ADR 0049). Fonte nova só com autorização do usuário no ADR.
+// Testadas com a pesquisa do Gemini em 2026-10-02 (ADR 0049) e, as nove últimas, em 2026-10-06 (ADR 0092). Fonte nova
+// só com autorização do usuário no ADR.
 //
 // A API do Gemini não restringe a busca por domínio: a lista orienta a busca pelo prompt (com "site:") e é conferida
 // depois, página a página, contra o que a pesquisa de fato leu (paginas-da-pesquisa.js).
@@ -125,6 +126,95 @@ const FONTES = {
     ativos: ["CAFE", "MILHO"],
     apelidos: ["inmet", "instituto nacional de meteorologia"],
     buscas: ["site:avisos.inmet.gov.br geada", "site:portal.inmet.gov.br geada onda de frio"]
+  },
+  // As nove abaixo entraram em 2026-10-06 (ADR 0092, autorização do usuário), depois do teste de acesso com a pesquisa
+  // do Gemini (todas lidas na 1ª tentativa). Cobrem o que a lista do ADR 0049 não alcançava: a safra e o clima fora do
+  // Brasil e dos EUA, o furacão no Golfo do México, a demanda de etanol e as rotas.
+  CENTCOM: {
+    nome: "CENTCOM (Comando Central dos EUA)",
+    papel: "operações militares dos EUA no Oriente Médio: ataques, bloqueios e interceptações em Ormuz, no Mar Vermelho e no Irã",
+    escopos: [{ host: "centcom.mil" }],
+    tipos: ["GEOPOLITICA"],
+    ativos: ["PETROLEO", "OURO"],
+    apelidos: ["centcom", "u.s. central command", "us central command", "comando central"],
+    buscas: ["site:centcom.mil press release Iran", "site:centcom.mil Houthi Red Sea"]
+  },
+  NHC: {
+    nome: "NOAA NHC (Centro Nacional de Furacões)",
+    papel: "tempestades e furacões que ameaçam a produção e o refino de petróleo no Golfo do México",
+    escopos: [{ host: "nhc.noaa.gov" }],
+    tipos: ["CLIMA_EXTREMO"],
+    ativos: ["PETROLEO"],
+    apelidos: ["nhc", "national hurricane center", "centro nacional de furacoes"],
+    buscas: ["site:nhc.noaa.gov Gulf of Mexico tropical storm hurricane"],
+    // A perspectiva tropical e os avisos de uma tempestade são reescritos na mesma URL: a página repetida em outro dia
+    // não indica repetição do evento (ver o coletor).
+    paginaAtualizada: true
+  },
+  BSEE: {
+    nome: "BSEE (produção paralisada no Golfo do México)",
+    papel: "produção de petróleo e gás paralisada no Golfo do México por tempestade (só publica quando há uma)",
+    escopos: [{ host: "bsee.gov" }],
+    tipos: ["CLIMA_EXTREMO"],
+    ativos: ["PETROLEO"],
+    apelidos: ["bsee", "bureau of safety and environmental enforcement"],
+    buscas: ["site:bsee.gov hurricane response shut-in production"]
+  },
+  BCR: {
+    nome: "Bolsa de Comercio de Rosario",
+    papel: "seca, plantio e estado do milho na Argentina (região núcleo), greves nos portos de Rosário e o nível do rio Paraná",
+    escopos: [{ host: "bcr.com.ar" }],
+    tipos: ["CLIMA_EXTREMO", "CHOQUE_LOGISTICO"],
+    ativos: ["MILHO"],
+    apelidos: ["bolsa de comercio de rosario", "bcr", "rosario board of trade"],
+    buscas: ["site:bcr.com.ar maíz sequía siembra región núcleo", "site:bcr.com.ar paro portuario Rosario"]
+  },
+  ARGENTINA: {
+    nome: "Governo da Argentina (Boletín Oficial)",
+    papel: "imposto de exportação (retenciones) e restrições à exportação de milho da Argentina",
+    escopos: [{ host: "argentina.gob.ar" }, { host: "boletinoficial.gob.ar" }],
+    tipos: ["POLITICA_COMERCIAL"],
+    ativos: ["MILHO"],
+    apelidos: ["boletin oficial", "gobierno argentino", "governo argentino", "argentina.gob.ar"],
+    buscas: ["site:argentina.gob.ar derechos de exportación maíz", "site:boletinoficial.gob.ar derechos de exportación granos"]
+  },
+  EPA: {
+    nome: "EPA (Agência de Proteção Ambiental dos EUA)",
+    papel: "mandatos de etanol dos EUA (volumes do RFS, liberação do E15): a demanda de milho para etanol",
+    escopos: [{ host: "epa.gov" }],
+    tipos: ["REGULACAO"],
+    ativos: ["MILHO"],
+    apelidos: ["epa", "environmental protection agency", "renewable fuel standard"],
+    buscas: ["site:epa.gov Renewable Fuel Standard volumes", "site:epa.gov E15 emergency fuel waiver"]
+  },
+  MME: {
+    nome: "MME/CNPE (Ministério de Minas e Energia)",
+    papel: "mistura de etanol na gasolina (CNPE) e metas do RenovaBio: a demanda de etanol de milho no Brasil",
+    escopos: [{ host: "gov.br", caminho: "/mme" }],
+    tipos: ["REGULACAO"],
+    ativos: ["MILHO"],
+    apelidos: ["mme", "cnpe", "ministerio de minas e energia", "conselho nacional de politica energetica"],
+    buscas: ["site:gov.br/mme CNPE mistura etanol", "site:gov.br/mme RenovaBio"]
+  },
+  PANAMA: {
+    nome: "Autoridade do Canal do Panamá",
+    papel: "restrições de calado e de trânsito no Canal do Panamá (a rota do milho dos EUA para a Ásia e de navios-tanque)",
+    escopos: [{ host: "pancanal.com" }],
+    tipos: ["CHOQUE_LOGISTICO"],
+    ativos: ["MILHO", "PETROLEO"],
+    apelidos: ["panama canal authority", "autoridad del canal de panama", "canal do panama", "acp"],
+    buscas: ["site:pancanal.com advisory to shipping draft restriction"]
+  },
+  CPC_ENSO: {
+    nome: "NOAA CPC (El Niño e La Niña)",
+    papel: "mudança de status do El Niño ou da La Niña (alerta, início, fim), que muda o risco de seca na Argentina, no sul do Brasil e no café da Ásia",
+    escopos: [{ host: "cpc.ncep.noaa.gov" }],
+    tipos: ["CLIMA_EXTREMO"],
+    ativos: ["MILHO", "CAFE"],
+    apelidos: ["climate prediction center", "cpc", "noaa cpc", "enso"],
+    buscas: ["site:cpc.ncep.noaa.gov ENSO diagnostic discussion"],
+    // A discussão mensal sai sempre na mesma URL (ensodisc.shtml).
+    paginaAtualizada: true
   }
 };
 
