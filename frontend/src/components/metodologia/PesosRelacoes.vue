@@ -261,7 +261,7 @@ function tituloCelula(fator, mes, i) {
       <p class="pesos-relacoes__texto">
         Como o motor junta os sinais dos fatores, e como cada regra está hoje no FinMind.
         <template v-if="proposta">
-          A agregação do motor (proposta do FinMind, abaixo) as aplica em código, e o resultado vai ao prompt.
+          A agregação do motor (proposta do FinMind, abaixo) as aplica em código<template v-if="proposta.emProducao === false">; o resultado ainda não vai ao prompt</template><template v-else>, e o resultado vai ao prompt</template>.
         </template>
         <template v-else>Nenhuma é calculada.</template>
       </p>
@@ -339,7 +339,7 @@ function tituloCelula(fator, mes, i) {
               </td>
               <td v-for="h in proposta.horizontes" :key="h.codigo" class="pesos-relacoes__peso-familia">
                 <span v-if="proposta.modificador.horizontes.includes(h.codigo)" class="pesos-relacoes__modificador"
-                  >confiança</span
+                  >{{ proposta.modificador.rotulo || 'confiança' }}</span
                 >
                 <span v-else class="pesos-relacoes__celula--vazia">—</span>
               </td>
@@ -348,8 +348,9 @@ function tituloCelula(fator, mes, i) {
         </table>
       </div>
       <p class="pesos-relacoes__legenda">
-        Peso da família no horizonte; — a família não entra. Vai ao prompt (bloco 3B) como o peso de cada família em cada
-        horizonte; as regras estão abaixo.
+        Peso da família no horizonte (“mês”: o do calendário acima, no mês da análise); — a família não entra.
+        <template v-if="proposta.emProducao === false">Ainda fora do prompt; as regras estão abaixo.</template>
+        <template v-else>Vai ao prompt (bloco 3B) como o peso de cada família em cada horizonte; as regras estão abaixo.</template>
       </p>
 
       <h4 class="pesos-relacoes__subtitulo">Regras</h4>

@@ -175,6 +175,8 @@ export function celulaPesoFamilia(familia, horizonte, siglaPorCodigo = {}) {
   if (!peso) return { texto: '—', membros: null }
   const membros = familia.composicao?.[horizonte]
   const todos = !membros || membros.length === familia.fatores.length
+  // Um texto no lugar do número (o milho, ADR 0081: o peso é o do mês no calendário do especialista).
+  if (typeof peso === 'string') return { texto: peso, membros: null }
   return { texto: `${peso}%`, membros: todos ? null : membros.map((c) => siglaPorCodigo[c] || c).join(' + ') }
 }
 
@@ -192,6 +194,6 @@ export function resumoPesos(pesos) {
   if (pesos.pares?.some((par) => par.noPrompt)) orientacao.push('relações')
   if (pesos.agregacao.some((r) => r.noFinMind.situacao === 'ORIENTACAO')) orientacao.push('regras')
   const doEspecialista = orientacao.length ? ` e as ${orientacao.join(' e ')} do especialista, como orientação` : ''
-  const motor = pesos.agregacaoFinMind ? '; e a leitura agregada do motor (proposta do FinMind)' : ''
+  const motor = pesos.agregacaoFinMind && pesos.agregacaoFinMind.emProducao !== false ? '; e a leitura agregada do motor (proposta do FinMind)' : ''
   return `No prompt: ${peso}${doEspecialista}${motor}.`
 }

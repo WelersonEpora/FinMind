@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-05.**
+**Última atualização: 2026-10-06.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -67,7 +67,7 @@ medidas contra o preço realizado, na tela Qualidade da IA (ADR 0064).
 |---|---|---|---|---|
 | Petróleo (10 fatores) | David, em reunião, 2026-10-03; respostas por escrito a caminho | Brent, desde 2026-10-04 | Os fatores seguem marcados como proposta no código até as respostas por escrito; faixas provisórias; peso e agregação (ponto 3 da conversa) | ADRs 0050, 0051 e 0052 |
 | Ouro (8) | David, 2026-10-03 | GLD da B3, vencimento mais próximo | Instrumento (ponto 1); série contínua do GLD: o horizonte de 90 dias fica muitas vezes sem a variação (ADR 0044); faixas provisórias; peso e agregação | ADRs 0053 e 0054 |
-| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, à espera do Comitê; o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio), do usuário (ADR 0077); agregação em código (etapa 5) (ADRs 0059 e 0065); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); faixas calibradas no próprio CCM (ADR 0058, adendo), não as classes fixas do David (usuário, ADR 0079); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072, 0073, 0074, 0075, 0076, 0077, 0078, 0079 e 0080 |
+| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, à espera do Comitê; o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio), do usuário (ADR 0077); agregação em código (etapa 5): proposta do FinMind na tela, fora do prompt, sem superar os benchmarks no histórico do CCM (ADR 0081); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); faixas calibradas no próprio CCM (ADR 0058, adendo), não as classes fixas do David (usuário, ADR 0079); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072, 0073, 0074, 0075, 0076, 0077, 0078, 0079, 0080 e 0081 |
 | Café (8) | Comitê, 2026-10-05 (Motor do Café v1) | ICF | Faixas calibradas no ICF, não as classes fixas do David (usuário, ADR 0079); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); janelas críticas do clima e índice do INMET; como os dados novos entram no F3 e no F6 (ADR 0061); agregação em código em produção (ADR 0066): a validar pelo Comitê, com o histórico no servidor e o backtest | ADRs 0060, 0061, 0062, 0066, 0078 e 0079 |
 | **Comum aos quatro** | — | — | Eventos vão à IA sem validação humana (ponto 4); o formato de apresentação; o horizonte de 90 dias dos três futuros não tem preço na avaliação (o contrato da leitura vence antes; ADR 0064) | ADRs 0055 e 0064 |
 
@@ -1146,7 +1146,7 @@ fecham perguntas que eram do David.
 - **Faixas da leitura da IA (ADR 0079):** ficam as calibradas no próprio CCM, não as 6 classes fixas (no CCM em 1 dia,
   "irrelevante" seria 80% dos dias).
 
-**Fica em aberto no milho:** a agregação em código, com backtest (Comitê). Os fatores ausentes que o David listou
+**Fica em aberto no milho:** a agregação em código vai à produção? (ADR 0081: no histórico, não supera os benchmarks). Os fatores ausentes que o David listou
 (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio) ficam para depois da
 v1, porque pedem fonte nova (ADR 0080).
 
@@ -1607,6 +1607,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Agregação em código do milho | O calendário de pesos e as regras de agregação do David viram código (o bloco de oferta como um argumento, o F3 como filtro, o F7 multiplicando por 1,25 os fatores alinhados, o conflito com confiança BAIXA), com a escala e os limiares do café. Na tela de metodologia, ainda fora do prompt. No histórico do CCM (2022 a 2026, 235 semanas), o motor não supera Sempre Lateral nem Persistência, e fora do LATERAL erra a direção na maioria das vezes no Médio e no Longo. Script `npm run agregacao:milho` | ADR 0081 |
 | Fatores ausentes do milho | A pendência vira decisão do usuário: os fatores que o David propôs incluir (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio) ficam para depois da v1, porque pedem fonte nova; cada um volta com demanda e autorização próprias. O clima brasileiro já chega como contexto do F2 e pelos eventos do INMET, e o frete está dentro da paridade do IMEA | ADR 0080 |
 | Faixas da leitura da IA no milho e no café | A pendência das faixas vira decisão do usuário: ficam as calibradas no próprio futuro (percentis 40 e 80 por horizonte), não as 6 classes fixas do David. Nas classes fixas, o CCM em 1 dia cairia em "irrelevante" 80% das vezes e o ICF em 90 dias, em "excepcional" 60%; as calibradas ficam perto de 40/40/20 em todos os horizontes | ADR 0079 |
 | Vencimento de cada horizonte no milho e no café | A pendência dos vencimentos vira decisão do usuário, no milho e no café: cada horizonte usa o vencimento mais próximo que ainda negocia depois da data-alvo, e a leitura e a avaliação do horizonte usam esse contrato. Com o mais próximo para todos, o contrato vencia antes da data-alvo em todos os dias no horizonte de 90 dias do milho (78% no café) e na metade no de 30: esses horizontes nunca seriam avaliados. A curva (ajuste e contratos negociados de cada vencimento) vai ao prompt; abaixo de 100 contratos no dia, aviso de pouca liquidez. Configuração e prompt do milho e do café nas versões novas | ADR 0078 |

@@ -35,6 +35,7 @@
     "backfill:conab-milho": "node scripts/backfill-conab-milho.js",
     "backfill:conab-cafe": "node scripts/backfill-conab-cafe.js",
     "agregacao:cafe": "node scripts/agregacao-cafe-historico.js",
+    "agregacao:milho": "node scripts/agregacao-milho-historico.js",
     "backfill:imea-andamento": "node scripts/backfill-imea-andamento.js",
     "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",
     "backfill:imea-paridade": "node scripts/backfill-imea-paridade.js",

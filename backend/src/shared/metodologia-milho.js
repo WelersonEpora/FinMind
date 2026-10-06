@@ -1,6 +1,7 @@
 "use strict";
 
 const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-base");
+const { resumoParaTela } = require("../factors/agregacao/agregacao-milho");
 
 // Metodologia dos 8 fatores do milho: só as definições (o formato de cada uma está em metodologia-base.js). Fonte do
 // FEL 1: a tabela "Fatores de Influência de Preço: Milho", v1.1, copiada sem reescrever.
@@ -37,7 +38,8 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v14 (2026-10-05): o vencimento do CCM de cada horizonte e a curva no prompt; a pergunta sai (ADR 0078).
 // v15 (2026-10-05): as faixas calibradas ficam; a pergunta sai (ADR 0079).
 // v16 (2026-10-05): os fatores ausentes ficam para depois da v1; a pergunta sai (ADR 0080).
-const VERSAO = 16;
+// v17 (2026-10-06): a agregação em código do FinMind na tela, fora do prompt (ADR 0081).
+const VERSAO = 17;
 const DATA_VERSAO = "2026-10-05";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
@@ -394,7 +396,7 @@ const DO_ATIVO = {
     "Calendário de pesos nos meses que a proposta não define: o F1 de janeiro a maio, Baixo (o fator não tem leitura nesses meses); o F2 em janeiro e fevereiro, Médio (o plantio). Usuário (Welerson), 2026-10-05 (ADR 0077)."
   ],
   perguntas: [
-    "Agregação em código (Seção 4 da proposta): o teto do bloco de oferta e a paridade líquida (Chicago × câmbio) só existem como orientação no prompt. O Comitê quer a agregação calculada pelo motor, com o backtest?",
+    "Agregação em código: a proposta do FinMind com o calendário e as regras do especialista está na tela, fora do prompt (ADR 0081). No histórico do CCM (2022 a 2026), ela não supera Sempre Lateral nem Persistência. Vai ao prompt e ao Centro de Decisão, ou fica como referência até haver mais histórico?",
     "Correções da tabela original do FEL 1 (\"Copea\" para Cepea, câmbio pelo BCB, etanol com fontes brasileiras, F4 para Alto, F6 para Baixo-Médio e, no F7, a reversão nos extremos no lugar de \"amplifica\", ADR 0075): entram no FEL 1 revisado (até 2026-10-15)?",
   ]
 };
@@ -615,7 +617,9 @@ const PESOS_MILHO = {
       ],
       noFinMind: { situacao: "ORIENTACAO", texto: "No prompt: a tabela da cobertura (a idade e a situação de cada fator) e a confiança rebaixada sem dado." }
     }
-  ]
+  ],
+  // A agregação em código do FinMind (ADR 0081): na tela, ainda fora do prompt.
+  agregacaoFinMind: resumoParaTela()
 };
 
 function obterMetodologiaMilho() {

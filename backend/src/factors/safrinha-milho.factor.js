@@ -350,6 +350,8 @@ function exemplosSafrinha(pontosTodos, parametros = PARAMETROS_PADRAO) {
 
 const APRESENTACAO = {
   unidade: "%",
+  // A colheita de MT vai à agregação em código (ADR 0081): o ajuste do peso do F1 de junho a agosto (ADR 0077).
+  camposAgregacao: ["colheitaMtPct"],
   quadros: [
     { camada: "A", rotulo: "Levantamento e safra", campo: "levantamento", secundario: { prefixo: "safra", campo: "safra" } },
     {

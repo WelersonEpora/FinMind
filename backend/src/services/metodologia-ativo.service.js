@@ -285,7 +285,12 @@ function resumoCalculado(calculo) {
           rotuloTendencia: d.tendencia ? rotulosDecisao.tendencia[d.tendencia] : null
         }
       : null,
-    textoPrompt: calculo.textoPrompt
+    textoPrompt: calculo.textoPrompt,
+    // Os campos do ponto que a agregação em código usa além da decisão (`camposAgregacao` da apresentação do fator; o
+    // milho, ADR 0081: a colheita de MT do F2).
+    ...(calculo.apresentacao.camposAgregacao
+      ? { agregacao: Object.fromEntries(calculo.apresentacao.camposAgregacao.map((campo) => [campo, ultimo?.[campo] ?? null])) }
+      : {})
   };
 }
 
