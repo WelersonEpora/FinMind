@@ -45,7 +45,10 @@ const y = (valor) => {
   return TOPO + (1 - (valor - min) / (max - min || 1)) * ALT_PLOT
 }
 const marcas = computed(() => marcasDoEixo(props.leque.escala))
-const segundas = computed(() => dias.value.filter((d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 1))
+const diaDaSemana = (d) => new Date(`${d}T00:00:00Z`).getUTCDay()
+const segundas = computed(() => dias.value.filter((d) => diaDaSemana(d) === 1))
+// Sábado e domingo ganham fundo cinza: não há pregão, e a falta das bolinhas da linha fica explicada.
+const fimDeSemana = computed(() => dias.value.filter((d) => diaDaSemana(d) === 0 || diaDaSemana(d) === 6))
 // A virada de cada mês: o dia 1, menos o primeiro dia da janela. O nome sai no topo, com o ano em janeiro, e some quando
 // encostaria no "hoje".
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -205,6 +208,15 @@ onBeforeUnmount(() => observador?.disconnect())
         <defs>
           <clipPath id="leque-area"><rect x="0" :y="TOPO" :width="larguraTotal" :height="ALT_PLOT" /></clipPath>
         </defs>
+        <rect
+          v-for="d in fimDeSemana"
+          :key="`fs${d}`"
+          :x="x(d) - largura / 2"
+          :y="TOPO"
+          :width="largura"
+          :height="ALT_PLOT"
+          class="leque__fim-de-semana"
+        />
         <line v-for="m in marcas" :key="`g${m}`" x1="0" :x2="larguraTotal" :y1="y(m)" :y2="y(m)" class="leque__grade" />
         <g v-for="d in segundas" :key="`s${d}`">
           <line :x1="x(d) - largura / 2" :x2="x(d) - largura / 2" :y1="TOPO" :y2="TOPO + ALT_PLOT" class="leque__grade" />
@@ -238,6 +250,7 @@ onBeforeUnmount(() => observador?.disconnect())
           <template v-for="(seg, i) in leque.segmentos" :key="`l${i}`">
             <polyline :points="pontosDaLinha(seg)" class="leque__linha-fundo" />
             <polyline :points="pontosDaLinha(seg)" class="leque__linha" />
+            <circle v-for="p in seg" :key="p.data" :cx="x(p.data)" :cy="y(p.valor)" r="3" class="leque__ponto" />
           </template>
           <g v-for="(m, i) in leque.marcadores" :key="`m${i}`" :opacity="m.foraDaMetrica ? 0.4 : 1">
             <circle :cx="x(m.data)" :cy="y(m.valor)" r="7.5" fill="#ffffff" />
@@ -347,6 +360,14 @@ onBeforeUnmount(() => observador?.disconnect())
   stroke: var(--p-text-color);
   stroke-width: 2;
   stroke-linejoin: round;
+}
+.leque__fim-de-semana {
+  fill: #e9ebee;
+}
+.leque__ponto {
+  fill: var(--p-text-color);
+  stroke: #ffffff;
+  stroke-width: 1;
 }
 .leque__na-faixa {
   fill: #0ca30c;
