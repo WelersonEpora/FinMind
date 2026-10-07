@@ -64,6 +64,9 @@ function descreverParametros(parametros) {
 const carregandoPrompt = ref(false)
 const erroPrompt = ref('')
 const enviada = ref(null)
+// De qual leitura é o prompt carregado (ativo e data): o Centro de Decisão reaproveita este componente ao trocar de
+// ativo, e só a data não basta (o milho de 07/10 mostrava o ouro de 07/10 aberto antes).
+const chaveEnviada = ref(null)
 const aba = ref('prompt')
 const copiado = ref(false)
 
@@ -91,14 +94,18 @@ const textoDaAba = computed(() => {
 async function abrirPrompt() {
   vista.value = 'prompt'
   aba.value = 'prompt'
-  if (enviada.value?.data === props.analise.data) return
+  const chave = `${props.ativoCodigo}|${props.analise.data}`
+  if (enviada.value && chaveEnviada.value === chave) return
+  enviada.value = null
   carregandoPrompt.value = true
   erroPrompt.value = ''
   try {
     const { analiseEnviada } = await centroDecisaoService.getAnaliseEnviada(props.ativoCodigo, props.analise.data)
     enviada.value = analiseEnviada
+    chaveEnviada.value = chave
   } catch (err) {
     enviada.value = null
+    chaveEnviada.value = null
     erroPrompt.value = err?.response?.data?.error?.message || 'Não foi possível carregar o prompt enviado.'
   } finally {
     carregandoPrompt.value = false
