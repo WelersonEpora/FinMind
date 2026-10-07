@@ -9,6 +9,7 @@ import LequeLeiturasChart from '../components/charts/LequeLeiturasChart.vue'
 import { CORES_HORIZONTE, montarLeque } from '../utils/leque-leituras.js'
 import qualidadeIaService from '../services/qualidade-ia.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
+import { lerAtivoPreferido, salvarAtivoPreferido } from '../utils/ativo-preferido.js'
 import { formatarData } from '../utils/geopolitica.js'
 import { rotuloConfianca, rotuloFaixa } from '../utils/analise-diaria.js'
 import {
@@ -59,11 +60,21 @@ const tamanhoPagina = ref(20)
 const primeiroRegistro = ref(0)
 const tabela = ref(null)
 
-// O gráfico de faixas (ADR 0064): os quatro horizontes lado a lado, ou um só com o resultado de cada data-alvo. Um
-// seletor só escolhe os dois ("QUATRO" ou o código do horizonte), para nenhum controle aparecer e empurrar os outros.
-const visaoGrafico = ref('QUATRO')
-const modoGrafico = computed(() => (visaoGrafico.value === 'QUATRO' ? 'quatro' : 'um'))
-const horizonteGrafico = computed(() => (visaoGrafico.value === 'QUATRO' ? null : visaoGrafico.value))
+// O gráfico de faixas (ADR 0064): a legenda marca e desmarca cada horizonte, todos por padrão (como na legenda de um
+// gráfico de rosca). Com um só marcado, o gráfico mostra o detalhe dele: o resultado de cada data-alvo e a Persistência.
+// Desmarcar o último volta aos quatro (nunca fica vazio). `horizontesMarcados` vazio = todos.
+const horizontesMarcados = ref([])
+const todosHorizontes = computed(() => (qualidade.value?.horizontes || []).map((h) => h.horizonte))
+const horizontesVisiveis = computed(() => {
+  const marcados = todosHorizontes.value.filter((h) => horizontesMarcados.value.includes(h))
+  return marcados.length ? marcados : todosHorizontes.value
+})
+const modoGrafico = computed(() => (horizontesVisiveis.value.length === 1 ? 'um' : 'quatro'))
+const horizonteGrafico = computed(() => (modoGrafico.value === 'um' ? horizontesVisiveis.value[0] : null))
+function alternarHorizonte(horizonte) {
+  const atuais = horizontesVisiveis.value
+  horizontesMarcados.value = atuais.includes(horizonte) ? atuais.filter((h) => h !== horizonte) : [...atuais, horizonte]
+}
 const persistenciaGrafico = ref(false)
 // A linha de contexto (no petróleo, o Brent à vista da EIA): ligada por padrão; desligada, a escala volta ao preço avaliado.
 const contextoGrafico = ref(true)
@@ -74,6 +85,7 @@ const leque = computed(() =>
     horizontes: qualidade.value?.horizontes || [],
     modo: modoGrafico.value,
     horizonte: horizonteGrafico.value,
+    visiveis: horizontesVisiveis.value,
     persistencia: persistenciaGrafico.value,
     hoje: qualidade.value?.hoje || new Date().toISOString().slice(0, 10),
     contexto: contextoGrafico.value ? qualidade.value?.contexto || null : null
@@ -88,7 +100,6 @@ const opcoesVersao = computed(() => [
 const opcoesHorizonte = computed(() =>
   (qualidade.value?.horizontes || []).map((h) => ({ codigo: h.horizonte, nome: `${h.rotulo} (${h.dias} dia${h.dias > 1 ? 's' : ''})` }))
 )
-const opcoesVisao = computed(() => [{ codigo: 'QUATRO', nome: 'Quatro horizontes' }, ...opcoesHorizonte.value])
 const opcoesHorizonteTabela = computed(() => [{ codigo: 'TODOS', nome: 'Todos os horizontes' }, ...opcoesHorizonte.value])
 const linhasDaTabela = computed(() =>
   filtrarLinhas(qualidade.value?.linhas || [], { horizonte: horizonteTabela.value === 'TODOS' ? null : horizonteTabela.value, somenteAvaliadas: somenteAvaliadas.value })
@@ -102,11 +113,13 @@ async function carregar() {
   errorMessage.value = ''
   try {
     const { qualidadeIa } = await qualidadeIaService.getQualidadeIa({
-      ativo: route.query.ativo || undefined,
+      // Sem ativo na URL, o último analisado nas telas do ativo (utils/ativo-preferido.js).
+      ativo: route.query.ativo || lerAtivoPreferido() || undefined,
       desde: periodo.value === 'TUDO' ? undefined : desdeDoPeriodo(Number(periodo.value)),
       versaoConfiguracao: versao.value === 'TODAS' ? undefined : versao.value
     })
     qualidade.value = qualidadeIa
+    salvarAtivoPreferido(qualidadeIa.ativo.codigo)
     primeiroRegistro.value = 0
   } catch (err) {
     errorMessage.value = err.response?.data?.error?.message || 'Não foi possível carregar a Qualidade da IA.'
@@ -119,6 +132,7 @@ async function carregar() {
 function selecionarAtivo(ativo) {
   versao.value = 'TODAS'
   horizonteTabela.value = 'TODOS'
+  horizontesMarcados.value = []
   router.replace({ query: { ativo } })
 }
 
@@ -132,11 +146,11 @@ async function verLinhas(horizonte, soAvaliadas) {
   tabela.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-// "Ver no gráfico": o card leva o gráfico ao próprio horizonte (de novo no mesmo, volta aos quatro). O gráfico só rola
+// "Ver no gráfico": o card deixa marcado só o próprio horizonte (de novo no mesmo, volta aos quatro). O gráfico só rola
 // para a tela se não estiver à vista.
 const grafico = ref(null)
 async function verNoGrafico(horizonte) {
-  visaoGrafico.value = visaoGrafico.value === horizonte ? 'QUATRO' : horizonte
+  horizontesMarcados.value = horizonteGrafico.value === horizonte ? [] : [horizonte]
   await nextTick()
   grafico.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
@@ -209,7 +223,7 @@ watch([periodo, versao], carregar)
               v-for="celula in qualidade.horizontes"
               :key="celula.horizonte"
               class="celula"
-              :class="{ 'celula--no-grafico': visaoGrafico === celula.horizonte }"
+              :class="{ 'celula--no-grafico': horizonteGrafico === celula.horizonte }"
               :style="{ '--cor-horizonte': CORES_HORIZONTE[celula.horizonte] || 'var(--p-primary-color)' }"
               @click="verNoGrafico(celula.horizonte)"
             >
@@ -280,9 +294,9 @@ watch([periodo, versao], carregar)
               </ul>
 
               <div class="celula__acoes">
-                <button type="button" class="celula__ver" :aria-pressed="visaoGrafico === celula.horizonte" @click.stop="verNoGrafico(celula.horizonte)">
+                <button type="button" class="celula__ver" :aria-pressed="horizonteGrafico === celula.horizonte" @click.stop="verNoGrafico(celula.horizonte)">
                   <i class="bi bi-bar-chart-line"></i>
-                  {{ visaoGrafico === celula.horizonte ? 'Voltar aos quatro no gráfico' : 'Ver no gráfico' }}
+                  {{ horizonteGrafico === celula.horizonte ? 'Voltar aos quatro no gráfico' : 'Ver no gráfico' }}
                 </button>
                 <button v-if="celula.n" type="button" class="celula__ver" @click.stop="verLinhas(celula.horizonte, true)">
                   Ver {{ celula.n === 1 ? 'a linha' : `as ${celula.n} linhas` }} na métrica
@@ -304,14 +318,26 @@ watch([periodo, versao], carregar)
                   Cada faixa é uma leitura, na data-alvo, em preço a partir da base dela. Passe o mouse ou toque numa data.
                 </p>
               </div>
-              <div class="qualidade__filtros">
-                <div class="qualidade__filtro">
-                  <span>Visão</span>
-                  <SeletorOpcao v-model="visaoGrafico" :opcoes="opcoesVisao" rotulo="Visão do gráfico" compacto />
-                </div>
-              </div>
             </header>
 
+            <div class="qualidade__legenda qualidade__legenda--topo">
+              <div class="qualidade__legenda-linha">
+                <span><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" /></svg> Preço realizado</span>
+                <!-- O próprio item da legenda liga e desliga a linha (como na legenda de um gráfico de rosca). -->
+                <button
+                  v-if="qualidade.contexto?.pontos?.length"
+                  type="button"
+                  class="qualidade__legenda-item"
+                  :class="{ 'qualidade__legenda-item--desligado': !contextoGrafico }"
+                  :aria-pressed="contextoGrafico"
+                  :title="contextoGrafico ? 'Clique para esconder a linha' : 'Clique para mostrar a linha'"
+                  @click="contextoGrafico = !contextoGrafico"
+                >
+                  <svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 3" /></svg>
+                  {{ qualidade.contexto.nome }}: só contexto, fora da avaliação
+                </button>
+              </div>
+            </div>
             <LequeLeiturasChart
               v-if="leque.barras.length || leque.segmentos.length"
               :leque="leque"
@@ -324,33 +350,40 @@ watch([periodo, versao], carregar)
             <p v-else class="text-muted small mb-0">Nenhuma leitura com faixa neste filtro ainda.</p>
 
             <div class="qualidade__legenda">
-              <span><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" /></svg> Preço realizado</span>
-              <label v-if="qualidade.contexto?.pontos?.length" class="form-check qualidade__legenda-check">
-                <input v-model="contextoGrafico" type="checkbox" class="form-check-input" />
-                <span class="form-check-label"
-                  ><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 3" /></svg>
-                  {{ qualidade.contexto.nome }}: só contexto, fora da avaliação</span
+              <!-- Os horizontes (cada um marca e desmarca as barras dele) e, embaixo, o resultado (num horizonte só) e os
+                   informativos; as linhas de preço ficam acima do gráfico. -->
+              <div class="qualidade__legenda-linha">
+                <button
+                  v-for="h in qualidade.horizontes"
+                  :key="h.horizonte"
+                  type="button"
+                  class="qualidade__legenda-item"
+                  :class="{ 'qualidade__legenda-item--desligado': !horizontesVisiveis.includes(h.horizonte) }"
+                  :aria-pressed="horizontesVisiveis.includes(h.horizonte)"
+                  :title="horizontesVisiveis.includes(h.horizonte) ? 'Clique para tirar do gráfico' : 'Clique para pôr no gráfico'"
+                  @click="alternarHorizonte(h.horizonte)"
                 >
-              </label>
-              <template v-if="modoGrafico === 'quatro'">
-                <span v-for="h in qualidade.horizontes" :key="h.horizonte">
                   <span class="qualidade__cor qualidade__cor--alta" :style="{ background: CORES_HORIZONTE[h.horizonte] }"></span>{{ h.rotulo }} ({{ h.dias }} dia{{ h.dias > 1 ? 's' : '' }})
-                </span>
-                <span><span class="qualidade__amostra qualidade__amostra--cheia"></span>Cheia: preço dentro da faixa</span>
-                <span><span class="qualidade__amostra qualidade__amostra--contorno"></span>Só contorno: fora da faixa</span>
-                <span><span class="qualidade__amostra qualidade__amostra--tracejada"></span>Tracejada: a apurar</span>
-              </template>
-              <template v-else>
-                <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="#0ca30c" /></svg> Na faixa lida</span>
-                <span><svg width="14" height="14" aria-hidden="true"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="#e09a00" /></svg> Uma faixa ao lado</span>
-                <span><svg width="14" height="14" aria-hidden="true"><path d="M2.5,2.5 L11.5,11.5 M11.5,2.5 L2.5,11.5" stroke="#d03b3b" stroke-width="2.6" stroke-linecap="round" /></svg> Duas faixas ou mais</span>
-                <label class="form-check qualidade__legenda-check">
-                  <input v-model="persistenciaGrafico" type="checkbox" class="form-check-input" />
-                  <span class="form-check-label"><svg width="12" height="14" aria-hidden="true"><rect x="1" y="1" width="10" height="12" fill="none" stroke="currentColor" stroke-dasharray="3 2" /></svg> Faixa da Persistência</span>
-                </label>
-              </template>
-              <span><svg width="12" height="12" aria-hidden="true"><path d="M1,9 L11,9 L6,3 Z" fill="currentColor" /></svg> Faixa forte: "ou mais"</span>
-              <span><span class="qualidade__amostra qualidade__amostra--cheia qualidade__amostra--esmaecida"></span>Esmaecida: fora da métrica (fim de semana, referência antiga)</span>
+                </button>
+              </div>
+              <div class="qualidade__legenda-linha">
+                <template v-if="modoGrafico === 'um'">
+                  <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="#0ca30c" /></svg> Na faixa lida</span>
+                  <span><svg width="14" height="14" aria-hidden="true"><path d="M7,1 L13,7 L7,13 L1,7 Z" fill="#e09a00" /></svg> Uma faixa ao lado</span>
+                  <span><svg width="14" height="14" aria-hidden="true"><path d="M2.5,2.5 L11.5,11.5 M11.5,2.5 L2.5,11.5" stroke="#d03b3b" stroke-width="2.6" stroke-linecap="round" /></svg> Duas faixas ou mais</span>
+                  <label class="form-check qualidade__legenda-check">
+                    <input v-model="persistenciaGrafico" type="checkbox" class="form-check-input" />
+                    <span class="form-check-label"><svg width="12" height="14" aria-hidden="true"><rect x="1" y="1" width="10" height="12" fill="none" stroke="currentColor" stroke-dasharray="3 2" /></svg> Faixa da Persistência</span>
+                  </label>
+                </template>
+                <template v-else>
+                  <span><span class="qualidade__amostra qualidade__amostra--cheia"></span>Cheia: preço dentro da faixa</span>
+                  <span><span class="qualidade__amostra qualidade__amostra--contorno"></span>Só contorno: fora da faixa</span>
+                  <span><span class="qualidade__amostra qualidade__amostra--tracejada"></span>Tracejada: a apurar</span>
+                </template>
+                <span><svg width="12" height="12" aria-hidden="true"><path d="M1,9 L11,9 L6,3 Z" fill="currentColor" /></svg> Faixa forte: "ou mais"</span>
+                <span><span class="qualidade__amostra qualidade__amostra--cheia qualidade__amostra--esmaecida"></span>Esmaecida: fora da métrica (fim de semana, referência antiga)</span>
+              </div>
             </div>
           </section>
 
@@ -592,11 +625,37 @@ watch([periodo, versao], carregar)
 }
 .qualidade__legenda {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 1.1rem;
+  flex-direction: column;
+  gap: 0.4rem;
   margin-top: 0.75rem;
   font-size: 0.76rem;
   color: var(--p-text-muted-color);
+}
+.qualidade__legenda--topo {
+  margin: 0 0 0.5rem;
+}
+.qualidade__legenda-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+}
+.qualidade__legenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.qualidade__legenda-item:hover {
+  color: var(--p-text-color);
+}
+.qualidade__legenda-item--desligado {
+  opacity: 0.45;
+  text-decoration: line-through;
 }
 .qualidade__legenda-check {
   display: inline-flex;
@@ -615,7 +674,7 @@ watch([periodo, versao], carregar)
   gap: 0.35rem;
   cursor: pointer;
 }
-.qualidade__legenda > span {
+.qualidade__legenda-linha > span {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;

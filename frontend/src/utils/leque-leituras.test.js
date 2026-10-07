@@ -147,3 +147,20 @@ test('contrato por horizonte: a linha é o contrato mais próximo nos quatro hor
   assert.equal(ultimo(montarLeque({ linhas, precos, horizontes, modo: 'um', horizonte: 'LONGO', hoje: '2026-10-07' })), 93.25)
   assert.equal(ultimo(montarLeque({ linhas, precos, horizontes, modo: 'um', horizonte: 'CURTO', hoje: '2026-10-07' })), 100.58)
 })
+
+test('horizontes marcados na legenda: só as barras deles, cada um na sua posição; a linha segue o primeiro marcado', () => {
+  const linhas = [
+    linha({ dataAnalise: '2026-09-01', horizonte: 'IMEDIATO', dataAlvo: '2026-09-02', seriesCode: 'A' }),
+    linha({ dataAnalise: '2026-09-01', horizonte: 'CURTO', dataAlvo: '2026-09-08', seriesCode: 'B' })
+  ]
+  const precos = [
+    { seriesCode: 'A', pontos: [{ data: '2026-09-01', valor: 100 }] },
+    { seriesCode: 'B', pontos: [{ data: '2026-09-01', valor: 90 }] }
+  ]
+  const so = montarLeque({ linhas, precos, horizontes: HORIZONTES, modo: 'quatro', hoje: '2026-09-20', visiveis: ['CURTO'] })
+  assert.deepEqual(so.barras.map((b) => [b.horizonte, b.indice]), [['CURTO', 1]])
+  assert.equal(so.segmentos[0][0].valor, 90)
+  const todos = montarLeque({ linhas, precos, horizontes: HORIZONTES, modo: 'quatro', hoje: '2026-09-20' })
+  assert.equal(todos.barras.length, 2)
+  assert.equal(todos.segmentos[0][0].valor, 100)
+})

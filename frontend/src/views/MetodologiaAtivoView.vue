@@ -10,6 +10,7 @@ import PromptDiario from '../components/metodologia/PromptDiario.vue'
 import PesosRelacoes from '../components/metodologia/PesosRelacoes.vue'
 import metodologiaAtivoService from '../services/metodologia-ativo.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
+import { lerAtivoPreferido, salvarAtivoPreferido } from '../utils/ativo-preferido.js'
 import { resumoPesos } from '../utils/metodologia.js'
 
 // Metodologia dos fatores de um ativo: uma PROPOSTA para o David validar, não regra (ADR 0050). Cada bloco diz de
@@ -25,8 +26,8 @@ const fatorSelecionado = ref(null)
 // O modal do que vale para o ativo inteiro (preço de referência, leitura da IA): decisões e pendências.
 const ativoAberto = ref(false)
 
-// Sem ativo na URL, o 1º da lista, como no Centro de Decisão.
-const ativo = computed(() => (route.params.ativo || 'OURO').toUpperCase())
+// Sem ativo na URL, o último analisado (utils/ativo-preferido.js) e, sem ele, o 1º da lista, como no Centro de Decisão.
+const ativo = computed(() => (route.params.ativo || lerAtivoPreferido() || 'OURO').toUpperCase())
 const metodologia = computed(() => resposta.value?.metodologia || null)
 // No card do ativo, a 1ª decisão (o preço de referência) até o primeiro ponto final ou dois-pontos de detalhe.
 const resumoDoAtivo = computed(() => {
@@ -127,6 +128,7 @@ async function carregar() {
 
   try {
     resposta.value = await metodologiaAtivoService.getMetodologiaAtivo(ativo.value)
+    salvarAtivoPreferido(ativo.value)
   } catch (_err) {
     errorMessage.value = 'Não foi possível carregar a metodologia deste ativo.'
   } finally {

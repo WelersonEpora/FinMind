@@ -13,6 +13,7 @@ import NivelBadge from '../components/eventos/NivelBadge.vue'
 import PressaoIndicador from '../components/eventos/PressaoIndicador.vue'
 import centroDecisaoService from '../services/centro-decisao.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
+import { lerAtivoPreferido, salvarAtivoPreferido } from '../utils/ativo-preferido.js'
 import { formatarData, rotuloTipo } from '../utils/geopolitica.js'
 
 // Centro de Decisão (ADR 0048): a tela inicial, no desenho do Centro de Decisão do AgroMind. Um ativo e uma data
@@ -43,7 +44,8 @@ const opcoesAtivo = computed(() => (centro.value?.ativos || []).map((a) => ({ ..
 
 function filtrosDaRota() {
   const { ativo, data, serie } = route.query
-  return { ativo: ativo || undefined, data: data || undefined, serie: serie || undefined }
+  // Sem ativo na URL, o último analisado nas telas do ativo (utils/ativo-preferido.js).
+  return { ativo: ativo || lerAtivoPreferido() || undefined, data: data || undefined, serie: serie || undefined }
 }
 
 async function carregar() {
@@ -53,6 +55,7 @@ async function carregar() {
   try {
     const { centroDecisao } = await centroDecisaoService.getCentroDecisao(filtrosDaRota())
     centro.value = centroDecisao
+    salvarAtivoPreferido(centroDecisao.ativo.codigo)
   } catch (err) {
     errorMessage.value = err.response?.data?.error?.message || 'Não foi possível carregar o Centro de Decisão.'
   } finally {

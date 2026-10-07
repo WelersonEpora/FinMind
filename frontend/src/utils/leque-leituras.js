@@ -59,9 +59,14 @@ export function estadoDaBarra(linha) {
 
 // As leituras que o gráfico desenha: todas com faixa lida, base e data-alvo. No gráfico, cada data-alvo recebe uma
 // leitura por horizonte, então as de fim de semana não se repetem: aparecem, marcadas como fora da métrica.
-export function linhasDoGrafico(linhas, { modo, horizonte }) {
+// `visiveis`: os horizontes marcados na legenda (null = todos), na visão de vários.
+export function linhasDoGrafico(linhas, { modo, horizonte, visiveis = null }) {
   return linhas.filter(
-    (l) => l.lida?.faixa && (l.base?.valor || l.precoRecebido?.valor) && l.dataAlvo && (modo === 'quatro' || l.horizonte === horizonte)
+    (l) =>
+      l.lida?.faixa &&
+      (l.base?.valor || l.precoRecebido?.valor) &&
+      l.dataAlvo &&
+      (modo === 'quatro' ? !visiveis || visiveis.includes(l.horizonte) : l.horizonte === horizonte)
   )
 }
 
@@ -140,10 +145,11 @@ export function segmentosDoContexto(contexto, linhas, { ini, fim }) {
 // Tudo o que o gráfico desenha. `linhas`/`precos`: o que GET /api/v1/qualidade-ia devolve. `horizontes`: os do ativo,
 // na ordem ([{ horizonte, dias }]). `contexto`: a série de contexto da API (ou null). -> { ini, fim, escala, barras,
 // persistencias, marcadores, segmentos, contexto: { nome, segmentos } | null }.
-export function montarLeque({ linhas, precos, horizontes, modo, horizonte, persistencia = false, hoje, contexto = null }) {
+// `visiveis`: os horizontes marcados na legenda (null = todos); cada um mantém a sua posição na coluna da data-alvo.
+export function montarLeque({ linhas, precos, horizontes, modo, horizonte, persistencia = false, hoje, contexto = null, visiveis = null }) {
   const ordem = horizontes.map((h) => h.horizonte)
   const diasHorizonte = horizontes.find((h) => h.horizonte === horizonte)?.dias ?? 7
-  const desenhadas = linhasDoGrafico(linhas, { modo, horizonte })
+  const desenhadas = linhasDoGrafico(linhas, { modo, horizonte, visiveis })
   const { ini, fim } = janelaDoGrafico({ hoje })
   const naJanela = desenhadas.filter((l) => l.dataAlvo >= ini && l.dataAlvo <= fim)
 
@@ -166,9 +172,9 @@ export function montarLeque({ linhas, precos, horizontes, modo, horizonte, persi
       ? barras.filter((b) => b.estado === 'dentro' || b.estado === 'fora').map((b) => ({ data: b.dataAlvo, valor: b.linha.realizado.preco, distancia: b.distancia, foraDaMetrica: b.foraDaMetrica }))
       : []
   // A linha do preço segue o contrato de UM horizonte (com contrato por horizonte, ADR 0078, cada um tem o seu): na
-  // visão de um horizonte, o dele (o das faixas desenhadas); nos quatro, o do primeiro, o vencimento mais próximo (o do
-  // bloco 2.1 do prompt). Com todos juntos, valia o do último horizonte da leitura (o do longo).
-  const horizonteDaLinha = modo === 'um' ? horizonte : ordem[0]
+  // visão de um horizonte, o dele (o das faixas desenhadas); em vários, o do primeiro marcado (com o imediato, o
+  // vencimento mais próximo, o do bloco 2.1 do prompt). Com todos juntos, valia o do último horizonte da leitura (o do longo).
+  const horizonteDaLinha = modo === 'um' ? horizonte : (ordem.find((h) => !visiveis || visiveis.includes(h)) ?? ordem[0])
   const linhasDaLinha = linhas.filter((l) => l.horizonte === horizonteDaLinha)
   const daLinha = linhasDaLinha.length ? linhasDaLinha : linhas
   const segmentos = segmentosDoPreco(precos, daLinha, { ini, fim: hoje < fim ? hoje : fim })
