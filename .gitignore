@@ -5,3 +5,5 @@ dist/
 
 # Planilhas do WASDE baixadas à mão para reconhecimento (ADR 0015): o coletor baixa direto do ESMIS
 docs/Docs_Base/
+.env.servidor
+.claude/settings.local.json
