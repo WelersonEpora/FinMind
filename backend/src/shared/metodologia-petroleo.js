@@ -16,9 +16,11 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // com Cushing, gasolina e destilados como contexto; a validação passa ao Brent futuro; as perguntas viram decisões (ADR 0097).
 // v6 (2026-10-07): a demanda (F4) fica só com os EUA e o consumo medido, validada contra o Brent futuro (ADR 0099).
 // v7 (2026-10-07): o dólar (F5) fica com o índice das economias avançadas, como fator próprio (ADR 0100).
+// v8 (2026-10-07): a produção dos EUA (F6) fica com o crescimento anual, sem o rig count e sem peso próprio do recorde (ADR 0101).
+// v9 (2026-10-07): os juros (F7) ficam com o Treasury de 10 anos e direção própria; a meta do Fed, como contexto (ADR 0102).
 // v5 (2026-10-07): as perguntas da geopolítica (F3) viram decisões: fator próprio, o evento mais grave, a ameaça conta
 // com menos peso que a interrupção e a janela de 7 dias, sem vigência (ADR 0098).
-const VERSAO = 7;
+const VERSAO = 9;
 const DATA_VERSAO = "2026-10-07";
 
 const DEFINICOES = [
@@ -213,7 +215,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para medir a oferta americana. No histórico do FinMind, de 2010 em diante, o crescimento anual da produção anda no sentido contrário do WTI 26 semanas depois (correlação de -0,39; -0,22 em 13 semanas; desde 1990, -0,19): produção crescendo forte antecede preço em queda, a direção indicada pelo especialista. O preço não aparece puxando a produção no mesmo período (o crescimento não acompanha a alta do WTI dos 6 a 12 meses anteriores). Exemplos: recorde e +13% no ano em nov/2014, antes da queda de 2015; recorde e +10% em nov/2019, antes de 2020. A semana isolada é estimativa arredondada da EIA: por isso a medida usa a média de 4 semanas e o crescimento anual."
+          "Suficiente para medir a oferta americana. No histórico do Brent futuro (2011 a 2026, com a data de publicação), o crescimento anual da produção anda no sentido contrário do preço seguinte, a direção indicada pelo especialista: -0,17, -0,25 e -0,45 com o Brent 30, 91 e 182 dias depois. Com a produção caindo 10% ou mais no ano, o Brent subiu em 94% dos casos 91 dias depois; crescendo 10% ou mais, em 48% (34% em 182 dias, média de -9,5%), contra 51% em todas. A relação depende de poucos episódios: sem 2014-16 e 2020-21, -0,06 e -0,16 em 91 e 182 dias. O recorde, sozinho, não mostrou efeito: a produção perto do recorde com crescimento pequeno só aconteceu de 2024 a 2026, com resultados opostos. Exemplos: recorde e +13% no ano em nov/2014, antes da queda de 2015; recorde e +10% em nov/2019, antes de 2020. A semana isolada é estimativa arredondada da EIA: por isso a medida usa a média de 4 semanas e o crescimento anual."
       },
       lacunas: [
         "O rig count (Baker Hughes) não é coletado: ele antecipa a produção em alguns meses (um aviso mais cedo), mas não é necessário para medi-la.",
@@ -226,9 +228,10 @@ const DEFINICOES = [
       comparacao: "O mesmo período do ano anterior (crescimento anual), que tira a sazonalidade.",
       leitura: "Crescimento anual acima de uma faixa neutra (padrão: 3%) indica mais oferta (pressão de baixa); abaixo, menos oferta (pressão de alta). Intensidade forte a partir de 10%. Tendência: se o crescimento mudou 2 p.p. ou mais em 13 semanas, o crescimento está subindo ou caindo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: [
-      "O crescimento anual da produção basta, ou o rig count (que antecipa a produção, e não é coletado) é necessário?",
-      "A produção em recorde deve pesar por si, mesmo com crescimento pequeno (como em set/2026: recorde, +3,3% no ano)?"
+    perguntas: [],
+    decisoes: [
+      "Rig count (usuário, 2026-10-07, ADR 0101): o crescimento anual da produção basta. O rig count antecipa a produção, não o preço, e seria fonte nova com a aquisição encerrada; fica como lacuna.",
+      "Recorde (usuário, 2026-10-07, ADR 0101): não pesa por si; a pressão vem só do crescimento, e a distância do recorde fica na medida (A) como informação. No histórico, o recorde com crescimento pequeno (2024 a 2026) não mostrou efeito próprio."
     ]
   },
   {
@@ -245,7 +248,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o Treasury de 10 anos (diário, desde 1962) e a meta do Fed (desde dez/2008) são coletados do FRED. No histórico do FinMind (2010 a 2026), a meta do Fed só se relaciona com o preço por causa da pandemia: sem 2019 a 2021, a correlação dela com o WTI 26 ou 52 semanas depois fica perto de zero. O juro longo, sim: a alta do Treasury em 26 semanas tem correlação de -0,17 com o WTI 26 semanas depois (-0,29 sem a pandemia), e com o juro subindo 1 p.p. ou mais no ano o WTI caiu em 76% dos casos nas 26 semanas seguintes (média de -7%), a direção indicada pelo especialista. O juro também anda com o petróleo dos meses anteriores (+0,25: petróleo alto, inflação, juro). Ressalva: no período houve só dois ciclos de alta (2015-18 e 2022-23)."
+          "Suficiente: o Treasury de 10 anos (diário, desde 1962) e a meta do Fed (desde dez/2008) são coletados do FRED. No histórico do Brent futuro (2011 a 2026, com a data de publicação), a variação do Treasury em 26 semanas tem relação moderada com o preço seguinte, na direção do especialista: -0,09, -0,16 e -0,14 com o Brent 30, 91 e 182 dias depois, e o mesmo sem as crises (-0,20 em 91 e 182 dias sem 2019-21). Com o juro subindo 1 p.p. ou mais, o Brent subiu em 12% dos casos 91 dias depois (média de -9%), contra 49% em todas, mas 29 das 41 semanas são de 2022: um episódio. Entre 0,5 e 1 p.p., não difere da base. A meta do Fed só se relaciona com o preço por causa da pandemia: sem 2019-21, perto de zero. O juro também sobe com o petróleo dos 6 meses anteriores (+0,45: petróleo alto, inflação, juro); a pressão é o efeito seguinte."
       },
       lacunas: [
         "A expectativa do mercado para os juros (futuros de Fed Funds) não é coletada; o Treasury de 10 anos a embute.",
@@ -258,9 +261,10 @@ const DEFINICOES = [
       comparacao: "O próprio Treasury 26 semanas antes: a variação em p.p.",
       leitura: "Juro subindo além de uma faixa (padrão: 0,5 p.p. em 26 semanas) pressiona o petróleo para baixo; caindo, favorece (pressão de alta). Intensidade forte a partir de 1 p.p. Tendência: se a variação mudou 0,25 p.p. ou mais em 4 semanas, a alta (ou a queda) está ganhando força. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: [
-      "Juros entram como fator com direção própria ou só como contexto para a demanda? A proposta dá direção, com base no histórico do juro longo.",
-      "O juro longo (Treasury de 10 anos, que o mercado define) serve no lugar da meta do Fed (que o FEL 1 cita)? A meta, sozinha, não mostrou relação com o preço fora da pandemia."
+    perguntas: [],
+    decisoes: [
+      "Papel (usuário, 2026-10-07, ADR 0102): direção própria, como no FEL 1: juro subindo pesa para baixa. A relação com o preço seguinte é moderada e se mantém sem as crises; a leitura forte (1 p.p. ou mais) se apoia quase só em 2022.",
+      "Série (usuário, 2026-10-07, ADR 0102): o Treasury de 10 anos, que o mercado define e que embute a expectativa para o Fed, no lugar da meta; a meta fica na medida como contexto do ciclo, porque sem a pandemia não mostra relação com o preço."
     ]
   },
   {

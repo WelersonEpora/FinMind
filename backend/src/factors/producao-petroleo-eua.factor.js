@@ -23,7 +23,8 @@ const { crescimentoAnualSemanal, somarDias, arredondar, DIAS_SEMANA } = require(
 //        recorde"); tendência pela mudança do crescimento (subindo ou caindo)
 //
 // O rig count (Baker Hughes), também no FEL 1, não é coletado: ele antecipa a produção em alguns meses, mas não é
-// necessário para medi-la (ADR 0050). Propriedades: determinístico, versionado, point-in-time, sem IA.
+// necessário para medi-la (ADR 0050). O recorde não pesa por si: fica na medida como informação (decisão do usuário,
+// ADR 0101). Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "producao_petroleo_eua";
 const FACTOR_VERSION = 1;

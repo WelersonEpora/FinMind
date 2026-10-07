@@ -426,7 +426,7 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   assert.equal(simulacao.fatores.length, 10);
   assert.deepEqual(simulacao.fatores.filter((f) => f.tipo === "EVENTO").map((f) => f.codigo), ["PETROLEO_GEOPOLITICA"]);
   assert.ok(simulacao.fatores.filter((f) => f.tipo === "CALCULADO").every((f) => f.medida === null && f.textoPrompt.startsWith("FATOR — ")));
-  assert.equal(simulacao.versaoMetodologia, "petroleo-v7 (2026-10-07)");
+  assert.equal(simulacao.versaoMetodologia, "petroleo-v9 (2026-10-07)");
   // Os eventos do ativo numa seção da base (ADR 0095), sem os dos dois fatores de evento.
   assert.deepEqual(eventosDoAtivo, { janelaDias: 7, janelaPorFator: {}, excluirFatores: ["PETROLEO_OPEP", "PETROLEO_GEOPOLITICA"] });
   assert.equal(simulacao.eventosDoAtivo.textoPrompt, "EVENTOS DO ATIVO");

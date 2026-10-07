@@ -17,12 +17,11 @@ const { criarFatorJuroVariacao } = require("./modelos/juro-variacao-semanal");
 //     C. decisão por faixa sobre a variação: juro subindo além da faixa = pressão de BAIXA ("juros altos podem
 //        pressionar demanda; juros baixos favorecem", FEL 1); caindo, de alta
 //
-// Por que o Treasury e não a meta (histórico de 2010 a 2026): a meta do Fed só se relaciona com o preço por causa da
-// pandemia; sem 2019 a 2021, a correlação dela com o WTI 26 ou 52 semanas depois fica perto de zero. A alta do
-// Treasury em 26 semanas tem -0,17 com o WTI 26 semanas depois (-0,29 sem a pandemia), e com o juro subindo 1 p.p. ou
-// mais no ano o WTI caiu em 76% dos casos nas 26 semanas seguintes (média -7%). O juro também anda com o petróleo
-// dos meses anteriores (+0,25: petróleo alto, inflação, juro); a pressão é o efeito seguinte. Propriedades:
-// determinístico, versionado, point-in-time, sem IA.
+// Por que o Treasury e não a meta (histórico do Brent futuro, 2011 a 2026, ADR 0102): a meta do Fed só se relaciona
+// com o preço por causa da pandemia; sem 2019 a 2021, perto de zero. A alta do Treasury em 26 semanas tem -0,16 e -0,14
+// com o Brent 91 e 182 dias depois, o mesmo sem as crises. O juro também sobe com o petróleo dos 6 meses anteriores
+// (+0,45: petróleo alto, inflação, juro); a pressão é o efeito seguinte. Direção própria e o Treasury no lugar da meta
+// são decisões do usuário (ADR 0102). Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "juros_petroleo_treasury_10a";
 const FACTOR_VERSION = 1;
