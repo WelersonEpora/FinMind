@@ -86,6 +86,26 @@ function alternarHorizonte(horizonte) {
 const persistenciaGrafico = ref(false)
 // A linha de contexto (no petróleo, o Brent à vista da EIA): ligada por padrão; desligada, a escala volta ao preço avaliado.
 const contextoGrafico = ref(true)
+// A largura dos dias no gráfico (1x, 2x ou 3x), lembrada no navegador; sem armazenamento, abre na padrão.
+const ZOOMS = [1, 2, 3]
+const CHAVE_ZOOM = 'finmind:qualidade-ia:zoom'
+function lerZoom() {
+  try {
+    const zoom = Number(globalThis.localStorage?.getItem(CHAVE_ZOOM))
+    return ZOOMS.includes(zoom) ? zoom : 1
+  } catch {
+    return 1
+  }
+}
+const zoomGrafico = ref(lerZoom())
+function escolherZoom(zoom) {
+  zoomGrafico.value = zoom
+  try {
+    globalThis.localStorage?.setItem(CHAVE_ZOOM, String(zoom))
+  } catch {
+    // sem armazenamento: só não lembra
+  }
+}
 const leque = computed(() =>
   montarLeque({
     linhas: qualidade.value?.linhas || [],
@@ -357,6 +377,20 @@ watch([periodo, versao], carregar)
                   <svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 3" /></svg>
                   {{ qualidade.contexto.nome }}: só contexto, fora da avaliação
                 </button>
+                <div class="btn-group btn-group-sm qualidade__zoom" role="group" aria-label="Largura dos dias no gráfico">
+                  <button
+                    v-for="z in ZOOMS"
+                    :key="z"
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    :class="{ active: zoomGrafico === z }"
+                    :aria-pressed="zoomGrafico === z"
+                    :title="z === 1 ? 'Largura padrão dos dias' : `Dias ${z} vezes mais largos`"
+                    @click="escolherZoom(z)"
+                  >
+                    {{ z }}×
+                  </button>
+                </div>
               </div>
             </div>
             <LequeLeiturasChart
@@ -367,6 +401,7 @@ watch([periodo, versao], carregar)
               :hoje="qualidade.hoje"
               :unidade="UNIDADE[qualidade.ativo.codigo] || ''"
               :moeda="qualidade.ativo.codigo === 'MILHO' ? 'R$' : 'US$'"
+              :zoom="zoomGrafico"
             />
             <p v-else class="text-muted small mb-0">Nenhuma leitura com faixa neste filtro ainda.</p>
 
@@ -713,6 +748,9 @@ watch([periodo, versao], carregar)
   align-items: center;
   gap: 0.35rem;
   cursor: pointer;
+}
+.qualidade__zoom {
+  margin-left: auto;
 }
 .qualidade__legenda-linha > span {
   display: inline-flex;

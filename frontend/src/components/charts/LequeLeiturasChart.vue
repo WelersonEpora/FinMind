@@ -16,7 +16,9 @@ const props = defineProps({
   hoje: { type: String, required: true },
   unidade: { type: String, default: '' },
   // A moeda do preço no tooltip: R$ no milho (o CCM), US$ nos outros.
-  moeda: { type: String, default: 'R$' }
+  moeda: { type: String, default: 'R$' },
+  // A largura dos dias: 1 (a padrão), 2 ou 3 vezes, para separar as barras dos quatro horizontes.
+  zoom: { type: Number, default: 1 }
 })
 
 const ALTURA = 374
@@ -31,13 +33,15 @@ const wrap = ref(null)
 
 // A coluna de cada dia tem a mesma largura nas duas visões, para o tempo ter a mesma escala ao trocar de visão: a
 // janela de 180 dias rola, abrindo em hoje. Só numa tela mais larga que a janela inteira a coluna cresce para ocupá-la.
+// O zoom multiplica a largura padrão.
 const LARGURA_DO_DIA = 18
 const larguraVisivel = ref(0)
 const dias = computed(() => {
   const n = diasEntre(props.leque.ini, props.leque.fim) + 1
   return Array.from({ length: n }, (_, i) => somarDias(props.leque.ini, i))
 })
-const largura = computed(() => Math.max(LARGURA_DO_DIA, larguraVisivel.value / dias.value.length))
+const larguraDoZoom = (zoom) => Math.max(LARGURA_DO_DIA * zoom, larguraVisivel.value / dias.value.length)
+const largura = computed(() => larguraDoZoom(props.zoom))
 const larguraTotal = computed(() => dias.value.length * largura.value)
 const x = (data) => diasEntre(props.leque.ini, data) * largura.value + largura.value / 2
 const y = (valor) => {
@@ -47,6 +51,8 @@ const y = (valor) => {
 const marcas = computed(() => marcasDoEixo(props.leque.escala))
 const diaDaSemana = (d) => new Date(`${d}T00:00:00Z`).getUTCDay()
 const segundas = computed(() => dias.value.filter((d) => diaDaSemana(d) === 1))
+// Os dias com a data no eixo: só as segundas na largura padrão; com zoom, cabem todos.
+const diasComData = computed(() => (props.zoom > 1 ? dias.value : segundas.value))
 // Sábado e domingo ganham fundo cinza: não há pregão, e a falta das bolinhas da linha fica explicada.
 const fimDeSemana = computed(() => dias.value.filter((d) => diaDaSemana(d) === 0 || diaDaSemana(d) === 6))
 // Segunda, quarta e sexta ganham fundo branco; terça e quinta ficam com o do card (um cinza mais claro que o do fim de
@@ -197,6 +203,19 @@ watch(
   { immediate: true, flush: 'post' }
 )
 
+// No zoom, a data que estava no meio da tela continua no meio.
+watch(
+  () => props.zoom,
+  async (novo, antigo) => {
+    if (!scroller.value) return
+    const meio = scroller.value.scrollLeft + scroller.value.clientWidth / 2
+    const indice = meio / larguraDoZoom(antigo)
+    aberto.value = null
+    await nextTick()
+    scroller.value.scrollLeft = Math.max(0, indice * larguraDoZoom(novo) - scroller.value.clientWidth / 2)
+  }
+)
+
 let observador = null
 onMounted(() => {
   larguraVisivel.value = scroller.value?.clientWidth || 0
@@ -249,9 +268,17 @@ onBeforeUnmount(() => observador?.disconnect())
           class="leque__dia-alternado"
         />
         <line v-for="m in marcas" :key="`g${m}`" x1="0" :x2="larguraTotal" :y1="y(m)" :y2="y(m)" class="leque__grade" />
-        <g v-for="d in segundas" :key="`s${d}`">
-          <line :x1="x(d) - largura / 2" :x2="x(d) - largura / 2" :y1="TOPO" :y2="TOPO + ALT_PLOT" class="leque__grade" />
-          <!-- A data da segunda, centrada na coluna dela, com um tique no eixo (sem o tique, o rótulo parecia da terça). -->
+        <line
+          v-for="d in segundas"
+          :key="`s${d}`"
+          :x1="x(d) - largura / 2"
+          :x2="x(d) - largura / 2"
+          :y1="TOPO"
+          :y2="TOPO + ALT_PLOT"
+          class="leque__grade"
+        />
+        <!-- A data, centrada na coluna do dia, com um tique no eixo (sem o tique, o rótulo da segunda parecia da terça). -->
+        <g v-for="d in diasComData" :key="`dt${d}`">
           <line :x1="x(d)" :x2="x(d)" :y1="TOPO + ALT_PLOT" :y2="TOPO + ALT_PLOT + 4" class="leque__tique" />
           <text :x="x(d)" :y="ALTURA - 9" text-anchor="middle" class="leque__texto">{{ ddmm(d) }}</text>
         </g>
