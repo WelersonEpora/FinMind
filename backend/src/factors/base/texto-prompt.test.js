@@ -105,6 +105,17 @@ test("fator de contexto (ADR 0054): A, B e D como os outros; sem a regra da pres
   assert.match(t, /\nD — Validação histórica/);
 });
 
+test("fator só de informação (ADR 0094): como o de contexto, sem fator-pai, com quem decidiu", () => {
+  const t = montarTextoPrompt({
+    ativo: "PETROLEO",
+    fator: { ...FATOR, codigo: "PETROLEO_FUNDOS", informativo: true, papelDecididoPor: "do usuário" },
+    calculo: { apresentacao: APRESENTACAO, periodicidade: "SEMANAL", parametros: PARAMETROS, origemParametros: null, simulacao: false },
+    ponto: PONTO
+  });
+  assert.doesNotMatch(t, /Regra aplicada|Pressão:|Intensidade:|CONTEXTO/);
+  assert.match(t, /\nC — Papel na análise:\n- INFORMAÇÃO, por decisão do usuário: sem pressão própria; não conta a favor nem contra\.\n- Tendência: Estável\n/);
+});
+
 test("sinal defasado (o F6 do milho): a data de efeito esperada, contada do período do dado, depois de C", () => {
   const fator = { ...FATOR, efeitoDefasado: { mesesMin: 6, mesesMax: 12, sobre: "a safrinha seguinte" } };
   const calculo = { apresentacao: APRESENTACAO, periodicidade: "MENSAL", parametros: PARAMETROS, origemParametros: null, simulacao: false };

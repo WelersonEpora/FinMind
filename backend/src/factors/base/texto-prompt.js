@@ -145,19 +145,23 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
     linhas.push(`${periodoDoPonto(ponto.observedAt, calculo.periodicidade)}. ${apresentacao.nota}`);
     linhas.push("A — Medida:", ...apresentacao.quadros.filter((q) => q.camada === "A").map((q) => linhaQuadro(ponto, q)));
     linhas.push("B — Leitura:", ...apresentacao.quadros.filter((q) => q.camada === "B").map((q) => linhaQuadro(ponto, q)));
-    // Fator de CONTEXTO (metodologia-base.js, `contextoDe`): sem a regra da pressão nem a pressão. Só a tendência, que
-    // diz para onde o dado está indo, e o papel dele.
-    if (!fator.contextoDe) {
+    // Fator de CONTEXTO ou SÓ DE INFORMAÇÃO (metodologia-base.js, `contextoDe` e `informativo`): sem a regra da pressão
+    // nem a pressão. Só a tendência, que diz para onde o dado está indo, e o papel dele.
+    const semPressao = fator.contextoDe || fator.informativo;
+    if (!semPressao) {
       linhas.push(
         `- Regra aplicada (${origemDosParametros(calculo.origemParametros, calculo.simulacao)}): ${comPonto(regraDaDecisao(calculo.parametros, apresentacao))}`
       );
     }
 
     const d = ponto.decisao;
-    if (fator.contextoDe) {
+    if (semPressao) {
+      const decisao = `por decisão ${fator.papelDecididoPor || "do especialista"}`;
       linhas.push(
         "C — Papel na análise:",
-        `- CONTEXTO do fator ${fator.contextoDe}, por decisão do especialista: sem pressão própria; não conta a favor nem contra.`,
+        fator.contextoDe
+          ? `- CONTEXTO do fator ${fator.contextoDe}, ${decisao}: sem pressão própria; não conta a favor nem contra.`
+          : `- INFORMAÇÃO, ${decisao}: sem pressão própria; não conta a favor nem contra.`,
         `- Tendência: ${d?.tendencia ? apresentacao.rotulosDecisao.tendencia[d.tendencia] : "não calculada"}`
       );
     } else if (!d) {

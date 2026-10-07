@@ -192,13 +192,15 @@ function situacaoDoFator(fator, dataAnalise) {
   };
 }
 
-// Um fator de CONTEXTO (metodologia-base.js, `contextoDe`) diz de qual fator é contexto: não tem leitura própria.
+// Um fator de CONTEXTO (metodologia-base.js, `contextoDe`) diz de qual fator é contexto; um SÓ DE INFORMAÇÃO
+// (`informativo`) diz isso: nenhum dos dois tem leitura própria.
 function blocoCobertura(fatores, dataAnalise) {
   return fatores
     .map(
       (f, i) =>
         `${i + 1}. ${f.codigo} — ${f.nome} (peso ${f.peso})` +
-        `${f.contextoDe ? ` | CONTEXTO de ${f.contextoDe}, sem leitura própria` : ""} | ${situacaoDoFator(f, dataAnalise).texto}`
+        `${f.contextoDe ? ` | CONTEXTO de ${f.contextoDe}, sem leitura própria` : ""}${f.informativo ? " | INFORMAÇÃO, sem leitura própria" : ""}` +
+        ` | ${situacaoDoFator(f, dataAnalise).texto}`
     )
     .join("\n");
 }
@@ -330,11 +332,12 @@ function agregacaoParaEntrada(agregacao) {
 
 // --- Montagem ------------------------------------------------------------------------------------------------------
 
-// A leitura do motor de um fator calculado, como foi ao prompt. Um fator de CONTEXTO não leva pressão nem intensidade
+// A leitura do motor de um fator calculado, como foi ao prompt. Um fator de CONTEXTO ou SÓ DE INFORMAÇÃO não leva pressão nem intensidade
 // (o texto dele também não, factors/base/texto-prompt.js): só o papel e a tendência.
 function leituraDoFator(f) {
   if (!f.decisao) return null;
   if (f.contextoDe) return { papel: "CONTEXTO", contextoDe: f.contextoDe, tendencia: f.decisao.tendencia };
+  if (f.informativo) return { papel: "INFORMACAO", tendencia: f.decisao.tendencia };
   return { pressao: f.decisao.direcao, intensidade: f.decisao.intensidade, tendencia: f.decisao.tendencia };
 }
 
@@ -389,6 +392,7 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
       tipoFel1: f.tipoFel1,
       situacaoRegra: f.situacaoRegra,
       ...(f.contextoDe ? { contextoDe: f.contextoDe } : {}),
+      ...(f.informativo ? { informativo: true } : {}),
       ...situacaoDoFator(f, dataAnalise),
       ...(f.tipo === "CALCULADO"
         ? {

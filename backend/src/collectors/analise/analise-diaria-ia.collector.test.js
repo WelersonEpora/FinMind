@@ -171,7 +171,23 @@ test("ouro: recusa a inflação (fator de contexto) como voto a favor e chama de
   assert.equal(provedor.chamadas.length, 2);
   assert.equal(baixado.recusadas, 1);
   const { validos, detalhes } = ouro.normalize(ouro.parse(baixado));
-  assert.ok(detalhes.ia.motivosRecusa.every((m) => /OURO_INFLACAO.*fator de contexto/.test(m)));
+  assert.ok(detalhes.ia.motivosRecusa.every((m) => /OURO_INFLACAO.*fator sem pressão própria/.test(m)));
   assert.equal(detalhes.ia.motivosRecusa.length, 4);
   assert.equal(validos[0].analise.ativo, "OURO");
+});
+
+test("petróleo: recusa os fundos (fator só de informação, ADR 0094) como voto contra e chama de novo", async () => {
+  const petroleo = criarColetorAnaliseDiaria("PETROLEO");
+  const prompt = { ...PROMPT_DIARIO, entrada: { horizontes: [], fatores: [{ fator: "PETROLEO_DOLAR" }, { fator: "PETROLEO_FUNDOS", informativo: true }] } };
+  const leituraCom = (h, fator) => ({ ...leitura(h), fatoresAFavor: [], fatoresContra: [{ fator, argumento: "...", evidencias: [] }], evidencias: [] });
+  const comVoto = JSON.stringify({ leituras: ["IMEDIATO", "CURTO", "MEDIO", "LONGO"].map((h) => leituraCom(h, "PETROLEO_FUNDOS")) });
+  const semVoto = JSON.stringify({ leituras: ["IMEDIATO", "CURTO", "MEDIO", "LONGO"].map((h) => leituraCom(h, "PETROLEO_DOLAR")) });
+  const { deps, provedor } = depsCom({ textos: [comVoto, semVoto] });
+  deps.promptDiarioService = { montarPromptDiario: async () => ({ promptDiario: prompt }) };
+  const baixado = await petroleo.download({}, deps);
+  assert.equal(provedor.chamadas.length, 2);
+  assert.equal(baixado.recusadas, 1);
+  const { detalhes } = petroleo.normalize(petroleo.parse(baixado));
+  assert.ok(detalhes.ia.motivosRecusa.every((m) => /PETROLEO_FUNDOS.*fator sem pressão própria/.test(m)));
+  assert.equal(detalhes.ia.motivosRecusa.length, 4);
 });

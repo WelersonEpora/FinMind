@@ -33,6 +33,7 @@ function resumirEvidencias(ativo, entrada) {
     tipoFel1: f.tipoFel1,
     situacaoRegra: f.situacaoRegra,
     contextoDe: f.contextoDe ?? null,
+    informativo: f.informativo === true,
     situacao: f.situacao,
     dataReferencia: f.dataReferencia ?? null,
     publicadoEm: f.publicadoEm ?? null,

@@ -39,8 +39,9 @@ function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidenc
   lista.forEach((item, i) => {
     const onde = `${prefixo}.${campo}[${i}]`;
     if (!item || !codigosFator.has(item.fator)) erros.push(`${onde}: fator "${item?.fator}" não está entre os fatores do prompt.`);
-    // Um fator de CONTEXTO (ex.: a inflação do ouro, ADR 0054) não tem leitura própria: não conta a favor nem contra.
-    else if (codigosContexto && codigosContexto.has(item.fator)) erros.push(`${onde}: "${item.fator}" é fator de contexto, não conta a favor nem contra.`);
+    // Um fator de CONTEXTO (ex.: a inflação do ouro, ADR 0054) ou SÓ DE INFORMAÇÃO (os fundos do petróleo, ADR 0094) não
+    // tem leitura própria: não conta a favor nem contra.
+    else if (codigosContexto && codigosContexto.has(item.fator)) erros.push(`${onde}: "${item.fator}" é fator sem pressão própria (contexto ou informação), não conta a favor nem contra.`);
     for (const id of item?.evidencias || []) {
       if (!idsEvidencia.has(id)) erros.push(`${onde}: cita a evidência "${id}", que não está em "evidencias".`);
     }

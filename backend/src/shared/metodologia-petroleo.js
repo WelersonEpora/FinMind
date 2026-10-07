@@ -10,7 +10,9 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // aparece no Centro de Decisão (ADR 0052). Nada daqui gera sinal de compra ou venda.
 
 // v2 (2026-10-06): a OPEP+ (F1) passa a fator calculado com eventos, pelo STEO da EIA; as perguntas viram decisões (ADR 0091).
-const VERSAO = 2;
+// v3 (2026-10-06): o refino (F9) passa a contexto da demanda e os fundos (F8), a só informação, os dois sem pressão
+// própria; as perguntas viram decisões (ADRs 0093 e 0094).
+const VERSAO = 3;
 const DATA_VERSAO = "2026-10-06";
 
 const DEFINICOES = [
@@ -259,13 +261,15 @@ const DEFINICOES = [
       mecanismo: "Posições especulativas amplificam tendências",
       fonte: "CFTC"
     },
+    informativo: true,
+    papelDecididoPor: "do usuário",
     dados: {
       observaveis: ["COT_PETROLEO_WTI"],
       eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o COT da CFTC traz as posições compradas e vendidas dos fundos (managed money) no WTI da NYMEX, toda semana, desde 2006. No histórico do FinMind (2010 a 2026), a posição líquida em % dos contratos em aberto segue o preço (+0,2 com a variação do WTI das 13 a 26 semanas anteriores: os fundos compram depois da alta, o \"amplifica\" indicado pelo especialista) e, nos extremos, o preço tende a virar: com os fundos entre os 10% mais vendidos dos 3 anos anteriores, o WTI subiu em 74% dos casos 26 semanas depois (média de +12%); entre os 10% mais comprados, em 44% (média de -1%). Fora dos extremos, perto de 50%. Exemplos: muito comprados em jun/2014, antes da queda; muito vendidos em fev/2016 e abr/2025."
+          "Suficiente para medir o posicionamento: o COT da CFTC traz as posições compradas e vendidas dos fundos (managed money) no WTI da NYMEX, toda semana, desde 2006. No histórico do Brent (2010 a 2026, com a data de divulgação), a posição líquida em % dos contratos em aberto segue o preço (+0,27 com a variação dos 6 meses anteriores: os fundos compram depois da alta, o \"amplifica\" indicado pelo especialista), mas não o antecipa. Nos extremos dos 3 anos anteriores, nem reversão nem continuação com significância: com os fundos entre os 10% mais vendidos, o Brent subiu em 66% das semanas 26 semanas depois, contra 49% em todas, mas são 15 episódios, e sem sobreposição 8 de 14 (p = 0,38); entre os 10% mais comprados, subiu em 54%, o contrário da reversão (6 de 11 na queda; p = 0,52). Com 1 e 5 anos de janela e com o desvio-padrão no lugar do percentil, o mesmo. Por isso o fator é só informação, sem pressão própria."
       },
       lacunas: [
         "Só futuros e só os fundos (managed money): o relatório que soma opções e as demais categorias (produtores, swap dealers) não é coletado.",
@@ -276,11 +280,12 @@ const DEFINICOES = [
       objetivo: "Medir o posicionamento dos fundos (managed money) no WTI.",
       medida: "Posição líquida (comprados menos vendidos) em % dos contratos em aberto, com a variação semanal em contratos.",
       comparacao: "Percentil da posição líquida nas 156 semanas (3 anos) anteriores; a posição relativa é o percentil menos 50 (de -50 a +50).",
-      leitura: "O especialista diz que amplifica; a proposta lê os extremos como risco de reversão: fundos muito comprados (acima do percentil 80, padrão: posição relativa de +30) pressionam para baixo, muito vendidos (abaixo do 20) para cima; forte além do 10 e do 90 (40 pontos). Tendência: se a posição relativa mudou 15 pontos ou mais em 4 semanas, os fundos estão comprando ou vendendo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
+      leitura: "Só informação (decisão do usuário, ADR 0094): na análise, os fundos não têm pressão própria e não contam a favor nem contra; a posição, o percentil e a tendência (comprando ou vendendo) vão ao prompt, e a IA diz o papel do posicionamento no campo próprio dele, sem ler reversão como pressão. A simulação da camada C continua na tela só como referência para o Comitê: fundos muito comprados (acima do percentil 80, posição relativa de +30) seriam pressão de baixa, muito vendidos (abaixo do 20) de alta; forte além do 10 e do 90 (40 pontos); tendência se a posição relativa mudou 15 pontos ou mais em 4 semanas."
     },
-    perguntas: [
-      "COT confirma os outros fatores ou tem direção própria? A proposta lê o extremo como risco de reversão (o histórico mostra isso, sobretudo do lado vendido); a outra leitura, a de seguir os fundos, o histórico não sustenta.",
-      "O que conta como extremo de posição (percentil, desvio-padrão, máxima histórica)? A proposta usa os percentis 20/80 e 10/90 dos 3 anos anteriores."
+    perguntas: [],
+    decisoes: [
+      "Direção própria (usuário, 2026-10-06, ADR 0094): os fundos ficam só como informação, sem pressão própria. No histórico do Brent, nem a reversão nos extremos (a proposta) nem seguir os fundos (o \"amplifica\" do especialista) se sustentam por episódio; é a mesma decisão do F7 do café (ADR 0089).",
+      "Extremo (usuário, 2026-10-06, ADR 0094): o percentil nos 3 anos anteriores (P10/P90 e P20/P80), como no ouro e no café, só para descrever a posição. Janelas de 1 e 5 anos e o desvio-padrão deram o mesmo; a máxima histórica não foi testada (rara demais para a amostra)."
     ]
   },
   {
@@ -291,13 +296,15 @@ const DEFINICOES = [
       mecanismo: "Rentabilidade do refino influencia demanda por petróleo bruto",
       fonte: "EIA"
     },
+    contextoDe: "PETROLEO_DEMANDA",
+    papelDecididoPor: "do usuário",
     dados: {
       observaveis: ["PETROLEO_PRECOS_EIA", "PETROLEO_FLUXOS_EIA"],
       eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para medir a margem de refino, que a EIA não publica: o FinMind a calcula com os preços à vista que já coleta (gasolina e diesel de Nova York e o Brent), desde 2006 (o diesel S10 começa aí; a média de 5 anos, em 2011). No histórico, a margem acima do normal anda com refinarias mais cheias (correlação de +0,25 com a utilização e +0,20 com o crescimento do petróleo processado), o mecanismo indicado pelo especialista, mas não antecipa o preço do petróleo (-0,08 a -0,15 com o WTI 13 e 26 semanas depois, levemente no sentido contrário). Mede a situação do refino. Com o Brent, e não o WTI: os derivados de Nova York são precificados contra o Brent, e em 2011-2013 o WTI ficou até US$ 20 abaixo dele, o que inflava o crack sem que a margem real subisse."
+          "Suficiente para medir a margem de refino, que a EIA não publica: o FinMind a calcula com os preços à vista que já coleta (gasolina e diesel de Nova York e o Brent), desde 2006 (o diesel S10 começa aí; a média de 5 anos, em 2011). A margem acima do normal anda com refinarias mais cheias (correlação de +0,25 com a utilização), o mecanismo indicado pelo especialista, mas a direção que ele dá para o preço NÃO aparece no histórico do Brent (2011 a 2026, com a data de publicação): o desvio tem -0,16 com o Brent 26 semanas depois, no sentido contrário; com a margem bem acima do normal (US$ 10 ou mais), o Brent subiu em 26% dos casos 26 semanas depois (média de -7%), contra 48% em todas as semanas; sem a crise do diesel de 2022-23, em 32% (poucos episódios). O crack só do diesel dá o mesmo (-0,17); o só da gasolina, mais fraco (-0,11). Por isso o refino é contexto da demanda, sem pressão própria. Com o Brent, e não o WTI, no crack: os derivados de Nova York são precificados contra o Brent, e em 2011-2013 o WTI ficou até US$ 20 abaixo dele, o que inflava o crack sem que a margem real subisse."
       },
       lacunas: [
         "A margem de refino não é publicada pela EIA: é calculada pelo FinMind (crack 3-2-1). Só Nova York: os preços da Costa do Golfo não são coletados.",
@@ -308,11 +315,12 @@ const DEFINICOES = [
       objetivo: "Medir se refinar está dando lucro acima ou abaixo do normal, o que puxa (ou freia) a compra de petróleo bruto.",
       medida: "Crack spread 3-2-1 com os preços de Nova York e o Brent: [(2 × gasolina + 1 × diesel) × 42 galões − 3 × Brent] ÷ 3, em US$ por barril, na média dos dias da semana; a utilização das refinarias como contexto.",
       comparacao: "Média do crack da mesma semana nos 5 anos anteriores (a margem é sazonal); o desvio em US$ por barril, e não em %, que explode quando a média é baixa.",
-      leitura: "Margem acima do normal além de uma faixa (padrão: US$ 3 por barril) indica demanda firme por petróleo bruto (pressão de alta); abaixo, demanda fraca (pressão de baixa). Intensidade forte a partir de US$ 10. Tendência: se o desvio mudou US$ 3 ou mais em 4 semanas. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
+      leitura: "Contexto da demanda (decisão do usuário, ADR 0093): na análise, o refino não tem pressão própria e não conta a favor nem contra; a margem explica a demanda por petróleo bruto, e a tendência dela (subindo ou caindo) vai ao prompt. A simulação da camada C continua na tela só como referência para o Comitê: margem acima do normal além de uma faixa (padrão: US$ 3 por barril) seria pressão de alta, abaixo, de baixa (a direção do especialista); forte a partir de US$ 10; tendência se o desvio mudou US$ 3 ou mais em 4 semanas."
     },
-    perguntas: [
-      "Qual crack spread: 3-2-1, 2-1-1, ou gasolina e diesel separados? (Em 2022 e em 2026 a alta veio do diesel.)",
-      "Margem muito alta por falta de derivados (como em 2022 e hoje) deve ser lida como alta para o petróleo, como diz o especialista, ou como um problema do refino que não puxa o petróleo?"
+    perguntas: [],
+    decisoes: [
+      "Crack spread (usuário, 2026-10-06, ADR 0093): fica o 3-2-1 com o Brent. Gasolina e diesel separados não mudam a relação com o preço (o diesel dá o mesmo; a gasolina, uma relação mais fraca); a margem do diesel, que puxa a alta de 2022 e de 2026, já pesa nele.",
+      "Margem muito alta (usuário, 2026-10-06, ADR 0093): o refino passa a contexto da demanda, sem pressão própria. No histórico do Brent, a margem bem acima do normal foi seguida de queda do petróleo, não de alta (a direção do especialista); inverter a leitura se apoiaria quase só em 2022-23."
     ]
   },
   {

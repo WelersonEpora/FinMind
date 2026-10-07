@@ -263,6 +263,9 @@ watch(ativo, carregar, { immediate: true })
                     <span v-if="fator.contextoDe" class="metodologia-ativo__calculado">
                       <i class="bi bi-info-circle"></i> Contexto de {{ nomeDoFator(fator.contextoDe) }}
                     </span>
+                    <span v-if="fator.informativo" class="metodologia-ativo__calculado" title="Sem pressão própria: não conta a favor nem contra">
+                      <i class="bi bi-info-circle"></i> Só informação
+                    </span>
                   </div>
 
                   <!-- O resultado do fator na data simulada, numa linha. -->

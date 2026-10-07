@@ -247,3 +247,16 @@ O item 16 tratava a OPEP+ como fator de evento, sem cálculo. Por decisão do us
 eventos: a produção e a capacidade ociosa da OPEP no STEO da EIA, lidas em quatro casos (corte, aumento, interrupção e
 neutro), e os eventos da janela de 45 dias depois do cálculo; toda decisão de produção da OPEP+ vira evento. Detalhe,
 validação histórica e a fonte nova: ADR 0091. A geopolítica segue como fator de evento.
+
+## Adendo (2026-10-06): o refino passa a contexto da demanda
+
+O item 11 lia a margem de refino acima do normal como pressão de alta, a direção do FEL 1. Contra o Brent, o histórico
+mostra o contrário (−0,16 com o Brent 26 semanas depois; com a margem bem acima do normal, o Brent subiu em 26% dos
+casos). Por decisão do usuário, o refino passa a contexto da demanda, sem pressão própria; o cálculo não muda. Detalhe:
+ADR 0093.
+
+## Adendo (2026-10-06): os fundos passam a só informação
+
+O item 13 lia o extremo dos fundos como risco de reversão. Contra o Brent, contado por episódio, nem a reversão nem
+seguir os fundos se sustentam. Por decisão do usuário, os fundos passam a fator só de informação, sem pressão própria;
+o cálculo não muda. Detalhe: ADR 0094.

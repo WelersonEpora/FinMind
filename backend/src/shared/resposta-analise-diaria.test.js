@@ -125,5 +125,5 @@ test("fator de contexto (a inflação do ouro, ADR 0054): pode ser evidência ou
   const comoVoto = respostaValida({ LONGO: { fatoresAFavor: [{ fator: "OURO_INFLACAO", argumento: "...", evidencias: [] }] } });
   const { erros } = validarRespostaAnalise(JSON.stringify(comoVoto), opcoes);
   assert.equal(erros.length, 1);
-  assert.match(erros[0], /OURO_INFLACAO.*fator de contexto/);
+  assert.match(erros[0], /OURO_INFLACAO.*fator sem pressão própria/);
 });

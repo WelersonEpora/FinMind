@@ -1,6 +1,6 @@
 # Prompt — Análise diária do petróleo (leitura de tendência em quatro horizontes)
 
-**Versão:** 4
+**Versão:** 5
 
 Histórico: v1 (2026-10-03) - formato inicial (ADR 0051): seis blocos, no molde do prompt do milho (`STATUS_DO_PROJETO.md`,
 §5): os fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do sistema; os
@@ -15,6 +15,10 @@ adendo). O papel diz que o COT e parte das validações dos fatores são do WTI,
 v4 (2026-10-06) - a OPEP+ passa a ser fator calculado COM eventos (ADR 0091): o caso da produção e da capacidade ociosa da
 OPEP no STEO da EIA (corte, aumento, interrupção) e, depois, os eventos da janela. O item 4 de "Como analisar" e a
 legenda do bloco 3 dizem isso; a interrupção (guerra) não é lida pelo fator e fica com a geopolítica.
+v5 (2026-10-06) - o refino (PETROLEO_REFINO) passa a fator de CONTEXTO da demanda e os fundos (PETROLEO_FUNDOS), a fator
+de INFORMAÇÃO, os dois sem pressão própria, por decisão do usuário (ADRs 0093 e 0094): o item 3 de "Como analisar" e a
+legenda do bloco 3 dizem como usá-los, como no prompt do ouro (ADR 0054); o item 5 diz que o extremo dos fundos não
+mostrou reversão no histórico do Brent e não baixa a confiança sozinho.
 
 Enviado ao Gemini uma vez por dia pelo coletor `petroleo-analise-ia-diario` (ADR 0052).
 
@@ -53,7 +57,11 @@ Para cada horizonte, separadamente:
 3. Leitura do motor. A pressão, a intensidade e a tendência de cada fator (parte C) são resultado das regras do motor:
    não as recalcule, não as contradiga e não as troque por uma interpretação sua. Se uma leitura informa pouco para o
    horizonte (por exemplo, porque a parte D diz que o fator acompanha o preço em vez de antecipá-lo), diga isso e dê a
-   ela menos papel na leitura.
+   ela menos papel na leitura. Um fator marcado como CONTEXTO de outro (a margem de refino, PETROLEO_REFINO, é
+   contexto da demanda, PETROLEO_DEMANDA) ou como INFORMAÇÃO (os fundos, PETROLEO_FUNDOS), por decisão do usuário,
+   não tem pressão própria: use o de contexto só para explicar o fator de que é contexto, e o de informação só no
+   papel dele (item 5). Nunca os liste em "fatoresAFavor" nem em "fatoresContra"; eles podem aparecer em "evidencias"
+   e em "fatoresPoucoRelevantes".
 4. Eventos (a geopolítica e os eventos da OPEP+). Use a idade e o tipo de cada evento para julgar se ele ainda pesa
    no horizonte. A pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com
    leitura diária na janela, é informação; "dia sem leitura" é falta de informação. Na OPEP+, o cálculo mostra a
@@ -62,7 +70,9 @@ Para cada horizonte, separadamente:
    queda da oferta não é decisão da OPEP: o efeito vem pelos eventos de geopolítica; não o conte duas vezes.
 5. Posicionamento (COT). Não conte o COT como mais um voto de alta ou de baixa. Diga qual é o papel dele no horizonte:
    confirma a leitura, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O
-   posicionamento segue o preço e os demais fatores: não o trate como evidência independente deles.
+   posicionamento segue o preço e os demais fatores: não o trate como evidência independente deles. No histórico do
+   Brent, o extremo dos fundos não mostrou reversão nem continuação com significância: não leia reversão só pelo
+   extremo e não baixe a confiança só por ele.
 6. Conflito entre fatores. Quando os fatores apontam para lados diferentes, não conte votos e não crie pontuação.
    Explique quais forças atuam, qual delas domina naquele horizonte e por quê. Fatores economicamente ligados (por
    exemplo, oferta, estoques e posicionamento) podem parecer se confirmar sem serem evidências independentes: diga
@@ -154,6 +164,8 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 [3. LEITURA DO MOTOR — o resultado das regras dos 10 fatores, aplicadas em código, sem IA]
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
+Fator de contexto ou de informação: A, B e D como os outros; em C, só o papel (contexto de qual fator, ou informação)
+e a tendência, sem pressão.
 Fator de evento: os eventos aceitos da leitura diária por IA na janela do fator, com a data, a idade e a fonte.
 Fator calculado com eventos (a OPEP+): o texto do cálculo (A a D) e, depois, os eventos da janela do fator.
 O motor ainda não fornece confiança por fator, horizonte por fator nem relações entre fatores.

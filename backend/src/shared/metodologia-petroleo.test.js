@@ -249,7 +249,17 @@ for (const codigo of Object.keys(LINHAS_SINTETICAS)) {
     // O bloco do prompt: o fator, a decisão e a regra; nenhum quadro sem valor vira "undefined".
     assert.match(calculo.textoPrompt, /^FATOR — .* — PETRÓLEO \(peso (Alto|Médio)\)\n/);
     // A regra é a da decisão por faixa ("neutra entre ..."), ou a regra própria do fator (a OPEP+, pelos quatro casos).
-    assert.match(calculo.textoPrompt, /\n- Regra aplicada \(parâmetros padrão do FinMind\): (neutra entre|o caso pela produção) .*\nC — Leitura do fator:\n- Pressão: (alta|baixa|neutra)\n/);
+    // O fator de contexto (o refino, ADR 0093) não leva a regra nem a pressão: só o papel e a tendência.
+    if (codigo === "PETROLEO_REFINO") {
+      assert.match(calculo.textoPrompt, /\nC — Papel na análise:\n- CONTEXTO do fator PETROLEO_DEMANDA, por decisão do usuário: sem pressão própria; não conta a favor nem contra\.\n- Tendência: /);
+      assert.doesNotMatch(calculo.textoPrompt, /Regra aplicada|- Pressão:/);
+    } else if (codigo === "PETROLEO_FUNDOS") {
+      // Só informação (ADR 0094): sem a regra nem a pressão, e sem fator-pai.
+      assert.match(calculo.textoPrompt, /\nC — Papel na análise:\n- INFORMAÇÃO, por decisão do usuário: sem pressão própria; não conta a favor nem contra\.\n- Tendência: /);
+      assert.doesNotMatch(calculo.textoPrompt, /Regra aplicada|- Pressão:/);
+    } else {
+      assert.match(calculo.textoPrompt, /\n- Regra aplicada \(parâmetros padrão do FinMind\): (neutra entre|o caso pela produção) .*\nC — Leitura do fator:\n- Pressão: (alta|baixa|neutra)\n/);
+    }
     assert.match(calculo.textoPrompt, /\nD — Validação histórica \(contexto para avaliar a relação; não entra na leitura acima\):\n- /);
     assert.doesNotMatch(calculo.textoPrompt, /[Dd]ecisão sugerida/);
     assert.doesNotMatch(calculo.textoPrompt, /undefined|NaN/);
@@ -338,6 +348,26 @@ test("salvar ao mesmo tempo que outro admin vira 409; o histórico lista as vers
   assert.deepEqual(parametros, { versoes: [], padrao: PARAMETROS_PADRAO });
 });
 
+test("o refino é o único fator de contexto do petróleo: da demanda, por decisão do usuário (ADR 0093), sem pergunta pendente", () => {
+  assert.deepEqual(
+    fatores.filter((fator) => fator.contextoDe).map((fator) => [fator.codigo, fator.contextoDe, fator.papelDecididoPor]),
+    [["PETROLEO_REFINO", "PETROLEO_DEMANDA", "do usuário"]]
+  );
+  const refino = fatores.find((fator) => fator.codigo === "PETROLEO_REFINO");
+  assert.deepEqual(refino.perguntas, []);
+  assert.equal(refino.decisoes.length, 2);
+});
+
+test("os fundos são o único fator só de informação do petróleo, por decisão do usuário (ADR 0094), sem pergunta pendente", () => {
+  assert.deepEqual(
+    fatores.filter((fator) => fator.informativo).map((fator) => [fator.codigo, fator.contextoDe, fator.papelDecididoPor]),
+    [["PETROLEO_FUNDOS", null, "do usuário"]]
+  );
+  const fundos = fatores.find((fator) => fator.codigo === "PETROLEO_FUNDOS");
+  assert.deepEqual(fundos.perguntas, []);
+  assert.equal(fundos.decisoes.length, 2);
+});
+
 test("a geopolítica sai como fator de evento, sem cálculo; a OPEP+, calculada e com eventos (ADR 0091)", () => {
   const { metodologia } = obterMetodologiaAtivo("PETROLEO");
   assert.deepEqual(
@@ -390,7 +420,7 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   assert.equal(simulacao.fatores.length, 10);
   assert.deepEqual(simulacao.fatores.filter((f) => f.tipo === "EVENTO").map((f) => f.codigo), ["PETROLEO_GEOPOLITICA"]);
   assert.ok(simulacao.fatores.filter((f) => f.tipo === "CALCULADO").every((f) => f.medida === null && f.textoPrompt.startsWith("FATOR — ")));
-  assert.equal(simulacao.versaoMetodologia, "petroleo-v2 (2026-10-06)");
+  assert.equal(simulacao.versaoMetodologia, "petroleo-v3 (2026-10-06)");
   // A OPEP+ é calculada e com eventos: o texto do cálculo e, depois, o bloco dos eventos.
   assert.match(simulacao.fatores[0].textoPrompt, /^FATOR — Decisões da OPEP\+[^\n]*\n[\s\S]*\n\nEVENTOS DO FATOR PETROLEO_OPEP$/);
   // O prompt completo é do prompt-diario.service.js: a simulação não monta um texto próprio.

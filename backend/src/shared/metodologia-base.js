@@ -27,6 +27,12 @@ const { FATORES } = require("./fatores-fel1");
 //              cálculo (A e B) continua e vai ao prompt, mas sem leitura própria (nem pressão, nem intensidade): ele
 //              explica o outro fator e não conta a favor nem contra (ex.: a inflação do ouro, contexto do juro real,
 //              ADR 0054).
+//   informativo - (opcional) true: FATOR SÓ DE INFORMAÇÃO, como o de contexto, mas sem explicar um fator específico
+//              (ex.: os fundos do petróleo, cujo extremo não mostrou reversão nem continuação no histórico, ADR 0094).
+//              O cálculo vai ao prompt com a tendência, sem pressão, e não conta a favor nem contra. Não se combina com
+//              `contextoDe`.
+//   papelDecididoPor - (opcional, com `contextoDe` ou `informativo`) quem decidiu esse papel sem pressão, como o texto
+//              do prompt o diz: "do especialista" (padrão, o David) ou "do usuário" (ex.: o refino, ADR 0093).
 //   efeitoDefasado - (opcional) { mesesMin, mesesMax, sobre }: SINAL DEFASADO, pela regra do especialista (ex.: o F6 do
 //              milho age sobre a safrinha seguinte, de 6 a 12 meses depois). O bloco do fator no prompt ganha a data de
 //              efeito esperada, contada do período do dado (texto-prompt.js).
@@ -103,9 +109,10 @@ function montarFatores(ativo, definicoes) {
   return definicoes.map((definicao) => {
     const fator = FATORES.find((item) => item.codigo === definicao.codigo);
     if (!fator || fator.ativo !== ativo) throw new Error(`Fator ausente no catálogo do FEL 1 para ${ativo}: ${definicao.codigo}`);
-    if (definicao.contextoDe && !definicoes.some((outra) => outra.codigo === definicao.contextoDe && !outra.contextoDe)) {
+    if (definicao.contextoDe && !definicoes.some((outra) => outra.codigo === definicao.contextoDe && !outra.contextoDe && !outra.informativo)) {
       throw new Error(`${definicao.codigo}: contexto de um fator que não está no ativo (ou que também é contexto): ${definicao.contextoDe}`);
     }
+    if (definicao.informativo && definicao.contextoDe) throw new Error(`${definicao.codigo}: informativo e contexto ao mesmo tempo`);
     return {
       codigo: fator.codigo,
       nome: definicao.nome || fator.nome,
@@ -119,6 +126,8 @@ function montarFatores(ativo, definicoes) {
       ajustesFel1: montarAjustesFel1(fator, definicao),
       evento: definicao.evento || null,
       contextoDe: definicao.contextoDe || null,
+      informativo: definicao.informativo === true,
+      papelDecididoPor: definicao.contextoDe || definicao.informativo ? definicao.papelDecididoPor || "do especialista" : null,
       efeitoDefasado: definicao.efeitoDefasado || null
     };
   });

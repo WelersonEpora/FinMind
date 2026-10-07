@@ -108,10 +108,13 @@ const PRESSOES_FATOR = {
 const INTENSIDADES_FATOR = { FRACA: 'fraca', MODERADA: 'moderada', FORTE: 'forte' }
 const TENDENCIAS_FATOR = { SUBINDO: 'subindo', CAINDO: 'caindo', ESTAVEL: 'estável' }
 
-// Um fator de CONTEXTO (a inflação do ouro, ADR 0054) foi ao prompt sem pressão: só o papel e a tendência.
+// Um fator de CONTEXTO (a inflação do ouro, ADR 0054) ou SÓ DE INFORMAÇÃO (os fundos do petróleo, ADR 0094) foi ao
+// prompt sem pressão: só o papel e a tendência.
+const SEM_PRESSAO = { CONTEXTO: 'Contexto', INFORMACAO: 'Informação' }
 export function leituraDoFator(leitura) {
-  if (leitura?.papel === 'CONTEXTO') {
-    return { rotulo: 'Contexto', icone: 'bi-info-circle', classe: 'lateral', texto: 'Contexto', tendencia: TENDENCIAS_FATOR[leitura.tendencia] || null }
+  const papel = SEM_PRESSAO[leitura?.papel]
+  if (papel) {
+    return { rotulo: papel, icone: 'bi-info-circle', classe: 'lateral', texto: papel, tendencia: TENDENCIAS_FATOR[leitura.tendencia] || null }
   }
   const pressao = PRESSOES_FATOR[leitura?.pressao]
   if (!pressao) return null

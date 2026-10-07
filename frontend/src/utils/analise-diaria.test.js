@@ -81,6 +81,13 @@ test('fator de contexto (ADR 0054): sem pressão, o chip diz Contexto, com a ten
   assert.equal(leitura.tendencia, 'caindo')
 })
 
+test('fator só de informação (ADR 0094): sem pressão, o chip diz Informação, com a tendência', () => {
+  const leitura = leituraDoFator({ papel: 'INFORMACAO', tendencia: 'SUBINDO' })
+  assert.equal(leitura.texto, 'Informação')
+  assert.equal(leitura.classe, 'lateral')
+  assert.equal(leitura.tendencia, 'subindo')
+})
+
 test('realizado de um horizonte: variação e faixa quando apurado; nas outras situações, só a nota', () => {
   const fmt = (d) => (d ? d.split('-').reverse().join('/') : '—')
   assert.deepEqual(

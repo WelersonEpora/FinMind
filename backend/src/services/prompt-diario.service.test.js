@@ -108,7 +108,7 @@ test("os blocos fixos (1, 4, 5 e 6) vão na instrução do sistema; a base e a l
   for (const bloco of ["[2. BASE", "2.1 PREÇO DO BRENT", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
     assert.ok(p.prompt.includes(bloco), bloco);
   }
-  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@4");
+  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@5");
   assert.equal(p.versaoMetodologia, "petroleo-v1 (2026-10-02)");
   assert.equal(p.versaoConfiguracao, config.VERSAO);
   assert.match(p.hashEntrada, /^[0-9a-f]{64}$/);
@@ -213,7 +213,9 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
     decisao: { direcao: "ALTA", intensidade: "MODERADA", tendencia: "DESACELERANDO" },
     textoPrompt: "FATOR — Inflação"
   };
-  const d = deps({ fatores: [inflacao], preco: precoGld });
+  // Um fator só de informação (ADR 0094; no petróleo, os fundos) segue o mesmo caminho, sem fator-pai.
+  const informativo = { ...CALCULADO, codigo: "OURO_FUNDOS", nome: "Fundos", informativo: true, decisao: { direcao: "BAIXA", intensidade: "FORTE", tendencia: "SUBINDO" }, textoPrompt: "FATOR — Fundos" };
+  const d = deps({ fatores: [inflacao, informativo], preco: precoGld });
   const ptaxPedidas = [];
   d.marketQuoteRepository = {
     async buscarHistorico(filtros) {
@@ -239,6 +241,9 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   const entrada = p.entrada.fatores[0];
   assert.equal(entrada.contextoDe, "OURO_JUROS_REAIS");
   assert.deepEqual(entrada.leitura, { papel: "CONTEXTO", contextoDe: "OURO_JUROS_REAIS", tendencia: "DESACELERANDO" });
+  assert.match(p.prompt, /2\. OURO_FUNDOS — .* \| INFORMAÇÃO, sem leitura própria \|/);
+  assert.equal(p.entrada.fatores[1].informativo, true);
+  assert.deepEqual(p.entrada.fatores[1].leitura, { papel: "INFORMACAO", tendencia: "SUBINDO" });
   assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.4 });
   assert.equal(p.entrada.precoReferencia.contrato.ticker, "GLDZ26");
   // A série exata vai com a leitura (ADR 0064): o realizado não depende da configuração futura.

@@ -38,7 +38,7 @@ function opcoesDeValidacao(promptDiario, config) {
   return {
     horizontes: config.HORIZONTES,
     codigosFator: fatores.map((f) => f.fator),
-    codigosContexto: fatores.filter((f) => f.contextoDe).map((f) => f.fator)
+    codigosContexto: fatores.filter((f) => f.contextoDe || f.informativo).map((f) => f.fator)
   };
 }
 

@@ -323,7 +323,8 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
         situacaoRegra: fator.proposta.situacao,
         observaveis: fator.dados.observaveis,
         // Fator de CONTEXTO de outro (metodologia-base.js): sem leitura própria no prompt.
-        ...(fator.contextoDe ? { contextoDe: fator.contextoDe } : {})
+        ...(fator.contextoDe ? { contextoDe: fator.contextoDe } : {}),
+        ...(fator.informativo ? { informativo: true } : {})
       };
       if (CALCULOS[fator.codigo]) {
         const { calculo } = await calcularFator(codigo, fator.codigo, { data: dia }, deps);

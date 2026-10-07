@@ -25,10 +25,11 @@ const { somarDias, sextaDaSemana } = require("./base/semana-de-dias");
 //        desvio = crack - media5Anos, em US$/barril. Não em %: a média chega a US$ 7, e o desvio em % explode
 //        (+247% em 2012); em US$ ele é estável
 //     C. decisão por faixa sobre o desvio, em US$/barril: margem acima do normal = pressão de ALTA ("margens altas
-//        elevam demanda por cru", FEL 1)
+//        elevam demanda por cru", FEL 1). Só na tela, como referência: na análise o refino é CONTEXTO da demanda, sem
+//        pressão própria (decisão do usuário, ADR 0093), e o prompt leva só a tendência
 //
 // No histórico, a margem acima do normal anda com refinarias mais cheias (+0,25 com a utilização), mas não antecipa
-// o preço do petróleo. Os preços diários saem uma vez por semana (quarta), com os dias até a terça: a última semana
+// o preço do petróleo: contra o Brent 26 semanas depois, -0,16, o sentido contrário ao do FEL 1 (ADR 0093). Os preços diários saem uma vez por semana (quarta), com os dias até a terça: a última semana
 // pode ter só 1 ou 2 dias (o quadro mostra quantos). Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "refino_petroleo_crack_321";
