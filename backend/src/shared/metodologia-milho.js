@@ -43,8 +43,10 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-milho");
 // v19 (2026-10-06): as fontes brasileiras do etanol (UNEM e ANP) não aprovadas; sai das correções do FEL 1 (ADR 0073,
 // adendo).
 // v20 (2026-10-06): os ajustes ao FEL 1 em cada fator, sem revisão do documento; a pergunta sai (ADR 0082).
-const VERSAO = 20;
-const DATA_VERSAO = "2026-10-06";
+// v21 (2026-10-07): os eventos saem dos fatores F1 a F7 e vão a uma seção da base do prompt; o F8 fica com os dele
+// (ADR 0095).
+const VERSAO = 21;
+const DATA_VERSAO = "2026-10-07";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
 
@@ -57,7 +59,6 @@ const DEFINICOES = [
       mecanismo: "EUA é maior exportador; condições de lavoura definem oferta",
       fonte: "USDA/NASS, NOAA"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["USDA_MILHO_CONDICAO", "USDA_MILHO_PROGRESSO", "NOAA_VH_MILHO", "NOAA_CPC_MILHO", "MILHO_PRECO_FMI"],
       eventos: false,
@@ -96,7 +97,6 @@ const DEFINICOES = [
       mecanismo: "Brasil é grande exportador; safrinha define oferta local e exportável",
       fonte: "Conab, IMEA"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["CONAB_MILHO_SAFRA", "IMEA_MILHO_SAFRA", "IMEA_MILHO_ANDAMENTO", "NOAA_VH_MILHO"],
       eventos: false,
@@ -137,7 +137,6 @@ const DEFINICOES = [
       mecanismo: "Relação estoque/uso é o driver clássico de preço de grãos",
       fonte: "USDA/FAS"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["WASDE_MILHO_EUA", "WASDE_MILHO_PAISES", "CONAB_MILHO_BALANCO", "MILHO_PRECO_FMI"],
       eventos: false,
@@ -193,7 +192,6 @@ const DEFINICOES = [
         origem: "O especialista pediu no Motor do Milho v0 (próximos passos); o calendário dele já dá Alto de julho a janeiro (ADRs 0065 e 0072)."
       }
     ],
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["USD_BRL", "IMEA_MILHO_PARIDADE", "MILHO_CEPEA_ESALQ", "COMEX_MILHO_VOLUME"],
       eventos: false,
@@ -242,7 +240,6 @@ const DEFINICOES = [
         origem: "Usuário (Welerson), 2026-10-06 (ADR 0073, adendo)."
       }
     ],
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["ETANOL_EUA_EIA", "WASDE_MILHO_EUA", "MILHO_PRECO_FMI"],
       eventos: false,
@@ -295,7 +292,6 @@ const DEFINICOES = [
         origem: "O especialista pediu \"Baixo-Médio\" no Motor do Milho v0; escrito na escala do FEL 1 como o calendário dele aplica, pelo usuário (Welerson), 2026-10-06 (ADR 0065, adendo)."
       }
     ],
-    evento: { janelaDias: 7 },
     // Sinal defasado (Motor do Milho v0, regras de agregação): o F6 age sobre a área e a safrinha da safra seguinte.
     efeitoDefasado: { mesesMin: 6, mesesMax: 12, sobre: "a área e a safrinha (F2) da safra seguinte" },
     dados: {
@@ -352,7 +348,6 @@ const DEFINICOES = [
         origem: "Regras R-FUN v0 e de agregação do especialista; decidido pelo usuário (Welerson), 2026-10-05 (ADRs 0065 e 0075)."
       }
     ],
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["COT_MILHO", "MILHO_PRECO_FMI"],
       eventos: false,
@@ -442,7 +437,8 @@ const DO_ATIVO = {
     "Vencimento de cada horizonte: o mais próximo que ainda negocia depois da data-alvo (vale até o dia 15 do mês de vencimento), e a leitura e a avaliação do horizonte usam esse contrato; a curva (ajuste e contratos negociados de cada vencimento) vai ao prompt. Com o mais próximo para todos, o contrato vencia antes da data-alvo em todos os dias no horizonte de 90 dias e na metade deles no de 30. Liquidez mínima de 100 contratos negociados no dia, só com aviso (os contratos em aberto não vêm mais da B3). Usuário (Welerson), 2026-10-05 (ADR 0078).",
     "Faixas da leitura da IA: ficam as calibradas no próprio CCM (percentis 40 e 80 da variação, por horizonte), não as 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%): no CCM, em 1 dia 80% das variações seriam \"irrelevante\" e 99% caem nas duas primeiras classes, enquanto as calibradas dão cerca de 40% lateral, 40% leve e 20% forte em todos os horizontes. Usuário (Welerson), 2026-10-05 (ADR 0079).",
     "Fatores ausentes propostos pelo especialista (ração, frete e base MT→porto, prêmio em Paranaguá, soja, clima brasileiro como fator próprio): ficam para depois da v1. Pedem fonte nova, e a aquisição está encerrada; cada um volta com uma demanda e uma autorização próprias. Hoje, o clima brasileiro chega como contexto do F2 (o VHI de MT e do PR) e pelos eventos do INMET, e o frete até o porto está dentro da paridade do IMEA (F4). Usuário (Welerson), 2026-10-05 (ADR 0080).",
-    "Eventos sem validação humana, por ora: cada fator recebe os eventos que a leitura diária por IA marca com ele, como chegam (7 dias de janela; 30 no F8). Comitê, 2026-10-04 (ADR 0058); confirmado pelo usuário (Welerson), 2026-10-05: não haverá validação humana.",
+    "Eventos sem validação humana: vão ao prompt como chegam da leitura diária por IA. Comitê, 2026-10-04 (ADR 0058); confirmado pelo usuário (Welerson), 2026-10-05: não haverá validação humana.",
+    "Onde ficam os eventos (usuário, 2026-10-07, ADR 0095): os da política comercial no F8, cuja condição é o próprio evento (30 dias, como o David desenhou); os demais numa seção só na base do prompt (7 dias), cada um com a condição que afeta, sem peso nem leitura do motor. Até então, cada fator recebia os seus (ADR 0058, item 3), o que misturava o evento ao cálculo do fator.",
     "Base do F4 (Campinas − paridade de MT): fica como está por ora, com o limiar 0 da regra do David. Comitê, 2026-10-04 (ADR 0058).",
     `Medidas da camada A confirmadas: COT em managed money (contratos e % dos contratos em aberto), estoque/uso dos EUA e do mundo com a revisão, safrinha em nível e revisão (Conab e IMEA), boa + excelente com o VHI, insumos pelo IMEA na v1. ${DECISAO_DAVID}, §5.`,
     "Peso por mês e agregação no prompt: o calendário de pesos da proposta vai ao prompt diário como uma tabela fixa, e as regras de agregação como orientação em texto, sem cálculo novo; a agregação em código continua para o Comitê. Nos meses que a proposta não define (o F1 de janeiro a maio, o F2 em janeiro e fevereiro), vale o peso do FEL 1. Usuário (Welerson), 2026-10-05 (ADR 0065).",

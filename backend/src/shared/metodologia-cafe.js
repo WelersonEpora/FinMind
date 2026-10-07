@@ -30,8 +30,9 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 // v11 (2026-10-06): as perguntas do F8 viram decisões; o dólar global como condição da baixa (ADR 0090).
 // v12 (2026-10-06): a revisão crítica: o F8 volta à v1, com o dólar como contexto (ADR 0090, revisão); o F7 não muda a
 // confiança (ADR 0089, revisão); os textos do F6 e do F7 dizem o que o histórico sustenta.
-const VERSAO = 12;
-const DATA_VERSAO = "2026-10-06";
+// v13 (2026-10-07): os eventos saem dos 8 fatores e vão a uma seção da base do prompt (ADR 0095).
+const VERSAO = 13;
+const DATA_VERSAO = "2026-10-07";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
   "O limiar é calibração do FinMind (o estudo deixa \"[CALIBRAR COM DADOS POINT-IN-TIME]\"): a posição da medida no próprio histórico, neutra do percentil 20 ao 80 (a faixa que o estudo usa no COT), forte abaixo do 10 ou acima do 90.";
@@ -46,10 +47,9 @@ const DEFINICOES = [
       mecanismo: "Quebra de safra reduz oferta; clima bom eleva produção",
       fonte: "Conab, USDA, Somar Meteorologia"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["NOAA_VH_CAFE", "CONAB_CAFE"],
-      eventos: true,
+      eventos: false,
       avaliacao: {
         suficiente: false,
         texto:
@@ -88,10 +88,9 @@ const DEFINICOES = [
       mecanismo: "Brasil é maior produtor; ciclo bienal alterna anos de alta e baixa produção",
       fonte: "Conab, ICO"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["CONAB_CAFE", "USDA_PSD_CAFE"],
-      eventos: true,
+      eventos: false,
       avaliacao: {
         suficiente: false,
         texto:
@@ -130,10 +129,9 @@ const DEFINICOES = [
       mecanismo: "Nível de inventário indica aperto ou folga de oferta",
       fonte: "ICO, ICE"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["ICE_CAFE_ESTOQUES", "ICO_CAFE", "ECF_CAFE_ESTOQUES", "USDA_PSD_CAFE"],
-      eventos: true,
+      eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
@@ -171,10 +169,9 @@ const DEFINICOES = [
       mecanismo: "Café é commodity cotada em US$; câmbio afeta receita do produtor e preço local",
       fonte: "Cepea, BCB"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["USD_BRL", "CAFE_CECAFE_EMBARQUES"],
-      eventos: true,
+      eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
@@ -211,10 +208,9 @@ const DEFINICOES = [
       mecanismo: "Custo de insumos e política agrícola definem piso",
       fonte: "Conab, MAPA"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["CAFE_CUSTO_ARABICA_CONAB", "ICF_PRECOS", "USD_BRL"],
-      eventos: true,
+      eventos: false,
       avaliacao: {
         suficiente: false,
         texto:
@@ -253,10 +249,10 @@ const DEFINICOES = [
       mecanismo: "Consumo de café é relativamente estável, mas crises afetam demanda",
       fonte: "ICO, USDA"
     },
-    evento: { janelaDias: 30 },
+    janelaEventos: 30,
     dados: {
       observaveis: ["USDA_PSD_CAFE", "CAFE_PRECO_FMI", "ICO_CAFE"],
-      eventos: true,
+      eventos: false,
       avaliacao: {
         suficiente: false,
         texto:
@@ -296,10 +292,9 @@ const DEFINICOES = [
       mecanismo: "Posições de fundos e fluxo de capital amplificam tendências",
       fonte: "CFTC (COT), ICE"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["COT_CAFE"],
-      eventos: true,
+      eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
@@ -334,10 +329,9 @@ const DEFINICOES = [
       mecanismo: "Custo de carregamento e apetite por risco",
       fonte: "Fed, BCB"
     },
-    evento: { janelaDias: 7 },
     dados: {
       observaveis: ["TREASURY_10A", "META_FED", "DOLAR_AMPLO_FED"],
-      eventos: true,
+      eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
@@ -381,7 +375,8 @@ const DO_ATIVO = {
     "Vencimento de cada horizonte: o mais próximo que ainda negocia depois da data-alvo (vale até o dia 15 do mês de vencimento), e a leitura e a avaliação do horizonte usam esse contrato; a curva vai ao prompt. Com o mais próximo para todos, o contrato vencia antes da data-alvo em 78% dos dias no horizonte de 90 dias. Liquidez mínima de 100 contratos negociados no dia, só com aviso: no ICF, pouco líquido, o aviso sai em cerca de um quarto dos dias. Usuário (Welerson), 2026-10-05 (ADR 0078).",
     "Faixas da leitura da IA: ficam as calibradas no próprio ICF (percentis 40 e 80 da variação, por horizonte), não as 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%): no ICF, em 90 dias 60% das variações seriam \"excepcional\", e em 1 dia 85% caem nas duas primeiras classes, enquanto as calibradas dão cerca de 40% lateral, 40% leve e 20% forte em todos os horizontes. Usuário (Welerson), 2026-10-05 (ADR 0079).",
     `Horizontes em dias corridos (1, 7, 30 e 90), contados da data da análise, como nos outros ativos (o estudo conta em pregões). ${DECISAO_COMITE}.`,
-    `Eventos por fator: o David pediu avaliar a leitura de eventos também no café (P12, ADR 0055). Cada fator recebe os eventos que a leitura diária por IA marca com ele (7 dias de janela; 30 na demanda), sem validação humana por ora, e eles vão ao prompt depois do cálculo. ${DECISAO_COMITE}.`,
+    `Eventos sem validação humana, por ora, com a janela de 7 dias (30 nos marcados com a demanda). ${DECISAO_COMITE}.`,
+    "Onde ficam os eventos (usuário, 2026-10-07, ADR 0095): numa seção só na base do prompt, cada um com a condição que afeta, sem peso nem leitura do motor; nenhum fator do café é de evento. Até então, cada fator recebia os seus (ADR 0062). O que o David pediu na reunião de 2026-10-03 foi avaliar um fator de eventos também no café (ADR 0055, P12), não eventos em cada fator.",
     "O WASDE não cobre café: o balanço do USDA para o café é o PSD (Coffee: World Markets and Trade). David, 2026-10-03 (P14, ADR 0055).",
     "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET fica para depois da v1 (usuário, 2026-10-06, ADR 0083); o diário de Londres e do KC, orçamento e licença; o diferencial FOB não tem fonte pública."
   ],

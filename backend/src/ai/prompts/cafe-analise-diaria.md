@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 5
+**Versão:** 6
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -12,8 +12,8 @@ mesmo choque (clima, safra e estoques são a mesma cadeia, com defasagem); os es
 revisão da Conab sem a expectativa do mercado, com peso direcional reduzido; os fundos (F7) como modificador de risco,
 sem voto; o custo (F5) só no horizonte longo; o câmbio sem repasse causal e mecânico. As regras são hipóteses do estudo
 com os limiares calibrados pelo FinMind, aprovadas pelo Comitê para o protótipo (2026-10-05), sem backtest. Os eventos
-vão ao prompt sem validação humana, como chegam da leitura diária de eventos por IA; cada fator recebe os eventos
-marcados com ele, depois do cálculo. Os números das faixas e dos horizontes NÃO são escritos aqui: vêm da configuração
+vão ao prompt sem validação humana, como chegam da leitura diária de eventos por IA, numa seção da base (2.5), fora
+dos fatores (ADR 0095). Os números das faixas e dos horizontes NÃO são escritos aqui: vêm da configuração
 (`shared/analise-diaria-cafe.js`), no bloco 2.4.
 
 v2 (2026-10-05, ADR 0066): a LEITURA AGREGADA DO MOTOR vai ao prompt, no bloco 3B: os fatores juntados em código por
@@ -34,6 +34,8 @@ sozinho foi seguido de continuação. A agregação do bloco 3B passou à v2, co
 v5 (2026-10-06, ADR 0089, revisão) - o item 9 volta atrás no catalisador: ele quase nunca acontece, e o histórico não
 mostrou reversão nem continuação com significância. Os fundos não mudam a confiança, nem na agregação (v3) nem na
 leitura da IA; o papel deles vai só como informação.
+v6 (2026-10-07, ADR 0095) - os eventos saem dos 8 fatores e vão a uma seção só da base (2.5), cada um uma vez e com
+a condição que afeta, sem peso nem leitura do motor. O item 11 de "Como analisar" e a legenda do bloco 3 dizem isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -115,14 +117,16 @@ Para cada horizonte, separadamente:
    não os trate como evidências independentes quando andarem juntos.
 10. Juros (CAFE_JUROS). Agem pelo custo de carregar estoque e pela liquidez para commodities, de forma lenta. Juro e
     estoques certificados podem apontar a mesma força: diga quando for o caso.
-11. Eventos. Cada fator traz, depois do cálculo, os eventos que a leitura diária de eventos por IA marcou com ele
-    (geada ou seca no clima; revisões e quebras na safra; e assim por diante). O cálculo não usa os eventos: eles
-    complementam a leitura do fator. A geada não aparece na saúde da vegetação na semana em que acontece: um evento de
-    geada recente é informação que o cálculo do clima ainda não tem. Use a idade e o tipo de cada evento para julgar se
-    ele ainda pesa no horizonte. A pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo, e não
-    passou por validação humana: dê a ele menos firmeza que a um dado medido. Um evento que também já aparece num dado
-    calculado (uma quebra de safra que já entrou num levantamento) não conta duas vezes. "Nenhum evento", com leitura
-    diária na janela, é informação; "dia sem leitura" é falta de informação.
+11. Eventos. Os eventos do café (geada ou seca, revisões e quebras de safra e assim por diante) estão na seção 2.5,
+    uma vez cada, com a condição que afetam: não são fator, não têm peso e não mudam a leitura do motor de nenhum
+    fator. Use-os para dizer o que o cálculo da condição afetada ainda não mostra. Ao citar um evento da seção como
+    evidência, use a origem EVENTO e, no fator, o código da condição que ele afeta (ou null). A geada não aparece na
+    saúde da vegetação na semana em que acontece: um evento de geada recente é informação que o cálculo do clima ainda
+    não tem. Use a idade e o tipo de cada evento para julgar se ele ainda pesa no horizonte. A pressão de um evento é
+    leitura de outra IA sobre o fato isolado, não um cálculo, e não passou por validação humana: dê a ele menos
+    firmeza que a um dado medido. Um evento que também já aparece num dado calculado (uma quebra de safra que já
+    entrou num levantamento) não conta duas vezes. "Nenhum evento", com leitura diária na janela, é informação; "dia
+    sem leitura" é falta de informação.
 12. Conflito entre blocos. Quando blocos independentes divergem (por exemplo, oferta em alta e demanda ou fundos em
     baixa), ou quando as variáveis de um fator conflitam sem prioridade objetiva, não resolva o conflito por conta
     própria: explique as forças e reduza a confiança. Fatores economicamente ligados podem parecer se confirmar sem
@@ -210,10 +214,13 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 2.4 HORIZONTES E FAIXAS DE VARIAÇÃO — definidos pela metodologia
 {{bloco_faixas}}
 
+2.5 EVENTOS DO ATIVO — da leitura diária por IA; não é fator
+{{bloco_eventos}}
+
 [3. LEITURA DO MOTOR — o resultado das regras dos 8 fatores, aplicadas em código, sem IA]
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
-Eventos de cada fator: os aceitos da leitura diária por IA marcados com ele, na janela do fator, depois do cálculo.
+Os eventos do café estão na seção 2.5, fora dos fatores.
 O motor não fornece confiança por fator, horizonte por fator nem peso por mês; a agregação dos fatores está no bloco 3B.
 
 {{blocos_fatores}}

@@ -5,7 +5,7 @@ const { NotFoundError, ValidationError } = require("../shared/errors");
 const { validarPaginacao } = require("../shared/utils/pagination");
 const { FONTES, CODIGOS, fontesDaPesquisa } = require("../collectors/geopolitica/fontes-autorizadas");
 const { ATIVOS, ROTULO_ATIVO, TIPOS, CODIGOS_TIPO, frenteDoAtivo } = require("../shared/eventos-mercado");
-const { nomeDoFator } = require("../shared/fatores-fel1");
+const { nomeDoFator, NAO_SE_APLICA } = require("../shared/fatores-fel1");
 
 // Entrega a leitura diária de eventos de mercado (ADRs 0047 e 0049) ao Motor e às telas. Para o Motor, o bloco
 // "EVENTOS DE MERCADO — <ATIVO>" que entra no prompt do ativo como contexto: o nível e o resumo do dia e os eventos
@@ -237,6 +237,107 @@ async function obterEventosDoFator(ativo, fator, dataReferencia, janela, deps = 
   return { ...resultado, contexto: formatarEventosDoFator(resultado) };
 }
 
+// --- Eventos do ativo na BASE do prompt (ADR 0095) ------------------------------------------------------------------
+//
+// Uma seção só, na base do prompt do ativo, com os eventos aceitos da janela, cada um uma vez e com a condição que
+// afeta (o fator do FEL 1 marcado pela leitura diária). Não é fator: sem peso nem leitura do motor. Os eventos dos
+// fatores de EVENTO (a geopolítica, a OPEP+, o F8 do milho: a condição deles é o próprio evento) ficam no bloco do fator
+// e não se repetem aqui. A janela é a padrão, ou a de um fator quando a metodologia a dá (ex.: 30 dias na demanda do
+// café).
+
+function formatarEventoDoAtivo(evento, indice) {
+  const quando = evento.idadeDias === 0 ? "hoje" : `há ${evento.idadeDias} dia(s)`;
+  const condicao = evento.fator && evento.fator !== NAO_SE_APLICA ? `${evento.fator} — ${nomeDoFator(evento.fator)}` : "nenhum fator do FEL 1";
+  return [`${indice + 1}. [registrado em ${evento.data}, ${quando}] ${evento.titulo}`, `   Condição afetada: ${condicao}`, ...detalhesDoEvento(evento, { comFator: false })].join("\n");
+}
+
+// "A", "A e B", "A, B e C".
+function listaComE(itens) {
+  return itens.length > 1 ? `${itens.slice(0, -1).join(", ")} e ${itens.at(-1)}` : itens[0];
+}
+
+function formatarEventosDoAtivo(r) {
+  const outras = Object.entries(r.janelaPorFator).map(([fator, dias]) => `${dias} nos marcados com ${fator}`);
+  const janela = `nos últimos ${r.janelaDias} dias${outras.length > 0 ? ` (${outras.join("; ")})` : ""}, de ${r.inicio} a ${r.dataReferencia}`;
+  const linhas = [
+    `Eventos aceitos (sustentados por página de fonte autorizada) da leitura diária por IA para este ativo, ${janela}, do mais ` +
+      `recente para o mais antigo, cada um uma vez. Não é fator: não tem peso nem leitura do motor. Cada evento diz a condição ` +
+      `que afeta (o fator do FEL 1 marcado pela leitura); o cálculo dos fatores não usa os eventos.` +
+      (r.excluidos.length > 0
+        ? ` Os eventos de ${listaComE(r.excluidos)} não estão aqui: vão no bloco ${r.excluidos.length > 1 ? "desses fatores" : "desse fator"}.`
+        : "") +
+      ` A data é a da leitura que registrou o evento: o fato é das 24 a 48 horas anteriores, salvo quando o resumo diz a data. ` +
+      `A pressão é leitura da IA sobre o fato isolado; a escala é provisória.`
+  ];
+  if (!r.primeiraLeitura) {
+    linhas.push("Leituras: a leitura diária ainda não rodou para este ativo. Não trate a ausência de eventos como situação normal.");
+  } else {
+    const desde = r.primeiraLeitura > r.inicio ? ` (a leitura diária começou em ${r.primeiraLeitura})` : "";
+    linhas.push(`Leituras na janela: ${r.leiturasNaJanela}${desde}.`);
+    if (r.ultimaLeitura) {
+      const { data, nivel, resumo } = r.ultimaLeitura;
+      linhas.push(`Retrato do ativo na leitura mais recente (${data}): nível ${NIVEL_EXIBICAO[nivel]}.${resumo ? ` ${resumo}` : ""}`);
+    }
+    if (r.diasSemLeitura.length > 0) {
+      const lista = r.diasSemLeitura.slice(0, DIAS_SEM_LEITURA_LISTADOS).join(", ");
+      const resto = r.diasSemLeitura.length - DIAS_SEM_LEITURA_LISTADOS;
+      linhas.push(`Dias sem leitura (sem informação, não calmaria): ${lista}${resto > 0 ? ` e mais ${resto}` : ""}.`);
+    }
+  }
+  if (r.eventos.length === 0) linhas.push("Eventos: nenhum evento do ativo na janela, fora os dos fatores de evento.");
+  else linhas.push("Eventos:", ...r.eventos.map(formatarEventoDoAtivo));
+  return linhas.join("\n");
+}
+
+// `opcoes`: { janelaDias, janelaPorFator: { CODIGO: dias }, excluirFatores: [CODIGO] }. -> o resultado com `contexto`, a
+// seção pronta para o prompt.
+async function obterEventosDoAtivo(ativo, dataReferencia, { janelaDias, janelaPorFator = {}, excluirFatores = [] }, deps = {}) {
+  validar(ativo, dataReferencia);
+  if (!Number.isInteger(janelaDias) || janelaDias < 1) throw new ValidationError("A janela dos eventos deve ser um número inteiro de dias.");
+  const repo = deps.geopoliticaRepository || geopoliticaRepository;
+  const maior = Math.max(janelaDias, ...Object.values(janelaPorFator));
+  const inicioBusca = somarDias(dataReferencia, -(maior - 1));
+  const inicio = somarDias(dataReferencia, -(janelaDias - 1));
+  const [registros, leituras] = await Promise.all([
+    repo.listarEventosAceitosDoAtivo({ ativo, dataInicio: inicioBusca, dataFim: dataReferencia }),
+    repo.listarDatasDeLeitura({ ativo, dataInicio: inicioBusca, dataFim: dataReferencia })
+  ]);
+  const ultimaData = leituras.datas.at(-1);
+  const ultima = ultimaData ? await repo.buscarLeituraComEventos(ultimaData, ativo) : null;
+  const coluna = ativo.toLowerCase();
+  const excluir = new Set(excluirFatores);
+  const eventos = registros
+    .map((e) => ({
+      data: e.leitura.data_referencia,
+      idadeDias: diasEntre(e.leitura.data_referencia, dataReferencia),
+      fator: e.fator,
+      titulo: e.titulo,
+      tipo: e.tipo,
+      resumo: e.resumo,
+      canalTransmissao: e.canal_transmissao,
+      pressao: e.pressao,
+      intensidade: e.intensidade,
+      confianca: e.confianca,
+      fontes: e.fontes
+    }))
+    .filter((e) => !excluir.has(e.fator) && e.idadeDias < (janelaPorFator[e.fator] ?? janelaDias));
+  const resultado = {
+    ativo,
+    dataReferencia,
+    janelaDias,
+    janelaPorFator,
+    excluidos: [...excluir],
+    inicio,
+    primeiraLeitura: leituras.primeiraData,
+    ultimaLeitura: ultima ? { data: ultimaData, nivel: ultima[`nivel_${coluna}`], resumo: ultima[`resumo_${coluna}`] } : null,
+    // A janela padrão: a dos dias sem leitura e da contagem (a de um fator, mais longa, só alcança os eventos dele).
+    leiturasNaJanela: leituras.datas.filter((d) => d >= inicio).length,
+    diasSemLeitura: diasSemLeitura(inicio, dataReferencia, leituras.datas, leituras.primeiraData),
+    eventos
+  };
+  return { ...resultado, contexto: formatarEventosDoAtivo(resultado) };
+}
+
 // --- Tela Eventos (/dados-mercado/eventos): só leitura ---
 
 const ACEITO_POR_FILTRO = { aceitos: true, rejeitados: false, todos: undefined };
@@ -362,4 +463,4 @@ async function obterDetalheIa(leituraId, deps = {}) {
   };
 }
 
-module.exports = { obterGeopoliticaDoDia, formatarContexto, obterEventosDoFator, listarEventos, obterUltimaLeitura, obterDetalheIa };
+module.exports = { obterGeopoliticaDoDia, formatarContexto, obterEventosDoFator, obterEventosDoAtivo, listarEventos, obterUltimaLeitura, obterDetalheIa };

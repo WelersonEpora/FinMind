@@ -1,6 +1,6 @@
 # Prompt — Análise diária do ouro (leitura de tendência em quatro horizontes)
 
-**Versão:** 1
+**Versão:** 2
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0054), no molde do prompt do petróleo (`petroleo-analise-diaria.md`,
 v2; ADRs 0051 e 0052): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na
@@ -9,6 +9,9 @@ instrução do sistema; os que variam por dia (2. base e 3. leitura do motor) no
 do David (2026-10-03): o preço é o futuro GLD da B3, sem curva futura; a inflação é contexto do juro real; o COT segue a
 leitura "amplifica" e é qualificador; os bancos centrais são lidos contra o ritmo dos 3 anos anteriores. Os números das
 faixas e dos horizontes NÃO são escritos aqui: vêm da configuração (`shared/analise-diaria-ouro.js`), no bloco 2.4.
+v2 (2026-10-07, ADR 0095) - os eventos do ouro marcados com outro fator que não a geopolítica (ou com nenhum), que
+antes não iam ao prompt, vão a uma seção só da base (2.5), sem peso nem leitura do motor; os da geopolítica seguem
+no fator. O item 6 de "Como analisar" e a legenda do bloco 3 dizem isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `ouro-analise-ia-diario` (ADR 0054).
 
@@ -54,8 +57,11 @@ Para cada horizonte, separadamente:
    Compras abaixo desse ritmo são desaceleração das compras, não venda: ao citar o fator, diga o volume comprado e o
    ritmo de comparação, para não confundir um com o outro.
 6. Fator de evento (geopolítica). Use a idade e o tipo de cada evento para julgar se ele ainda pesa no horizonte. A
-   pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com leitura diária
-   na janela, é informação; "dia sem leitura" é falta de informação.
+   pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com leitura
+   diária na janela, é informação; "dia sem leitura" é falta de informação. Os eventos marcados com outros fatores (ou
+   com nenhum) estão na seção 2.5, uma vez cada, com a condição que afetam: não são fator, não têm peso e não mudam a
+   leitura do motor de nenhum fator; use-os para dizer o que o cálculo da condição afetada ainda não mostra. Ao citar
+   um evento da seção como evidência, use a origem EVENTO e, no fator, o código da condição que ele afeta (ou null).
 7. Posicionamento (COT). No ouro, a leitura do motor segue o FEL 1: o posicionamento dos fundos amplifica os movimentos.
    Mesmo assim, não conte o COT como mais um voto de alta ou de baixa. Diga qual é o papel dele no horizonte: confirma a
    leitura, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O posicionamento segue
@@ -146,11 +152,15 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 2.4 HORIZONTES E FAIXAS DE VARIAÇÃO — definidos pela metodologia
 {{bloco_faixas}}
 
+2.5 EVENTOS DO ATIVO — da leitura diária por IA, fora do fator de geopolítica; não é fator
+{{bloco_eventos}}
+
 [3. LEITURA DO MOTOR — o resultado das regras dos 8 fatores, aplicadas em código, sem IA]
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
 Fator de contexto: A, B e D como os outros; em C, só o papel (contexto de qual fator) e a tendência, sem pressão.
 Fator de evento: os eventos aceitos da leitura diária por IA na janela do fator, com a data, a idade e a fonte.
+Os eventos dos outros fatores estão na seção 2.5.
 O motor ainda não fornece confiança por fator, horizonte por fator nem relações entre fatores.
 
 {{blocos_fatores}}

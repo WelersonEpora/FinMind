@@ -98,3 +98,9 @@ test("ajustes ao FEL 1 (ADR 0082): só no F4, F5, F6 e F7, cada um com a origem;
   assert.deepEqual(doAtivo.perguntas, []);
   assert.ok(doAtivo.decisoes.some((d) => d.startsWith("Ajustes ao FEL 1")));
 });
+
+test("eventos (ADR 0095): só a política comercial (F8) é fator com eventos; os demais vão à seção da base, em 7 dias", () => {
+  const { metodologia } = obterMetodologiaAtivo("MILHO");
+  assert.deepEqual(metodologia.fatores.filter((f) => f.comEventos || f.deEvento).map((f) => [f.codigo, f.evento.janelaDias]), [["MILHO_POLITICA_COMERCIAL", 30]]);
+  assert.deepEqual(metodologia.eventosDoAtivo, { janelaDias: 7, janelaPorFator: {}, excluirFatores: ["MILHO_POLITICA_COMERCIAL"] });
+});

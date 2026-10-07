@@ -360,6 +360,17 @@ function contratoParaEntrada(doHorizonte) {
 
 function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao = null, curva = null, porHorizonte = null }) {
   return {
+    // Os eventos do ativo que foram à seção da base (ADR 0095): a janela e quantos, sem os dos fatores de evento.
+    ...(simulacao.eventosDoAtivo
+      ? {
+          eventosDoAtivo: {
+            janelaDias: simulacao.eventosDoAtivo.janelaDias,
+            janelaPorFator: simulacao.eventosDoAtivo.janelaPorFator,
+            eventos: simulacao.eventosDoAtivo.eventos,
+            ultimaLeitura: simulacao.eventosDoAtivo.ultimaLeitura
+          }
+        }
+      : {}),
     // A leitura agregada do motor que foi ao prompt (o café, ADR 0066).
     ...(agregacao ? { agregacaoMotor: agregacaoParaEntrada(agregacao) } : {}),
     precoReferencia: preco.disponivel
@@ -444,6 +455,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
     bloco_faixas: blocoFaixas(config, porHorizonte),
     ...(simulacao.pesos ? { bloco_pesos: blocoPesos(simulacao.pesos) } : {}),
+    bloco_eventos: simulacao.eventosDoAtivo?.textoPrompt ?? "SEM DADO: os eventos do ativo não foram lidos.",
     blocos_fatores: simulacao.fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt).join("\n\n"),
     ...(agregacao ? { bloco_agregacao: blocoAgregacao(agregacao) } : {})
   });

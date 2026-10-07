@@ -109,3 +109,9 @@ ativo. Uma decisão diferente do Comitê muda a configuração ou o prompt numa 
 
 Recomendação de compra ou venda; o KC da ICE; a agregação dos fatores em código; a curva do ICF; a validação humana
 dos eventos.
+
+## Adendo (2026-10-07): os eventos saem dos fatores
+
+O item 3 (os fatores do café calculados e com eventos, no mecanismo do milho) foi revisto pelo usuário: os eventos do
+café vão a uma seção só da base do prompt, com a condição que cada um afeta; nenhum fator do café é de evento. A janela
+de 30 dias da demanda continua, na seção. Detalhe: ADR 0095.

@@ -349,6 +349,9 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
       return { ...base, tipo: "SEM_PROPOSTA", textoPrompt: null };
     })
   );
+  // Os eventos do ativo, numa seção só da base do prompt (ADR 0095), sem os dos fatores de evento.
+  const servicoEventos = deps.geopoliticaService || geopoliticaService;
+  const eventos = await servicoEventos.obterEventosDoAtivo(codigo, dia, metodologia.eventosDoAtivo, deps);
   // O prompt completo (com o preço, a cobertura e as faixas) é montado pelo prompt-diario.service.js, que usa estes
   // mesmos resultados: a simulação não monta um texto próprio.
   return {
@@ -357,6 +360,14 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
       data: dia,
       versaoMetodologia: `${codigo.toLowerCase()}-v${metodologia.versao} (${metodologia.dataVersao})`,
       fatores,
+      eventosDoAtivo: {
+        janelaDias: eventos.janelaDias,
+        janelaPorFator: eventos.janelaPorFator,
+        eventos: eventos.eventos.length,
+        primeiraLeitura: eventos.primeiraLeitura,
+        ultimaLeitura: eventos.ultimaLeitura ? { data: eventos.ultimaLeitura.data, nivel: eventos.ultimaLeitura.nivel } : null,
+        textoPrompt: eventos.contexto
+      },
       // O calendário de pesos, quando vai ao prompt (o milho, ADR 0065): a tabela fixa do bloco 2.5.
       ...(metodologia.pesos.noPrompt ? { pesos: metodologia.pesos } : {})
     }

@@ -123,3 +123,9 @@ Os percentis são da variação absoluta de todos os vencimentos do CCM, cada um
   difícil de acertar. O que mantém a avaliação justa é calibrar no instrumento medido, com os mesmos percentis.
 - **Versão nova da configuração (v2):** o prompt passa a mostrar as faixas novas. As leituras da v1 continuam medidas
   com a régua gravada com elas, e o filtro de versão da Qualidade da IA separa as duas séries.
+
+## Adendo (2026-10-07): os eventos saem dos fatores calculados
+
+O item 3 (cada fator calculado leva os eventos marcados com ele) foi revisto pelo usuário: os eventos vão a uma seção
+só da base do prompt, com a condição que cada um afeta; só o F8 (política comercial), cuja condição é o próprio evento,
+fica com os seus, como o David desenhou. Detalhe: ADR 0095.

@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-06.**
+**Última atualização: 2026-10-07.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -69,7 +69,7 @@ medidas contra o preço realizado, na tela Qualidade da IA (ADR 0064).
 | Ouro (8) | David, 2026-10-03 | GLD da B3, vencimento mais próximo | Instrumento (ponto 1); série contínua do GLD: o horizonte de 90 dias fica muitas vezes sem a variação (ADR 0044); faixas provisórias; peso e agregação | ADRs 0053 e 0054 |
 | Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, à espera do Comitê; o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio), do usuário (ADR 0077); agregação em código (etapa 5): proposta do FinMind na tela, fora do prompt por decisão do usuário (2026-10-06), sem superar os benchmarks no histórico do CCM (ADR 0081); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); faixas calibradas no próprio CCM (ADR 0058, adendo), não as classes fixas do David (usuário, ADR 0079); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068); os ajustes ao FEL 1 na tela, sem revisão do documento (usuário, por delegação do David, ADR 0082) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072, 0073, 0074, 0075, 0076, 0077, 0078, 0079, 0080, 0081 e 0082 |
 | Café (8) | Comitê, 2026-10-05 (Motor do Café v1) | ICF | Faixas calibradas no ICF, não as classes fixas do David (usuário, ADR 0079); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); o clima (F1) com o VHI, as janelas do estudo e o INMET depois da v1, do usuário (ADR 0083); a safra (F2) com os limiares de partida e a bienalidade como contexto, do usuário (ADR 0084); os estoques (F3) com o ritmo da v1 e as pendentes e a ECF como contexto, do usuário (ADR 0085); o dólar (F4) com a regra de baixa o ano todo, sem a condição do preço recorde, do usuário (ADR 0086); o custo (F5) com a mediana dos municípios e o custo operacional como COE, do usuário (ADR 0087); a demanda (F6) com o consumo do PSD, a faixa neutra calibrada e a arbitragem como contexto, do usuário (ADR 0088); os fundos (F7) na janela de 3 anos e só como informação, sem mudar a confiança, do usuário (ADR 0089); os juros (F8) com o juro nominal e o dólar global como contexto, do usuário (ADR 0090); agregação em código em produção (ADR 0066): a validar pelo Comitê, com o histórico no servidor e o backtest | ADRs 0060, 0061, 0062, 0066, 0078, 0079, 0083, 0084, 0085, 0086, 0087, 0088, 0089 e 0090 |
-| **Comum aos quatro** | — | — | Eventos vão à IA sem validação humana (ponto 4); o formato de apresentação; o horizonte de 90 dias dos três futuros não tem preço na avaliação (o contrato da leitura vence antes; ADR 0064) | ADRs 0055 e 0064 |
+| **Comum aos quatro** | — | — | Eventos vão à IA sem validação humana (ponto 4), numa seção só da base do prompt, com a condição que cada um afeta; ficam no fator só os de fator de evento (geopolítica, OPEP+ e o F8 do milho), por decisão do usuário (ADR 0095); o formato de apresentação; o horizonte de 90 dias dos três futuros não tem preço na avaliação (o contrato da leitura vence antes; ADR 0064) | ADRs 0055, 0064 e 0095 |
 
 **Etapa 1 em detalhe**
 
@@ -1585,6 +1585,16 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>7. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-07</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Eventos numa seção da base do prompt | No milho e no café, cada um dos 8 fatores levava os eventos marcados com ele (8 blocos por dia, quase sempre vazios), o que misturava o evento ao cálculo do fator; no ouro e no petróleo, um evento marcado com outro fator que não o de evento se perdia. Nos documentos do David, eventos só no F8 do milho e na geopolítica; a distribuição por fator era do FinMind (ADR 0058). Por decisão do usuário, os eventos vão a uma seção só da base do prompt dos quatro ativos, cada um uma vez e com a condição que afeta, sem peso nem leitura do motor; a geopolítica, a OPEP+ e o F8 do milho ficam com os seus. Prompts: milho v7, café v6, ouro v2, petróleo v6; metodologias do milho v21 e do café v13. O Centro de Decisão mostra quantos eventos foram à seção | ADR 0095 |
+| Centro de Decisão: o prompt do ativo certo | Com o milho selecionado, "Ver prompt completo" abria o prompt do ouro da mesma data, aberto antes: o modal guardava o prompt só pela data. Passa a guardar pelo ativo e pela data. Só exibição: as leituras gravadas estavam certas | — |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-06</summary>

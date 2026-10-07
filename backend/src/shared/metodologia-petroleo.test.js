@@ -406,10 +406,16 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   let asOf;
   const pointInTimeService = { obterAsOf: async (args) => { asOf = args.asOf; return []; } };
   const datasEventos = [];
+  let eventosDoAtivo;
   const geopoliticaService = {
     async obterEventosDoFator(ativo, fator, data, janela) {
       datasEventos.push(data);
       return { eventos: [], janelaDias: janela.janelaDias, primeiraLeitura: null, ultimaLeitura: null, contexto: `EVENTOS DO FATOR ${fator}` };
+    },
+    async obterEventosDoAtivo(ativo, data, opcoes) {
+      datasEventos.push(data);
+      eventosDoAtivo = opcoes;
+      return { eventos: [], janelaDias: opcoes.janelaDias, janelaPorFator: opcoes.janelaPorFator, primeiraLeitura: null, ultimaLeitura: null, contexto: "EVENTOS DO ATIVO" };
     }
   };
   const deps = { pointInTimeService, geopoliticaService, fatorParametroRepository: repoFalso(), agora: new Date("2026-10-03T12:00:00Z") };
@@ -421,6 +427,9 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   assert.deepEqual(simulacao.fatores.filter((f) => f.tipo === "EVENTO").map((f) => f.codigo), ["PETROLEO_GEOPOLITICA"]);
   assert.ok(simulacao.fatores.filter((f) => f.tipo === "CALCULADO").every((f) => f.medida === null && f.textoPrompt.startsWith("FATOR — ")));
   assert.equal(simulacao.versaoMetodologia, "petroleo-v3 (2026-10-06)");
+  // Os eventos do ativo numa seção da base (ADR 0095), sem os dos dois fatores de evento.
+  assert.deepEqual(eventosDoAtivo, { janelaDias: 7, janelaPorFator: {}, excluirFatores: ["PETROLEO_OPEP", "PETROLEO_GEOPOLITICA"] });
+  assert.equal(simulacao.eventosDoAtivo.textoPrompt, "EVENTOS DO ATIVO");
   // A OPEP+ é calculada e com eventos: o texto do cálculo e, depois, o bloco dos eventos.
   assert.match(simulacao.fatores[0].textoPrompt, /^FATOR — Decisões da OPEP\+[^\n]*\n[\s\S]*\n\nEVENTOS DO FATOR PETROLEO_OPEP$/);
   // O prompt completo é do prompt-diario.service.js: a simulação não monta um texto próprio.

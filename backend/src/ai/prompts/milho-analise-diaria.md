@@ -1,6 +1,6 @@
 # Prompt — Análise diária do milho (leitura de tendência em quatro horizontes)
 
-**Versão:** 6
+**Versão:** 7
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0058), no molde do prompt do ouro (`ouro-analise-diaria.md`, v1;
 ADR 0054): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -11,8 +11,8 @@ Comitê, 2026-10-04: leitura de tendência, não recomendação). O que vem do M
 inventar fórmula de agregação; não contar duas vezes o mesmo choque (clima, safrinha e estoques são a mesma cadeia); o
 F3 como filtro dos sinais de oferta; os fundos (F7) como multiplicador e regra de risco, não como voto; o F6 como sinal
 defasado; o conflito entre blocos explicado, com a confiança reduzida. Os eventos vão ao prompt sem validação humana,
-como chegam da leitura diária de eventos por IA (decisão do Comitê, 2026-10-04, que pode ser revista); cada fator
-recebe os eventos marcados com ele, depois do cálculo. Os números das faixas e dos horizontes NÃO são
+como chegam da leitura diária de eventos por IA (decisão do Comitê, 2026-10-04, que pode ser revista); os de política
+comercial ficam no F8, e os demais numa seção da base (2.6) (ADR 0095). Os números das faixas e dos horizontes NÃO são
 escritos aqui: vêm da configuração (`shared/analise-diaria-milho.js`), no bloco 2.4.
 
 v2 (2026-10-05) - o peso por mês e as regras de agregação do Motor do Milho v0 (ADR 0065, autorização do usuário antes
@@ -46,6 +46,9 @@ v6 (2026-10-05, ADR 0078) - cada horizonte com o seu vencimento do CCM: o mais p
 data-alvo (com o mais próximo para todos, o horizonte de 90 dias nunca era avaliável). A tabela 2.4 traz o contrato, o
 preço, a liquidez e as variações de cada horizonte; o bloco 2.2 traz a curva (o ajuste e os contratos negociados de cada
 vencimento); o bloco 1 diz como usar os dois. Montados por `prompt-diario.service.js`; a configuração passou à v3.
+v7 (2026-10-07, ADR 0095) - os eventos saem dos fatores F1 a F7 e vão a uma seção só da base (2.6), cada um uma vez e
+com a condição que afeta, sem peso nem leitura do motor; o F8 (política comercial), cuja condição é o próprio evento,
+fica com os dele. O item 8 de "Como analisar" e a legenda do bloco 3 dizem isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `milho-analise-ia-diario` (ADR 0058).
 
@@ -121,15 +124,17 @@ Para cada horizonte, separadamente:
    contra o sinal deles, é risco de reversão. Diga qual é o papel dele no horizonte: confirma a leitura dos fatores de
    oferta ou de exportação, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O COT é
    de Chicago e segue o preço de lá: não o trate como evidência independente dos outros fatores.
-8. Eventos. Cada fator traz, depois do cálculo, os eventos que a leitura diária de eventos por IA marcou com ele
-   (tarifas, habilitações e embargos no MILHO_POLITICA_COMERCIAL; seca, geada ou chuva excepcional no clima ou na
-   safrinha; e assim por diante). O cálculo não usa os eventos: eles complementam a leitura do fator. Use a idade e o
-   tipo de cada evento para julgar se ele ainda pesa no horizonte. No MILHO_POLITICA_COMERCIAL, um evento só conta como
-   pressão quando é ato oficial com intensidade média ou alta; com intensidade baixa, é contexto; e pesa mais quanto
-   mais recente, até sair da janela de 30 dias. A pressão de um evento é leitura de outra IA sobre o
-   fato isolado, não um cálculo, e não passou por validação humana: dê a ele menos firmeza que a um dado medido. Um
-   evento que também já aparece num dado calculado (uma quebra de safra que já entrou numa estimativa) não conta duas
-   vezes. "Nenhum evento", com leitura diária na janela, é informação; "dia sem leitura" é falta de informação.
+8. Eventos. Os de política comercial (tarifas, habilitações, embargos) estão no bloco do MILHO_POLITICA_COMERCIAL,
+   depois do cálculo: um evento só conta como pressão quando é ato oficial com intensidade média ou alta; com
+   intensidade baixa, é contexto; e pesa mais quanto mais recente, até sair da janela de 30 dias. Os demais (seca,
+   geada ou chuva excepcional, quebras de safra e assim por diante) estão na seção 2.6, uma vez cada, com a condição
+   que afetam: não são fator, não têm peso e não mudam a leitura do motor de nenhum fator. Use-os para dizer o que o
+   cálculo da condição afetada ainda não mostra, com a idade e o tipo de cada um para julgar se ainda pesa no
+   horizonte. Ao citar um evento da seção como evidência, use a origem EVENTO e, no fator, o código da condição que
+   ele afeta (ou null). A pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo,
+   e não passou por validação humana: dê a ele menos firmeza que a um dado medido. Um evento que também já aparece num
+   dado calculado (uma quebra de safra que já entrou numa estimativa) não conta duas vezes. "Nenhum evento", com
+   leitura diária na janela, é informação; "dia sem leitura" é falta de informação.
 9. Conflito entre blocos. Quando blocos independentes divergem (por exemplo, oferta em alta e paridade ou exportação em
    baixa), não resolva o conflito por conta própria: explique as duas forças e reduza a confiança. Fatores
    economicamente ligados (por exemplo, o clima dos EUA, os estoques e os fundos de Chicago) podem parecer se confirmar
@@ -221,10 +226,14 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 2.5 PESO DE CADA FATOR POR MÊS — definido pela metodologia, o mesmo todos os dias
 {{bloco_pesos}}
 
+2.6 EVENTOS DO ATIVO — da leitura diária por IA, fora do fator de política comercial; não é fator
+{{bloco_eventos}}
+
 [3. LEITURA DO MOTOR — o resultado das regras dos 8 fatores, aplicadas em código, sem IA]
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
-Eventos de cada fator: os aceitos da leitura diária por IA marcados com ele, na janela do fator, depois do cálculo.
+Fator calculado com eventos (o MILHO_POLITICA_COMERCIAL): o texto do cálculo (A a D) e, depois, os eventos da janela
+do fator. Os outros eventos do milho estão na seção 2.6.
 O motor ainda não fornece confiança por fator nem horizonte por fator; o peso por mês está na tabela 2.5.
 
 {{blocos_fatores}}

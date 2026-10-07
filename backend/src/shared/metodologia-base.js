@@ -20,9 +20,13 @@ const { FATORES } = require("./fatores-fel1");
 //   nome     - (opcional) o título do fator quando o dado usado é mais estreito que o nome da planilha (ex.: o FEL 1
 //              diz "Demanda global", o cálculo usa só os EUA). O título diz exatamente o que entra no cálculo; o nome
 //              do FEL 1 continua na resposta (`nomeFel1`) e no bloco do especialista na tela.
-//   evento   - (opcional) { janelaDias }: FATOR DE EVENTO, sem cálculo. O resultado dele são os eventos aceitos da
-//              leitura diária marcados com ele nessa janela (geopolitica.service.js::obterEventosDoFator), o bloco que
-//              vai ao prompt da IA do ativo como está.
+//   evento   - (opcional) { janelaDias }: FATOR DE EVENTO, cuja condição é o próprio evento (a geopolítica; com cálculo,
+//              a OPEP+ e o F8 do milho). O resultado dele são os eventos aceitos da leitura diária marcados com ele nessa
+//              janela (geopolitica.service.js::obterEventosDoFator), o bloco que vai ao prompt da IA do ativo como está.
+//              Os eventos dos OUTROS fatores vão numa seção só, na base do prompt (ADR 0095).
+//   janelaEventos - (opcional) a janela, em dias, dos eventos marcados com este fator na seção de eventos da base, quando
+//              não é a padrão (JANELA_EVENTOS_PADRAO; ex.: 30 na demanda do café, decisão do Comitê). Não num fator de
+//              evento.
 //   contextoDe - (opcional) o código de outro fator do mesmo ativo: FATOR DE CONTEXTO, por decisão do especialista. O
 //              cálculo (A e B) continua e vai ao prompt, mas sem leitura própria (nem pressão, nem intensidade): ele
 //              explica o outro fator e não conta a favor nem contra (ex.: a inflação do ouro, contexto do juro real,
@@ -113,6 +117,7 @@ function montarFatores(ativo, definicoes) {
       throw new Error(`${definicao.codigo}: contexto de um fator que não está no ativo (ou que também é contexto): ${definicao.contextoDe}`);
     }
     if (definicao.informativo && definicao.contextoDe) throw new Error(`${definicao.codigo}: informativo e contexto ao mesmo tempo`);
+    if (definicao.janelaEventos && definicao.evento) throw new Error(`${definicao.codigo}: fator de evento não tem janela na seção de eventos da base`);
     return {
       codigo: fator.codigo,
       nome: definicao.nome || fator.nome,
@@ -125,6 +130,7 @@ function montarFatores(ativo, definicoes) {
       decisoes: definicao.decisoes || [],
       ajustesFel1: montarAjustesFel1(fator, definicao),
       evento: definicao.evento || null,
+      janelaEventos: definicao.janelaEventos || null,
       contextoDe: definicao.contextoDe || null,
       informativo: definicao.informativo === true,
       papelDecididoPor: definicao.contextoDe || definicao.informativo ? definicao.papelDecididoPor || "do especialista" : null,
@@ -261,8 +267,29 @@ function montarPesos(ativo, fatores, pesos) {
 
 // A metodologia de um ativo, como o serviço a entrega: `versao` sobe quando uma definição de fator muda (vai com cada
 // prompt).
-function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, pesos = null }) {
-  return { ativo, nome, versao, dataVersao, doAtivo: montarDoAtivo(ativo, doAtivo), pesos: montarPesos(ativo, fatores, pesos), fatores };
+// A seção de eventos da base do prompt (ADR 0095): a janela padrão, a de cada fator que tem outra, e os fatores de
+// evento, cujos eventos ficam no bloco deles.
+const JANELA_EVENTOS_PADRAO = 7;
+
+function montarEventosDoAtivo(fatores) {
+  return {
+    janelaDias: JANELA_EVENTOS_PADRAO,
+    janelaPorFator: Object.fromEntries(fatores.filter((f) => f.janelaEventos).map((f) => [f.codigo, f.janelaEventos])),
+    excluirFatores: fatores.filter((f) => f.evento).map((f) => f.codigo)
+  };
 }
 
-module.exports = { SITUACAO, SITUACAO_AGREGACAO, montarFatores, montarMetodologia };
+function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, pesos = null }) {
+  return {
+    ativo,
+    nome,
+    versao,
+    dataVersao,
+    doAtivo: montarDoAtivo(ativo, doAtivo),
+    pesos: montarPesos(ativo, fatores, pesos),
+    eventosDoAtivo: montarEventosDoAtivo(fatores),
+    fatores
+  };
+}
+
+module.exports = { SITUACAO, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, montarFatores, montarMetodologia };

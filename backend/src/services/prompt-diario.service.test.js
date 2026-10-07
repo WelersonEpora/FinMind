@@ -72,7 +72,7 @@ const PRECO = {
 };
 
 // `precoPorAlvo(dataAlvo)`: o preço do contrato de um horizonte (ADR 0078; null = o mesmo `preco`); `curva`: a de lerCurva.
-function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = null, precoPorAlvo = null, curva = null } = {}) {
+function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = null, precoPorAlvo = null, curva = null, eventosDoAtivo = null } = {}) {
   const chamadas = {};
   return {
     chamadas,
@@ -81,7 +81,14 @@ function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = 
       async simularFatores(ativo, opcoes) {
         chamadas.simular = [ativo, opcoes.data];
         return {
-          simulacao: { ativo, data: opcoes.data, versaoMetodologia: "petroleo-v1 (2026-10-02)", fatores, ...(pesos ? { pesos } : {}) }
+          simulacao: {
+            ativo,
+            data: opcoes.data,
+            versaoMetodologia: "petroleo-v1 (2026-10-02)",
+            fatores,
+            ...(pesos ? { pesos } : {}),
+            ...(eventosDoAtivo ? { eventosDoAtivo } : {})
+          }
         };
       }
     },
@@ -108,7 +115,7 @@ test("os blocos fixos (1, 4, 5 e 6) vão na instrução do sistema; a base e a l
   for (const bloco of ["[2. BASE", "2.1 PREÇO DO BRENT", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
     assert.ok(p.prompt.includes(bloco), bloco);
   }
-  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@5");
+  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@6");
   assert.equal(p.versaoMetodologia, "petroleo-v1 (2026-10-02)");
   assert.equal(p.versaoConfiguracao, config.VERSAO);
   assert.match(p.hashEntrada, /^[0-9a-f]{64}$/);
@@ -227,7 +234,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
 
   assert.deepEqual(d.chamadas.preco, ["GLD", "2026-10-03"]);
   assert.equal(ptaxPedidas[0].dataFim, "2026-10-02");
-  assert.equal(p.versaoPrompt, "ouro-analise-diaria@1");
+  assert.equal(p.versaoPrompt, "ouro-analise-diaria@2");
   assert.match(p.prompt, /Contrato: GLDZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Em reais: R\$ 22\.558,50 por onça, pela PTAX de venda de 02\/10\/2026 \(R\$ 5,4000 por US\$\)/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/onça\)/);
@@ -252,7 +259,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   await assert.rejects(montarPromptDiario("SOJA", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
 });
 
-test("milho (ADRs 0058 e 0078): o CCM em reais, sem PTAX, com o contrato de cada horizonte e a curva; os eventos usados como chegam", async () => {
+test("milho (ADRs 0058, 0078 e 0095): o CCM em reais, sem PTAX, com o contrato de cada horizonte e a curva; os eventos numa seção da base", async () => {
   const precoCcm = {
     ...PRECO,
     nome: "Futuro B3 (CCM)",
@@ -268,6 +275,7 @@ test("milho (ADRs 0058 e 0078): o CCM em reais, sem PTAX, com o contrato de cada
     fatores: [{ ...CALCULADO, codigo: "MILHO_FUNDOS", textoPrompt: "FATOR — Fundos" }],
     preco: precoCcm,
     pesos: obterMetodologiaMilho().pesos,
+    eventosDoAtivo: { janelaDias: 7, janelaPorFator: {}, eventos: 1, ultimaLeitura: { data: "2026-10-03", nivel: "ATENCAO" }, textoPrompt: "EVENTOS DO ATIVO DE TESTE" },
     // O CCMX26 vale até 15/11/2026: o horizonte de 90 dias (alvo 01/01/2027) vai ao CCMF27.
     precoPorAlvo: (alvo) => (alvo > "2026-11-15" ? precoF27 : null),
     curva: {
@@ -286,7 +294,10 @@ test("milho (ADRs 0058 e 0078): o CCM em reais, sem PTAX, com o contrato de cada
   const { promptDiario: p } = await montarPromptDiario("MILHO", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["CCM", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "milho-analise-diaria@6");
+  assert.equal(p.versaoPrompt, "milho-analise-diaria@7");
+  // Os eventos numa seção só da base (ADR 0095), antes da leitura do motor, e o que foi gravado com a leitura.
+  assert.match(p.prompt, /2\.6 EVENTOS DO ATIVO[^\n]*\nEVENTOS DO ATIVO DE TESTE\n[\s\S]*\[3\. LEITURA DO MOTOR/);
+  assert.deepEqual(p.entrada.eventosDoAtivo, { janelaDias: 7, janelaPorFator: {}, eventos: 1, ultimaLeitura: { data: "2026-10-03", nivel: "ATENCAO" } });
   assert.deepEqual(d.chamadas.alvos, ["2026-10-04", "2026-10-10", "2026-11-02", "2027-01-01"]);
   assert.deepEqual(d.chamadas.curva, ["B3.CCM", "2026-10-03"]);
   // O calendário de pesos como tabela fixa (ADR 0065): em outubro, o F1 é Baixo e o F4 é Alto.
@@ -362,7 +373,7 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@5");
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@6");
   assert.equal(p.versaoConfiguracao, 3);
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);

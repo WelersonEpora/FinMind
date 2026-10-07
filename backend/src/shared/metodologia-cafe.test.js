@@ -39,10 +39,12 @@ test("todo observável citado existe no catálogo", () => {
   }
 });
 
-test("os 8 fatores calculados e com eventos; com prompt diário desde a aprovação do Comitê (ADR 0062)", () => {
+test("os 8 fatores calculados, sem eventos no fator (vão à seção da base, ADR 0095); com prompt diário desde a aprovação do Comitê (ADR 0062)", () => {
   const { metodologia } = obterMetodologiaAtivo("CAFE");
   assert.deepEqual(metodologia.fatores.filter((f) => !f.calculado).map((f) => f.codigo), []);
-  assert.ok(metodologia.fatores.every((f) => f.comEventos));
+  assert.ok(metodologia.fatores.every((f) => !f.comEventos && !f.deEvento));
+  // A janela de 30 dias da demanda (Comitê) vale na seção; nenhum fator do café é de evento.
+  assert.deepEqual(metodologia.eventosDoAtivo, { janelaDias: 7, janelaPorFator: { CAFE_DEMANDA: 30 }, excluirFatores: [] });
   assert.equal(metodologia.promptDiario, true);
   assert.ok(ATIVOS_COM_PROMPT_DIARIO.includes("CAFE"));
 });

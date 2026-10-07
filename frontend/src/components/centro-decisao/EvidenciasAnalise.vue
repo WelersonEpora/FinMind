@@ -48,10 +48,15 @@ function abrirDetalhes() {
   detalhesVisivel.value = true
 }
 
-// O nível da leitura de eventos do dia é do ATIVO (o mesmo nos dois fatores de evento): aparece uma vez, abaixo da tabela.
+// O nível da leitura de eventos do dia é do ATIVO (o mesmo nos fatores de evento e na seção de eventos da base, ADR
+// 0095): aparece uma vez, abaixo da tabela.
 const nivelDoDia = computed(
-  () => evidencias.value.fatores.find((f) => f.tipo === 'EVENTO' && f.ultimaLeitura?.nivel)?.ultimaLeitura || null
+  () =>
+    evidencias.value.fatores.find((f) => f.tipo === 'EVENTO' && f.ultimaLeitura?.nivel)?.ultimaLeitura ||
+    (evidencias.value.eventosDoAtivo?.ultimaLeitura?.nivel ? evidencias.value.eventosDoAtivo.ultimaLeitura : null)
 )
+// Os eventos que foram à seção da base do prompt, fora dos fatores (ADR 0095); null numa leitura de antes dela.
+const eventosDoAtivo = computed(() => evidencias.value.eventosDoAtivo || null)
 
 function descreverParametros(parametros) {
   if (!parametros) return '-'
@@ -170,6 +175,11 @@ async function copiar() {
           </span>
         </li>
       </ul>
+
+      <p v-if="eventosDoAtivo" class="evidencias__eventos">
+        <i class="bi bi-lightning-charge"></i>
+        Eventos do ativo, fora dos fatores: {{ contarEventos(eventosDoAtivo.eventos).toLowerCase() }} em {{ eventosDoAtivo.janelaDias }} dias
+      </p>
 
       <p v-if="evidencias.lacunas.length" class="evidencias__lacunas">
         <i class="bi bi-exclamation-circle"></i>
@@ -300,6 +310,12 @@ async function copiar() {
             </tbody>
           </table>
         </div>
+        <p v-if="eventosDoAtivo" class="detalhes__nota">
+          Eventos do ativo na base do prompt, fora dos fatores: {{ contarEventos(eventosDoAtivo.eventos).toLowerCase() }} em
+          {{ eventosDoAtivo.janelaDias }} dias<template v-if="Object.keys(eventosDoAtivo.janelaPorFator || {}).length">
+            ({{ Object.entries(eventosDoAtivo.janelaPorFator).map(([f, d]) => `${d} nos de ${f}`).join('; ') }})</template
+          >. O texto exato está em "Ver prompt completo".
+        </p>
         <p v-if="nivelDoDia" class="detalhes__nota">
           Nível do {{ ativoNome.toLowerCase() }} na leitura de eventos de {{ formatarData(nivelDoDia.data) }}:
           <NivelBadge :codigo="nivelDoDia.nivel" />
@@ -512,6 +528,12 @@ async function copiar() {
   border-radius: 999px;
   font-size: 0.7rem;
   color: var(--p-text-muted-color);
+}
+
+.evidencias__eventos {
+  margin: 0.6rem 1.15rem 0;
+  font-size: 0.75rem;
+  color: #475569;
 }
 
 .evidencias__lacunas {

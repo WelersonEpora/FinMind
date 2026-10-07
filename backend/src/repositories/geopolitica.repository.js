@@ -99,6 +99,26 @@ async function listarEventosAceitosDoFator({ ativo, fator, dataInicio, dataFim }
   });
 }
 
+// Os eventos ACEITOS de um ativo numa janela de datas, de qualquer fator (ou sem fator): a seção de eventos da base do
+// prompt do ativo (ADR 0095), que tira depois os dos fatores de evento.
+async function listarEventosAceitosDoAtivo({ ativo, dataInicio, dataFim }) {
+  return GeopoliticaEvento.findAll({
+    where: { ativo, aceito: true },
+    include: [
+      {
+        model: GeopoliticaLeitura,
+        as: "leitura",
+        where: { data_referencia: { [Op.between]: [dataInicio, dataFim] } },
+        attributes: ["data_referencia"]
+      }
+    ],
+    order: [
+      [{ model: GeopoliticaLeitura, as: "leitura" }, "data_referencia", "DESC"],
+      ["ordem", "ASC"]
+    ]
+  });
+}
+
 // Os eventos ACEITOS de todos os ativos das leituras de uma janela de datas, com a data da leitura: o que a leitura do
 // dia recebe para não repetir um fato já registrado (ADR 0092).
 async function listarEventosAceitosRecentes({ dataInicio, dataFim }) {
@@ -145,6 +165,7 @@ module.exports = {
   listarEventos,
   buscarLeituraPorId,
   listarEventosAceitosDoFator,
+  listarEventosAceitosDoAtivo,
   listarEventosAceitosRecentes,
   listarDatasDeLeitura
 };

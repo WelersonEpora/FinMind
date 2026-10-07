@@ -9,7 +9,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { obterGeopoliticaDoDia, obterEventosDoFator, listarEventos, obterUltimaLeitura, obterDetalheIa } = require("./geopolitica.service");
+const { obterGeopoliticaDoDia, obterEventosDoFator, obterEventosDoAtivo, listarEventos, obterUltimaLeitura, obterDetalheIa } = require("./geopolitica.service");
 
 const LEITURA = {
   nivel_ouro: "RELEVANTE",
@@ -316,4 +316,49 @@ test("fator de evento: sem leitura nenhuma, avisa que a ausência não é situa�
   assert.match(r.contexto, /a leitura diária ainda não rodou para este ativo/);
   assert.match(r.contexto, /nenhum evento deste fator nas leituras da janela/);
   await assert.rejects(obterEventosDoFator("PETROLEO", "PETROLEO_OPEP", "2026-10-03", 0, { geopoliticaRepository: repoDoFator() }), /janela/);
+});
+
+// --- Eventos do ativo na base do prompt (ADR 0095) ---
+
+function eventoDoCafe(data, fator, titulo) {
+  return { ...EVENTO_OPEP, leitura: { data_referencia: data }, fator, titulo, tipo: "CLIMA", fontes: [{ nome: "INMET", url: "https://inmet.gov.br/x", origem: "pesquisa" }] };
+}
+
+test("eventos do ativo: uma seção só, com a condição afetada, a janela de cada fator e sem os fatores de evento", async () => {
+  const eventos = [
+    eventoDoCafe("2026-10-06", "CAFE_CLIMA", "Geada no sul de Minas"),
+    eventoDoCafe("2026-10-05", "NAO_SE_APLICA", "Fato sem fator"),
+    eventoDoCafe("2026-09-28", "CAFE_CLIMA", "Seca antiga, fora dos 7 dias"),
+    eventoDoCafe("2026-09-20", "CAFE_DEMANDA", "Demanda na janela de 30 dias"),
+    eventoDoCafe("2026-10-06", "CAFE_FATOR_DE_EVENTO", "De um fator de evento")
+  ];
+  const repo = repoDoFator({ datas: ["2026-10-01", "2026-10-06", "2026-10-07"], primeiraData: "2026-10-01" });
+  repo.listarEventosAceitosDoAtivo = async (args) => {
+    repo.chamadas.push({ eventos: args });
+    return eventos;
+  };
+  const opcoes = { janelaDias: 7, janelaPorFator: { CAFE_DEMANDA: 30 }, excluirFatores: ["CAFE_FATOR_DE_EVENTO"] };
+  const r = await obterEventosDoAtivo("CAFE", "2026-10-07", opcoes, { geopoliticaRepository: repo });
+
+  // Busca a janela mais longa (30 dias); o resto (7 dias) filtra por fator.
+  assert.deepEqual(repo.chamadas[0].eventos, { ativo: "CAFE", dataInicio: "2026-09-08", dataFim: "2026-10-07" });
+  assert.deepEqual(r.eventos.map((e) => e.titulo), ["Geada no sul de Minas", "Fato sem fator", "Demanda na janela de 30 dias"]);
+  assert.equal(r.inicio, "2026-10-01");
+  assert.equal(r.leiturasNaJanela, 3);
+  assert.match(r.contexto, /nos últimos 7 dias \(30 nos marcados com CAFE_DEMANDA\), de 2026-10-01 a 2026-10-07/);
+  assert.match(r.contexto, /Não é fator: não tem peso nem leitura do motor/);
+  assert.match(r.contexto, /Os eventos de CAFE_FATOR_DE_EVENTO não estão aqui: vão no bloco desse fator\./);
+  assert.match(r.contexto, /1\. \[registrado em 2026-10-06, há 1 dia\(s\)\] Geada no sul de Minas\n   Condição afetada: CAFE_CLIMA — /);
+  assert.match(r.contexto, /2\. \[registrado em 2026-10-05, há 2 dia\(s\)\] Fato sem fator\n   Condição afetada: nenhum fator do FEL 1\n/);
+  assert.match(r.contexto, /Dias sem leitura \(sem informação, não calmaria\): 2026-10-02, 2026-10-03, 2026-10-04, 2026-10-05\./);
+});
+
+test("eventos do ativo: sem leitura nenhuma, avisa que a ausência não é situação normal; janela inválida, erro", async () => {
+  const repo = repoDoFator();
+  repo.listarEventosAceitosDoAtivo = async () => [];
+  const r = await obterEventosDoAtivo("MILHO", "2026-10-07", { janelaDias: 7 }, { geopoliticaRepository: repo });
+  assert.match(r.contexto, /a leitura diária ainda não rodou para este ativo/);
+  assert.match(r.contexto, /nenhum evento do ativo na janela, fora os dos fatores de evento/);
+  assert.doesNotMatch(r.contexto, /não estão aqui/);
+  await assert.rejects(obterEventosDoAtivo("MILHO", "2026-10-07", { janelaDias: 0 }, { geopoliticaRepository: repo }), /janela/);
 });

@@ -78,6 +78,8 @@ function resumirEvidencias(ativo, entrada) {
       : null,
     curva: entrada.curva ?? null,
     fatores,
+    // A seção de eventos da base do prompt (ADR 0095); null nas leituras de antes dela.
+    eventosDoAtivo: entrada.eventosDoAtivo ?? null,
     lacunas
   };
 }

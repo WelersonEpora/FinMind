@@ -1,6 +1,6 @@
 # Prompt — Análise diária do petróleo (leitura de tendência em quatro horizontes)
 
-**Versão:** 5
+**Versão:** 6
 
 Histórico: v1 (2026-10-03) - formato inicial (ADR 0051): seis blocos, no molde do prompt do milho (`STATUS_DO_PROJETO.md`,
 §5): os fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do sistema; os
@@ -19,6 +19,9 @@ v5 (2026-10-06) - o refino (PETROLEO_REFINO) passa a fator de CONTEXTO da demand
 de INFORMAÇÃO, os dois sem pressão própria, por decisão do usuário (ADRs 0093 e 0094): o item 3 de "Como analisar" e a
 legenda do bloco 3 dizem como usá-los, como no prompt do ouro (ADR 0054); o item 5 diz que o extremo dos fundos não
 mostrou reversão no histórico do Brent e não baixa a confiança sozinho.
+v6 (2026-10-07, ADR 0095) - os eventos do petróleo marcados com outro fator que não a OPEP+ e a geopolítica (ou com
+nenhum), que antes não iam ao prompt, vão a uma seção só da base (2.5), sem peso nem leitura do motor; os da OPEP+ e
+da geopolítica seguem nos fatores. O item 4 de "Como analisar" e a legenda do bloco 3 dizem isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `petroleo-analise-ia-diario` (ADR 0052).
 
@@ -62,12 +65,16 @@ Para cada horizonte, separadamente:
    não tem pressão própria: use o de contexto só para explicar o fator de que é contexto, e o de informação só no
    papel dele (item 5). Nunca os liste em "fatoresAFavor" nem em "fatoresContra"; eles podem aparecer em "evidencias"
    e em "fatoresPoucoRelevantes".
-4. Eventos (a geopolítica e os eventos da OPEP+). Use a idade e o tipo de cada evento para julgar se ele ainda pesa
-   no horizonte. A pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com
+4. Eventos (a geopolítica e os eventos da OPEP+). Use a idade e o tipo de cada evento para julgar se ele ainda pesa no
+   horizonte. A pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com
    leitura diária na janela, é informação; "dia sem leitura" é falta de informação. Na OPEP+, o cálculo mostra a
    pegada das decisões na produção e na capacidade ociosa com um a dois meses de atraso, e os eventos trazem as
    decisões recentes: diga quando uma decisão ainda não aparece no cálculo. Quando o cálculo diz "interrupção", a
-   queda da oferta não é decisão da OPEP: o efeito vem pelos eventos de geopolítica; não o conte duas vezes.
+   queda da oferta não é decisão da OPEP: o efeito vem pelos eventos de geopolítica; não o conte duas vezes. Os
+   eventos marcados com outros fatores (ou com nenhum) estão na seção 2.5, uma vez cada, com a condição que afetam:
+   não são fator, não têm peso e não mudam a leitura do motor de nenhum fator; use-os para dizer o que o cálculo da
+   condição afetada ainda não mostra. Ao citar um evento da seção como evidência, use a origem EVENTO e, no fator, o
+   código da condição que ele afeta (ou null).
 5. Posicionamento (COT). Não conte o COT como mais um voto de alta ou de baixa. Diga qual é o papel dele no horizonte:
    confirma a leitura, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O
    posicionamento segue o preço e os demais fatores: não o trate como evidência independente deles. No histórico do
@@ -161,6 +168,9 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 2.4 HORIZONTES E FAIXAS DE VARIAÇÃO — definidos pela metodologia
 {{bloco_faixas}}
 
+2.5 EVENTOS DO ATIVO — da leitura diária por IA, fora dos fatores da OPEP+ e da geopolítica; não é fator
+{{bloco_eventos}}
+
 [3. LEITURA DO MOTOR — o resultado das regras dos 10 fatores, aplicadas em código, sem IA]
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
@@ -168,6 +178,7 @@ Fator de contexto ou de informação: A, B e D como os outros; em C, só o papel
 e a tendência, sem pressão.
 Fator de evento: os eventos aceitos da leitura diária por IA na janela do fator, com a data, a idade e a fonte.
 Fator calculado com eventos (a OPEP+): o texto do cálculo (A a D) e, depois, os eventos da janela do fator.
+Os eventos dos outros fatores estão na seção 2.5.
 O motor ainda não fornece confiança por fator, horizonte por fator nem relações entre fatores.
 
 {{blocos_fatores}}
