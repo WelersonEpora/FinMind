@@ -142,6 +142,42 @@ Escolhido pelo usuário a partir de um protótipo, no lugar da grade de símbolo
 
 O cálculo é uma função pura (`utils/leque-leituras.js`), e o desenho fica em `components/charts/LequeLeiturasChart.vue`.
 
+#### Por que a barra cresce com o horizonte (adendo, 2026-10-07)
+
+Explicação do desenho, sem decisão nova. A tela "Qualidade da IA" tem um link para este ADR no topo.
+
+- **A altura não é a confiança da IA nem a chance de ela errar.** É a faixa lida convertida em preço: LATERAL vai de
+  −T1 a +T1 a partir da base, LEVE de T1 a T2, FORTE de T2 para cima (desenhada com a altura de uma LEVE e uma seta).
+  A IA escolhe a faixa; o tamanho dela vem de T1 e T2, que são fixos por horizonte e gravados com cada leitura.
+- **T1 e T2 crescem com o horizonte porque o preço anda mais em prazos longos.** Eles são os percentis 40 e 80 da
+  variação absoluta do próprio preço avaliado, em 1, 7, 30 e 90 dias, medidos no histórico da base. Num passeio
+  aleatório, a oscilação cresce mais ou menos com a raiz do tempo (√90 ≈ 9,5), e os números seguem essa regra (a
+  tabela abaixo). Uma alta "leve" em 90 dias é um movimento bem maior que uma alta "leve" amanhã.
+
+| Ativo | T1 / T2 em 1 dia | × √90 (o que a regra prevê) | T1 / T2 reais em 90 dias |
+|---|---|---|---|
+| Petróleo | 0,8 / 2,3% | 7,6 / 21,8% | 6 / 19% |
+| Ouro | 0,4 / 1,2% | 3,8 / 11,4% | 4 / 10% |
+| Milho | 0,3 / 1,0% | 2,8 / 9,5% | 3 / 8% |
+| Café | 1,0 / 2,7% | 9,5 / 25,6% | 11 / 25% |
+
+Os valores são os da configuração em 2026-10-07; numa recalibração, vale a configuração, não esta tabela. No petróleo
+e no milho, o valor real em 90 dias fica um pouco abaixo do previsto, o que é comum quando o preço tende a voltar à
+média; isso não foi medido.
+
+- **A calibração deixa a dificuldade parecida em todos os horizontes.** Por construção, cerca de 40% dos casos
+  históricos caem em LATERAL, 40% em LEVE e 20% em FORTE, em qualquer prazo. Se a faixa de 90 dias tivesse a altura da
+  de 1 dia, quase tudo cairia em FORTE. Se a IA acerta mais ou menos num horizonte, isso está nos cards (contra os
+  benchmarks), não na altura da barra.
+- **De onde vêm os números** (série, período e valores de cada ativo): petróleo, ADR 0052 (adendo); ouro, ADR 0054;
+  milho, ADR 0058 (adendo); café, ADR 0062. A escolha das faixas calibradas, e não de classes fixas iguais em todos os
+  prazos, está no ADR 0079. Os valores ficam na configuração de cada ativo (`backend/src/shared/analise-diaria-<ativo>.js`).
+- **Recalibração:** quando a volatilidade do ativo mudar de patamar ou o preço avaliado mudar (como o milho, do ESALQ
+  para o CCM, e o petróleo, do Brent à vista para o futuro), não de rotina; é manual, numa versão nova da configuração.
+  Não mexe no placar contra os benchmarks: eles usam o mesmo T1/T2 de cada leitura, e as leituras antigas continuam
+  medidas pela régua gravada com elas (§8). O milho e o café têm histórico curto (desde 2022), então as faixas deles são
+  as mais sujeitas a recalibrar.
+
 ## Consequências
 
 - A tela "Qualidade da IA" (`/qualidade-ia`) mostra, por ativo, os quatro horizontes com as três medidas da IA e dos

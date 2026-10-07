@@ -6,6 +6,8 @@ import Column from 'primevue/column'
 import AppShell from '../components/layout/AppShell.vue'
 import SeletorOpcao from '../components/centro-decisao/SeletorOpcao.vue'
 import LequeLeiturasChart from '../components/charts/LequeLeiturasChart.vue'
+import DocumentoModal from '../components/DocumentoModal.vue'
+import { useDocumentoNaUrl } from '../composables/useDocumentoNaUrl.js'
 import { CORES_HORIZONTE, montarLeque } from '../utils/leque-leituras.js'
 import qualidadeIaService from '../services/qualidade-ia.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
@@ -45,6 +47,12 @@ const UNIDADE = { PETROLEO: 'US$/bbl', OURO: 'US$/oz', MILHO: 'R$/sc', CAFE: 'US
 
 const route = useRoute()
 const router = useRouter()
+
+// "Como ler esta tela": o ADR 0064 (a metodologia, com o porquê da altura das barras) no modal da tela de status, com o
+// id na URL (`?doc=adr-0064`), ao lado do `?ativo=`.
+const DOCUMENTO_COMO_LER = 'adr-0064'
+const { documentoAberto, anterior, abrirDocumento, navegarDocumento, voltarDocumento, fecharDocumento } =
+  useDocumentoNaUrl()
 
 const loading = ref(true)
 const atualizando = ref(false)
@@ -180,7 +188,12 @@ watch([periodo, versao], carregar)
   <AppShell>
     <div class="qualidade">
       <header class="qualidade__cabecalho">
-        <h1 class="qualidade__titulo">Qualidade da IA</h1>
+        <div class="qualidade__linha-titulo">
+          <h1 class="qualidade__titulo">Qualidade da IA</h1>
+          <button type="button" class="btn btn-link btn-sm p-0 qualidade__como-ler" @click="abrirDocumento(DOCUMENTO_COMO_LER)">
+            <i class="bi bi-book"></i> Como ler esta tela
+          </button>
+        </div>
         <p class="qualidade__subtitulo">
           O que a IA leu, o que o preço fez e como isso se compara a dois benchmarks simples, por horizonte.
         </p>
@@ -527,6 +540,14 @@ watch([periodo, versao], carregar)
         </div>
       </template>
     </div>
+
+    <DocumentoModal
+      :documento-id="documentoAberto"
+      :anterior-id="anterior"
+      @navegar="navegarDocumento"
+      @voltar="voltarDocumento"
+      @fechar="fecharDocumento"
+    />
   </AppShell>
 </template>
 
@@ -544,6 +565,17 @@ watch([periodo, versao], carregar)
   margin: 0;
   color: var(--p-text-muted-color);
   font-size: 0.9rem;
+}
+.qualidade__linha-titulo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.qualidade__como-ler {
+  font-size: 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .qualidade__contexto {
