@@ -10,10 +10,11 @@ const { classificarNaFaixa } = require("../shared/analise-diaria-base");
 // ADR 0008): a camada point-in-time só acumula versões, então um cálculo passado se refaz com o mesmo `agora`.
 //
 // Regras:
-//   - a BASE DA AVALIAÇÃO é o último preço até a data da análise, na série da leitura (num futuro, o MESMO contrato),
-//     conhecido depois: o prompt define a variação "entre a data da análise e o fim de cada horizonte" (tabela 2.4). O
-//     preço que a IA recebeu (o do pregão anterior, ou mais antigo no Brent da EIA) fica na leitura, para mostrar o
-//     que ela viu. Exceção: nas leituras que contavam os horizontes do último preço (petróleo v1), a base é ele;
+//   - a BASE DA AVALIAÇÃO segue de onde os horizontes contam (shared/analise-diaria-base.js::REFERENCIA_HORIZONTES):
+//     desde 2026-10-07 (ADR 0106), o preço que a IA recebeu (o do pregão anterior; num horizonte com contrato próprio,
+//     o dele), e a variação vai dele ao fim do horizonte; nas leituras que contavam da data da análise (2026-10-03 a
+//     2026-10-07, e quando o preço estava defasado), o último preço até a data da análise, conhecido depois; na v1 do
+//     petróleo, o último preço recebido;
 //   - o alvo é a data-alvo gravada com a leitura (a data de onde os horizontes contam + os dias);
 //   - o preço realizado é o último observado até a data-alvo, na versão mais recente (a revisão conta: é o preço que de
 //     fato houve), na MESMA série ou contrato da base (sem a troca de vencimento no meio da medida);
@@ -67,10 +68,10 @@ function resolverSerie(precoReferencia) {
 // a data da análise dentro da tolerância). `confirmada`: o preço da data da análise já não pode mais chegar (a série tem
 // dado depois dela; num futuro, também passada a tolerância); até lá, a base é provisória (o Brent da EIA chega com uma
 // semana de atraso; o ajuste da B3, no dia seguinte). Na referência antiga (petróleo v1), o preço que a IA recebeu.
-function baseDaAvaliacao(analise, pontos, { tolerancia, hoje, futuro = false }) {
-  const preco = analise.precoReferencia;
+// `recebido`: o preço que a IA recebeu ({ dataReferencia, valor }); num horizonte com contrato próprio, o dele.
+function baseDaAvaliacao(analise, pontos, { tolerancia, hoje, futuro = false, recebido = analise.precoReferencia }) {
   if (analise.referenciaHorizontes?.tipo !== "DATA_DA_ANALISE") {
-    return { data: preco.dataReferencia, valor: preco.valor, naDataDaAnalise: false, confirmada: true };
+    return { data: recebido.dataReferencia, valor: recebido.valor, naDataDaAnalise: false, doPrecoRecebido: true, confirmada: true };
   }
   const confirmada = pontos.some((p) => p.data > analise.data) || (futuro && diasEntre(analise.data, hoje) > tolerancia);
   const ultimo = [...pontos].reverse().find((p) => p.data <= analise.data);
@@ -132,24 +133,24 @@ async function apurarRealizadosComPontos(analises, { agora = new Date(), diasDeP
   for (const l of linhas) pontosPorSerie.get(l.series_code)?.push({ data: String(l.observed_at).slice(0, 10), valor: Number(l.value) });
   for (const pontos of pontosPorSerie.values()) pontos.sort((a, b) => a.data.localeCompare(b.data));
 
-  // A base e os pontos de uma série, a partir de uma data (a do preço que a IA recebeu).
-  const contextoDa = (analise, serie, desdeData) => {
-    const pontos = pontosPorSerie.get(serie.seriesCode).filter((p) => p.data >= desdeData);
-    const base = baseDaAvaliacao(analise, pontos, { tolerancia: serie.tolerancia, hoje, futuro: serie.futuro });
+  // A base e os pontos de uma série, a partir do preço que a IA recebeu nela.
+  const contextoDa = (analise, serie, recebido) => {
+    const pontos = pontosPorSerie.get(serie.seriesCode).filter((p) => p.data >= recebido.dataReferencia);
+    const base = baseDaAvaliacao(analise, pontos, { tolerancia: serie.tolerancia, hoje, futuro: serie.futuro, recebido });
     return { base, pontos, hoje, tolerancia: serie.tolerancia, futuro: serie.futuro };
   };
 
   const realizados = analises.map((analise, i) => {
     const serie = series[i];
     if (!serie) return semBase(analise);
-    const contexto = contextoDa(analise, serie, analise.precoReferencia.dataReferencia);
+    const contexto = contextoDa(analise, serie, analise.precoReferencia);
     const horizontes = analise.horizontes.map((h, k) => {
       const doHorizonte = seriesDosHorizontes[i][k];
       // O horizonte com contrato próprio (ADR 0078): a base e o preço no contrato dele.
       const ctx =
         doHorizonte.seriesCode === serie.seriesCode
           ? contexto
-          : contextoDa(analise, doHorizonte, h.precoRecebido?.dataReferencia || analise.precoReferencia.dataReferencia);
+          : contextoDa(analise, doHorizonte, h.precoRecebido?.dataReferencia ? h.precoRecebido : analise.precoReferencia);
       return { ...apurarHorizonte(h, ctx), seriesCode: doHorizonte.seriesCode, base: ctx.base };
     });
     return { seriesCode: serie.seriesCode, base: contexto.base, horizontes };

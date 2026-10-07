@@ -15,7 +15,9 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // v4 (2026-10-07): o preço passa do Brent à vista (EIA, o físico, publicado uma vez por semana) ao Brent FUTURO (NYMEX BZ,
 // pelo Yahoo, ADR 0096), o instrumento operado; cada horizonte no vencimento que ainda vale depois da data-alvo, a curva no
 // prompt e as faixas recalibradas no futuro (decisão do usuário, ADR 0052, adendo de 2026-10-07).
-const VERSAO = 4;
+// v5 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
+// dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
+const VERSAO = 5;
 
 // Os quatro horizontes, cada um analisado separadamente (decisão do usuário, 2026-10-03). `variacao`: a janela do
 // Centro de Decisão com o mesmo prazo (centro-decisao.service.js::VARIACOES), a que o bloco de preço mostra.
@@ -51,7 +53,8 @@ const FAIXAS = Object.freeze({
 // desconhecido. Para comparar com o realizado, a base é o preço do último pregão até a data da análise (conhecido
 // depois) e o fim é o do último pregão até a data da análise + os dias do horizonte.
 // As leituras gravadas com a v1 continuam com "DATA_DO_ULTIMO_PRECO" na entrada, e a tela respeita o que foi gravado.
-const REFERENCIA_HORIZONTES = "DATA_DA_ANALISE";
+// De onde os horizontes contam (analise-diaria-base.js::REFERENCIA_HORIZONTES; ADR 0106).
+const REFERENCIA_HORIZONTES = "DATA_DO_PRECO_RECEBIDO";
 
 // O preço de referência: o Brent FUTURO (NYMEX BZ, pelo Yahoo, ADR 0096), o vencimento mais próximo negociado (v4; na
 // v3, o Brent à vista da EIA; até a v2, o WTI). A série do Centro de Decisão (centro-decisao.service.js::ATIVOS), quantos

@@ -77,7 +77,10 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
         </p>
         <p v-else-if="analise.disponivel && analise.precoReferencia" class="analise__referencia">
           Os horizontes contam de <strong>{{ formatarData(analise.precoReferencia.dataReferencia) }}</strong>, último preço do
-          {{ analise.precoReferencia.serie }} na base (<strong>US$ {{ formatarValor(analise.precoReferencia.valor) }}</strong>).
+          {{ analise.precoReferencia.serie }} na base (<strong>US$ {{ formatarValor(analise.precoReferencia.valor) }}</strong>)<template
+            v-if="analise.referenciaHorizontes?.tipo === 'DATA_DO_PRECO_RECEBIDO'"
+            >; o imediato é o próximo pregão depois dele (ADR 0106)</template
+          >.
         </p>
       </div>
       <span class="analise__selo"><span class="analise__selo-ponto"></span>Leitura de tendência da IA</span>

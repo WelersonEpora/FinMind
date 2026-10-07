@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 8
+**Versão:** 9
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -42,6 +42,9 @@ médio, ids que não estavam na lista daquele horizonte.
 v8 (2026-10-07, ADR 0066, adendo de 2026-10-07) - a leitura agregada do motor sai do prompt (o bloco 3B e o item 5 de
 "Como analisar"): no histórico do ICF, a agregação em código não supera os benchmarks, como a do milho (ADR 0081). O
 item 5 passa a dizer só como combinar os fatores, sem pontuação; o item 2 deixa de citar os pesos das famílias.
+v9 (2026-10-07, ADR 0106) - os horizontes contam do último preço da BASE, e o IMEDIATO é o próximo pregão depois dele
+(antes, da data da análise, com o pregão seguinte ao último preço fora de todos os horizontes); com o preço defasado,
+da data da análise. O item do preço em "Como analisar" diz isso, e a tabela 2.4 traz a data-alvo de cada horizonte.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -134,10 +137,13 @@ Para cada horizonte, separadamente:
     serem evidências independentes: diga quando for o caso, sem criar regra de desconto.
 13. Preço. Use o histórico (2.1) para dizer quanto do movimento já aconteceu. Um fator que acompanha o preço pode já
     estar refletido nele. O preço é de um contrato futuro: as variações são só desse contrato, e uma variação SEM DADO
-    é falta de histórico do contrato, não estabilidade do preço. O preço em reais é só referência: a tendência e a faixa
-    são sobre o preço em dólares. Os horizontes contam da data da análise, não da data do último preço: o preço entre
-    as duas datas é desconhecido. Não o estime. Se houver eventos posteriores ao último preço, diga que o preço pode já
-    ter reagido a eles nesse intervalo, sem saber quanto, e considere isso na confiança.
+    é falta de histórico do contrato, não estabilidade do preço. O preço em reais é só referência: a tendência e a
+    faixa são sobre o preço em dólares. Os horizontes contam do último preço da BASE, não da data da análise: o
+    IMEDIATO é o próximo pregão depois dele, e os outros terminam o número de dias depois dele (a data-alvo de cada um
+    está na tabela 2.4). Os eventos posteriores ao último preço ainda não estão nele e podem mover já o próximo
+    pregão: considere-os na leitura. Só quando o bloco 2.1 disser que os horizontes contam da data da análise (o
+    último preço não é o do pregão anterior), o preço entre o último pregão e essa data é desconhecido: não o estime,
+    e considere isso na confiança.
 14. Tendência e faixa. Escolha UMA faixa da tabela 2.4 para o horizonte, coerente com a tendência (as faixas BAIXA_*
     são de BAIXA, LATERAL é LATERAL, as ALTA_* são de ALTA). Não use percentual próprio nem preço-alvo.
 15. Confiança. É a firmeza da leitura, não o tamanho do movimento ("ALTA_LEVE" com confiança BAIXA é válido). Considere

@@ -8,6 +8,7 @@ process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || "finmind";
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
+const { dataAlvoDoHorizonte } = require("../shared/analise-diaria-base");
 const assert = require("node:assert/strict");
 const { apurarRealizado, apurarRealizados, apurarHorizonte, SERIES_DE_REFERENCIA } = require("./realizado-analise.service");
 const { ATIVOS } = require("./centro-decisao.service");
@@ -31,7 +32,7 @@ function analise({ serie, contrato = null, seriesCode, data = "2026-09-01", valo
     data,
     precoReferencia: { serie, seriesCode, contrato, dataReferencia: recebidoEm, valor },
     referenciaHorizontes: { tipo: referencia, data: dataReferencia },
-    horizontes: FAIXAS.map((h) => ({ ...h, dataAlvo: somarDias(dataReferencia, h.dias) }))
+    horizontes: FAIXAS.map((h) => ({ ...h, dataAlvo: dataAlvoDoHorizonte(referencia, { dataAnalise: data, dataPreco: recebidoEm, dias: h.dias }) }))
   };
 }
 
@@ -110,9 +111,27 @@ test("referência antiga (petróleo v1, horizontes do último preço): a base é
   const leitura = analise({ serie: "WTI", data: "2026-09-01", recebidoEm: "2026-08-28", valor: 100, referencia: "DATA_DO_ULTIMO_PRECO" });
   const { seriesCode, base, horizontes } = await apurarRealizado(leitura, { agora: AGORA }, { observationRepository: repo });
   assert.equal(seriesCode, code);
-  assert.deepEqual(base, { data: "2026-08-28", valor: 100, naDataDaAnalise: false, confirmada: true });
+  assert.deepEqual(base, { data: "2026-08-28", valor: 100, naDataDaAnalise: false, doPrecoRecebido: true, confirmada: true });
   // Alvo de 1 dia: 2026-08-29 (sábado) -> o último preço até ele é o da base: sem pregão novo.
   assert.equal(horizontes[0].situacao, "SEM_PREGAO");
+});
+
+test("do preço recebido (ADR 0106): a base é o preço que a IA viu e o imediato é o próximo pregão, não antes da leitura", async () => {
+  const code = "EIA.PETROLEO_PRECOS.WTI";
+  const repo = repoCom([
+    [code, "2026-08-28", 100],
+    [code, "2026-08-31", 102],
+    [code, "2026-09-01", 104],
+    [code, "2026-09-02", 106]
+  ]);
+  // Leitura de segunda (31/08) com o preço de sexta (28/08): o imediato é a própria segunda, o pregão que a IA não viu.
+  const leitura = analise({ serie: "WTI", data: "2026-08-31", recebidoEm: "2026-08-28", valor: 100, referencia: "DATA_DO_PRECO_RECEBIDO" });
+  const { base, horizontes } = await apurarRealizado(leitura, { agora: AGORA }, { observationRepository: repo });
+  assert.deepEqual(base, { data: "2026-08-28", valor: 100, naDataDaAnalise: false, doPrecoRecebido: true, confirmada: true });
+  assert.equal(horizontes[0].dataAlvo, "2026-08-31");
+  assert.equal(horizontes[0].situacao, "APURADO");
+  assert.equal(horizontes[0].dataPreco, "2026-08-31");
+  assert.equal(horizontes[0].variacaoPct, 2);
 });
 
 test("futuro: o MESMO contrato da leitura, nunca o vencimento mais próximo na data-alvo", async () => {

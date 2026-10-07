@@ -92,11 +92,16 @@ function persistencia(variacoes, { dias, t1, t2 }) {
   return { variacaoPct: percentual, faixa: classificarNaFaixa(percentual, { t1, t2 }) };
 }
 
-function motivoFora({ referencia, situacao, base, lida, faixaRealizada, persistida }) {
-  if (referencia !== "DATA_DA_ANALISE") return "REFERENCIA_ANTIGA";
+// Fim de semana (sábado ou domingo), sem pregão na data da leitura.
+const fimDeSemana = (iso) => [0, 6].includes(new Date(`${iso}T00:00:00Z`).getUTCDay());
+
+// Por que uma linha não entra na métrica. Contando do preço recebido (ADR 0106), a leitura de fim de semana fica fora:
+// ela recebeu o mesmo preço da de sexta e repetiria a medida dos horizontes longos.
+function motivoFora({ referencia, dataAnalise, situacao, base, lida, faixaRealizada, persistida }) {
+  if (referencia !== "DATA_DA_ANALISE" && referencia !== "DATA_DO_PRECO_RECEBIDO") return "REFERENCIA_ANTIGA";
   if (situacao !== "APURADO") return situacao;
   if (!faixaRealizada) return "SEM_BASE";
-  if (!base?.naDataDaAnalise) return "SEM_PREGAO_NA_DATA";
+  if (referencia === "DATA_DA_ANALISE" ? !base?.naDataDaAnalise : fimDeSemana(dataAnalise)) return "SEM_PREGAO_NA_DATA";
   if (!lida || POSICAO_DA_FAIXA[lida.faixa] === undefined) return "INSUFICIENTE";
   if (!persistida) return "SEM_BENCHMARK";
   return null;
@@ -115,6 +120,7 @@ function montarLinha(registro, leitura, realizado, horizonte) {
   const motor = (leitura.agregacaoMotor?.horizontes || []).find((h) => h.horizonte === horizonte.codigo) || null;
   const motivo = motivoFora({
     referencia: leitura.referenciaHorizontes.tipo,
+    dataAnalise: leitura.data,
     situacao: apurado.situacao,
     base,
     lida,

@@ -7,7 +7,7 @@ const { FATORES_OURO } = require("../shared/metodologia-ouro");
 const { FATORES_MILHO } = require("../shared/metodologia-milho");
 const { FATORES_CAFE } = require("../shared/metodologia-cafe");
 const { NotFoundError, ValidationError } = require("../shared/errors");
-const { somarDias } = require("../shared/utils/date-utils");
+const { dataDeReferenciaDosHorizontes, dataAlvoDoHorizonte } = require("../shared/analise-diaria-base");
 
 // Leitura diária de tendência da IA (petróleo, ADR 0052; ouro, ADR 0054; milho, ADR 0058; café, ADR 0062), como o Centro de Decisão a mostra: a leitura feita NA data escolhida
 // (nunca a de outro dia no lugar dela) e as evidências que formaram o prompt dela. Tudo sai da leitura GRAVADA (a
@@ -91,10 +91,11 @@ function resumirEvidencias(ativo, entrada) {
 function leituraGravada(ativo, registro) {
   const entrada = registro.entrada || {};
   const preco = entrada.precoReferencia;
-  // De onde os horizontes contam (a configuração v1 do petróleo contava do último preço, as demais contam da data da
-  // análise; shared/analise-diaria-petroleo.js::REFERENCIA_HORIZONTES).
+  // De onde os horizontes contam, como foi gravado (shared/analise-diaria-base.js::REFERENCIA_HORIZONTES): a v1 do
+  // petróleo, do último preço; de 2026-10-03 a 2026-10-07, da data da análise; depois, do preço recebido (ADR 0106).
   const tipoReferencia = entrada.referenciaHorizontes || "DATA_DO_ULTIMO_PRECO";
-  const dataReferenciaHorizontes = tipoReferencia === "DATA_DA_ANALISE" ? registro.data_analise : preco?.dataReferencia ?? null;
+  const dataAnalise = registro.data_analise;
+  const dataReferenciaHorizontes = dataDeReferenciaDosHorizontes(tipoReferencia, { dataAnalise, dataPreco: preco?.dataReferencia });
   const rotulos = new Map(configuracaoDoAtivo(ativo).HORIZONTES.map((h) => [h.codigo, h.rotulo]));
   return {
     disponivel: true,
@@ -116,7 +117,8 @@ function leituraGravada(ativo, registro) {
       dias,
       t1: t1 ?? null,
       t2: t2 ?? null,
-      dataAlvo: dataReferenciaHorizontes && Number.isInteger(dias) ? somarDias(dataReferenciaHorizontes, dias) : null,
+      // Com contrato próprio, a data do preço recebido é a dele (o mesmo pregão, em regra).
+      dataAlvo: dataAlvoDoHorizonte(tipoReferencia, { dataAnalise, dataPreco: (seriesCode ? dataReferencia : null) || preco?.dataReferencia, dias }),
       // O contrato do horizonte (o milho e o café desde a configuração v3, ADR 0078): a avaliação usa o dele. Nas
       // leituras antigas, o da leitura (precoReferencia).
       ...(seriesCode ? { contrato: contrato ?? null, seriesCode, precoRecebido: { valor, dataReferencia } } : {})

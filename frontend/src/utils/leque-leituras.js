@@ -74,7 +74,7 @@ export function linhasDoGrafico(linhas, { modo, horizonte, visiveis = null }) {
 // (petróleo v1), sem pregão na data da análise (inclusive a de fim de semana que ainda espera o preço) ou sem a
 // variação passada para o benchmark. A espera pelo preço (a apurar) não esmaece: é só o tempo. -> o motivo ou null.
 export function foraDaMetrica(linha) {
-  if (linha.referenciaHorizontes !== 'DATA_DA_ANALISE') return 'REFERENCIA_ANTIGA'
+  if (!['DATA_DA_ANALISE', 'DATA_DO_PRECO_RECEBIDO'].includes(linha.referenciaHorizontes)) return 'REFERENCIA_ANTIGA'
   if (linha.motivoFora === 'SEM_PREGAO_NA_DATA' || fimDeSemana(linha.dataAnalise)) return 'SEM_PREGAO_NA_DATA'
   if (linha.motivoFora === 'SEM_BENCHMARK') return 'SEM_BENCHMARK'
   return null

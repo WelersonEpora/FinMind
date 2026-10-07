@@ -7,7 +7,9 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // (ai/prompts/ouro-analise-diaria.md). Mudar um valor = versão nova desta configuração (VERSAO), gravada com cada leitura.
 
 // v1 (2026-10-04): a primeira, já com os horizontes contados da data da análise (como a v2 do petróleo).
-const VERSAO = 1;
+// v2 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
+// dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
+const VERSAO = 2;
 
 // Os mesmos quatro horizontes do petróleo, cada um analisado separadamente.
 const HORIZONTES = Object.freeze([
@@ -31,7 +33,8 @@ const FAIXAS = Object.freeze({
 });
 
 // Da data da análise, como no petróleo desde o adendo do ADR 0052.
-const REFERENCIA_HORIZONTES = "DATA_DA_ANALISE";
+// De onde os horizontes contam (analise-diaria-base.js::REFERENCIA_HORIZONTES; ADR 0106).
+const REFERENCIA_HORIZONTES = "DATA_DO_PRECO_RECEBIDO";
 
 // O preço de referência (decisão do David, 2026-10-03, ADR 0054): o futuro GLD da B3, o vencimento mais próximo
 // negociado (centro-decisao.service.js::lerFuturo), sem emendar contratos; a LBMA, que fechou o feed em 2026-09-30, fica

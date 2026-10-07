@@ -9,7 +9,9 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // v1 (2026-10-04): a primeira, com a aprovação do Motor do Milho v0 pelo Comitê.
 // v2 (2026-10-05): as faixas recalibradas no próprio CCM, o preço que a leitura mede (decisão do usuário, ADR 0058, adendo).
 // v3 (2026-10-05): cada horizonte com o vencimento do CCM que ainda vale depois da data-alvo, e a curva no prompt (ADR 0078).
-const VERSAO = 3;
+// v4 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
+// dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
+const VERSAO = 4;
 
 // Os mesmos quatro horizontes do petróleo e do ouro, que são também os do prompt do David (Motor do Milho v0, §6).
 const HORIZONTES = Object.freeze([
@@ -38,7 +40,8 @@ const FAIXAS = Object.freeze({
 });
 
 // Da data da análise, como no petróleo e no ouro.
-const REFERENCIA_HORIZONTES = "DATA_DA_ANALISE";
+// De onde os horizontes contam (analise-diaria-base.js::REFERENCIA_HORIZONTES; ADR 0106).
+const REFERENCIA_HORIZONTES = "DATA_DO_PRECO_RECEBIDO";
 
 // O preço de referência (aprovação do Comitê, 2026-10-04, ADR 0058): o futuro CCM da B3, o vencimento mais próximo
 // negociado (centro-decisao.service.js::lerFuturo), sem emendar contratos. O Indicador ESALQ fica como contexto (é o

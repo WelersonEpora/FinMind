@@ -3,10 +3,10 @@
 const crypto = require("node:crypto");
 const { carregarPrompt } = require("../ai/carregar-prompt");
 const { configuracaoDoAtivo } = require("../shared/analise-diaria");
+const { REFERENCIA_HORIZONTES, dataAlvoDoHorizonte, precoDoPregaoAnterior } = require("../shared/analise-diaria-base");
 const metodologiaAtivoService = require("./metodologia-ativo.service");
 const centroDecisaoService = require("./centro-decisao.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
-const { somarDias } = require("../shared/utils/date-utils");
 
 // Prompt diário de análise de um ativo (ADR 0051; o petróleo, e o ouro desde o ADR 0054): monta, para uma data, o
 // prompt que a IA de tendência recebe, com o que se sabia até o fim daquele dia. Não chama nenhuma IA: a tela mostra o
@@ -60,7 +60,7 @@ function linhaEmReais(preco, ptax, config) {
   );
 }
 
-function blocoPreco(preco, dataAnalise, config, ptax = null) {
+function blocoPreco(preco, dataAnalise, config, ptax = null, referencia = REFERENCIA_HORIZONTES.DATA_DA_ANALISE) {
   if (!preco.disponivel) return `Preço do ${config.PRECO.rotulo}: SEM DADO até a data da análise.`;
   // A moeda do preço: US$ no petróleo, no ouro e no café (o ICF), R$ no milho (o CCM).
   const moeda = config.PRECO.moeda || "US$";
@@ -77,12 +77,15 @@ function blocoPreco(preco, dataAnalise, config, ptax = null) {
   );
   if (config.PRECO.emReais) linhas.push(linhaEmReais(preco, ptax, config));
   linhas.push(
-    // Os horizontes contam da data da análise (config.REFERENCIA_HORIZONTES, ADR 0052): o intervalo entre o último
-    // preço e ela é dito como desconhecido, para a IA não o estimar.
-    `Os horizontes da tabela 2.4 contam a partir de ${fmtData(dataAnalise)}, a data da análise.` +
-      (preco.dataReferencia < dataAnalise
-        ? ` O preço depois de ${fmtData(preco.dataReferencia)} até ${fmtData(dataAnalise)} NÃO está na BASE: é desconhecido.`
-        : ""),
+    // De onde os horizontes contam (ADR 0106): do último preço, com o IMEDIATO no próximo pregão; com o preço defasado,
+    // da data da análise, e o intervalo entre o último preço e ela é dito como desconhecido, para a IA não o estimar.
+    referencia === REFERENCIA_HORIZONTES.DATA_DO_PRECO_RECEBIDO
+      ? `Os horizontes da tabela 2.4 contam a partir deste último preço, de ${fmtData(preco.dataReferencia)}: o IMEDIATO vai até o ` +
+          "próximo pregão depois dele, e os outros terminam o número de dias depois dele (a data-alvo de cada um está na tabela 2.4)."
+      : `Os horizontes da tabela 2.4 contam a partir de ${fmtData(dataAnalise)}, a data da análise.` +
+          (preco.dataReferencia < dataAnalise
+            ? ` O preço depois de ${fmtData(preco.dataReferencia)} até ${fmtData(dataAnalise)} NÃO está na BASE: é desconhecido.`
+            : ""),
     ...config.PRECO.avisos
   );
   const variacoes = config.HORIZONTES.map(({ variacao, dias }) => {
@@ -137,10 +140,11 @@ function blocoCurva(curva, config) {
 // O contrato de cada horizonte (ADR 0078): o vencimento mais próximo que ainda vale depois da data-alvo, com o preço e as
 // variações dele (centro-decisao.service.js::lerPreco, `vencimentoApos`) e a liquidez no dia (da curva). -> { CODIGO:
 // { dataAlvo, preco (o de lerPreco), contratosNegociados } }.
-async function lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config }, centro, deps) {
+// `referencia` e `dataPreco`: de onde os horizontes contam (ADR 0106); sem eles, da data da análise.
+async function lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config, referencia = REFERENCIA_HORIZONTES.DATA_DA_ANALISE, dataPreco = null }, centro, deps) {
   const lidos = await Promise.all(
     config.HORIZONTES.map(async ({ codigo, dias }) => {
-      const dataAlvo = somarDias(dataAnalise, dias);
+      const dataAlvo = dataAlvoDoHorizonte(referencia, { dataAnalise, dataPreco, dias });
       const preco = await centro.lerPreco(serie, { data: dataAnalise, agora, vencimentoApos: dataAlvo }, deps);
       const naCurva = preco.disponivel ? curva?.vencimentos.find((v) => v.ticker === preco.contrato?.ticker) : null;
       return [codigo, { dataAlvo, preco, contratosNegociados: naCurva ? naCurva.contratosNegociados : null }];
@@ -213,9 +217,13 @@ function blocoCobertura(fatores, dataAnalise) {
 // --- 2.4 Horizontes e faixas ---------------------------------------------------------------------------------------
 
 // `porHorizonte` (um futuro com contrato por horizonte, ADR 0078): cada horizonte ganha a linha do contrato dele.
-function blocoFaixas(config, porHorizonte = null) {
+// `datas`: { referencia, dataAnalise, dataPreco }, de onde os horizontes contam (ADR 0106); a data-alvo vai em cada um.
+function blocoFaixas(config, porHorizonte = null, datas = null) {
+  const doPreco = datas?.referencia === REFERENCIA_HORIZONTES.DATA_DO_PRECO_RECEBIDO;
   const linhas = [
-    `Variação do ${config.PRECO.descricaoFaixas} entre a data da análise e o fim de cada horizonte (o preço de cada data é o do último pregão até ela).`,
+    doPreco
+      ? `Variação do ${config.PRECO.descricaoFaixas} entre o último preço da BASE (${fmtData(datas.dataPreco)}) e o fim de cada horizonte (o preço de cada data é o do último pregão até ela).`
+      : `Variação do ${config.PRECO.descricaoFaixas} entre a data da análise e o fim de cada horizonte (o preço de cada data é o do último pregão até ela).`,
     "Faixas: LATERAL (de -T1 a +T1, sem os extremos) | ALTA_LEVE (de +T1 a +T2) | ALTA_FORTE (+T2 ou mais) |",
     "        BAIXA_LEVE (de -T2 a -T1) | BAIXA_FORTE (-T2 ou menos)"
   ];
@@ -227,7 +235,11 @@ function blocoFaixas(config, porHorizonte = null) {
   }
   for (const h of config.HORIZONTES) {
     const { t1, t2 } = config.FAIXAS[h.codigo];
-    linhas.push(`${h.codigo} (${h.rotulo}, ${h.dias} dia${h.dias > 1 ? "s" : ""}): T1 = ${fmtNumero(t1, 1)}% | T2 = ${fmtNumero(t2, 1)}%`);
+    const alvo = datas ? dataAlvoDoHorizonte(datas.referencia, { dataAnalise: datas.dataAnalise, dataPreco: datas.dataPreco, dias: h.dias }) : null;
+    linhas.push(
+      `${h.codigo} (${h.rotulo}, ${h.dias} dia${h.dias > 1 ? "s" : ""}): T1 = ${fmtNumero(t1, 1)}% | T2 = ${fmtNumero(t2, 1)}%` +
+        (alvo ? ` | data-alvo: ${fmtData(alvo)}` : "")
+    );
     if (porHorizonte) linhas.push(linhaContratoDoHorizonte(h, porHorizonte, config));
   }
   return linhas.join("\n");
@@ -363,7 +375,7 @@ function contratoParaEntrada(doHorizonte) {
   };
 }
 
-function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao = null, curva = null, porHorizonte = null }) {
+function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao = null, curva = null, porHorizonte = null, referencia = config.REFERENCIA_HORIZONTES }) {
   return {
     // Os eventos do ativo que foram à seção da base (ADR 0095): a janela e quantos, sem os dos fatores de evento.
     ...(simulacao.eventosDoAtivo
@@ -394,7 +406,7 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
         }
       : null,
     curva,
-    referenciaHorizontes: config.REFERENCIA_HORIZONTES,
+    referenciaHorizontes: referencia,
     horizontes: config.HORIZONTES.map(({ codigo, dias }) => ({
       codigo,
       dias,
@@ -444,10 +456,17 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     centro.lerPreco(serie, { data: dataAnalise, agora }, deps)
   ]);
   const ptax = config.PRECO.emReais && preco.disponivel ? await lerPtax(preco.dataReferencia, deps) : null;
+  // De onde os horizontes contam (ADR 0106): a regra do ativo, quando o preço é o do pregão anterior; com o preço mais
+  // velho (feriado, fonte atrasada, defasado) ou sem preço, da data da análise.
+  const referencia =
+    preco.disponivel && !preco.defasada && precoDoPregaoAnterior(preco.dataReferencia, dataAnalise)
+      ? config.REFERENCIA_HORIZONTES
+      : REFERENCIA_HORIZONTES.DATA_DA_ANALISE;
+  const dataPreco = preco.disponivel ? preco.dataReferencia : null;
   // A curva e o contrato de cada horizonte (o milho e o café, ADR 0078).
   const curva = config.CURVA.porHorizonte && serie.futuro ? await centro.lerCurva(serie.futuro, { data: dataAnalise, agora }, deps) : null;
   const porHorizonte =
-    config.CURVA.porHorizonte && serie.futuro ? await lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config }, centro, deps) : null;
+    config.CURVA.porHorizonte && serie.futuro ? await lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config, referencia, dataPreco }, centro, deps) : null;
   // A agregação em código (o café, ADR 0066), sobre os mesmos fatores do prompt.
   const agregacao = config.AGREGACAO ? config.AGREGACAO.calcular(simulacao.fatores, { dataAnalise }) : null;
 
@@ -455,10 +474,10 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     data_analise: fmtData(dataAnalise),
     versao_metodologia: simulacao.versaoMetodologia,
     versao_configuracao: `${config.NOME} v${config.VERSAO}`,
-    bloco_preco: blocoPreco(preco, dataAnalise, config, ptax),
+    bloco_preco: blocoPreco(preco, dataAnalise, config, ptax, referencia),
     ...(config.CURVA.aplica ? { bloco_curva: blocoCurva(curva, config) } : {}),
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
-    bloco_faixas: blocoFaixas(config, porHorizonte),
+    bloco_faixas: blocoFaixas(config, porHorizonte, { referencia, dataAnalise, dataPreco }),
     ...(simulacao.pesos ? { bloco_pesos: blocoPesos(simulacao.pesos) } : {}),
     bloco_eventos: simulacao.eventosDoAtivo?.textoPrompt ?? "SEM DADO: os eventos do ativo não foram lidos.",
     blocos_fatores: simulacao.fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt).join("\n\n"),
@@ -476,7 +495,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
       hashEntrada,
       instrucaoDoSistema: carregado.instrucaoDoSistema,
       prompt: carregado.prompt,
-      entrada: entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao, curva, porHorizonte })
+      entrada: entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao, curva, porHorizonte, referencia })
     }
   };
 }

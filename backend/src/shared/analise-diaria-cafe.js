@@ -12,7 +12,9 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // v3 (2026-10-05): cada horizonte com o vencimento do ICF que ainda vale depois da data-alvo, e a curva no prompt (ADR 0078).
 // v4 (2026-10-07): a agregação em código sai do prompt e do Centro de Decisão (ADR 0066, adendo de 2026-10-07): no
 // histórico do ICF, não supera os benchmarks. Fica na tela de metodologia, como no milho (ADR 0081).
-const VERSAO = 4;
+// v5 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
+// dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
+const VERSAO = 5;
 
 // Os mesmos quatro horizontes do petróleo, do ouro e do milho, em dias corridos contados da data da análise. O estudo do
 // David conta em pregões (1, 7, 30 e 90): os dias corridos mantêm a régua dos outros ativos e a variação do Centro de
@@ -40,7 +42,8 @@ const FAIXAS = Object.freeze({
 });
 
 // Da data da análise, como nos outros ativos.
-const REFERENCIA_HORIZONTES = "DATA_DA_ANALISE";
+// De onde os horizontes contam (analise-diaria-base.js::REFERENCIA_HORIZONTES; ADR 0106).
+const REFERENCIA_HORIZONTES = "DATA_DO_PRECO_RECEBIDO";
 
 // O preço de referência (aprovação do Comitê, 2026-10-05, ADR 0062): o futuro ICF da B3 (café arábica, US$/saca), o
 // vencimento mais próximo negociado (centro-decisao.service.js::lerFuturo), sem emendar contratos. O KC da ICE (Nova
