@@ -311,6 +311,17 @@ onMounted(carregar)
             <dt class="col-5 fw-normal">Buscas / páginas lidas</dt>
             <dd class="col-7">{{ execucaoDetalhe.detalhes.ia.buscas }} / {{ execucaoDetalhe.detalhes.ia.paginasLidas }}</dd>
           </template>
+          <!-- Cada chamada ao Gemini, em ordem: a chave, como terminou e quanto levou (leitura de tendência, 2026-10-07). -->
+          <template v-if="execucaoDetalhe.detalhes.ia.tentativas?.length">
+            <dt class="col-5 fw-normal">Tentativas</dt>
+            <dd class="col-7">
+              <ul class="small mb-0 ps-3">
+                <li v-for="(t, i) in execucaoDetalhe.detalhes.ia.tentativas" :key="i">
+                  {{ t.chave === 'paga' ? 'Paga' : 'Gratuita' }}: {{ t.resultado }} em {{ t.segundos.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) }} s
+                </li>
+              </ul>
+            </dd>
+          </template>
           <template v-if="execucaoDetalhe.detalhes.ia.respostasRecusadas">
             <dt class="col-5 fw-normal">Respostas recusadas na validação</dt>
             <dd class="col-7">

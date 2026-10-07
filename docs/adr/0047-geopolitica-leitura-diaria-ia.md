@@ -196,5 +196,7 @@ prompt v1 ficam sem o dado.
 - Primeira integração real com IA no FinMind (`backend/src/ai/README.md` atualizado). A IA não decide nada: a leitura é
   contexto, e nenhuma resposta dispara ação.
 - Variáveis novas: `GEMINI_API_KEY_FREE` e `GEMINI_API_KEY` (ao menos uma, para registrar o coletor), `GEMINI_MODEL` (padrão
-  `gemini-flash-latest`) e `GEMINI_TIMEOUT_MS` (padrão 180000).
+  `gemini-flash-latest`) e `GEMINI_TIMEOUT_MS` (padrão 180000; desde 2026-10-07, 240000 e uma janela por chave para
+  todas as tentativas dela: a gratuita sem resposta até o fim da janela passa a vez para a paga, e cada tentativa fica
+  no bloco "IA" da execução).
 - Tela "Eventos" (`/dados-mercado/eventos`, só leitura, `GET /api/v1/geopolitica/eventos` e `/leituras/ultima`): no topo, a última leitura (nível e resumo de cada ativo; desde 2026-10-02 no Centro de Decisão, ADR 0048); abaixo, os eventos expandíveis no estilo da tela do AgroMind, só com os aceitos por padrão (os rejeitados, com o filtro).

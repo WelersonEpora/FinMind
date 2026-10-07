@@ -12,7 +12,7 @@ const assert = require("node:assert/strict");
 const provedor = require("./gemini-search.provider");
 const { carregarPrompt } = require("./carregar-prompt");
 
-const CONFIG = { apiKeyFree: "chave-gratuita", apiKey: "chave-paga", model: "gemini-flash-latest", timeoutMs: 1000 };
+const CONFIG = { apiKeyFree: "chave-gratuita", apiKey: "chave-paga", model: "gemini-flash-latest", timeoutMs: 60000 };
 const SEM_ESPERA = async () => {};
 
 const RESPOSTA_OK = {
@@ -141,8 +141,71 @@ test("carregarPrompt: o prompt dos eventos de mercado tem versão, instrução f
 
 test("chaves: as duas falham - a mensagem diz o que cada uma respondeu", async () => {
   const { fetchFn, chaves } = fetchEmSequencia([429, 429]);
-  await assert.rejects(pesquisar(fetchFn), /Chave gratuita: status 429\. Chave paga: status 429/);
+  await assert.rejects(pesquisar(fetchFn), /As duas chaves falharam\. Tentativas: gratuita: status 429 em 0\.0 s; paga: status 429 em 0\.0 s/);
   assert.deepEqual(chaves, ["chave-gratuita", "chave-paga"]);
+});
+
+// Relógio falso: cada chamada ao fetch consome `ms` do passo dela; as esperas entre tentativas também avançam o relógio.
+function relogioFalso(passos) {
+  let agora = 0;
+  const chaves = [];
+  const deps = {
+    fetch: async (_url, opcoes) => {
+      chaves.push(opcoes.headers["x-goog-api-key"]);
+      const { ms, status } = passos[chaves.length - 1];
+      agora += ms;
+      if (status === "timeout") {
+        const erro = new Error("timeout");
+        erro.name = "TimeoutError";
+        throw erro;
+      }
+      return respostaHttp(status, status === 200 ? RESPOSTA_OK : { error: { code: status } });
+    },
+    gemini: CONFIG,
+    agora: () => agora,
+    esperar: async (ms) => {
+      agora += ms;
+    }
+  };
+  return { deps, chaves };
+}
+
+test("chaves (2026-10-07): a gratuita sem resposta até o fim da janela passa a vez para a paga; as tentativas ficam registradas", async () => {
+  const { deps, chaves } = relogioFalso([
+    { ms: 60000, status: "timeout" },
+    { ms: 54000, status: 200 }
+  ]);
+  const resposta = await provedor.gerarJson({ systemInstruction: "s", prompt: "p" }, deps);
+  assert.deepEqual(chaves, ["chave-gratuita", "chave-paga"]);
+  assert.equal(resposta.chave, "paga");
+  assert.deepEqual(resposta.tentativas, [
+    { chave: "gratuita", resultado: "sem resposta", segundos: 60 },
+    { chave: "paga", resultado: "ok", segundos: 54 }
+  ]);
+});
+
+test("chaves (2026-10-07): o 5xx só se repete na mesma chave enquanto sobra janela; depois vai para a paga", async () => {
+  // A gratuita segura 50 s e responde 503: depois da 1ª espera (2 s) sobram 8 s da janela de 60 s, e ela tenta de
+  // novo; na 2ª, a janela acabou e a vez passa para a paga, sem a 3ª tentativa.
+  const { deps, chaves } = relogioFalso([
+    { ms: 50000, status: 503 },
+    { ms: 8000, status: 503 },
+    { ms: 1000, status: 200 }
+  ]);
+  const resposta = await provedor.gerarJson({ systemInstruction: "s", prompt: "p" }, deps);
+  assert.deepEqual(chaves, ["chave-gratuita", "chave-gratuita", "chave-paga"]);
+  assert.deepEqual(
+    resposta.tentativas.map((t) => t.resultado),
+    ["status 503", "status 503", "ok"]
+  );
+});
+
+test("chaves: só uma chave e ela fica sem resposta - o erro diz as tentativas", async () => {
+  const { deps } = relogioFalso([{ ms: 60000, status: "timeout" }]);
+  await assert.rejects(
+    provedor.gerarJson({ systemInstruction: "s", prompt: "p" }, { ...deps, gemini: { ...CONFIG, apiKey: "" } }),
+    /não respondeu em 60000 ms\. Tentativas: gratuita: sem resposta em 60\.0 s\./
+  );
 });
 
 test("gerarJson (ADR 0052): sem busca, com a resposta em JSON; mesma ordem de chaves; sem grounding", async () => {

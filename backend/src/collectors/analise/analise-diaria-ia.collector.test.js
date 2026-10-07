@@ -86,6 +86,7 @@ test("envia o prompt diário do petróleo da data, sem busca, e grava as quatro 
     tokens: 1000,
     respostasRecusadas: 0,
     motivosRecusa: [],
+    tentativas: [],
     versaoPrompt: "petroleo-analise-diaria@1",
     versaoMetodologia: "petroleo-v1 (2026-10-02)",
     hashEntrada: PROMPT_DIARIO.hashEntrada

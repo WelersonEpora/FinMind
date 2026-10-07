@@ -61,8 +61,10 @@ function criarColetorAnaliseDiaria(ativo) {
     let tokensRecusados = 0;
     let recusadas = 0;
     const motivosRecusa = [];
+    const tentativas = [];
     for (let tentativa = 1; tentativa <= TENTATIVAS_ATE_VALIDAR; tentativa += 1) {
       resposta = await provedor.gerarJson({ systemInstruction: promptDiario.instrucaoDoSistema, prompt: promptDiario.prompt, signal });
+      tentativas.push(...(resposta.tentativas || []));
       const { erros } = validarRespostaAnalise(resposta.texto, opcoes);
       if (erros.length === 0) break;
       if (tentativa < TENTATIVAS_ATE_VALIDAR) {
@@ -71,7 +73,7 @@ function criarColetorAnaliseDiaria(ativo) {
         motivosRecusa.push(...erros);
       }
     }
-    return { dataAnalise, promptDiario, resposta, tokensRecusados, recusadas, motivosRecusa };
+    return { dataAnalise, promptDiario, resposta, tokensRecusados, recusadas, motivosRecusa, tentativas };
   }
 
   function parse(resultado) {
@@ -79,8 +81,9 @@ function criarColetorAnaliseDiaria(ativo) {
   }
 
   // Para o detalhe da execução (tela Execuções): a chave, o modelo, os tokens (com os das respostas recusadas, o custo
-  // real), os motivos das respostas recusadas que foram substituídas por uma nova chamada, e as versões.
-  function detalhesDaIa({ promptDiario, resposta, tokensRecusados, recusadas, motivosRecusa = [] }) {
+  // real), os motivos das respostas recusadas que foram substituídas por uma nova chamada, cada tentativa ao Gemini
+  // (chave, resultado e segundos) e as versões.
+  function detalhesDaIa({ promptDiario, resposta, tokensRecusados, recusadas, motivosRecusa = [], tentativas = [] }) {
     return {
       ia: {
         chave: resposta.chave ?? null,
@@ -88,6 +91,7 @@ function criarColetorAnaliseDiaria(ativo) {
         tokens: resposta.tokens != null ? resposta.tokens + tokensRecusados : null,
         respostasRecusadas: recusadas,
         motivosRecusa,
+        tentativas,
         versaoPrompt: promptDiario.versaoPrompt,
         versaoMetodologia: promptDiario.versaoMetodologia,
         hashEntrada: promptDiario.hashEntrada
@@ -142,10 +146,11 @@ function criarColetorAnaliseDiaria(ativo) {
 
   return {
     codigo: config.COLETOR,
-    // O provedor já controla o tempo de cada chamada e as repetições (5xx na mesma chave, depois a paga). Teto da
-    // execução: duas chamadas (a nova tentativa quando a resposta é recusada), com folga para montar o prompt.
+    // O provedor já controla o tempo e as repetições: uma janela de GEMINI_TIMEOUT_MS por chave (a gratuita, depois a
+    // paga). Teto da execução: duas chamadas (a nova tentativa quando a resposta é recusada), cada uma com as duas
+    // janelas, e folga para montar o prompt.
     get timeoutMs() {
-      return 2 * env.gemini.timeoutMs + 60000;
+      return 4 * env.gemini.timeoutMs + 60000;
     },
     // Sem repetição no runner: repetir aqui refaria também a chamada com a chave paga.
     tentativasRetry: 1,

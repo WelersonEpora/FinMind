@@ -10,10 +10,10 @@ const { NotConfiguredError, UpstreamServiceError } = require("../shared/errors")
 // grounding sem erro ou vazava o raciocínio do modelo para dentro das strings. Sem a busca, o JSON não tem esse problema.
 //
 // DUAS CHAVES (também como no AgroMind, ADR 0024 de lá): a gratuita é tentada primeiro; a paga só entra quando a
-// gratuita esgota a cota (429) ou continua com 5xx depois das tentativas locais. No AgroMind, o tier gratuito levou
-// 503 em 6 de 6 execuções de um dia enquanto a mesma chamada com a chave paga passava na hora: o Google tira a
-// prioridade do gratuito sob carga. Outros erros (chave inválida, rede, timeout) não gastam a chave paga. Com uma só
-// chave configurada, usa essa.
+// gratuita esgota a cota (429), continua com 5xx depois das tentativas locais ou fica sem responder até o fim da janela
+// dela (GEMINI_TIMEOUT_MS). No AgroMind, o tier gratuito levou 503 em 6 de 6 execuções de um dia enquanto a mesma
+// chamada com a chave paga passava na hora: o Google tira a prioridade do gratuito sob carga. Outros erros (chave
+// inválida, rede) não gastam a chave paga. Com uma só chave configurada, usa essa.
 //
 // Devolve a resposta como veio: quem interpreta o texto é o parser do coletor. A IA nunca decide nada aqui (ver
 // README desta pasta).
@@ -39,9 +39,10 @@ function extrairTexto(candidato) {
     .join("");
 }
 
-// Uma requisição com uma chave. O timeout é desta chamada; o `signal` de fora (o do coletor) também a interrompe.
-async function chamar({ apiKey, corpo, signal }, { config, fetchFn }) {
-  const sinais = [AbortSignal.timeout(config.timeoutMs), signal].filter(Boolean);
+// Uma requisição com uma chave. O timeout é o que resta da janela da chave; o `signal` de fora (o do coletor) também
+// a interrompe.
+async function chamar({ apiKey, corpo, signal, timeoutMs }, { config, fetchFn }) {
+  const sinais = [AbortSignal.timeout(timeoutMs), signal].filter(Boolean);
   let resposta;
   try {
     resposta = await fetchFn(`${URL_BASE}/models/${encodeURIComponent(config.model)}:generateContent`, {
@@ -51,7 +52,11 @@ async function chamar({ apiKey, corpo, signal }, { config, fetchFn }) {
       body: corpo
     });
   } catch (err) {
-    if (err.name === "TimeoutError") throw new UpstreamServiceError(`Gemini não respondeu em ${config.timeoutMs} ms.`);
+    if (err.name === "TimeoutError") {
+      const erro = new UpstreamServiceError(`Gemini não respondeu em ${config.timeoutMs} ms.`);
+      erro.semResposta = true;
+      throw erro;
+    }
     throw err;
   }
   if (!resposta.ok) {
@@ -63,13 +68,32 @@ async function chamar({ apiKey, corpo, signal }, { config, fetchFn }) {
   return resposta.json();
 }
 
-async function chamarComRetry(entrada, contexto) {
+// Como a tentativa terminou, para o registro: o status HTTP, "sem resposta" (a janela acabou) ou o erro.
+function resultadoDaTentativa(erro) {
+  if (!erro) return "ok";
+  if (erro.semResposta) return "sem resposta";
+  if (erro.statusGemini) return `status ${erro.statusGemini}`;
+  return "erro";
+}
+
+// As tentativas com UMA chave, dentro de uma janela de `config.timeoutMs` para todas elas: num 5xx, repete com a mesma
+// chave enquanto sobrar janela. Em 2026-10-07 a gratuita segurou a conexão por 200 s e respondeu 503 ("high demand"),
+// enquanto a paga respondia em 108 s: sem a janela, as repetições da gratuita consumiam o teto do coletor. Cada
+// tentativa entra em `tentativas` ({ chave, resultado, segundos }).
+async function chamarComRetry({ chave, apiKey, corpo, signal }, contexto, tentativas) {
+  const limite = contexto.agora() + contexto.config.timeoutMs;
   for (let tentativa = 0; ; tentativa += 1) {
+    const inicio = contexto.agora();
     try {
-      return await chamar(entrada, contexto);
+      const json = await chamar({ apiKey, corpo, signal, timeoutMs: Math.max(1, limite - inicio) }, contexto);
+      tentativas.push({ chave, resultado: "ok", segundos: (contexto.agora() - inicio) / 1000 });
+      return json;
     } catch (erro) {
-      if (!eTransitorio(erro) || tentativa >= ESPERAS_ERRO_TRANSITORIO_MS.length) throw erro;
-      await contexto.esperar(ESPERAS_ERRO_TRANSITORIO_MS[tentativa]);
+      tentativas.push({ chave, resultado: resultadoDaTentativa(erro), segundos: (contexto.agora() - inicio) / 1000 });
+      const espera = ESPERAS_ERRO_TRANSITORIO_MS[tentativa];
+      const sobra = limite - contexto.agora() - (espera ?? 0);
+      if (!eTransitorio(erro) || espera === undefined || sobra <= 0) throw erro;
+      await contexto.esperar(espera);
     }
   }
 }
@@ -82,30 +106,44 @@ function chavesEmOrdem(config) {
   ].filter(Boolean);
 }
 
-// Uma chamada com as duas chaves (a gratuita primeiro, a paga como reserva): o JSON da resposta e a chave que respondeu.
+// A gratuita passa a vez para a paga na cota esgotada (429), no 5xx que persiste e na janela que acaba sem resposta (o
+// gratuito sob carga demora e depois recusa). Outros erros (chave inválida, rede) não gastam a paga.
+function passaParaAPaga(erro) {
+  return erro.statusGemini === 429 || eTransitorio(erro) || erro.semResposta === true;
+}
+
+function descreverTentativas(tentativas) {
+  return tentativas.map((t) => `${t.chave}: ${t.resultado} em ${t.segundos.toFixed(1)} s`).join("; ");
+}
+
+// Uma chamada com as duas chaves (a gratuita primeiro, a paga como reserva): o JSON da resposta, a chave que respondeu
+// e as tentativas.
 async function chamarComChaves(corpo, { signal }, deps) {
   const config = deps.gemini || env.gemini;
-  const contexto = { config, fetchFn: deps.fetch || fetch, esperar: deps.esperar || esperarPadrao };
+  const contexto = { config, fetchFn: deps.fetch || fetch, esperar: deps.esperar || esperarPadrao, agora: deps.agora || Date.now };
   const chaves = chavesEmOrdem(config);
   if (chaves.length === 0) {
     throw new NotConfiguredError("GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas: o Gemini está desligado.");
   }
 
+  const tentativas = [];
   let chaveUsada = chaves[0];
   let json;
   try {
-    json = await chamarComRetry({ apiKey: chaveUsada.apiKey, corpo, signal }, contexto);
+    json = await chamarComRetry({ ...chaveUsada, corpo, signal }, contexto, tentativas);
   } catch (erro) {
-    const podeUsarAPaga = chaves.length > 1 && (erro.statusGemini === 429 || eTransitorio(erro));
-    if (!podeUsarAPaga) throw erro;
+    if (chaves.length === 1 || !passaParaAPaga(erro)) {
+      erro.message = `${erro.message} Tentativas: ${descreverTentativas(tentativas)}.`;
+      throw erro;
+    }
     chaveUsada = chaves[1];
     try {
-      json = await chamarComRetry({ apiKey: chaveUsada.apiKey, corpo, signal }, contexto);
+      json = await chamarComRetry({ ...chaveUsada, corpo, signal }, contexto, tentativas);
     } catch (erroPaga) {
-      // As duas falharam: a mensagem diz o que cada chave respondeu (no registro da execução, sem isso, não dá para
-      // saber se a paga chegou a ser tentada).
+      // As duas falharam: a mensagem diz o que cada tentativa respondeu (no registro da execução, sem isso, não dá
+      // para saber se a paga chegou a ser tentada).
       const falha = new UpstreamServiceError(
-        `Chave gratuita: status ${erro.statusGemini}. Chave paga: ${erroPaga.statusGemini ? `status ${erroPaga.statusGemini}` : "erro"} - ${erroPaga.message}`
+        `As duas chaves falharam. Tentativas: ${descreverTentativas(tentativas)}. Última: ${erroPaga.message}`
       );
       falha.statusGemini = erroPaga.statusGemini;
       throw falha;
@@ -122,7 +160,8 @@ async function chamarComChaves(corpo, { signal }, deps) {
     grounding: candidato.groundingMetadata ?? null,
     modelo: json.modelVersion || config.model,
     tokens: json.usageMetadata?.totalTokenCount ?? null,
-    chave: chaveUsada.chave
+    chave: chaveUsada.chave,
+    tentativas
   };
 }
 
