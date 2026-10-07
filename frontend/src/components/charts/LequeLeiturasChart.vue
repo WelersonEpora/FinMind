@@ -49,6 +49,11 @@ const diaDaSemana = (d) => new Date(`${d}T00:00:00Z`).getUTCDay()
 const segundas = computed(() => dias.value.filter((d) => diaDaSemana(d) === 1))
 // Sábado e domingo ganham fundo cinza: não há pregão, e a falta das bolinhas da linha fica explicada.
 const fimDeSemana = computed(() => dias.value.filter((d) => diaDaSemana(d) === 0 || diaDaSemana(d) === 6))
+// Segunda, quarta e sexta ganham fundo branco; terça e quinta ficam com o do card (um cinza mais claro que o do fim de
+// semana): dois dias vizinhos nunca têm o mesmo fundo, e cada grupo de barras (as quatro de uma data-alvo) fica separado
+// do vizinho. Branco e cinza, e não uma cor, para não competir com as dos horizontes (o âmbar do longo sumiria num fundo
+// amarelo).
+const diasBrancos = computed(() => dias.value.filter((d) => [1, 3, 5].includes(diaDaSemana(d))))
 // A virada de cada mês: o dia 1, menos o primeiro dia da janela. O nome sai no topo, com o ano em janeiro, e some quando
 // encostaria no "hoje".
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -232,10 +237,21 @@ onBeforeUnmount(() => observador?.disconnect())
           :height="ALT_PLOT"
           class="leque__fim-de-semana"
         />
+        <rect
+          v-for="d in diasBrancos"
+          :key="`db${d}`"
+          :x="x(d) - largura / 2"
+          :y="TOPO"
+          :width="largura"
+          :height="ALT_PLOT"
+          class="leque__dia-alternado"
+        />
         <line v-for="m in marcas" :key="`g${m}`" x1="0" :x2="larguraTotal" :y1="y(m)" :y2="y(m)" class="leque__grade" />
         <g v-for="d in segundas" :key="`s${d}`">
           <line :x1="x(d) - largura / 2" :x2="x(d) - largura / 2" :y1="TOPO" :y2="TOPO + ALT_PLOT" class="leque__grade" />
-          <text :x="x(d) - largura / 2 + 3" :y="ALTURA - 9" class="leque__texto">{{ ddmm(d) }}</text>
+          <!-- A data da segunda, centrada na coluna dela, com um tique no eixo (sem o tique, o rótulo parecia da terça). -->
+          <line :x1="x(d)" :x2="x(d)" :y1="TOPO + ALT_PLOT" :y2="TOPO + ALT_PLOT + 4" class="leque__tique" />
+          <text :x="x(d)" :y="ALTURA - 9" text-anchor="middle" class="leque__texto">{{ ddmm(d) }}</text>
         </g>
         <line x1="0" :x2="larguraTotal" :y1="TOPO + ALT_PLOT" :y2="TOPO + ALT_PLOT" class="leque__base" />
 
@@ -362,6 +378,10 @@ onBeforeUnmount(() => observador?.disconnect())
   stroke: var(--p-surface-300);
   stroke-width: 1;
 }
+.leque__tique {
+  stroke: var(--p-text-muted-color);
+  stroke-width: 1;
+}
 .leque__realce {
   fill: var(--p-text-color);
   opacity: 0.06;
@@ -400,6 +420,9 @@ onBeforeUnmount(() => observador?.disconnect())
 }
 .leque__fim-de-semana {
   fill: #e9ebee;
+}
+.leque__dia-alternado {
+  fill: #ffffff;
 }
 .leque__ponto {
   fill: var(--p-text-color);
