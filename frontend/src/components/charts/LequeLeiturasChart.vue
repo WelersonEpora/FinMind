@@ -96,10 +96,10 @@ function estiloBarra(barra) {
 
 const pontosDaLinha = (segmento) => segmento.map((p) => `${x(p.data)},${y(p.valor)}`).join(' ')
 
-// O preço na data (para o tooltip): o último ponto até ela, na linha desenhada.
-function precoNaData(data) {
+// O preço na data (para o tooltip): o último ponto até ela, na linha desenhada (a do preço ou a de contexto).
+function precoNaData(data, segmentos = props.leque.segmentos) {
   let achado = null
-  for (const seg of props.leque.segmentos) for (const p of seg) if (p.data <= data && (!achado || p.data > achado.data)) achado = p
+  for (const seg of segmentos) for (const p of seg) if (p.data <= data && (!achado || p.data > achado.data)) achado = p
   return achado
 }
 
@@ -144,7 +144,8 @@ function mover(evento) {
     return
   }
   const barras = props.leque.barras.filter((b) => b.dataAlvo === data).sort((a, b) => a.indice - b.indice)
-  aberto.value = { data, barras, preco: data <= props.hoje ? precoNaData(data) : null, clientX: evento.clientX, clientY: evento.clientY }
+  const contexto = props.leque.contexto && data <= props.hoje ? precoNaData(data, props.leque.contexto.segmentos) : null
+  aberto.value = { data, barras, preco: data <= props.hoje ? precoNaData(data) : null, contexto, clientX: evento.clientX, clientY: evento.clientY }
   nextTick(posicionar)
 }
 
@@ -247,6 +248,11 @@ onBeforeUnmount(() => observador?.disconnect())
             <rect v-bind="{ ...retangulo(b), ...estiloBarra(b) }" rx="1.5" />
             <path v-if="b.seta" :d="seta(b)" :fill="cor(b.horizonte)" />
           </g>
+          <!-- A linha de contexto (o Brent à vista no petróleo): tracejada e clara, fora de qualquer medida. -->
+          <template v-for="(seg, i) in leque.contexto?.segmentos || []" :key="`c${i}`">
+            <polyline :points="pontosDaLinha(seg)" class="leque__contexto" />
+            <circle v-for="p in seg" :key="p.data" :cx="x(p.data)" :cy="y(p.valor)" r="3.5" class="leque__ponto-contexto" />
+          </template>
           <template v-for="(seg, i) in leque.segmentos" :key="`l${i}`">
             <polyline :points="pontosDaLinha(seg)" class="leque__linha-fundo" />
             <polyline :points="pontosDaLinha(seg)" class="leque__linha" />
@@ -283,6 +289,9 @@ onBeforeUnmount(() => observador?.disconnect())
         · preço {{ aberto.data < hoje ? 'realizado' : 'de hoje' }} {{ moeda }} {{ formatarPreco(aberto.preco.valor) }}<template v-if="aberto.preco.data !== aberto.data"> ({{ ddmm(aberto.preco.data) }})</template>
       </span>
       <span v-else-if="aberto.data > hoje" class="leque__sub"> · data futura</span>
+      <div v-if="aberto.contexto" class="leque__sub">
+        {{ leque.contexto.nome }}: {{ moeda }} {{ formatarPreco(aberto.contexto.valor) }}<template v-if="aberto.contexto.data !== aberto.data"> ({{ ddmm(aberto.contexto.data) }})</template>, só contexto
+      </div>
       <div v-if="!aberto.barras.length" class="leque__sub">Nenhuma leitura com esta data-alvo.</div>
       <div v-for="b in aberto.barras" :key="b.horizonte" class="leque__tt-linha">
         <span class="leque__tt-cor" :style="{ background: cor(b.horizonte) }"></span>
@@ -360,6 +369,19 @@ onBeforeUnmount(() => observador?.disconnect())
   stroke: var(--p-text-color);
   stroke-width: 2;
   stroke-linejoin: round;
+}
+.leque__contexto {
+  fill: none;
+  stroke: var(--p-text-muted-color);
+  stroke-width: 1.6;
+  stroke-dasharray: 5 3;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+.leque__ponto-contexto {
+  fill: var(--p-text-muted-color);
+  stroke: #ffffff;
+  stroke-width: 1;
 }
 .leque__fim-de-semana {
   fill: #e9ebee;

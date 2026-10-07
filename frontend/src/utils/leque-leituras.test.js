@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { estadoDaBarra, faixaDesenhada, foraDaMetrica, janelaDoGrafico, linhasDoGrafico, marcasDoEixo, montarLeque, segmentosDoPreco } from './leque-leituras.js'
+import { estadoDaBarra, faixaDesenhada, foraDaMetrica, janelaDoGrafico, linhasDoGrafico, marcasDoEixo, montarLeque, segmentosDoContexto, segmentosDoPreco } from './leque-leituras.js'
 
 const HORIZONTES = [
   { horizonte: 'IMEDIATO', dias: 1 },
@@ -95,4 +95,55 @@ test('montarLeque: as barras em preço a partir da base da avaliação, o marcad
 
 test('marcas do eixo: um passo redondo, no máximo 7', () => {
   assert.deepEqual(marcasDoEixo({ min: 94, max: 108.12 }), [95, 97.5, 100, 102.5, 105, 107.5])
+})
+
+test('contexto (o Brent à vista no petróleo): linha à parte, sem os dias em que o preço já é essa série; entra na escala', () => {
+  const contexto = {
+    seriesCode: 'EIA.BRENT',
+    nome: 'Brent à vista (EIA)',
+    pontos: [
+      { data: '2026-09-01', valor: 120 },
+      { data: '2026-09-02', valor: 121 },
+      { data: '2026-09-03', valor: 119 },
+      { data: '2026-09-04', valor: 118 }
+    ]
+  }
+  // A leitura de 02/09 usou a própria EIA (configuração antiga); a de 03/09, o futuro.
+  const linhas = [linha({ dataAnalise: '2026-09-02', seriesCode: 'EIA.BRENT' }), linha({ dataAnalise: '2026-09-03', seriesCode: 'YAHOO.BZ.BZZ26.SETTLE' })]
+  // Antes da 1ª leitura, vale a série dela (a EIA): 01 e 02/09 somem; 03 e 04/09 ficam.
+  assert.deepEqual(segmentosDoContexto(contexto, linhas, { ini: '2026-09-01', fim: '2026-09-04' }), [
+    [
+      { data: '2026-09-03', valor: 119 },
+      { data: '2026-09-04', valor: 118 }
+    ]
+  ])
+  assert.deepEqual(segmentosDoContexto(null, linhas, { ini: '2026-09-01', fim: '2026-09-04' }), [])
+
+  const futuro = [linha({ dataAnalise: '2026-09-01', seriesCode: 'YAHOO.BZ.BZZ26.SETTLE' })]
+  const precos = [{ seriesCode: 'YAHOO.BZ.BZZ26.SETTLE', pontos: [{ data: '2026-09-01', valor: 100 }] }]
+  const leque = montarLeque({ linhas: futuro, precos, horizontes: HORIZONTES, modo: 'quatro', hoje: '2026-09-20', contexto })
+  assert.equal(leque.contexto.nome, 'Brent à vista (EIA)')
+  assert.equal(leque.contexto.segmentos[0].length, 4)
+  assert.ok(leque.escala.max > 121, 'a escala cobre a linha de contexto')
+  assert.equal(montarLeque({ linhas: futuro, precos, horizontes: HORIZONTES, modo: 'quatro', hoje: '2026-09-20' }).contexto, null)
+})
+
+test('contrato por horizonte: a linha é o contrato mais próximo nos quatro horizontes e o do horizonte na visão de um', () => {
+  // Leitura de 07/10 do petróleo: BZZ26 no curto, BZH27 no longo (o último da leitura).
+  const linhas = [
+    linha({ dataAnalise: '2026-10-07', horizonte: 'CURTO', dataAlvo: '2026-10-14', seriesCode: 'YAHOO.BZ.BZZ26.SETTLE' }),
+    linha({ dataAnalise: '2026-10-07', horizonte: 'LONGO', dataAlvo: '2027-01-05', seriesCode: 'YAHOO.BZ.BZH27.SETTLE' })
+  ]
+  const precos = [
+    { seriesCode: 'YAHOO.BZ.BZZ26.SETTLE', pontos: [{ data: '2026-10-06', valor: 100.58 }] },
+    { seriesCode: 'YAHOO.BZ.BZH27.SETTLE', pontos: [{ data: '2026-10-06', valor: 93.25 }] }
+  ]
+  const horizontes = [
+    { horizonte: 'CURTO', dias: 7 },
+    { horizonte: 'LONGO', dias: 90 }
+  ]
+  const ultimo = (leque) => leque.segmentos.at(-1).at(-1).valor
+  assert.equal(ultimo(montarLeque({ linhas, precos, horizontes, modo: 'quatro', hoje: '2026-10-07' })), 100.58)
+  assert.equal(ultimo(montarLeque({ linhas, precos, horizontes, modo: 'um', horizonte: 'LONGO', hoje: '2026-10-07' })), 93.25)
+  assert.equal(ultimo(montarLeque({ linhas, precos, horizontes, modo: 'um', horizonte: 'CURTO', hoje: '2026-10-07' })), 100.58)
 })

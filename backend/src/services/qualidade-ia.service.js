@@ -1,12 +1,14 @@
 "use strict";
 
 const analiseDiariaRepository = require("../repositories/analise-diaria.repository");
+const observationRepository = require("../repositories/observation.repository");
 const analiseDiariaService = require("./analise-diaria.service");
 const realizadoAnaliseService = require("./realizado-analise.service");
 const { ATIVOS } = require("./centro-decisao.service");
 const { ATIVOS_COM_ANALISE_DIARIA, configuracaoDoAtivo } = require("../shared/analise-diaria");
 const { classificarNaFaixa, TENDENCIA_DA_FAIXA } = require("../shared/analise-diaria-base");
 const { ValidationError } = require("../shared/errors");
+const { somarDias } = require("../shared/utils/date-utils");
 
 // Qualidade da IA (ADR 0064): cada leitura de tendência × horizonte contra o que o preço de fato fez, com duas medidas
 // (direção e faixa) e dois benchmarks calculados nas MESMAS linhas. Tudo sob demanda, nada gravado: as leituras vêm de
@@ -42,6 +44,27 @@ const MOTOR = "MOTOR";
 // O passado da janela do gráfico (90 dias; frontend/src/utils/leque-leituras.js): o preço vem desde então, mesmo antes
 // da leitura mais antiga do período.
 const DIAS_DE_PRECO = 90;
+
+// Uma série de CONTEXTO no gráfico, por ativo: um preço que NÃO é o da avaliação, desenhado à parte só para comparar
+// (nada é medido contra ela). No petróleo, o Brent à vista da EIA (o físico, uma vez por semana), ao lado do Brent
+// futuro, a referência desde a configuração v4 (ADR 0052, adendo de 2026-10-07): em mercado apertado os dois se afastam.
+const CONTEXTO_DO_GRAFICO = Object.freeze({
+  PETROLEO: { seriesCode: "EIA.PETROLEO_PRECOS.BRENT", nome: "Brent à vista (EIA)" }
+});
+
+// Os pontos da série de contexto, na mesma janela do preço e como eram conhecidos agora. null num ativo sem contexto.
+async function lerContexto(ativo, { agora, hoje }, deps) {
+  const def = CONTEXTO_DO_GRAFICO[ativo];
+  if (!def) return null;
+  const linhas = await (deps.observationRepository || observationRepository).buscarAsOf({
+    seriesCodes: [def.seriesCode],
+    asOf: agora,
+    observadoDesde: somarDias(hoje, -DIAS_DE_PRECO),
+    observadoAte: hoje
+  });
+  const pontos = linhas.map((l) => ({ data: String(l.observed_at).slice(0, 10), valor: Number(l.value) })).sort((a, b) => a.data.localeCompare(b.data));
+  return { ...def, pontos };
+}
 
 // Os ativos com leitura diária na ordem do Centro de Decisão: sem ativo no filtro, o 1º (como lá).
 const ATIVOS_DA_TELA = ATIVOS.filter((a) => ATIVOS_COM_ANALISE_DIARIA.includes(a.codigo)).map((a) => a.codigo);
@@ -217,6 +240,7 @@ async function obterQualidadeIa(filtros = {}, deps = {}) {
     deps
   );
   const linhas = leituras.flatMap((leitura, i) => leitura.horizontes.map((h) => montarLinha(registros[i], leitura, realizados[i], h)));
+  const contexto = await lerContexto(ativo, { agora, hoje }, deps);
 
   // Os horizontes na ordem da configuração atual; um código que só exista em leituras antigas vem no fim.
   const ordem = configuracaoDoAtivo(ativo).HORIZONTES.map((h) => ({ codigo: h.codigo, rotulo: h.rotulo, dias: h.dias }));
@@ -242,7 +266,9 @@ async function obterQualidadeIa(filtros = {}, deps = {}) {
         seriesCode,
         contrato: linhas.find((l) => l.seriesCode === seriesCode)?.contrato ?? null,
         pontos
-      }))
+      })),
+      // A série de contexto do gráfico (CONTEXTO_DO_GRAFICO), fora de qualquer medida; null no ativo sem ela.
+      contexto
     }
   };
 }

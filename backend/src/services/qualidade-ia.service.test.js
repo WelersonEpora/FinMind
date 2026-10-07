@@ -207,3 +207,33 @@ test("motor (ADR 0066): medido nas linhas da métrica em que leu o horizonte, co
   // Sem motor em nenhuma linha do horizonte (o CURTO), sem a medida.
   assert.equal(q.horizontes[1].medidas.MOTOR, undefined);
 });
+
+test("contexto do gráfico: no petróleo, o Brent à vista da EIA na janela do preço; nos outros ativos, nenhum", async () => {
+  const pedidos = [];
+  const observationRepository = {
+    async buscarAsOf(filtros) {
+      pedidos.push(filtros);
+      return [
+        { series_code: "EIA.PETROLEO_PRECOS.BRENT", observed_at: "2026-09-29", value: "113.96" },
+        { series_code: "EIA.PETROLEO_PRECOS.BRENT", observed_at: "2026-09-28", value: "119.97" }
+      ];
+    }
+  };
+  const deps = { agora: AGORA, analiseDiariaRepository: repoCom([]), realizadoAnaliseService: realizadoFalso({}), observationRepository };
+
+  const { qualidadeIa: petroleo } = await obterQualidadeIa({ ativo: "PETROLEO" }, deps);
+  assert.deepEqual(petroleo.contexto, {
+    seriesCode: "EIA.PETROLEO_PRECOS.BRENT",
+    nome: "Brent à vista (EIA)",
+    pontos: [
+      { data: "2026-09-28", valor: 119.97 },
+      { data: "2026-09-29", valor: 113.96 }
+    ]
+  });
+  assert.equal(pedidos[0].observadoAte, petroleo.hoje);
+  assert.deepEqual(pedidos[0].seriesCodes, ["EIA.PETROLEO_PRECOS.BRENT"]);
+
+  const { qualidadeIa: milho } = await obterQualidadeIa({ ativo: "MILHO" }, deps);
+  assert.equal(milho.contexto, null);
+  assert.equal(pedidos.length, 1);
+});

@@ -65,6 +65,8 @@ const visaoGrafico = ref('QUATRO')
 const modoGrafico = computed(() => (visaoGrafico.value === 'QUATRO' ? 'quatro' : 'um'))
 const horizonteGrafico = computed(() => (visaoGrafico.value === 'QUATRO' ? null : visaoGrafico.value))
 const persistenciaGrafico = ref(false)
+// A linha de contexto (no petróleo, o Brent à vista da EIA): ligada por padrão; desligada, a escala volta ao preço avaliado.
+const contextoGrafico = ref(true)
 const leque = computed(() =>
   montarLeque({
     linhas: qualidade.value?.linhas || [],
@@ -73,7 +75,8 @@ const leque = computed(() =>
     modo: modoGrafico.value,
     horizonte: horizonteGrafico.value,
     persistencia: persistenciaGrafico.value,
-    hoje: qualidade.value?.hoje || new Date().toISOString().slice(0, 10)
+    hoje: qualidade.value?.hoje || new Date().toISOString().slice(0, 10),
+    contexto: contextoGrafico.value ? qualidade.value?.contexto || null : null
   })
 )
 
@@ -322,6 +325,13 @@ watch([periodo, versao], carregar)
 
             <div class="qualidade__legenda">
               <span><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" /></svg> Preço realizado</span>
+              <label v-if="qualidade.contexto?.pontos?.length" class="form-check qualidade__legenda-check">
+                <input v-model="contextoGrafico" type="checkbox" class="form-check-input" />
+                <span class="form-check-label"
+                  ><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="1.6" stroke-dasharray="5 3" /></svg>
+                  {{ qualidade.contexto.nome }}: só contexto, fora da avaliação</span
+                >
+              </label>
               <template v-if="modoGrafico === 'quatro'">
                 <span v-for="h in qualidade.horizontes" :key="h.horizonte">
                   <span class="qualidade__cor qualidade__cor--alta" :style="{ background: CORES_HORIZONTE[h.horizonte] }"></span>{{ h.rotulo }} ({{ h.dias }} dia{{ h.dias > 1 ? 's' : '' }})

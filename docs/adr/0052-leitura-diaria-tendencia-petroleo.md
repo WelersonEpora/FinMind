@@ -168,6 +168,12 @@ mesmo dia.
 5. **Prompt v7:** o bloco 1 diz que cada horizonte tem o seu contrato; o item 7 de "Como analisar", que as variações são
    só do contrato; o item 8 deixa de proibir associar um vencimento a um horizonte (o vencimento de cada um é o da
    tabela 2.4, não um escolhido pela IA na curva).
+6. **Qualidade da IA, gráfico "Faixas lidas × preço":** o Brent à vista da EIA aparece como **linha de contexto**
+   (tracejada, com o preço no tooltip; uma caixa na legenda a liga e desliga, ligada por padrão), ao lado do futuro,
+   **fora de qualquer medida**. Some nos dias em que
+   a linha do preço já é ele (as leituras da v3), para não repetir. Mostra o descolamento do físico em mercado apertado. A linha do preço
+   passa a seguir o contrato de um horizonte só: nos quatro, o mais próximo (o do bloco 2.1); na visão de um horizonte, o
+   dele. Antes, valia o do último horizonte da leitura (o do longo), o que também afetava o milho e o café.
 
 **O que não muda.**
 - **Os fatores** (o refino segue com o Brent à vista no crack, ADR 0093) e as validações históricas.
