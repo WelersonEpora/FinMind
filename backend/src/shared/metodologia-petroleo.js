@@ -15,9 +15,10 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v4 (2026-10-07): os estoques (F2) ficam com a média de 5 anos e a direção do especialista, como leitura da situação,
 // com Cushing, gasolina e destilados como contexto; a validação passa ao Brent futuro; as perguntas viram decisões (ADR 0097).
 // v6 (2026-10-07): a demanda (F4) fica só com os EUA e o consumo medido, validada contra o Brent futuro (ADR 0099).
+// v7 (2026-10-07): o dólar (F5) fica com o índice das economias avançadas, como fator próprio (ADR 0100).
 // v5 (2026-10-07): as perguntas da geopolítica (F3) viram decisões: fator próprio, o evento mais grave, a ameaça conta
 // com menos peso que a interrupção e a janela de 7 dias, sem vigência (ADR 0098).
-const VERSAO = 6;
+const VERSAO = 7;
 const DATA_VERSAO = "2026-10-07";
 
 const DEFINICOES = [
@@ -178,7 +179,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o índice do Fed contra as moedas das economias avançadas é o mais próximo do DXY que o especialista cita. No histórico do FinMind (2006 a 2026), o dólar é o fator com a relação mais forte com o preço do petróleo: o desvio do dólar contra a média das 52 semanas anteriores tem correlação de -0,56 com a variação do WTI dos 6 meses anteriores (andam juntos, em sentidos opostos: a \"correlação inversa\" indicada pelo especialista) e de -0,37 com o WTI 26 semanas depois, desde 2015 (dólar forte antecede petróleo mais fraco). Exemplos: dólar 15,6% acima do normal em out/2008 e 8,4% em dez/2014, nas duas grandes quedas do petróleo."
+          "Suficiente: o índice do Fed contra as moedas das economias avançadas é o mais próximo do DXY que o especialista cita. No histórico do Brent futuro (2011 a 2026, com a data de publicação), o dólar é o fator do petróleo com a relação mais forte com o preço seguinte, na direção do especialista: o desvio contra a média das 52 semanas anteriores tem -0,14, -0,19 e -0,35 com a variação do Brent 30, 91 e 182 dias depois (-0,38 com os 6 meses anteriores: andam juntos, em sentidos opostos), o mesmo sem 2014-16 e 2020-21 (-0,24 e -0,38 em 91 e 182 dias). Com o dólar 5% ou mais acima do normal, o Brent subiu em 22% dos casos 91 dias depois (10% em 182, média de -18%); de 2% a 5% abaixo, em 70% (79% em 182, +18%), contra 49% em todas; sem sobreposição, o mesmo quadro. O índice amplo (26 moedas) dá quase o mesmo (-0,15 em 91 dias). Exemplos: dólar 15,6% acima do normal em out/2008 e 8,4% em dez/2014, nas duas grandes quedas do petróleo."
       },
       lacunas: [
         "O DXY oficial (ICE) é licenciado e não é coletado; o índice do Fed das economias avançadas é o substituto (mesmas moedas principais, pesos diferentes).",
@@ -191,9 +192,10 @@ const DEFINICOES = [
       comparacao: "A média das 52 semanas anteriores (o normal recente do dólar).",
       leitura: "Dólar acima do normal além de uma faixa (padrão: 2%) pressiona o petróleo para baixo; abaixo, favorece (pressão de alta). Intensidade forte a partir de 5%. Tendência: se o desvio mudou 1,5 p.p. ou mais em 4 semanas, o dólar está se fortalecendo ou se enfraquecendo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: [
-      "O índice do Fed das economias avançadas serve no lugar do DXY? O índice amplo (26 moedas) também é coletado e anda ainda mais junto com o petróleo (-0,63), mas antecipa um pouco menos.",
-      "O dólar é um fator próprio (como na definição, peso Médio) ou um filtro que confirma os outros?"
+    perguntas: [],
+    decisoes: [
+      "Índice (usuário, 2026-10-07, ADR 0100): o do Fed contra as economias avançadas, no lugar do DXY: o mais parecido com o do especialista e um pouco melhor nos horizontes da leitura que o amplo (-0,19 contra -0,15 em 91 dias). O amplo continua coletado.",
+      "Papel (usuário, 2026-10-07, ADR 0100): fator próprio, como no FEL 1 (peso Médio), com a direção do especialista; é o fator do petróleo que mais antecipa o preço no histórico do Brent futuro."
     ]
   },
   {

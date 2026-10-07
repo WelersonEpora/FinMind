@@ -5,9 +5,9 @@ const { criarFatorDolar, SERIE_DOLAR } = require("./modelos/dolar-economias-avan
 // FATOR (PROPOSTA, ADR 0050): dólar, fator "Dólar (índice DXY)" do FEL 1 para o petróleo. O cálculo é o molde comum
 // do dólar (modelos/dolar-economias-avancadas.js); aqui ficam o id, os parâmetros padrão e os textos do petróleo.
 //
-// No histórico (2006 a 2026), o dólar é o fator com a relação mais forte com o preço: o desvio contra a média de 52
-// semanas tem -0,56 com a variação do WTI dos 6 meses anteriores (os dois andam juntos, em sentidos opostos) e
-// -0,37 com o WTI 26 semanas depois, desde 2015.
+// No histórico do Brent futuro (2011 a 2026, ADR 0100), o dólar é o fator do petróleo que mais antecipa o preço, na
+// direção do FEL 1: o desvio contra a média de 52 semanas tem -0,19 e -0,35 com o Brent 91 e 182 dias depois (-0,38
+// com os 6 meses anteriores). O índice e o papel de fator próprio são decisões do usuário (ADR 0100).
 
 const FACTOR_ID = "dolar_petroleo_afe";
 const FACTOR_VERSION = 1;
