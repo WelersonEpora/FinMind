@@ -61,19 +61,23 @@ function criarColetorAnaliseDiaria(ativo) {
     let tokensRecusados = 0;
     let recusadas = 0;
     const motivosRecusa = [];
+    // O texto de cada resposta recusada, inclusive a última quando as duas são recusadas (ADR 0105): sem ele, a falha só
+    // tem os motivos, e não dá para ver o que a IA respondeu.
+    const textosRecusados = [];
     const tentativas = [];
     for (let tentativa = 1; tentativa <= TENTATIVAS_ATE_VALIDAR; tentativa += 1) {
       resposta = await provedor.gerarJson({ systemInstruction: promptDiario.instrucaoDoSistema, prompt: promptDiario.prompt, signal });
       tentativas.push(...(resposta.tentativas || []));
       const { erros } = validarRespostaAnalise(resposta.texto, opcoes);
       if (erros.length === 0) break;
+      textosRecusados.push(resposta.texto ?? null);
       if (tentativa < TENTATIVAS_ATE_VALIDAR) {
         recusadas += 1;
         tokensRecusados += resposta.tokens || 0;
         motivosRecusa.push(...erros);
       }
     }
-    return { dataAnalise, promptDiario, resposta, tokensRecusados, recusadas, motivosRecusa, tentativas };
+    return { dataAnalise, promptDiario, resposta, tokensRecusados, recusadas, motivosRecusa, textosRecusados, tentativas };
   }
 
   function parse(resultado) {
@@ -82,8 +86,8 @@ function criarColetorAnaliseDiaria(ativo) {
 
   // Para o detalhe da execução (tela Execuções): a chave, o modelo, os tokens (com os das respostas recusadas, o custo
   // real), os motivos das respostas recusadas que foram substituídas por uma nova chamada, cada tentativa ao Gemini
-  // (chave, resultado e segundos) e as versões.
-  function detalhesDaIa({ promptDiario, resposta, tokensRecusados, recusadas, motivosRecusa = [], tentativas = [] }) {
+  // (chave, resultado e segundos), o texto das respostas recusadas e as versões.
+  function detalhesDaIa({ promptDiario, resposta, tokensRecusados, recusadas, motivosRecusa = [], textosRecusados = [], tentativas = [] }) {
     return {
       ia: {
         chave: resposta.chave ?? null,
@@ -91,6 +95,7 @@ function criarColetorAnaliseDiaria(ativo) {
         tokens: resposta.tokens != null ? resposta.tokens + tokensRecusados : null,
         respostasRecusadas: recusadas,
         motivosRecusa,
+        textosRecusados,
         tentativas,
         versaoPrompt: promptDiario.versaoPrompt,
         versaoMetodologia: promptDiario.versaoMetodologia,

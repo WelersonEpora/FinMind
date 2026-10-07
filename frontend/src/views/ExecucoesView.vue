@@ -322,6 +322,16 @@ onMounted(carregar)
               </ul>
             </dd>
           </template>
+          <!-- O texto de cada resposta recusada, inclusive a última quando a execução falha (ADR 0105). -->
+          <template v-if="execucaoDetalhe.detalhes.ia.textosRecusados?.length">
+            <dt class="col-5 fw-normal">Texto das respostas recusadas</dt>
+            <dd class="col-7">
+              <details v-for="(texto, i) in execucaoDetalhe.detalhes.ia.textosRecusados" :key="i" class="small">
+                <summary>{{ i + 1 }}ª resposta recusada</summary>
+                <pre class="small mb-1 texto-recusado">{{ texto }}</pre>
+              </details>
+            </dd>
+          </template>
           <template v-if="execucaoDetalhe.detalhes.ia.respostasRecusadas">
             <dt class="col-5 fw-normal">Respostas recusadas na validação</dt>
             <dd class="col-7">
@@ -399,5 +409,13 @@ onMounted(carregar)
   color: var(--p-text-muted-color);
   font-size: 0.9rem;
   max-width: 60ch;
+}
+
+/* O JSON da resposta recusada: quebra as linhas longas e rola dentro do modal. */
+.texto-recusado {
+  max-height: 20rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

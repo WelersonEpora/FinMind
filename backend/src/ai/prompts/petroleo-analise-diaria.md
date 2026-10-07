@@ -1,6 +1,6 @@
 # Prompt — Análise diária do petróleo (leitura de tendência em quatro horizontes)
 
-**Versão:** 9
+**Versão:** 10
 
 Histórico: v1 (2026-10-03) - formato inicial (ADR 0051): seis blocos, no molde do prompt do milho (`STATUS_DO_PROJETO.md`,
 §5): os fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do sistema; os
@@ -33,6 +33,9 @@ concreta (o FEL 1: "alta com tensão e risco de interrupção"); a falta de even
 O item 4 de "Como analisar" diz isso.
 v9 (2026-10-07, ADRs 0097 a 0103) - com as validações dos 10 fatores refeitas contra o Brent, o bloco 1 deixa de dizer que
 parte delas é do WTI: só o COT dos fundos é medido no WTI.
+v10 (2026-10-07, ADR 0105) - o formato diz que cada leitura tem as suas evidências: um id citado num fator precisa
+estar na lista da mesma leitura. Em 2026-10-07, as duas respostas do petróleo foram recusadas por citar, no curto e no
+médio, ids que não estavam na lista daquele horizonte.
 
 Enviado ao Gemini uma vez por dia pelo coletor `petroleo-analise-ia-diario` (ADR 0052).
 
@@ -167,6 +170,9 @@ Exatamente quatro leituras, uma por horizonte, na ordem IMEDIATO, CURTO, MEDIO, 
   ]
 }
 Com tendência INSUFICIENTE, "faixa" e "confianca" são null e "lacunas" não pode ser vazio.
+Cada leitura tem a sua própria lista "evidencias", com ids a partir de E1. Um id citado em "fatoresAFavor" ou
+"fatoresContra" precisa estar na lista "evidencias" da MESMA leitura: não cite uma evidência de outro horizonte; se ela
+vale para mais de um, repita-a na lista de cada um.
 "fator" é sempre o código que aparece em "Código:" no bloco do fator.
 ```
 

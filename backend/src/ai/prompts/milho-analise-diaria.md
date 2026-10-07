@@ -1,6 +1,6 @@
 # Prompt — Análise diária do milho (leitura de tendência em quatro horizontes)
 
-**Versão:** 7
+**Versão:** 8
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0058), no molde do prompt do ouro (`ouro-analise-diaria.md`, v1;
 ADR 0054): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -49,6 +49,9 @@ vencimento); o bloco 1 diz como usar os dois. Montados por `prompt-diario.servic
 v7 (2026-10-07, ADR 0095) - os eventos saem dos fatores F1 a F7 e vão a uma seção só da base (2.6), cada um uma vez e
 com a condição que afeta, sem peso nem leitura do motor; o F8 (política comercial), cuja condição é o próprio evento,
 fica com os dele. O item 8 de "Como analisar" e a legenda do bloco 3 dizem isso.
+v8 (2026-10-07, ADR 0105) - o formato diz que cada leitura tem as suas evidências: um id citado num fator precisa
+estar na lista da mesma leitura. Em 2026-10-07, as duas respostas do petróleo foram recusadas por citar, no curto e no
+médio, ids que não estavam na lista daquele horizonte.
 
 Enviado ao Gemini uma vez por dia pelo coletor `milho-analise-ia-diario` (ADR 0058).
 
@@ -200,6 +203,9 @@ Exatamente quatro leituras, uma por horizonte, na ordem IMEDIATO, CURTO, MEDIO, 
   ]
 }
 Com tendência INSUFICIENTE, "faixa" e "confianca" são null e "lacunas" não pode ser vazio.
+Cada leitura tem a sua própria lista "evidencias", com ids a partir de E1. Um id citado em "fatoresAFavor" ou
+"fatoresContra" precisa estar na lista "evidencias" da MESMA leitura: não cite uma evidência de outro horizonte; se ela
+vale para mais de um, repita-a na lista de cada um.
 "fator" é sempre o código que aparece em "Código:" no bloco do fator.
 ```
 

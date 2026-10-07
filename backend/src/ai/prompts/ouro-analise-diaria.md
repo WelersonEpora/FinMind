@@ -1,6 +1,6 @@
 # Prompt — Análise diária do ouro (leitura de tendência em quatro horizontes)
 
-**Versão:** 2
+**Versão:** 3
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0054), no molde do prompt do petróleo (`petroleo-analise-diaria.md`,
 v2; ADRs 0051 e 0052): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na
@@ -12,6 +12,9 @@ faixas e dos horizontes NÃO são escritos aqui: vêm da configuração (`shared
 v2 (2026-10-07, ADR 0095) - os eventos do ouro marcados com outro fator que não a geopolítica (ou com nenhum), que
 antes não iam ao prompt, vão a uma seção só da base (2.5), sem peso nem leitura do motor; os da geopolítica seguem
 no fator. O item 6 de "Como analisar" e a legenda do bloco 3 dizem isso.
+v3 (2026-10-07, ADR 0105) - o formato diz que cada leitura tem as suas evidências: um id citado num fator precisa
+estar na lista da mesma leitura. Em 2026-10-07, as duas respostas do petróleo foram recusadas por citar, no curto e no
+médio, ids que não estavam na lista daquele horizonte.
 
 Enviado ao Gemini uma vez por dia pelo coletor `ouro-analise-ia-diario` (ADR 0054).
 
@@ -130,6 +133,9 @@ Exatamente quatro leituras, uma por horizonte, na ordem IMEDIATO, CURTO, MEDIO, 
   ]
 }
 Com tendência INSUFICIENTE, "faixa" e "confianca" são null e "lacunas" não pode ser vazio.
+Cada leitura tem a sua própria lista "evidencias", com ids a partir de E1. Um id citado em "fatoresAFavor" ou
+"fatoresContra" precisa estar na lista "evidencias" da MESMA leitura: não cite uma evidência de outro horizonte; se ela
+vale para mais de um, repita-a na lista de cada um.
 "fator" é sempre o código que aparece em "Código:" no bloco do fator.
 ```
 

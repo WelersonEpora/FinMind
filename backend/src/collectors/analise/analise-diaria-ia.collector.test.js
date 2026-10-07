@@ -86,6 +86,7 @@ test("envia o prompt diário do petróleo da data, sem busca, e grava as quatro 
     tokens: 1000,
     respostasRecusadas: 0,
     motivosRecusa: [],
+    textosRecusados: [],
     tentativas: [],
     versaoPrompt: "petroleo-analise-diaria@1",
     versaoMetodologia: "petroleo-v1 (2026-10-02)",
@@ -121,6 +122,7 @@ test("resposta recusada: uma nova chamada; se a 2ª passa, grava a 2ª e conta o
   assert.equal(validos.length, 1);
   assert.equal(detalhes.ia.respostasRecusadas, 1);
   assert.equal(detalhes.ia.tokens, 2000);
+  assert.deepEqual(detalhes.ia.textosRecusados, ["não é JSON"]);
 });
 
 test("recusada duas vezes: nada é gravado e os motivos vão para a execução", async () => {
@@ -135,6 +137,8 @@ test("recusada duas vezes: nada é gravado e os motivos vão para a execução",
   assert.ok(invalidos.length > 0);
   assert.ok(invalidos.every((i) => /PETROLEO_GUIANA/.test(i.motivo)));
   assert.equal(detalhes.ia.modelo, "gemini-x");
+  // As duas respostas recusadas ficam no detalhe, para ver o que a IA respondeu (ADR 0105).
+  assert.deepEqual(detalhes.ia.textosRecusados, [fatorInventado, fatorInventado]);
 });
 
 test("um coletor por ativo com leitura diária: petróleo, ouro, milho e café, com o código de cada um", () => {

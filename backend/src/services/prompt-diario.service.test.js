@@ -118,7 +118,7 @@ test("os blocos fixos (1, 4, 5 e 6) vão na instrução do sistema; a base e a l
   for (const bloco of ["[2. BASE", "2.1 PREÇO DO BRENT", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
     assert.ok(p.prompt.includes(bloco), bloco);
   }
-  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@9");
+  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@10");
   assert.equal(p.versaoMetodologia, "petroleo-v1 (2026-10-02)");
   assert.equal(p.versaoConfiguracao, config.VERSAO);
   assert.match(p.hashEntrada, /^[0-9a-f]{64}$/);
@@ -269,7 +269,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
 
   assert.deepEqual(d.chamadas.preco, ["GLD", "2026-10-03"]);
   assert.equal(ptaxPedidas[0].dataFim, "2026-10-02");
-  assert.equal(p.versaoPrompt, "ouro-analise-diaria@2");
+  assert.equal(p.versaoPrompt, "ouro-analise-diaria@3");
   assert.match(p.prompt, /Contrato: GLDZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Em reais: R\$ 22\.558,50 por onça, pela PTAX de venda de 02\/10\/2026 \(R\$ 5,4000 por US\$\)/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/onça\)/);
@@ -329,7 +329,7 @@ test("milho (ADRs 0058, 0078 e 0095): o CCM em reais, sem PTAX, com o contrato d
   const { promptDiario: p } = await montarPromptDiario("MILHO", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["CCM", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "milho-analise-diaria@7");
+  assert.equal(p.versaoPrompt, "milho-analise-diaria@8");
   // Os eventos numa seção só da base (ADR 0095), antes da leitura do motor, e o que foi gravado com a leitura.
   assert.match(p.prompt, /2\.6 EVENTOS DO ATIVO[^\n]*\nEVENTOS DO ATIVO DE TESTE\n[\s\S]*\[3\. LEITURA DO MOTOR/);
   assert.deepEqual(p.entrada.eventosDoAtivo, { janelaDias: 7, janelaPorFator: {}, eventos: 1, ultimaLeitura: { data: "2026-10-03", nivel: "ATENCAO" } });
@@ -408,7 +408,7 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@6");
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@7");
   assert.equal(p.versaoConfiguracao, 3);
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
