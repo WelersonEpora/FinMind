@@ -477,14 +477,14 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Yahoo Finance — Brent futuro · Petróleo · JSON · nível 5 · Dev; servidor pendente</summary>
+<summary>Yahoo Finance — Brent futuro · Petróleo · JSON · nível 5 · Dev e servidor</summary>
 
 **Acesso:** endpoint de gráfico do Yahoo, sem chave nem documentação. **Ressalva principal:** **fonte não oficial e provisória** (a oficial, a ICE, é paga e depende do Comitê; CME e Stooq bloqueiam); termos não preveem coleta automática, uso pessoal com o risco aceito pelo usuário; um vencimento some do Yahoo no dia seguinte ao vencimento. **Evidência:** ADR 0096.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
-| Brent futuro (NYMEX BZ) - ajuste por vencimento | Ajuste diário de cada vencimento dos 13 meses seguintes, US$/barril | Diária | 2018–2020 (vencimentos ativos) | Estimado (fim do dia do pregão em Nova York) | Dev (backfill de 2026-10-07: 26.672 valores com a contínua, 0 falhas) |
-| Brent futuro (NYMEX BZ) - 1º vencimento contínuo | O 1º vencimento encadeado pelo Yahoo (`BZ=F`), com o salto de cada rolagem | Diária | 2007-07-30 | Estimado | Dev |
+| Brent futuro (NYMEX BZ) - ajuste por vencimento | Ajuste diário de cada vencimento dos 13 meses seguintes, US$/barril | Diária | 2018–2020 (vencimentos ativos) | Estimado (fim do dia do pregão em Nova York) | Dev e servidor (backfill de 2026-10-07: 26.672 valores com a contínua, 0 falhas nos dois) |
+| Brent futuro (NYMEX BZ) - 1º vencimento contínuo | O 1º vencimento encadeado pelo Yahoo (`BZ=F`), com o salto de cada rolagem | Diária | 2007-07-30 | Estimado | Dev e servidor |
 
 </details>
 
@@ -521,7 +521,6 @@ no ADR de cada fonte.
 |---|---|
 | Pontos em aberto do motor | Por ativo, na tabela "O motor por ativo" (§1); dependem da conversa com o David |
 | Petróleo: o Brent futuro como preço de referência | O Brent futuro já é coletado (ADR 0096). Falta, por decisão à parte: trocar a referência da leitura para ele (contrato por horizonte e faixas recalibradas, adendo ao ADR 0052; sugerido confirmar com o David) e mostrar no gráfico da Qualidade da IA o futuro como preço da avaliação e o físico da EIA como contexto. A assinatura da ICE (US$ 2.500/ano), a fonte oficial, é decisão do Comitê |
-| Petróleo: apagar no servidor as leituras feitas com o WTI | Decisão do usuário em 2026-10-07: a leitura de tendência do petróleo feita com o WTI sai do banco, para a Qualidade da IA usar só o Brent. Dev feito (1 leitura, 03/10); no servidor, pelo Portainer: `DELETE FROM analise_diaria WHERE ativo='PETROLEO' AND entrada->'precoReferencia'->>'serie'='WTI'` |
 | Série contínua do GLD (ouro) | O horizonte de 90 dias do ouro fica muitas vezes sem a variação de 90 dias, porque cada vencimento do GLD tem pouco histórico e nada é emendado (ADR 0054). Emendar os vencimentos é um cálculo do David (ADR 0044) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): 
@@ -538,8 +537,6 @@ Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a 
 Backfills já validados em dev que ainda não rodaram na VM. Ao rodar, tirar a linha daqui e marcar "dev e servidor"
 no status da fonte e da série em "Fontes" (§2).
 
-- **Brent futuro, Yahoo** (ADR 0096): `npm run backfill:yahoo-brent`, segundos (14 pedidos), em qualquer ordem com a
-  coleta diária. Dev: 26.672 valores, 0 falhas.
 - **EIA STEO** (ADR 0091): `npm run backfill:eia-steo`, ~45 min (226 edições, ~10 s cada), **antes** da 1ª coleta
   diária com o coletor novo. Dev: 226 edições, 0 falhas.
 - **ICO** (ADR 0061): `npm run backfill:ico-cafe`, ~8 min, **antes** da 1ª coleta diária com o coletor novo. Dev:
@@ -1607,7 +1604,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
-| Brent futuro (NYMEX BZ) pelo Yahoo | O preço do petróleo no gráfico da Qualidade da IA parava em 29/09: o Brent da EIA sai uma vez por semana. E é o Brent físico, que em set/2026 ficou ~US$ 11 acima do futuro, o instrumento operado (P2 do ADR 0055). Testadas ICE (gratuita só no navegador; assinatura de US$ 2.500/ano), CME e Stooq (bloqueiam) e Yahoo. Por decisão do usuário, coletor do Brent futuro pelo Yahoo, **fonte não oficial e provisória**: ajuste diário por vencimento e o 1º vencimento contínuo desde 2007, só pregões encerrados (um pregão atrás). A troca da referência da leitura fica para outra decisão. A leitura do petróleo feita com o WTI foi apagada em dev | ADR 0096 |
+| Brent futuro (NYMEX BZ) pelo Yahoo | O preço do petróleo no gráfico da Qualidade da IA parava em 29/09: o Brent da EIA sai uma vez por semana. E é o Brent físico, que em set/2026 ficou ~US$ 11 acima do futuro, o instrumento operado (P2 do ADR 0055). Testadas ICE (gratuita só no navegador; assinatura de US$ 2.500/ano), CME e Stooq (bloqueiam) e Yahoo. Por decisão do usuário, coletor do Brent futuro pelo Yahoo, **fonte não oficial e provisória**: ajuste diário por vencimento e o 1º vencimento contínuo desde 2007, só pregões encerrados (um pregão atrás). A troca da referência da leitura fica para outra decisão. As leituras do petróleo feitas com o WTI (03 e 04/10) foram apagadas, em dev e no servidor, por decisão do usuário | ADR 0096 |
 | Eventos numa seção da base do prompt | No milho e no café, cada um dos 8 fatores levava os eventos marcados com ele (8 blocos por dia, quase sempre vazios), o que misturava o evento ao cálculo do fator; no ouro e no petróleo, um evento marcado com outro fator que não o de evento se perdia. Nos documentos do David, eventos só no F8 do milho e na geopolítica; a distribuição por fator era do FinMind (ADR 0058). Por decisão do usuário, os eventos vão a uma seção só da base do prompt dos quatro ativos, cada um uma vez e com a condição que afeta, sem peso nem leitura do motor; a geopolítica, a OPEP+ e o F8 do milho ficam com os seus. Prompts: milho v7, café v6, ouro v2, petróleo v6; metodologias do milho v21 e do café v13. O Centro de Decisão mostra quantos eventos foram à seção | ADR 0095 |
 | Centro de Decisão: o prompt do ativo certo | Com o milho selecionado, "Ver prompt completo" abria o prompt do ouro da mesma data, aberto antes: o modal guardava o prompt só pela data. Passa a guardar pelo ativo e pela data. Só exibição: as leituras gravadas estavam certas | — |
 | Gemini: a chave gratuita sem resposta passa a vez para a paga | O refazer da leitura de tendência do petróleo, do milho e do café falhou por tempo: a chave gratuita segurava a conexão por mais de 180 s e depois respondia 503 (sob carga), e o tempo esgotado não passava para a paga, que respondia em 108 s. Cada chave passa a ter uma janela de 240 s (`GEMINI_TIMEOUT_MS`, antes 180 s) para todas as tentativas dela; a gratuita sem resposta até o fim da janela passa a vez para a paga, e cada tentativa (chave, resultado e segundos) fica no bloco "IA" da tela Execuções | ADR 0047 |

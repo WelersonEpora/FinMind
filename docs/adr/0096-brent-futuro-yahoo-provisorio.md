@@ -21,8 +21,9 @@ proposta de (1) registrar a fonte num ADR e (2) implementar o coletor, com o his
 dados**: a troca do preço de referência da leitura e o gráfico com as duas linhas são decisões à parte (abaixo). A
 aquisição está encerrada desde 2026-10-01: esta é uma demanda específica do usuário, para o preço que o David pediu.
 
-No mesmo dia, por decisão do usuário, a leitura do petróleo de 2026-10-03, feita ainda com o WTI, foi apagada do banco
-de dev (a única) para que a Qualidade da IA mostre só o Brent; no servidor, a mesma limpeza fica com o usuário.
+No mesmo dia, por decisão do usuário, as leituras do petróleo feitas ainda com o WTI foram apagadas, para que a
+Qualidade da IA mostre só o Brent: a de 2026-10-03 em dev e as de 2026-10-03 e 2026-10-04 no servidor (a troca para o
+Brent entrou às 14:14 de 04/10, depois da leitura do dia).
 
 ## Evidência (chamada real, 2026-10-07)
 
@@ -60,8 +61,8 @@ No Yahoo:
    - só pregões **encerrados**: o dia de hoje em Nova York entra na coleta seguinte;
    - `published_at` **estimado**: o fim do dia do pregão em Nova York. Uma correção do Yahoo vira versão nova (ADR
      0008).
-2. **Backfill** `npm run backfill:yahoo-brent`: o histórico inteiro de cada símbolo (14 pedidos, segundos). Dev:
-   26.672 valores, 0 falhas; a coleta diária logo depois: 0 criados, 273 iguais.
+2. **Backfill** `npm run backfill:yahoo-brent`: o histórico inteiro de cada símbolo (14 pedidos, segundos). Dev e
+   servidor: 26.672 valores, 0 falhas; em dev, a coleta diária logo depois: 0 criados, 273 iguais.
 3. **Cards** `BRENT_FUTURO_PRECOS` (por vencimento, o mesmo formato dos futuros da B3) e `BRENT_FUTURO_CONTINUO`.
 
 ## Riscos aceitos pelo usuário
