@@ -18,9 +18,10 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v7 (2026-10-07): o dólar (F5) fica com o índice das economias avançadas, como fator próprio (ADR 0100).
 // v8 (2026-10-07): a produção dos EUA (F6) fica com o crescimento anual, sem o rig count e sem peso próprio do recorde (ADR 0101).
 // v9 (2026-10-07): os juros (F7) ficam com o Treasury de 10 anos e direção própria; a meta do Fed, como contexto (ADR 0102).
+// v10 (2026-10-07): a oferta não-OPEP (F10) fica somada e como leitura da situação (ADR 0103); os 10 fatores sem perguntas.
 // v5 (2026-10-07): as perguntas da geopolítica (F3) viram decisões: fator próprio, o evento mais grave, a ameaça conta
 // com menos peso que a interrupção e a janela de 7 dias, sem vigência (ADR 0098).
-const VERSAO = 9;
+const VERSAO = 10;
 const DATA_VERSAO = "2026-10-07";
 
 const DEFINICOES = [
@@ -352,7 +353,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para medir a oferta de Brasil, Noruega e Canadá (~10,7 milhões de barris/dia em jul/2026), mensal, desde 2002. No histórico do FinMind (2010 a 2026), o crescimento anual destes três não antecipa o preço (perto de zero com o WTI 6 e 12 meses depois, contando os ~2 meses até a divulgação): mede a situação da oferta, como a demanda. A relação com o preço aparece nos EUA (-0,39), que têm fator próprio. A oferta dos três cresceu na maior parte do período (pré-sal e areias betuminosas): com a faixa padrão, o fator fica em pressão de baixa em cerca de metade dos meses."
+          "Suficiente para medir a oferta de Brasil, Noruega e Canadá (~10,7 milhões de barris/dia em jul/2026), mensal, desde 2002. No histórico do Brent futuro (2011 a 2026, contando ~3 meses até a divulgação), o crescimento anual destes três não antecipa o preço (+0,07, +0,10 e +0,05 com o Brent 91, 182 e 365 dias depois) e anda pouco com o passado (-0,21 com os 6 meses anteriores): mede a situação da oferta, como a demanda. Sem 2014-16 e 2020-21, o sinal é o contrário do especialista (+0,36 em 182 dias). Pelas faixas, o Brent subiu de 38% a 55% dos casos em qualquer situação, contra 48% em todas. Lidos um a um, os países se contradizem (a Noruega no sentido oposto, +0,51; o Canadá no do especialista, -0,18, instável sem as crises; o Brasil perto de zero). A oferta dos três cresceu na maior parte do período (pré-sal e areias betuminosas): com a faixa padrão, o fator fica em pressão de baixa em cerca de metade dos meses."
       },
       lacunas: [
         "A Guiana, que o especialista cita e é a produção que mais cresce, não reporta a nenhuma fonte coletada.",
@@ -366,9 +367,10 @@ const DEFINICOES = [
       comparacao: "A média dos mesmos 3 meses do ano anterior: o crescimento anual, em %.",
       leitura: "Oferta crescendo além de uma faixa (padrão: 3% no ano) pressiona o petróleo para baixo; encolhendo, favorece (pressão de alta). Intensidade forte a partir de 7%. Tendência: se o crescimento mudou 2 p.p. ou mais em 3 meses, a oferta está acelerando ou desacelerando. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: [
-      "Os países são lidos um a um ou somados num bloco? A proposta soma Brasil, Noruega e Canadá.",
-      "O fator mede a situação (não antecipa o preço, como a demanda): serve assim, ou a oferta não-OPEP só importa quando surpreende (o que exigiria a projeção da IEA ou da EIA, não coletada)?"
+    perguntas: [],
+    decisoes: [
+      "Países (usuário, 2026-10-07, ADR 0103): somados num bloco; cada país continua na medida (A). Lidos um a um, as relações com o preço se contradizem.",
+      "Papel (usuário, 2026-10-07, ADR 0103): leitura da situação, com a direção do especialista, como os estoques e a demanda (ADRs 0097 e 0099); o texto D diz que o fator não antecipa o preço. A surpresa contra a projeção (STEO da EIA, séries e projeções não coletadas) ficou de fora."
     ]
   }
 ];

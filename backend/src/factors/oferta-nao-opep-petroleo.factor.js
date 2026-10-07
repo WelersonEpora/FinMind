@@ -22,9 +22,10 @@ const faixa = require("./base/decisao-por-faixa");
 //     C. decisão por faixa sobre o crescimento: oferta crescendo acima da faixa = pressão de BAIXA ("alta com oferta
 //        menor; baixa com crescimento de produção", FEL 1); caindo, de alta
 //
-// Um mês só entra com os três países. No histórico (2010 a 2026), o crescimento destes três não antecipa o preço
-// (perto de zero com o WTI 6 e 12 meses depois, contando os ~2 meses até a divulgação): mede a situação da oferta,
-// como a demanda. Propriedades: determinístico, versionado, point-in-time, sem IA.
+// Um mês só entra com os três países. No histórico do Brent futuro (2011 a 2026, ADR 0103), o crescimento destes três
+// não antecipa o preço (perto de zero com o Brent 3, 6 e 12 meses depois, contando ~3 meses até a divulgação): mede a
+// situação da oferta, como a demanda; somados e com a direção do FEL 1, por decisão do usuário. Propriedades:
+// determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "oferta_nao_opep_br_no_ca";
 const FACTOR_VERSION = 1;
