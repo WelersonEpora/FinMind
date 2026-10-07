@@ -932,12 +932,60 @@ const CATALOGO_OBSERVAVEIS = [
     ],
     fonteDetalhe: {
       descricao:
-        "Preço à vista (spot, FOB) do petróleo WTI em Cushing e do Brent, e da gasolina e do diesel no porto de Nova York, por dia útil, publicados pela EIA. Não é o preço do contrato futuro (CL da NYMEX, BZ da ICE), que é pago: é a referência física do mesmo petróleo. A margem de refino (crack spread) é um cálculo sobre estes preços, a definir pelo especialista.",
+        "Preço à vista (spot, FOB) do petróleo WTI em Cushing e do Brent, e da gasolina e do diesel no porto de Nova York, por dia útil, publicados pela EIA. Não é o preço do contrato futuro (CL e BZ da NYMEX, Brent da ICE): é a referência física do mesmo petróleo, que em mercado apertado se afasta do futuro (o Brent futuro está no card \"Brent futuro (NYMEX BZ)\", ADR 0096). A margem de refino (crack spread) é um cálculo sobre estes preços, a definir pelo especialista.",
       metodologia:
         "Um valor por dia útil: WTI desde 02/01/1986, Brent desde 20/05/1987, gasolina desde 1986 e diesel S10 desde 2006. Os preços diários saem UMA VEZ POR SEMANA, junto com o Weekly Petroleum Status Report (quarta, 10:30 ET), com os dias até a terça anterior (medido na divulgação de 30/09/2026). A data de disponibilidade é ESTIMADA por essa regra, com o fim do dia. Os preços podem ser negativos (o WTI fechou a -36,98 em 20/04/2020). A EIA obtém estes preços de um fornecedor comercial (Refinitiv/LSEG): licença não verificada, uso pessoal. A série de futuros da NYMEX que a EIA publicava parou em 05/04/2024 e não é coletada.",
       escopo: "só 4 preços à vista. Não coletados: outros petróleos e derivados, outros portos e os futuros.",
       formatoOrigem: "XLS (planilha histórica de cada série no site da EIA, sem chave)",
       urlOficial: "https://www.eia.gov/dnav/pet/pet_pri_spt_s1_d.htm"
+    }
+  },
+
+  // --- Brent futuro (NYMEX BZ) pelo Yahoo: fonte NÃO oficial e provisória (ADR 0096) ---
+  // Séries `YAHOO.BZ.<TICKER>.SETTLE` por vencimento (o mesmo card dos futuros da B3) e a contínua do Yahoo à parte.
+  {
+    instrumentCode: "BRENT_FUTURO_PRECOS",
+    origem: "observation",
+    nome: "Brent futuro (NYMEX BZ) - ajuste por vencimento",
+    unidade: "US$/barril",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "Yahoo Finance (não oficial) - Brent da NYMEX (BZ)",
+    fonteCollectorCode: "yahoo-brent-futuro",
+    porVencimento: { prefixoSerie: "YAHOO.BZ", campoReferencia: "SETTLE" },
+    campoPrincipal: "SETTLE",
+    campos: [{ codigo: "SETTLE", nome: "Preço de ajuste", unidade: "US$/barril", casasDecimais: 2 }],
+    fonteDetalhe: {
+      descricao:
+        "Preço de ajuste diário de cada vencimento do Brent futuro da NYMEX (BZ, \"Brent Crude Oil Last Day Financial\"), que liquida pelo ICE Brent: o Brent que se opera (o CFD da Pepperstone acompanha o futuro). Não é o Brent físico da EIA (Dated Brent, carga para embarque nos próximos dias), que em mercado apertado fica bem acima do futuro. Cada vencimento é uma linha própria.",
+      metodologia:
+        "Um valor por vencimento e pregão: o fechamento diário do Yahoo, que é o ajuste (janela das 14:28 às 14:30 de Nova York; conferido em 21 pregões de set-out/2026). Só pregões encerrados: o do dia entra na coleta seguinte. A data de disponibilidade é ESTIMADA (fim do dia do pregão em Nova York). Os vencimentos ativos têm histórico desde a listagem (2018 a 2020); um vencimento some do Yahoo no dia seguinte ao vencimento, então o histórico dos já vencidos é o que o FinMind guardou. FONTE NÃO OFICIAL E PROVISÓRIA: endpoint sem documentação nem garantia, termos de uso que não preveem coleta automática (dado da CME redistribuído); uso pessoal, com o risco aceito pelo usuário até a decisão do Comitê sobre a assinatura da ICE (ADR 0096). Conferência manual possível no Report Center da ICE.",
+      escopo: "só o ajuste. Não coletados: abertura, máxima, mínima e volume (o volume do Yahoo tem dias repetidos).",
+      formatoOrigem: "JSON (query1.finance.yahoo.com/v8/finance/chart, sem chave nem documentação oficial)",
+      urlOficial: "https://finance.yahoo.com/quote/BZ%3DF/"
+    }
+  },
+  {
+    instrumentCode: "BRENT_FUTURO_CONTINUO",
+    origem: "observation",
+    nome: "Brent futuro (NYMEX BZ) - 1º vencimento contínuo",
+    unidade: "US$/barril",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "Yahoo Finance (não oficial) - Brent da NYMEX (BZ=F)",
+    fonteCollectorCode: "yahoo-brent-futuro",
+    series: [{ modalidade: "settle", seriesCode: "YAHOO.BZ_CONTINUO.SETTLE" }],
+    modalidadePrincipal: "settle",
+    fonteDetalhe: {
+      descricao:
+        "O ajuste do 1º vencimento do Brent futuro da NYMEX, encadeado numa série contínua PELO YAHOO (BZ=F), não pelo FinMind. É o único histórico dos vencimentos que já saíram do Yahoo.",
+      metodologia:
+        "Um valor por pregão, desde 30/07/2007. A série rola para o vencimento seguinte no dia depois do vencimento, sem ajuste: o salto da rolagem fica na série (em 01/10/2026, de 103,53 no vencimento de novembro para 102,31 no de dezembro). Alguns dias vêm sem fechamento na fonte e não são gravados. Mesma data de disponibilidade estimada e mesmas ressalvas de fonte não oficial e provisória do card por vencimento (ADR 0096).",
+      escopo: "só o ajuste do 1º vencimento. Por vencimento: o card \"Brent futuro (NYMEX BZ) - ajuste por vencimento\".",
+      formatoOrigem: "JSON (query1.finance.yahoo.com/v8/finance/chart, sem chave nem documentação oficial)",
+      urlOficial: "https://finance.yahoo.com/quote/BZ%3DF/"
     }
   },
 

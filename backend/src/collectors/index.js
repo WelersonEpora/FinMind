@@ -17,6 +17,7 @@ const { criarColetorWgc } = require("./wgc/wgc-ouro.collector");
 const eiaEtanolCollector = require("./eia/eia-etanol.collector");
 const eiaPetroleoCollector = require("./eia/eia-petroleo.collector");
 const eiaSteoCollector = require("./eia/eia-steo.collector");
+const yahooBrentFuturoCollector = require("./yahoo/yahoo-brent-futuro.collector");
 const anpProducaoPetroleoCollector = require("./anp/anp-producao-petroleo.collector");
 const jodiProducaoPetroleoCollector = require("./jodi/jodi-producao-petroleo.collector");
 const jodiDemandaPetroleoCollector = require("./jodi/jodi-demanda-petroleo.collector");
@@ -85,6 +86,9 @@ function bootstrapCollectors() {
     registerCollector(eiaEtanolCollector);
     registerCollector(eiaPetroleoCollector);
     registerCollector(eiaSteoCollector);
+    // Brent futuro (NYMEX BZ) pelo Yahoo: fonte NÃO oficial e provisória, autorizada pelo usuário até a decisão do
+    // Comitê sobre a ICE (ADR 0096).
+    registerCollector(yahooBrentFuturoCollector);
     registerCollector(anpProducaoPetroleoCollector);
     registerCollector(jodiProducaoPetroleoCollector);
     registerCollector(jodiDemandaPetroleoCollector);

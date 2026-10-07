@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    67,
-    "USD_BRL e SELIC (market_quote) + 65 de observation (produção e capacidade ociosa da OPEP do STEO (ADR 0091) + importação de adubo do Comex Stat (ADR 0074) + preço mensal do milho do FMI pelo ALFRED (ADR 0069) + previsão do NOAA CPC no Corn Belt (ADR 0067) + preços e estoques mensais do café da ICO e estoques nos portos europeus da ECF (ADR 0061) + paridade de exportação do milho do IMEA (ADR 0057) + demanda de petróleo por país do JODI (ADR 0046) + preço mensal do café do FMI pelo ALFRED (ADR 0045) + petróleo: COT do WTI e 3 da EIA, estoques, fluxos e preços (ADR 0040), a produção por UF da ANP (ADR 0041) e a produção por país do JODI (ADR 0042) + 2 do custo de produção do café da Conab (ADR 0043) + andamento da semeadura e colheita do IMEA (ADR 0039) + 3 do resumo diário do Cecafé (ADR 0038) + ETFs e oferta e demanda do World Gold Council (ADR 0037) + ouro dos bancos centrais do FMI (ADR 0036) + estoques trimestrais do milho do Grain Stocks (ADR 0035) + exportação de milho por destino (ADR 0034) + câmbio da cesta do DXY, meta do Fed e CPI do FRED (ADR 0033) + estoques certificados do café da ICE + PSD do café do USDA + Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho e do café da NOAA + 6 fixos (ouro, Treasury, índices do dólar e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 3 da Conab (milho por UF e balanço, café por UF) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF + 2 cards do GLD, ouro em dólar (ADR 0044))"
+    69,
+    "USD_BRL e SELIC (market_quote) + 67 de observation (2 do Brent futuro da NYMEX pelo Yahoo, por vencimento e contínuo (ADR 0096) + produção e capacidade ociosa da OPEP do STEO (ADR 0091) + importação de adubo do Comex Stat (ADR 0074) + preço mensal do milho do FMI pelo ALFRED (ADR 0069) + previsão do NOAA CPC no Corn Belt (ADR 0067) + preços e estoques mensais do café da ICO e estoques nos portos europeus da ECF (ADR 0061) + paridade de exportação do milho do IMEA (ADR 0057) + demanda de petróleo por país do JODI (ADR 0046) + preço mensal do café do FMI pelo ALFRED (ADR 0045) + petróleo: COT do WTI e 3 da EIA, estoques, fluxos e preços (ADR 0040), a produção por UF da ANP (ADR 0041) e a produção por país do JODI (ADR 0042) + 2 do custo de produção do café da Conab (ADR 0043) + andamento da semeadura e colheita do IMEA (ADR 0039) + 3 do resumo diário do Cecafé (ADR 0038) + ETFs e oferta e demanda do World Gold Council (ADR 0037) + ouro dos bancos centrais do FMI (ADR 0036) + estoques trimestrais do milho do Grain Stocks (ADR 0035) + exportação de milho por destino (ADR 0034) + câmbio da cesta do DXY, meta do Fed e CPI do FRED (ADR 0033) + estoques certificados do café da ICE + PSD do café do USDA + Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho e do café da NOAA + 6 fixos (ouro, Treasury, índices do dólar e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 3 da Conab (milho por UF e balanço, café por UF) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF + 2 cards do GLD, ouro em dólar (ADR 0044))"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -155,6 +155,32 @@ test("ouro B3 (GLD): cards de preço em US$/oz e liquidez, sem abertura nem cont
   assert.equal(precos.fonte, "B3 - Up2Data (negócios consolidados)");
   // Os produtos com BDI continuam com os dois campos.
   assert.ok(observaveisService.buscarNoCatalogo("ICF_LIQUIDEZ").campos.some((c) => c.codigo === "OPEN_INTEREST"));
+});
+
+test("Brent futuro (Yahoo, ADR 0096): card por vencimento como o dos futuros da B3, a contínua à parte, fonte marcada como não oficial", async () => {
+  const precos = observaveisService.buscarNoCatalogo("BRENT_FUTURO_PRECOS");
+  const continuo = observaveisService.buscarNoCatalogo("BRENT_FUTURO_CONTINUO");
+  assert.deepEqual(precos.porVencimento, { prefixoSerie: "YAHOO.BZ", campoReferencia: "SETTLE" });
+  assert.deepEqual(continuo.series, [{ modalidade: "settle", seriesCode: "YAHOO.BZ_CONTINUO.SETTLE" }]);
+  for (const card of [precos, continuo]) {
+    assert.equal(card.fonteCollectorCode, "yahoo-brent-futuro");
+    assert.match(card.fonte, /não oficial/);
+  }
+
+  // O destaque é o vencimento ativo mais próximo, rotulado pelo ticker da NYMEX; a série contínua não vira vencimento.
+  const { observaveis } = await observaveisService.listarObservaveis({
+    marketQuoteRepository: { buscarMaisRecente: async () => null },
+    observationRepository: {
+      listarItens: async () => [],
+      listarUltimasDatasItens: async () => [
+        { codigo: "BZX26", ultima_data: "2026-09-30" },
+        { codigo: "BZF27", ultima_data: "2026-10-06" },
+        { codigo: "BZZ26", ultima_data: "2026-10-06" }
+      ],
+      buscarMaisRecente: async (seriesCode) => linhaObservation(seriesCode, "2026-10-06", 100.58)
+    }
+  });
+  assert.equal(observaveis.find((o) => o.codigo === "BRENT_FUTURO_PRECOS").unidade, "US$/barril (BZZ26)");
 });
 
 test("COT: posição de terça fica em dia até a divulgação da sexta seguinte (11 dias) e em semana de feriado (14)", async () => {
