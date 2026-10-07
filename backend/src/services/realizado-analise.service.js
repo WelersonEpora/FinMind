@@ -18,9 +18,9 @@ const { classificarNaFaixa } = require("../shared/analise-diaria-base");
 //   - o alvo é a data-alvo gravada com a leitura (a data de onde os horizontes contam + os dias);
 //   - o preço realizado é o último observado até a data-alvo, na versão mais recente (a revisão conta: é o preço que de
 //     fato houve), na MESMA série ou contrato da base (sem a troca de vencimento no meio da medida);
-//   - um horizonte só é apurado quando o período está completo: a série já tem dado depois da data-alvo (uma série à
-//     vista chega com atraso, como o Brent da EIA, semanal); num futuro, também quando a data-alvo passou há mais que a
-//     tolerância da série, porque um contrato vencido nunca terá dado depois dela;
+//   - um horizonte só é apurado quando o período está completo: a série já tem dado na data-alvo ou depois dela (uma
+//     série à vista chega com atraso, como o Brent da EIA, semanal); num futuro, também quando a data-alvo passou há mais
+//     que a tolerância da série, porque um contrato vencido nunca terá dado depois dela;
 //   - preço longe da data (mais que a tolerância) não serve: SEM_BASE na base, SEM_PRECO no alvo (num futuro, o
 //     contrato venceu ou não negociou); nenhum preço novo depois da base (feriado, fim de semana): SEM_PREGAO;
 //   - um horizonte com contrato próprio (o milho e o café desde a configuração v3, ADR 0078) é apurado nele, com a base
@@ -65,15 +65,15 @@ function resolverSerie(precoReferencia) {
 }
 
 // A base da avaliação (pontos em ordem crescente). -> { data, valor, naDataDaAnalise, confirmada } ou null (sem preço até
-// a data da análise dentro da tolerância). `confirmada`: o preço da data da análise já não pode mais chegar (a série tem
-// dado depois dela; num futuro, também passada a tolerância); até lá, a base é provisória (o Brent da EIA chega com uma
+// a data da análise dentro da tolerância). `confirmada`: o preço da data da análise já chegou ou não pode mais chegar (a
+// série tem dado nela ou depois dela; num futuro, também passada a tolerância); até lá, a base é provisória (o Brent da EIA chega com uma
 // semana de atraso; o ajuste da B3, no dia seguinte). Na referência antiga (petróleo v1), o preço que a IA recebeu.
 // `recebido`: o preço que a IA recebeu ({ dataReferencia, valor }); num horizonte com contrato próprio, o dele.
 function baseDaAvaliacao(analise, pontos, { tolerancia, hoje, futuro = false, recebido = analise.precoReferencia }) {
   if (analise.referenciaHorizontes?.tipo !== "DATA_DA_ANALISE") {
     return { data: recebido.dataReferencia, valor: recebido.valor, naDataDaAnalise: false, doPrecoRecebido: true, confirmada: true };
   }
-  const confirmada = pontos.some((p) => p.data > analise.data) || (futuro && diasEntre(analise.data, hoje) > tolerancia);
+  const confirmada = pontos.some((p) => p.data >= analise.data) || (futuro && diasEntre(analise.data, hoje) > tolerancia);
   const ultimo = [...pontos].reverse().find((p) => p.data <= analise.data);
   if (!ultimo || !ultimo.valor || diasEntre(ultimo.data, analise.data) > tolerancia) return confirmada ? null : { data: null, valor: null, naDataDaAnalise: false, confirmada };
   return { data: ultimo.data, valor: ultimo.valor, naDataDaAnalise: ultimo.data === analise.data, confirmada };
@@ -85,7 +85,7 @@ function apurarHorizonte({ codigo, dataAlvo, t1, t2 }, { base, pontos, hoje, tol
   if (!dataAlvo) return { ...resultado, situacao: "SEM_BASE" };
   if (dataAlvo > hoje) return { ...resultado, situacao: "A_APURAR" };
 
-  const completo = pontos.some((p) => p.data > dataAlvo) || (futuro && diasEntre(dataAlvo, hoje) > tolerancia);
+  const completo = pontos.some((p) => p.data >= dataAlvo) || (futuro && diasEntre(dataAlvo, hoje) > tolerancia);
   if (!completo) return { ...resultado, situacao: "AGUARDANDO_DADO" };
   if (!base) return { ...resultado, situacao: "SEM_BASE" };
 

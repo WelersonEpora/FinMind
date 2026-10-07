@@ -41,7 +41,8 @@ da IA"). *No mesmo dia, o David delegou a avaliação ao usuário: ela está no 
    | `SEM_BASE` | A leitura não tem preço-base (ou, num futuro, contrato) |
 
    **Período completo:**
-   - **À vista:** a série já tem dado depois da data-alvo. O Brent da EIA chega com uma semana de atraso.
+   - **À vista:** a série já tem dado na data-alvo ou depois dela (adendo de 2026-10-07). O Brent da EIA chega com uma
+     semana de atraso.
    - **Futuro:** a mesma condição, ou a data-alvo passou há mais que a tolerância da série (4 dias por padrão), porque
      um contrato vencido nunca terá dado depois dela.
 4. **Calculado sob demanda, nunca gravado:** `services/realizado-analise.service.js`, sobre a camada point-in-time,
@@ -78,3 +79,17 @@ de atraso, media uns oito dias.
   do `seriesCode` gravado com a leitura ou, nas antigas, de um mapa fixo das séries de preço de referência.
 
 No Centro de Decisão, o detalhe de cada horizonte mostra a base da avaliação ao lado do preço que a IA recebeu.
+
+## Adendo (2026-10-07): o preço na própria data-alvo fecha o período
+
+Na Qualidade da IA do servidor, a leitura do café de 06/10 (Imediato, ICFZ26, base de 05/10 a US$ 356,00 e alvo em
+06/10) seguia tracejada ("a apurar") no dia 07/10, com o ajuste de 06/10 (US$ 371,70) já na série e desenhado na linha do
+gráfico. O período só contava como completo com um dado **depois** da data-alvo, o ajuste de 07/10, que chega na coleta
+do dia seguinte. A regra existe para o caso sem preço na data-alvo (feriado, série atrasada), em que o "último preço até o
+alvo" ainda pode mudar; com o preço da própria data-alvo, nada mais o muda, e uma revisão da fonte já entra porque o
+realizado é recalculado a cada consulta.
+
+**Correção (usuário, 2026-10-07):** o período está completo quando a série tem dado **na data-alvo ou depois dela**
+(no futuro, mantida também a tolerância). A mesma regra confirma a base da avaliação: o preço da data da análise
+confirma a base sem esperar o pregão seguinte. Não muda nenhuma leitura já apurada: só antecipa em um pregão as que
+esperavam.

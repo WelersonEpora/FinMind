@@ -205,6 +205,18 @@ test("período incompleto: à vista espera o dado depois da data-alvo; futuro, a
   assert.equal(apurarHorizonte(h, { ...contexto, hoje: "2026-09-01" }).situacao, "A_APURAR");
 });
 
+test("preço na própria data-alvo: apura sem esperar o pregão seguinte (café de 06/10, ICFZ26)", () => {
+  const base = { data: "2026-10-05", valor: 356 };
+  const h = { codigo: "IMEDIATO", dataAlvo: "2026-10-06", t1: 1, t2: 2.7 };
+  const pontos = [
+    { data: "2026-10-05", valor: 356 },
+    { data: "2026-10-06", valor: 371.7 }
+  ];
+  const r = apurarHorizonte(h, { base, pontos, hoje: "2026-10-07", tolerancia: 4, futuro: true });
+  assert.deepEqual([r.situacao, r.faixa, r.dataPreco], ["APURADO", "ALTA_FORTE", "2026-10-06"]);
+  assert.equal(r.variacaoPct.toFixed(2), "4.41");
+});
+
 test("sem preço novo depois da base (fim de semana, feriado): SEM_PREGAO, sem faixa", () => {
   const base = { data: "2026-09-04", valor: 100 };
   const pontos = [
