@@ -44,7 +44,7 @@ que você escreveu, o que o FinMind faz hoje, a pergunta e a nossa sugestão. A 
   vista diário sem custo é uma questão a resolver, talvez o próprio TradingView ou a Pepperstone.
 - O GLD fica como referência em reais.
 
-**Resposta:** Petróleo: Brent (2026-10-04). Ouro:
+**Resposta:** Petróleo: Brent (2026-10-04); desde 2026-10-07, o Brent **futuro**, um vencimento por horizonte, por decisão do usuário, a confirmar com você (ADR 0052, adendo de 2026-10-07). Ouro:
 
 ---
 
@@ -73,7 +73,7 @@ moderado, forte...) como rótulo?
 - Adotar do seu prompt a parte de **cenários** (altista, neutro e baixista, sem probabilidade), que o nosso formato
   ainda não tem.
 
-**Resposta:**
+**Resposta:** Petróleo: ficam as faixas calibradas; os cenários ficam para depois, como pergunta comum aos quatro ativos (decisão do usuário, 2026-10-07, ADR 0104). Milho e café: faixas calibradas (Comitê; ADR 0079). Ouro:
 
 ---
 
@@ -103,7 +103,7 @@ moderado, forte...) como rótulo?
 - No petróleo e no ouro, esperar o FEL revisado. O ouro tem pouca sazonalidade; no petróleo, só a temporada de
   gasolina dos EUA pesaria.
 
-**Resposta:**
+**Resposta:** Petróleo: fica o peso do FEL 1, sem agregação, até o teste contra os benchmarks com as leituras do Brent futuro (decisão do usuário, 2026-10-07, ADR 0104). Ouro:
 
 ---
 
@@ -129,7 +129,7 @@ café.
 **Nossa sugestão:** (c). A geopolítica do ouro e do petróleo muda todo dia e travaria esperando aprovação. A política
 comercial do milho é rara e de alto impacto, o caso certo para uma pessoa conferir.
 
-**Resposta:**
+**Resposta:** Petróleo: a geopolítica e a OPEP+ seguem sem aprovação humana, só com os filtros automáticos (decisão do usuário, 2026-10-07, ADR 0104). Fator 8 do milho e ouro:
 
 ---
 

@@ -19,9 +19,11 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v8 (2026-10-07): a produção dos EUA (F6) fica com o crescimento anual, sem o rig count e sem peso próprio do recorde (ADR 0101).
 // v9 (2026-10-07): os juros (F7) ficam com o Treasury de 10 anos e direção própria; a meta do Fed, como contexto (ADR 0102).
 // v10 (2026-10-07): a oferta não-OPEP (F10) fica somada e como leitura da situação (ADR 0103); os 10 fatores sem perguntas.
+// v11 (2026-10-07): as perguntas do ativo (formato da leitura, peso e agregação, validação dos eventos) viram decisões;
+// fica a confirmação do Brent futuro com o David (ADR 0104).
 // v5 (2026-10-07): as perguntas da geopolítica (F3) viram decisões: fator próprio, o evento mais grave, a ameaça conta
 // com menos peso que a interrupção e a janela de 7 dias, sem vigência (ADR 0098).
-const VERSAO = 10;
+const VERSAO = 11;
 const DATA_VERSAO = "2026-10-07";
 
 const DEFINICOES = [
@@ -383,13 +385,13 @@ const FATORES_PETROLEO = montarFatores("PETROLEO", DEFINICOES);
 const DO_ATIVO = {
   decisoes: [
     "Preço de referência: o Brent futuro (NYMEX BZ, pelo Yahoo, fonte não oficial e provisória), o instrumento operado, com cada horizonte no vencimento que ainda negocia depois da data-alvo, a curva no prompt e as faixas recalibradas no futuro. Usuário, 2026-10-07 (ADRs 0052, adendo de 2026-10-07, e 0096). Antes: o Brent à vista da EIA (David, 2026-10-04) e, até 2026-10-03, o WTI.",
-    "Leitura diária de tendência da IA no Centro de Decisão: quatro horizontes (1, 7, 30 e 90 dias), contados da data da análise, cada um com uma faixa de variação calibrada no histórico (provisória). Leitura, não recomendação. David, 2026-10-03 (ADRs 0051 e 0052)."
+    "Leitura diária de tendência da IA no Centro de Decisão: quatro horizontes (1, 7, 30 e 90 dias), contados da data da análise, cada um com uma faixa de variação calibrada no histórico (provisória). Leitura, não recomendação. David, 2026-10-03 (ADRs 0051 e 0052).",
+    "Formato da leitura (usuário, 2026-10-07, ADR 0104): ficam as faixas calibradas no Brent futuro, como no milho, no café e no ouro, e não a variação central em % com as 6 classes fixas: no Brent futuro, em 1 dia 91% das variações cairiam nas duas primeiras classes e em 90 dias 47% seriam \"excepcional\". Os cenários altista, neutro e baixista ficam para depois, como pergunta comum aos quatro ativos.",
+    "Peso e agregação (usuário, 2026-10-07, ADR 0104): fica o peso do FEL 1, sem peso por mês e sem agregação. Com algumas semanas de leituras com o Brent futuro, o FinMind testa uma agregação pelos papéis dos fatores (ADR 0103) contra os benchmarks da Qualidade da IA, como no milho (ADR 0081), e a decisão volta com números.",
+    "Validação dos eventos (usuário, 2026-10-07, ADR 0104): a geopolítica e a OPEP+ seguem sem aprovação humana, só com os filtros automáticos (fonte autorizada, página lida pela pesquisa, repetição, ADR 0092): mudam quase todo dia e perderiam valor com o atraso. Um veto depois (o admin rejeita na tela de Eventos) fica como melhoria possível."
   ],
   perguntas: [
     "Brent futuro como referência (decisão do usuário de 2026-10-07, para confirmar): o contrato por horizonte vale para o petróleo, como no milho e no café? E a mudança de nível está de acordo (em setembro de 2026, o futuro ficou ~US$ 11 abaixo do Brent à vista da EIA)? A assinatura da ICE (~US$ 2.500/ano), a fonte oficial, vai ao Comitê.",
-    "Formato da leitura da IA: as faixas calibradas por horizonte (hoje) atendem, ou a IA deve dar uma variação central em % com as 6 classes fixas do prompt do milho (de irrelevante a excepcional)? Os cenários altista, neutro e baixista, sem probabilidade, podem entrar.",
-    "Peso e agregação: o mapa sazonal de pesos e as regras de agregação propostas para o milho (blocos com teto de peso, fundos como multiplicador, conflito entre blocos reduz a confiança) valem também para o petróleo (ex.: a temporada de gasolina dos EUA)? Hoje o peso é o do FEL 1, e a IA explica as forças, sem agregação.",
-    "Validação dos eventos: os eventos da OPEP+ e da geopolítica vão ao prompt sem validação humana, cada um com o link da fonte. A validação humana antes do prompt, pedida no fator 8 do milho, vale também aqui?"
   ]
 };
 
