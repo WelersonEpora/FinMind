@@ -8,8 +8,9 @@ const { crescimentoAnualSemanal, somarDias, DIAS_SEMANA } = require("./base/cres
 // Mesmo molde dos fatores de estoques e de produção: camadas A e B calculadas, C simulada pela decisão por faixa com
 // parâmetros que o Comitê ajusta; o peso é o do FEL 1; não alimenta o motor, o Centro de Decisão nem a IA.
 //
-// Só os EUA, por decisão do usuário (2026-10-03): a demanda da China no JODI (que o FEL 1 cita) é marcada pelo
-// próprio JODI como "não avaliada" e caiu ~30% de mar a jun/2026 sem explicação; fica como lacuna e pergunta ao David.
+// Só os EUA, por decisão do usuário (2026-10-03, confirmada em 2026-10-07, ADR 0099): a demanda da China no JODI (que
+// o FEL 1 cita) é "não avaliada" pelo próprio JODI, não mostra relação com o Brent e, em 2026, cai junto com a oferta
+// da OPEP (a guerra no Golfo), o que o fator leria como demanda fraca.
 //
 // OBSERVÁVEL → FATOR (ver ADR 0008):
 //   observável (tabela observation):
@@ -21,7 +22,8 @@ const { crescimentoAnualSemanal, somarDias, DIAS_SEMANA } = require("./base/cres
 //     C. decisão por faixa sobre crescimentoAnualPct, com o sentido INVERSO dos fatores de oferta: consumo crescendo
 //        acima da faixa = pressão de ALTA ("alta com demanda forte; baixa com recessão", FEL 1)
 //
-// A demanda não antecipa o preço no histórico: anda junto com ele (os dois seguem a economia). Mede a situação.
+// A demanda não antecipa o preço no histórico: anda junto com ele (os dois seguem a economia; contra o Brent futuro,
+// +0,28 com os 6 meses anteriores e perto de zero com os seguintes, ADR 0099). Mede a situação.
 // Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "demanda_petroleo_eua";

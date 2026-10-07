@@ -14,9 +14,10 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // própria; as perguntas viram decisões (ADRs 0093 e 0094).
 // v4 (2026-10-07): os estoques (F2) ficam com a média de 5 anos e a direção do especialista, como leitura da situação,
 // com Cushing, gasolina e destilados como contexto; a validação passa ao Brent futuro; as perguntas viram decisões (ADR 0097).
+// v6 (2026-10-07): a demanda (F4) fica só com os EUA e o consumo medido, validada contra o Brent futuro (ADR 0099).
 // v5 (2026-10-07): as perguntas da geopolítica (F3) viram decisões: fator próprio, o evento mais grave, a ameaça conta
 // com menos peso que a interrupção e a janela de 7 dias, sem vigência (ADR 0098).
-const VERSAO = 5;
+const VERSAO = 6;
 const DATA_VERSAO = "2026-10-07";
 
 const DEFINICOES = [
@@ -143,10 +144,10 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para a demanda dos EUA, que o fator calcula. No histórico do FinMind (desde 1990), o crescimento anual do consumo dos EUA anda junto com o preço (correlação de +0,28 com a variação do WTI dos 6 meses anteriores, desde 2010), mas não o antecipa (perto de zero com o WTI 13 ou 26 semanas depois): os dois seguem a economia. Mede a situação, como o especialista descreve. A China, que o especialista cita, ficou de fora: no JODI ela é \"não avaliada\" e caiu ~30% de mar a jun/2026 (de ~17.500 para ~11.700 mil barris/dia) sem explicação; a do JODI também não antecipa o preço."
+          "Suficiente para a demanda dos EUA, que o fator calcula. No histórico do Brent futuro (2011 a 2026, com a data de publicação), o crescimento anual do consumo dos EUA anda com o preço que já aconteceu (+0,28 com a variação dos 6 meses anteriores), mas não o antecipa (-0,06, -0,08 e -0,12 com o Brent 30, 91 e 182 dias depois; sem 2020-21, perto de zero): os dois seguem a economia. Mede a situação, como o especialista descreve. Os extremos (5% ou mais para cima ou para baixo) foram seguidos de alta em ~70% dos casos em 6 meses, mas quase só pelo colapso e pela retomada da pandemia. A China, que o especialista cita, ficou de fora: no JODI é \"não avaliada\", não mostra relação com o Brent (perto de zero antes e depois) e a queda de 2026 (-23,7% contra um ano antes em jul/2026) acompanha a perda de oferta da OPEP no STEO (de 25,9 para 16,4 milhões de barris/dia de fev a mai/2026): leria um choque de oferta como demanda fraca."
       },
       lacunas: [
-        "A China (JODI) não entra no cálculo: dado não avaliado pelo próprio JODI, com a queda de 2026 sem explicação, e ~2 meses de atraso. Continua coletada (card do JODI).",
+        "A China (JODI) não entra no cálculo: dado não avaliado pelo próprio JODI, sem relação com o Brent, com ~2 meses de atraso e, em 2026, a queda que acompanha a perda de oferta da OPEP. Continua coletada (card do JODI).",
         "A Rússia não reporta ao JODI; indicadores de atividade econômica (PMI, PIB) não são coletados."
       ]
     },
@@ -156,9 +157,10 @@ const DEFINICOES = [
       comparacao: "O mesmo período do ano anterior (crescimento anual), que tira a sazonalidade.",
       leitura: "Crescimento anual acima de uma faixa neutra (padrão: 2%) é demanda forte (pressão de alta); abaixo, demanda fraca (pressão de baixa). Intensidade forte a partir de 5%. Tendência: se o crescimento mudou 2,5 p.p. ou mais em 13 semanas, está subindo ou caindo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: [
-      "A demanda dos EUA basta como medida, ou a China precisa entrar? A série da China no JODI é \"não avaliada\" e caiu ~30% em 2026 sem explicação: há outra fonte confiável para ela?",
-      "O consumo medido basta, ou é preciso um indicador de atividade econômica (que hoje não é coletado)?"
+    perguntas: [],
+    decisoes: [
+      "China (usuário, 2026-10-07, ADR 0099): só os EUA. A China do JODI fica fora do cálculo e do prompt: \"não avaliada\", sem relação com o Brent e, em 2026, com a queda que acompanha a perda de oferta da OPEP, que o fator leria como demanda fraca. Continua coletada.",
+      "Atividade econômica (usuário, 2026-10-07, ADR 0099): o consumo medido basta, lido como situação, com a direção do especialista (como os estoques, ADR 0097). Um indicador de atividade também andaria com a economia, e seria fonte nova com a aquisição encerrada; fica como lacuna."
     ]
   },
   {
