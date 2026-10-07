@@ -2,11 +2,13 @@
 
 // Agregação determinística do café no histórico (PROPOSTA, ADR 0066): para cada data, os 8 fatores como se sabia até o
 // fim dela (metodologia-ativo.service.js::simularFatores, point-in-time, os mesmos da tela e do prompt) e a agregação
-// em código (factors/agregacao/agregacao-cafe.js). Não chama a IA e não grava nada: só lê o banco e imprime.
+// em código (factors/agregacao/agregacao-cafe.js). Com --acerto, também o que o ICF fez em cada horizonte, contra os
+// benchmarks Sempre Lateral e Persistência (scripts/agregacao-acerto.js, o mesmo do milho). Não chama a IA e não grava
+// nada: só lê o banco e imprime.
 //
 // Uso:
 //   node scripts/agregacao-cafe-historico.js --data=2026-10-05            (detalhe de uma data)
-//   node scripts/agregacao-cafe-historico.js --desde=2024-01-01 --ate=2026-10-02 [--passo=7] [--json=saida.json]
+//   node scripts/agregacao-cafe-historico.js --desde=2024-01-01 --ate=2026-10-02 [--passo=7] [--acerto] [--json=saida.json]
 //
 // Sem --ate, até hoje; o passo é em dias corridos (padrão 7). Uma data leva ~1 s (os 8 fatores com o histórico).
 
@@ -14,10 +16,12 @@ const fs = require("node:fs");
 const { sequelize } = require("../src/models");
 const metodologiaAtivoService = require("../src/services/metodologia-ativo.service");
 const { agregarCafe } = require("../src/factors/agregacao/agregacao-cafe");
+const { criarAvaliador } = require("./agregacao-acerto");
 
 function argumento(nome) {
-  const arg = process.argv.find((a) => a.startsWith(`--${nome}=`));
-  return arg ? arg.slice(nome.length + 3) : undefined;
+  const arg = process.argv.find((a) => a.startsWith(`--${nome}=`) || a === `--${nome}`);
+  if (!arg) return undefined;
+  return arg.includes("=") ? arg.slice(nome.length + 3) : true;
 }
 
 const hoje = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
@@ -88,15 +92,19 @@ async function main() {
     if (!desde) throw new Error("Informe --data=AAAA-MM-DD ou --desde=AAAA-MM-DD.");
     const ate = argumento("ate") || hoje();
     const passo = Number(argumento("passo") || 7);
+    const avaliador = argumento("acerto") ? criarAvaliador("CAFE") : null;
+    const agora = new Date();
     const resultados = [];
     console.log("data       | fatores (score; . = sem dado)          | por horizonte: S, faixa, confiança, C = conflito, R/E = F7 risco/excesso");
     for (const d of datas(desde, ate, passo)) {
       const r = await agregarNaData(d);
       resultados.push(r);
       console.log(linha(r));
+      if (avaliador) await avaliador.avaliar(d, r, agora);
     }
+    if (avaliador) avaliador.resumir();
     const json = argumento("json");
-    if (json) fs.writeFileSync(json, JSON.stringify(resultados, null, 2));
+    if (json) fs.writeFileSync(json, JSON.stringify(avaliador ? { resultados, linhasAcerto: avaliador.linhas } : resultados, null, 2));
   } finally {
     await sequelize.close();
   }

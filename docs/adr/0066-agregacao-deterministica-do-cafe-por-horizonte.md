@@ -302,3 +302,34 @@ nova (a leitura do motor vai na entrada gravada de cada leitura).
 Por decisão do usuário (ADR 0089 e a revisão dele, no mesmo dia), o F7 não muda mais a confiança: a v2 exigia o
 catalisador de F1 ou F2, que quase nunca acontecia; a v3 deixa o papel dele só como informação (contra a direção,
 SEM_PAPEL marcado como extremo contra; a favor, EXCESSO).
+
+## Adendo (2026-10-07): o backtest no histórico do ICF, e a agregação sai do prompt
+
+O backtest previsto na seção 9 rodou no dev, com o mesmo código que mediu o milho (ADR 0081), agora comum aos dois
+scripts (`scripts/agregacao-acerto.js`; o do milho reproduziu os números do ADR 0081):
+`npm run agregacao:cafe -- --desde=2022-04-04 --ate=2026-09-28 --acerto`. São 235 segundas-feiras, medidas contra o ICF
+como a Qualidade da IA mede uma leitura (o contrato de cada horizonte, ADR 0078; o realizado, ADR 0063; as comparações,
+ADR 0064). Nas linhas em que o motor tem leitura (o INSUFICIENTE fica fora, e os benchmarks são medidos nas mesmas
+linhas), direção certa | faixa exata | distância média:
+
+| Horizonte | Motor | Sempre lateral | Persistência | Motor fora do LATERAL: direção certa |
+|---|---|---|---|---|
+| Imediato (n = 180) | 31% \| 30% \| 1,00 | 38% \| 38% \| 0,82 | 36% \| 26% \| 1,23 | 18% de 50 |
+| Curto (n = 144) | 42% \| 35% \| 0,94 | 42% \| 42% \| 0,76 | 42% \| 33% \| 1,08 | 34% de 76 |
+| Médio (n = 137) | 42% \| 34% \| 0,96 | 39% \| 39% \| 0,82 | 31% \| 24% \| 1,23 | 37% de 68 |
+| Longo (n = 81 a 88) | 33% \| 22% \| 1,27 | 39% \| 39% \| 0,91 | 44% \| 26% \| 1,20 | 27% de 70 |
+
+O motor não supera o "sempre lateral" em faixa exata nem em distância em nenhum horizonte; só leva vantagem na direção
+do Médio, por 3 pontos. Fora do LATERAL, erra a direção na maior parte das vezes. No Longo, fica INSUFICIENTE em 104 das
+235 datas (sem a Demanda no histórico). Limites do teste: o F3 (estoques da ICE) não tem histórico no banco usado (a
+série começa em 2026-08-03) e o F5 (custo) ficou sem leitura no histórico; o ICF de 2022 a 2026 é um período curto, e as
+semanas de um mesmo episódio andam juntas.
+
+**Decisão do usuário (Welerson, 2026-10-07):** como no milho, a agregação sai do prompt e do Centro de Decisão e fica na
+tela de metodologia como referência (`emProducao: false`), com o script para medir de novo. A IA segue combinando os
+fatores pelo prompt, com as regras do estudo como orientação em texto (ADR 0062). Configuração do café v4 (sem
+`AGREGACAO`) e prompt do café v8 (sem o bloco 3B; o item 5 de "Como analisar" passa a dizer só como combinar os fatores,
+sem pontuação). As leituras de 2026-10-05 a 2026-10-07 continuam com a agregação gravada na entrada, e a Qualidade da IA
+as separa pela versão da configuração. A pergunta "vale a mesma régua para o milho?" fecha: o milho já foi medido e ficou
+fora (ADR 0081). Metodologia do café v14. Voltar a discutir pede um motivo novo (o histórico do F3, mais dados, uma
+revisão das regras pelo Comitê ou uma versão nova da agregação).

@@ -31,7 +31,8 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 // v12 (2026-10-06): a revisão crítica: o F8 volta à v1, com o dólar como contexto (ADR 0090, revisão); o F7 não muda a
 // confiança (ADR 0089, revisão); os textos do F6 e do F7 dizem o que o histórico sustenta.
 // v13 (2026-10-07): os eventos saem dos 8 fatores e vão a uma seção da base do prompt (ADR 0095).
-const VERSAO = 13;
+// v14 (2026-10-07): a agregação em código sai do prompt (ADR 0066, adendo); as perguntas do ativo viram decisões.
+const VERSAO = 14;
 const DATA_VERSAO = "2026-10-07";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
@@ -378,12 +379,11 @@ const DO_ATIVO = {
     `Eventos sem validação humana, por ora, com a janela de 7 dias (30 nos marcados com a demanda). ${DECISAO_COMITE}.`,
     "Onde ficam os eventos (usuário, 2026-10-07, ADR 0095): numa seção só na base do prompt, cada um com a condição que afeta, sem peso nem leitura do motor; nenhum fator do café é de evento. Até então, cada fator recebia os seus (ADR 0062). O que o David pediu na reunião de 2026-10-03 foi avaliar um fator de eventos também no café (ADR 0055, P12), não eventos em cada fator.",
     "O WASDE não cobre café: o balanço do USDA para o café é o PSD (Coffee: World Markets and Trade). David, 2026-10-03 (P14, ADR 0055).",
-    "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET fica para depois da v1 (usuário, 2026-10-06, ADR 0083); o diário de Londres e do KC, orçamento e licença; o diferencial FOB não tem fonte pública."
+    "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET fica para depois da v1 (usuário, 2026-10-06, ADR 0083); o diário de Londres e do KC, orçamento e licença; o diferencial FOB não tem fonte pública.",
+    "Agregação em código (usuário, 2026-10-07, ADR 0066, adendo): sai do prompt e do Centro de Decisão e fica na tela de metodologia como referência, com o script `npm run agregacao:cafe -- --acerto` para medir de novo. No histórico do ICF (dev, 2022 a 2026), não supera o \"sempre lateral\" em faixa exata e distância em nenhum horizonte, e fora do lateral erra a direção na maior parte das vezes (18% a 37% de acerto). A IA segue combinando os fatores pelo prompt, com as regras do estudo como orientação.",
+    "A mesma régua no milho (usuário, 2026-10-07): já aplicada; a agregação em código do milho foi medida no histórico e ficou fora do prompt (ADR 0081)."
   ],
-  perguntas: [
-    "Pesos e agregação: o estudo descarta os pesos fixos e a matriz do v0 e propõe regras transversais (neutralidade mandatória com dados faltando ou conflito; controle de dupla contagem F1 → F2 → F3; surpresa contra a expectativa). O prompt da IA já leva essas regras como orientação (e o peso do FEL 1 como o único na base). A agregação em código do FinMind, com famílias e peso por horizonte (ADR 0066), está em produção desde 2026-10-05 (no prompt e no Centro de Decisão), por decisão do usuário: a validação dela é do Comitê.",
-    "Vale a mesma régua para o milho? O estudo critica pesos fixos e limiares sem teste, o que também se aplica ao Motor do Milho v0, já aprovado."
-  ]
+  perguntas: []
 };
 
 // Os pesos e as relações do estudo (formato em metodologia-base.js): sem pesos (o estudo os descarta) e sem matriz; as

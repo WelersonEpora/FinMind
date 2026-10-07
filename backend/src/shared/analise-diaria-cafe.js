@@ -1,7 +1,6 @@
 "use strict";
 
 const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./analise-diaria-base");
-const { agregarCafe } = require("../factors/agregacao/agregacao-cafe");
 
 // Configuração do prompt diário de análise do café (ADR 0062), no molde da do milho (analise-diaria-milho.js, ADR 0058):
 // o que a metodologia define e o prompt só MOSTRA. Nada daqui é escrito à mão no texto do prompt
@@ -11,7 +10,9 @@ const { agregarCafe } = require("../factors/agregacao/agregacao-cafe");
 // v2 (2026-10-05): a leitura agregada do motor (AGREGACAO, ADR 0066) vai ao prompt, no bloco 3B. Horizontes e faixas não
 // mudam; a versão separa, na Qualidade da IA, as leituras com e sem a agregação.
 // v3 (2026-10-05): cada horizonte com o vencimento do ICF que ainda vale depois da data-alvo, e a curva no prompt (ADR 0078).
-const VERSAO = 3;
+// v4 (2026-10-07): a agregação em código sai do prompt e do Centro de Decisão (ADR 0066, adendo de 2026-10-07): no
+// histórico do ICF, não supera os benchmarks. Fica na tela de metodologia, como no milho (ADR 0081).
+const VERSAO = 4;
 
 // Os mesmos quatro horizontes do petróleo, do ouro e do milho, em dias corridos contados da data da análise. O estudo do
 // David conta em pregões (1, 7, 30 e 90): os dias corridos mantêm a régua dos outros ativos e a variação do Centro de
@@ -73,11 +74,6 @@ const CURVA = Object.freeze({
   lacuna: "Curva do ICF sem dado na data"
 });
 
-// A agregação determinística dos fatores (ADR 0066): calculada em código sobre os mesmos fatores do prompt, vai ao
-// prompt (bloco 3B) e fica gravada na entrada de cada leitura (o Centro de Decisão e a Qualidade da IA a leem de lá).
-// Os outros ativos não têm: sem AGREGACAO, nada muda neles.
-const AGREGACAO = Object.freeze({ calcular: agregarCafe });
-
 const NOME = "analise-diaria-cafe";
 const ARQUIVO_PROMPT = "cafe-analise-diaria.md";
 const COLETOR = "cafe-analise-ia-diario";
@@ -96,6 +92,5 @@ module.exports = {
   REFERENCIA_HORIZONTES,
   PRECO,
   CURVA,
-  AGREGACAO,
   classificarVariacao
 };

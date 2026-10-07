@@ -388,7 +388,7 @@ test("pesos (ADR 0065): o mês não definido sai com o FEL 1 e *, o fator sem pe
   assert.match(texto, /\* mês que a proposta não define: vale o peso do FEL 1\./);
 });
 
-test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais por saca, o contrato de cada horizonte e a leitura agregada do motor", async () => {
+test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais por saca, o contrato de cada horizonte, sem a leitura agregada do motor", async () => {
   const precoIcf = {
     ...PRECO,
     nome: "Futuro B3 (ICF)",
@@ -408,8 +408,8 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@7");
-  assert.equal(p.versaoConfiguracao, 3);
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@8");
+  assert.equal(p.versaoConfiguracao, 4);
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Último preço: US\$ 351,90 em 02\/10\/2026/);
@@ -425,18 +425,10 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   assert.doesNotMatch(p.prompt, /\{\{/);
   assert.equal(p.entrada.precoReferencia.serie, "ICF");
   assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.2 });
-  // A leitura agregada do motor (ADR 0066): no bloco 3B do prompt e gravada na entrada, os quatro horizontes.
-  assert.match(p.prompt, /\[3B\. LEITURA AGREGADA DO MOTOR/);
-  assert.match(p.prompt, /^CURTO: /m);
-  assert.match(p.prompt, /CAFE_FUNDOS \(modificador\)/);
-  assert.match(p.instrucaoDoSistema, /O bloco 3B traz a LEITURA AGREGADA DO MOTOR/);
-  assert.deepEqual(
-    p.entrada.agregacaoMotor.horizontes.map((h) => h.horizonte),
-    ["IMEDIATO", "CURTO", "MEDIO", "LONGO"]
-  );
-  assert.match(p.entrada.agregacaoMotor.versao, /^cafe-agregacao-v3/);
-  // Toda regra que a tela de metodologia mostra está no prompt, com a mesma frase.
-  for (const regra of require("../factors/agregacao/agregacao-cafe").ORIGEM_DAS_REGRAS) assert.ok(p.prompt.includes(`- ${regra.prompt}`), regra.regra);
+  // A leitura agregada do motor saiu do prompt e da entrada (ADR 0066, adendo de 2026-10-07): fica só na tela.
+  assert.doesNotMatch(p.prompt, /LEITURA AGREGADA DO MOTOR/);
+  assert.doesNotMatch(p.instrucaoDoSistema, /bloco 3B/);
+  assert.equal(p.entrada.agregacaoMotor, undefined);
 });
 
 test("ativo sem agregação (o ouro): sem bloco 3B nem agregacaoMotor na entrada", async () => {

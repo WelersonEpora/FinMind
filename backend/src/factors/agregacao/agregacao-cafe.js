@@ -476,8 +476,9 @@ function resumoParaTela() {
     versao: `cafe-agregacao-v${VERSAO} (${DATA_VERSAO})`,
     situacao: "PROPOSTA",
     adr: "ADR 0066",
+    emProducao: false,
     descricao:
-      "Proposta do FinMind para operacionalizar o Motor do Café v1: os fatores são agregados em famílias, a família recebe um peso por horizonte e o score agregado dá a tendência, a faixa e a confiança. Os pesos são derivados do horizonte de cada fator no estudo e do peso do FEL 1, normalizados para 100%. Os pesos e os limiares não foram definidos pelo David e não foram validados fora da amostra: a validação é do Comitê.",
+      "Proposta do FinMind para operacionalizar o Motor do Café v1: os fatores são agregados em famílias, a família recebe um peso por horizonte e o score agregado dá a tendência, a faixa e a confiança. Os pesos são derivados do horizonte de cada fator no estudo e do peso do FEL 1, normalizados para 100%. Os pesos e os limiares não foram definidos pelo David e não foram validados fora da amostra: a validação é do Comitê. Esteve no prompt e no Centro de Decisão de 2026-10-05 a 2026-10-07; saiu e fica na tela como referência: no histórico do ICF, não supera os benchmarks (decisão do usuário, 2026-10-07).",
     horizontes: HORIZONTES.map((codigo) => ({ codigo, rotulo: ROTULOS_HORIZONTE[codigo] })),
     familias: FAMILIAS.map((familia) => ({
       codigo: familia.codigo,

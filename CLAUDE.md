@@ -13,7 +13,7 @@ por IA → resultado. Hoje: autenticação, espaços, o Centro de Decisão (tela
 dados de milho e ouro** (as fontes do relatório FEL 1 do especialista de mercado,
 "David"), guardada com data de publicação. Nos quatro ativos (petróleo, ouro, milho e café),
 a cadeia roda inteira: os fatores, o prompt diário e a leitura de tendência da IA no Centro
-de Decisão (ADRs 0050 a 0052, 0054, 0058 e 0062), no café com a agregação dos fatores em código ao lado (ADR 0066), com o realizado de cada horizonte e a tela Qualidade
+de Decisão (ADRs 0050 a 0052, 0054, 0058 e 0062), com o realizado de cada horizonte e a tela Qualidade
 da IA, que mede as leituras contra dois benchmarks (ADRs 0063 e 0064). O que segue com o David e o Comitê está em
 `STATUS_DO_PROJETO.md`, §4.
 
@@ -38,10 +38,10 @@ decidiu e quando. O assistente propõe; não decide por nenhum dos dois.
   David em 2026-10-03 (petróleo e ouro) e pelo Comitê em 2026-10-04 (milho) e
   2026-10-05 (café), o prompt diário vai à IA e a leitura de tendência (nunca
   recomendação de compra ou venda) aparece no Centro de Decisão desses ativos;
-  um ativo novo segue a regra acima. **Exceção da agregação do café (ADR 0066):** a agregação dos fatores em
-  código (famílias, pesos por horizonte e limiares propostos pelo FinMind, não pelo David) vai ao prompt e ao Centro de
-  Decisão por decisão do usuário em 2026-10-05, sempre marcada como proposta a validar pelo Comitê e como tendência,
-  nunca recomendação; os números dela não são atribuídos ao David.
+  um ativo novo segue a regra acima. **Agregação em código (café e milho, ADRs 0066 e 0081):** a agregação dos
+  fatores em código (pesos e limiares propostos pelo FinMind, não pelo David) fica só na tela de metodologia, como
+  referência marcada como proposta: no histórico, não supera os benchmarks, e saiu do prompt e do Centro de Decisão do
+  café em 2026-10-07 (no milho, nunca entrou); os números dela não são atribuídos ao David.
 - **Nenhuma execução automática de ordens** existe ou deve ser adicionada
   nesta fase. A arquitetura mantém geração de análise e execução de ordens
   como camadas fisicamente separadas (ver `docs/architecture.md`).
