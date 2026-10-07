@@ -12,8 +12,12 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // v2 (2026-10-06): a OPEP+ (F1) passa a fator calculado com eventos, pelo STEO da EIA; as perguntas viram decisões (ADR 0091).
 // v3 (2026-10-06): o refino (F9) passa a contexto da demanda e os fundos (F8), a só informação, os dois sem pressão
 // própria; as perguntas viram decisões (ADRs 0093 e 0094).
-const VERSAO = 3;
-const DATA_VERSAO = "2026-10-06";
+// v4 (2026-10-07): os estoques (F2) ficam com a média de 5 anos e a direção do especialista, como leitura da situação,
+// com Cushing, gasolina e destilados como contexto; a validação passa ao Brent futuro; as perguntas viram decisões (ADR 0097).
+// v5 (2026-10-07): as perguntas da geopolítica (F3) viram decisões: fator próprio, o evento mais grave, a ameaça conta
+// com menos peso que a interrupção e a janela de 7 dias, sem vigência (ADR 0098).
+const VERSAO = 5;
+const DATA_VERSAO = "2026-10-07";
 
 const DEFINICOES = [
   {
@@ -68,7 +72,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para a situação do estoque (sobra ou aperto), que é o que pesa nos horizontes do FinMind. No histórico do FinMind, de 2010 em diante, o desvio contra a média de 5 anos anda com o preço (correlação de -0,55 com o nível do WTI: estoque abaixo do normal, preço alto). Não serve para a reação do dia da divulgação: nem a variação semanal nem a variação contra a típica da semana acompanham o WTI naquele dia (preço no sentido esperado em 55% das semanas com variação grande), porque o mercado reage à previsão dos analistas, que é paga. Também não prevê sozinho o preço das 4 semanas seguintes."
+          "Suficiente para a situação do estoque (sobra ou aperto). No histórico do Brent futuro (2011 a 2026, com a data de publicação), o desvio contra a média de 5 anos anda com o preço (-0,50 com o nível: estoque abaixo do normal, preço alto), mas não o antecipa nos horizontes desta leitura (+0,04 com a variação do Brent 30 dias depois; +0,08 com 91 dias). Em 6 meses, o histórico aponta o contrário da direção do especialista: com o estoque 10% ou mais acima do normal, o Brent subiu em 66% das semanas 182 dias depois, contra 48% em todas; 10% ou mais abaixo, em 5% (21 semanas, de poucos episódios); o mesmo sem 2014-16 e 2020-21 e sem sobreposição. Por isso a leitura é a da situação. Não serve para a reação do dia da divulgação: com a variação da semana longe da típica, o Brent foi no sentido esperado em 54% das vezes, porque o mercado reage à previsão dos analistas, que é paga. Cushing, gasolina e destilados vão como contexto: o total (petróleo, gasolina e destilados) anda um pouco mais com o preço (-0,56), com o mesmo padrão para frente."
       },
       lacunas: [
         "Para a reação do dia: a previsão dos analistas para a semana (o \"esperado\" no sentido do mercado) não é coletada; é paga.",
@@ -77,13 +81,14 @@ const DEFINICOES = [
     },
     proposta: {
       objetivo: "Medir se há sobra ou falta de petróleo nos EUA.",
-      medida: "Estoque de petróleo sem a reserva estratégica (SPR) e a variação contra a semana anterior.",
+      medida: "Estoque de petróleo sem a reserva estratégica (SPR) e a variação contra a semana anterior; como contexto, fora da regra, o desvio de Cushing, da gasolina e dos destilados contra a mesma média.",
       comparacao: "Média da mesma semana nos 5 anos anteriores (a comparação que a própria EIA publica no relatório).",
       leitura: "Estoque abaixo da média de 5 anos indica aperto (pressão de alta); acima, sobra (pressão de baixa); dentro de uma faixa neutra (padrão: 3%), sem pressão. Intensidade forte a partir de 10% de desvio. Tendência: se o desvio mudou 2 p.p. ou mais em 4 semanas, o aperto ou a sobra está aumentando ou diminuindo. Parâmetros do FinMind, ajustáveis pelo Comitê no card C. Decidir."
     },
-    perguntas: [
-      "O \"esperado\" da definição do fator pode ser lido como o normal da época (a média de 5 anos), deixando de lado a reação do dia da divulgação?",
-      "Entram Cushing, gasolina e destilados (também coletados), ou só o petróleo sem SPR?"
+    perguntas: [],
+    decisoes: [
+      "Esperado (usuário, 2026-10-07, ADR 0097): o normal da época, a média da mesma semana nos 5 anos anteriores; a reação do dia da divulgação fica de fora (depende da previsão dos analistas, que é paga). A direção do especialista fica, como leitura da situação, como na demanda e na oferta não-OPEP: no histórico do Brent futuro, o fator não antecipa o preço até 90 dias e, em 6 meses, aponta o contrário.",
+      "Estoques (usuário, 2026-10-07, ADR 0097): a pressão vem só do petróleo sem a SPR; o desvio de Cushing, da gasolina e dos destilados vai ao prompt como contexto, fora da regra. Na semana de 2026-09-25, o petróleo estava perto do normal (+1,9%) e os destilados, 13% abaixo."
     ]
   },
   {
@@ -113,13 +118,14 @@ const DEFINICOES = [
       objetivo: "Levar à análise o risco de interrupção da oferta ou das rotas por conflito, sanção ou ataque, com os fatos recentes que seguem pesando.",
       medida: "Fator de evento, sem cálculo: os eventos aceitos da leitura diária marcados com este fator nos últimos 7 dias, cada um com a data da leitura que o registrou e a idade, o tipo, o resumo (com a data do fato, quando a fonte a dá), o canal, a pressão (leitura da IA), a intensidade, a confiança e a página da fonte autorizada, mais o nível e o resumo do petróleo na leitura mais recente.",
       comparacao: "Sem comparação numérica: a idade de cada evento e o nível da leitura mais recente (NORMAL a EXCEPCIONAL, escala provisória).",
-      leitura: "Fica com a IA do ativo, com os outros fatores: interrupção material (rota fechada, produção parada) pressiona para cima; ameaça sem efeito material é só atenção (a direção indicada pelo especialista)."
+      leitura: "Fica com a IA do ativo, com os outros fatores, como fator próprio: vale o evento mais grave da janela, não a quantidade; a interrupção material (ataque a navio ou instalação, rota fechada, produção parada) pressiona para cima, e a ameaça ou tensão sem efeito material também, com menos peso (a direção do especialista: \"alta com tensão e risco de interrupção\"). A falta de evento novo não encerra uma situação em curso."
     },
-    perguntas: [
-      "A leitura diária deve registrar a vigência de cada fato (exige mudar o prompt)?",
-      "Uma ameaça sem efeito material conta, ou só a interrupção que já aconteceu?",
-      "Vale o evento mais grave do dia ou a quantidade de eventos?",
-      "A geopolítica é um fator próprio ou um modificador dos fatores de oferta (OPEP+, oferta não-OPEP)?"
+    perguntas: [],
+    decisoes: [
+      "Vigência (usuário, 2026-10-07, ADR 0098): a leitura diária não registra até quando cada fato vale; fica a janela de 7 dias. Uma situação em curso sem fato novo sai da janela, mas o preço, a curva e a interrupção da OPEP+ (F1) a carregam, e uma escalada nova volta como evento.",
+      "Ameaça (usuário, 2026-10-07, ADR 0098): conta como pressão de alta, menor que a da interrupção concreta, como no FEL 1 (\"alta com tensão e risco de interrupção\").",
+      "Mais grave ou quantidade (usuário, 2026-10-07, ADR 0098): vale o evento mais grave da janela; a quantidade não soma pressão, porque premiaria a cobertura da imprensa. Vários eventos só dizem que a tensão escala quando são desdobramentos novos (a regra de repetição, ADR 0092).",
+      "Papel (usuário, 2026-10-07, ADR 0098): fator próprio, como no FEL 1 (peso Alto), sem contar duas vezes a interrupção que o F1 já mostra; revisitar quando o David definir peso e agregação."
     ]
   },
   {

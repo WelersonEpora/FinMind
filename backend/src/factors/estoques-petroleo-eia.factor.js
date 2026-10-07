@@ -14,6 +14,8 @@ const { mediaMesmaSemana, ANOS: ANOS_MEDIA, DIAS_SEMANA, SEMANAS_ANO } = require
 // OBSERVÁVEL → FATOR (ver ADR 0008):
 //   observável (tabela observation):
 //     EIA.PETROLEO_ESTOQUES.PETROLEO_SEM_SPR - estoque de petróleo sem a reserva estratégica, semanal (mil barris)
+//     EIA.PETROLEO_ESTOQUES.PETROLEO_CUSHING, .GASOLINA e .DESTILADOS - só como CONTEXTO (v2, decisão do usuário,
+//                          ADR 0097): o desvio de cada um contra a mesma média, nos quadros B, fora da regra da camada C
 //   fator (calculado sob demanda, NUNCA gravado):
 //     A. variacaoSemanal = estoque(t) - estoque(t - 1 semana)
 //     B. media5Anos      = média do estoque nas semanas t - 52k semanas, k = 1..5 (a "mesma semana" dos 5 anos
@@ -22,14 +24,25 @@ const { mediaMesmaSemana, ANOS: ANOS_MEDIA, DIAS_SEMANA, SEMANAS_ANO } = require
 //     C. decisão por faixa sobre desvioPct: abaixo da faixa (estoque abaixo do normal, aperto) = pressão de alta,
 //        a direção do FEL 1 ("alta com estoques abaixo do esperado"); tendência pela mudança do desvio
 //
+// No histórico do Brent futuro (2011 a 2026, ADR 0097), o desvio descreve a situação (-0,50 com o nível do preço), mas
+// não antecipa o preço até 90 dias (perto de zero) e, em 6 meses, aponta o contrário do FEL 1; a direção fica, como
+// leitura da situação, por decisão do usuário.
+//
 // Propriedades: determinístico, versionado (FACTOR_VERSION; os parâmetros vão junto na resposta), point-in-time (só
 // o publicado até `asOf`; cada ponto informa `disponivelEm`), sem IA e sem estimativa própria. As semanas anteriores
 // entram como conhecidas em `asOf`, não como eram conhecidas na semana t (a EIA quase não revisa estes estoques).
 
 const FACTOR_ID = "estoques_petroleo_eia";
-const FACTOR_VERSION = 1;
+// v2 (2026-10-07, ADR 0097): o desvio de Cushing, da gasolina e dos destilados como contexto, sem mudar a decisão.
+const FACTOR_VERSION = 2;
 
 const SERIE_ESTOQUE = "EIA.PETROLEO_ESTOQUES.PETROLEO_SEM_SPR";
+// Os estoques de contexto: o campo do desvio de cada um no ponto e a série.
+const SERIES_CONTEXTO = Object.freeze({
+  desvioCushingPct: "EIA.PETROLEO_ESTOQUES.PETROLEO_CUSHING",
+  desvioGasolinaPct: "EIA.PETROLEO_ESTOQUES.GASOLINA",
+  desvioDestiladosPct: "EIA.PETROLEO_ESTOQUES.DESTILADOS"
+});
 
 // Padrões do FinMind (2026-10-02), tirados da distribuição do desvio de 1987 a 2026 no banco de dev: |desvio| tem
 // mediana de ~5,5% e 3º quartil de ~10%; a mudança do desvio em 4 semanas tem mediana de ~1,9 p.p. O Comitê ajusta.
@@ -61,9 +74,18 @@ function decidirEstoques(desvioPct, desvioAnterior, parametros = PARAMETROS_PADR
 // observadas a partir de `observadoDesde` (as anteriores só servem de base para a média e a tendência).
 function derivarEstoquesPetroleoEia(linhasAsOf, { observadoDesde = null, parametros = PARAMETROS_PADRAO } = {}) {
   const estoques = new Map();
+  const contexto = new Map(Object.values(SERIES_CONTEXTO).map((serie) => [serie, new Map()]));
   for (const linha of linhasAsOf) {
     if (linha.seriesCode === SERIE_ESTOQUE) estoques.set(linha.observedAt, linha);
+    else contexto.get(linha.seriesCode)?.set(linha.observedAt, linha.value);
   }
+  // O desvio de um estoque de contexto contra a média da mesma semana nos 5 anos anteriores, em %; nulo sem a média.
+  const desvioContexto = (serie, observedAt) => {
+    const valores = contexto.get(serie);
+    const atual = valores.get(observedAt);
+    const media = atual === undefined ? null : mediaMesmaSemana((data) => valores.get(data), observedAt);
+    return media === null ? null : arredondar((atual / media - 1) * 100, 2);
+  };
 
   const desvios = new Map();
   const pontos = [];
@@ -88,6 +110,7 @@ function derivarEstoquesPetroleoEia(linhasAsOf, { observadoDesde = null, paramet
       media5Anos,
       desvio,
       desvioPct,
+      ...Object.fromEntries(Object.entries(SERIES_CONTEXTO).map(([campo, serie]) => [campo, desvioContexto(serie, observedAt)])),
       decisao: decidirEstoques(desvioPct, desvioAnterior ?? null, parametros),
       disponivelEm: atual.publishedAt,
       disponivelEmEhEstimado: atual.publishedAtIsEstimated
@@ -102,7 +125,8 @@ async function calcularEstoquesPetroleoEia({ asOf, observadoDesde, observadoAte,
   // `semanasTendencia` semanas antes (que por sua vez precisa da média dele): folga de 5 anos + a tendência + 1 semana.
   const semanasFolga = SEMANAS_ANO * ANOS_MEDIA + parametros.semanasTendencia + 1;
   const baseDesde = observadoDesde ? somarDias(observadoDesde, -DIAS_SEMANA * semanasFolga) : undefined;
-  const linhas = await servico.obterAsOf({ seriesCodes: [SERIE_ESTOQUE], asOf, observadoDesde: baseDesde, observadoAte }, deps);
+  const seriesCodes = [SERIE_ESTOQUE, ...Object.values(SERIES_CONTEXTO)];
+  const linhas = await servico.obterAsOf({ seriesCodes, asOf, observadoDesde: baseDesde, observadoAte }, deps);
   return derivarEstoquesPetroleoEia(linhas, { observadoDesde, parametros });
 }
 
@@ -157,7 +181,20 @@ const APRESENTACAO = {
       sinal: true,
       unidadeValor: "%",
       secundario: { campo: "desvio", casas: 0, sinal: true, sufixo: "mil barris" }
-    }
+    },
+    // Contexto (v2, ADR 0097): a mesma comparação nos outros estoques, fora da regra da camada C.
+    ...[
+      ["Cushing", "desvioCushingPct"],
+      ["Gasolina", "desvioGasolinaPct"],
+      ["Destilados", "desvioDestiladosPct"]
+    ].map(([nome, campo]) => ({
+      camada: "B",
+      rotulo: `${nome} contra a média de 5 anos (contexto, fora da regra)`,
+      campo,
+      casas: 2,
+      sinal: true,
+      unidadeValor: "%"
+    }))
   ],
   graficoAB: {
     titulo: "Estoque sem a SPR (A) × média da mesma semana nos 5 anos anteriores (B)",
@@ -192,6 +229,7 @@ module.exports = {
   FACTOR_ID,
   FACTOR_VERSION,
   SERIE_ESTOQUE,
+  SERIES_CONTEXTO,
   PARAMETROS_PADRAO,
   METODOLOGIA,
   decidirEstoques,

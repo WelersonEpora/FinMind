@@ -1,6 +1,6 @@
 # Prompt — Análise diária do petróleo (leitura de tendência em quatro horizontes)
 
-**Versão:** 7
+**Versão:** 8
 
 Histórico: v1 (2026-10-03) - formato inicial (ADR 0051): seis blocos, no molde do prompt do milho (`STATUS_DO_PROJETO.md`,
 §5): os fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do sistema; os
@@ -27,6 +27,10 @@ vez por semana) ao Brent FUTURO da NYMEX (BZ), o instrumento operado, com cada h
 próximo que ainda negocia depois da data-alvo, como no milho e no café (ADR 0078). A tabela 2.4 traz o contrato, o
 preço e as variações de cada horizonte; o bloco 2.2 traz a curva (o ajuste de cada vencimento), antes SEM DADO; o
 bloco 1 e os itens 7 e 8 de "Como analisar" dizem como usar os dois. Configuração v4, com as faixas no futuro.
+v8 (2026-10-07, ADR 0098) - a geopolítica (PETROLEO_GEOPOLITICA), por decisão do usuário: vale o evento mais grave da
+janela, não a quantidade; a ameaça ou tensão sem efeito material conta como pressão de alta, menor que a da interrupção
+concreta (o FEL 1: "alta com tensão e risco de interrupção"); a falta de evento novo não encerra uma situação em curso.
+O item 4 de "Como analisar" diz isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `petroleo-analise-ia-diario` (ADR 0052).
 
@@ -77,7 +81,12 @@ Para cada horizonte, separadamente:
    e em "fatoresPoucoRelevantes".
 4. Eventos (a geopolítica e os eventos da OPEP+). Use a idade e o tipo de cada evento para julgar se ele ainda pesa no
    horizonte. A pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com
-   leitura diária na janela, é informação; "dia sem leitura" é falta de informação. Na OPEP+, o cálculo mostra a
+   leitura diária na janela, é informação; "dia sem leitura" é falta de informação. Na geopolítica, vale o evento mais
+   grave da janela, não a quantidade: vários eventos só dizem que a tensão escala quando são desdobramentos novos. Uma
+   ameaça ou tensão sem efeito material (nível ATENÇÃO) conta como pressão de alta, menor que a de uma interrupção
+   concreta (ataque a navio ou instalação, rota fechada, produção parada). A leitura de eventos só registra o fato novo:
+   a falta de evento na janela não quer dizer que uma situação em curso acabou, e o preço e a curva (2.1 e 2.2) já a
+   refletem; não a conte de novo nem a trate como encerrada. Na OPEP+, o cálculo mostra a
    pegada das decisões na produção e na capacidade ociosa com um a dois meses de atraso, e os eventos trazem as
    decisões recentes: diga quando uma decisão ainda não aparece no cálculo. Quando o cálculo diz "interrupção", a
    queda da oferta não é decisão da OPEP: o efeito vem pelos eventos de geopolítica; não o conte duas vezes. Os

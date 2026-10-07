@@ -11,6 +11,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const {
   SERIE_ESTOQUE,
+  SERIES_CONTEXTO,
   PARAMETROS_PADRAO,
   decidirEstoques,
   exemplosEstoques,
@@ -66,12 +67,29 @@ test("só devolve as semanas a partir de observadoDesde, em ordem", () => {
   assert.deepEqual(derivarEstoquesPetroleoEia(linhas, { observadoDesde: "2026-09-18" }).map((p) => p.observedAt), ["2026-09-18", "2026-09-25"]);
 });
 
-test("busca só o estoque (o preço não entra no fator), com folga de 5 anos, a tendência e 1 semana antes do 1º ponto", async () => {
+test("contexto (v2): o desvio de Cushing, gasolina e destilados contra a mesma média, sem mudar a decisão", () => {
+  const de = (serie, data, value) => ({ ...estoque(data, value), seriesCode: serie });
+  const linhas = [
+    ...MESMAS_SEMANAS.map((data) => estoque(data, 400000)),
+    estoque(SEMANA, 400000),
+    ...MESMAS_SEMANAS.map((data) => de(SERIES_CONTEXTO.desvioDestiladosPct, data, 100000)),
+    de(SERIES_CONTEXTO.desvioDestiladosPct, SEMANA, 87000),
+    de(SERIES_CONTEXTO.desvioGasolinaPct, SEMANA, 200000) // sem as 5 mesmas semanas: nulo
+  ];
+  const ponto = derivarEstoquesPetroleoEia(linhas, { observadoDesde: SEMANA }).at(-1);
+  assert.equal(ponto.desvioDestiladosPct, -13);
+  assert.equal(ponto.desvioGasolinaPct, null);
+  assert.equal(ponto.desvioCushingPct, null);
+  assert.equal(ponto.estoque, 400000);
+  assert.equal(ponto.decisao.direcao, "NEUTRA");
+});
+
+test("busca o estoque e os de contexto (o preço não entra no fator), com folga de 5 anos, a tendência e 1 semana antes do 1º ponto", async () => {
   let pedido;
   const pointInTimeService = { obterAsOf: async (args) => { pedido = args; return []; } };
   const asOf = new Date("2026-10-02T12:00:00Z");
   await calcularEstoquesPetroleoEia({ asOf, observadoDesde: "2026-01-02" }, { pointInTimeService });
-  assert.deepEqual(pedido.seriesCodes, [SERIE_ESTOQUE]);
+  assert.deepEqual(pedido.seriesCodes, [SERIE_ESTOQUE, ...Object.values(SERIES_CONTEXTO)]);
   assert.equal(pedido.asOf, asOf);
   assert.equal(pedido.observadoDesde, somarDias("2026-01-02", -7 * (260 + PARAMETROS_PADRAO.semanasTendencia + 1)));
 });
