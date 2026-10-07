@@ -106,6 +106,20 @@ function precoNaData(data, segmentos = props.leque.segmentos) {
 // ---- Tooltip -------------------------------------------------------------------------------------------------------
 const aberto = ref(null)
 
+// A base de uma leitura, em texto: "06/10 US$ 4.207,75" (provisória só nas leituras da regra antiga, ADR 0106).
+function textoDaBase(linha) {
+  const data = linha.base?.data ?? linha.precoRecebido?.data
+  const valor = linha.base?.valor ?? linha.precoRecebido?.valor
+  const provisoria = linha.base && !linha.base.confirmada ? ' (provisória)' : ''
+  return `${data ? `${ddmm(data)} ` : ''}${props.moeda} ${formatarPreco(valor)}${provisoria}`
+}
+
+// A base vai no título quando é a mesma em todas as leituras do alvo; senão, em cada uma.
+const baseComum = computed(() => {
+  const textos = new Set((aberto.value?.barras ?? []).map((b) => textoDaBase(b.linha)))
+  return textos.size === 1 ? [...textos][0] : null
+})
+
 function faixaEmReais(linha) {
   const base = linha.base?.valor ?? linha.precoRecebido?.valor
   const r = (v) => `${props.moeda} ${formatarPreco(base * (1 + v / 100))}`
@@ -285,20 +299,21 @@ onBeforeUnmount(() => observador?.disconnect())
 
     <div v-if="aberto" ref="tooltip" class="leque__tooltip">
       <strong>Alvo {{ ddmm(aberto.data) }}</strong>
-      <span v-if="aberto.preco" class="leque__sub">
-        · preço {{ aberto.data < hoje ? 'realizado' : 'de hoje' }} {{ moeda }} {{ formatarPreco(aberto.preco.valor) }}<template v-if="aberto.preco.data !== aberto.data"> ({{ ddmm(aberto.preco.data) }})</template>
+      <span v-if="baseComum" class="leque__sub"> · Base em {{ baseComum }}</span>
+      <span v-else-if="!aberto.barras.length && aberto.preco" class="leque__sub">
+        · preço {{ moeda }} {{ formatarPreco(aberto.preco.valor) }} ({{ ddmm(aberto.preco.data) }})
       </span>
-      <span v-else-if="aberto.data > hoje" class="leque__sub"> · data futura</span>
       <div v-if="aberto.contexto" class="leque__sub">
         {{ leque.contexto.nome }}: {{ moeda }} {{ formatarPreco(aberto.contexto.valor) }}<template v-if="aberto.contexto.data !== aberto.data"> ({{ ddmm(aberto.contexto.data) }})</template>, só contexto
       </div>
       <div v-if="!aberto.barras.length" class="leque__sub">Nenhuma leitura com esta data-alvo.</div>
-      <div v-for="b in aberto.barras" :key="b.horizonte" class="leque__tt-linha">
+      <div v-for="b in aberto.barras" :key="`${b.horizonte}-${b.linha.dataAnalise}`" class="leque__tt-linha">
         <span class="leque__tt-cor" :style="{ background: cor(b.horizonte) }"></span>
         <div>
-          <strong>{{ rotulo(b.horizonte) }}</strong>
-          <span class="leque__sub"> · leitura de {{ ddmm(b.linha.dataAnalise) }}, base {{ moeda }} {{ formatarPreco(b.linha.base?.valor ?? b.linha.precoRecebido?.valor) }}<template v-if="b.linha.base && !b.linha.base.confirmada"> (provisória)</template></span>
-          <div>Leu <strong>{{ rotuloFaixa(b.linha.lida.faixa).toLowerCase() }}</strong>: {{ faixaEmReais(b.linha) }}</div>
+          <div>
+            <strong>{{ rotulo(b.horizonte) }}:</strong> {{ rotuloFaixa(b.linha.lida.faixa) }}: {{ faixaEmReais(b.linha) }}
+          </div>
+          <div v-if="!baseComum" class="leque__sub">Base em {{ textoDaBase(b.linha) }}</div>
           <div><span class="leque__sub">Resultado:</span> {{ resultado(b) }}</div>
           <div v-if="b.foraDaMetrica" class="leque__sub">Fora da métrica: {{ rotuloMotivo(b.foraDaMetrica).toLowerCase() }}</div>
         </div>
