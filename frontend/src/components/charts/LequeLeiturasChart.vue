@@ -327,7 +327,7 @@ onBeforeUnmount(() => observador?.disconnect())
       <strong>Alvo {{ ddmm(aberto.data) }}</strong>
       <span v-if="baseComum" class="leque__sub"> · Base em {{ baseComum }}</span>
       <span v-else-if="!aberto.barras.length && aberto.preco" class="leque__sub">
-        · preço {{ moeda }} {{ formatarPreco(aberto.preco.valor) }} ({{ ddmm(aberto.preco.data) }})
+        · Realizado {{ moeda }} {{ formatarPreco(aberto.preco.valor) }}<template v-if="aberto.preco.data !== aberto.data"> ({{ ddmm(aberto.preco.data) }})</template>
       </span>
       <div v-if="aberto.contexto" class="leque__sub">
         {{ leque.contexto.nome }}: {{ moeda }} {{ formatarPreco(aberto.contexto.valor) }}<template v-if="aberto.contexto.data !== aberto.data"> ({{ ddmm(aberto.contexto.data) }})</template>, só contexto
@@ -340,6 +340,12 @@ onBeforeUnmount(() => observador?.disconnect())
             <strong>{{ rotulo(b.horizonte) }}:</strong> {{ rotuloFaixa(b.linha.lida.faixa) }}: {{ faixaEmReais(b.linha) }}
           </div>
           <div v-if="!baseComum" class="leque__sub">Base em {{ textoDaBase(b.linha) }}</div>
+          <div v-if="b.linha.realizado.preco != null">
+            <span class="leque__sub">Realizado:</span> {{ moeda }} {{ formatarPreco(b.linha.realizado.preco) }}<span
+              v-if="b.linha.realizado.data !== aberto.data"
+              class="leque__sub"
+            > ({{ ddmm(b.linha.realizado.data) }})</span>
+          </div>
           <div><span class="leque__sub">Resultado:</span> {{ resultado(b) }}</div>
           <div v-if="b.foraDaMetrica" class="leque__sub">Fora da métrica: {{ rotuloMotivo(b.foraDaMetrica).toLowerCase() }}</div>
         </div>
