@@ -100,6 +100,14 @@ const leque = computed(() =>
   })
 )
 
+// A fonte da linha do preço, pela sigla: o prefixo do seriesCode das leituras (B3.ICF.ICFZ26.SETTLE -> B3).
+const SIGLA_DA_FONTE = { B3: 'B3', EIA: 'EIA', YAHOO: 'Yahoo' }
+const fontesDoPreco = computed(() =>
+  [...new Set((qualidade.value?.linhas || []).filter((l) => l.seriesCode).map((l) => l.seriesCode.split('.')[0]))]
+    .map((prefixo) => SIGLA_DA_FONTE[prefixo] || prefixo)
+    .join(', ')
+)
+
 const opcoesAtivo = computed(() => (qualidade.value?.ativos || []).map((a) => ({ ...a, icone: iconeAtivo(a.codigo) })))
 const opcoesVersao = computed(() => [
   { codigo: 'TODAS', nome: 'Todas as versões' },
@@ -335,7 +343,7 @@ watch([periodo, versao], carregar)
 
             <div class="qualidade__legenda qualidade__legenda--topo">
               <div class="qualidade__legenda-linha">
-                <span><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" /></svg> Preço realizado</span>
+                <span><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" /></svg> Preço realizado<template v-if="fontesDoPreco"> ({{ fontesDoPreco }})</template></span>
                 <!-- O próprio item da legenda liga e desliga a linha (como na legenda de um gráfico de rosca). -->
                 <button
                   v-if="qualidade.contexto?.pontos?.length"
