@@ -128,3 +128,52 @@ troca. A leitura usava o WTI desde o ADR 0051.
   contra o Brent não foi pedido.
 - **As leituras já gravadas continuam como foram feitas**, com o WTI e a configuração v2: a tela mostra o que foi
   gravado. A leitura de um dia só passa ao Brent quando é feita ou refeita (`ANALISE_DIARIA_REFAZER=1`) com a v3.
+
+## Adendo (2026-10-07): o preço de referência passa ao Brent futuro, com um vencimento por horizonte
+
+**Contexto.** O Brent do adendo anterior é o **físico** da EIA (Dated Brent), publicado uma vez por semana: o realizado
+ficava de 1 a 8 dias atrás, e em mercado apertado o físico se afasta do instrumento operado, que é o **futuro** (P2 do ADR
+0055; o Brent da Pepperstone acompanha o futuro). Em 29/09/2026, o físico estava a 113,96 e o 1º vencimento do futuro a
+102,59. O Brent futuro passou a ser coletado no mesmo dia (NYMEX BZ, pelo Yahoo, fonte não oficial e provisória, ADR
+0096). **Decisão do usuário (Welerson), 2026-10-07**, que autorizou a troca e a leva ao David na reunião semanal do
+mesmo dia.
+
+**Decisão.**
+
+1. **Preço de referência: o Brent futuro** (`BRENT_FUTURO`, séries `YAHOO.BZ.<TICKER>.SETTLE`), o vencimento mais
+   próximo negociado no bloco 2.1, como o CCM e o ICF. Configuração **v4**, prompt **v7**. É a primeira série do
+   petróleo no Centro de Decisão; o Brent à vista e o WTI ficam como as outras.
+2. **Um vencimento por horizonte**, a regra do milho e do café (ADR 0078): o mais próximo que ainda negocia depois da
+   data-alvo. A leitura e a avaliação de cada horizonte usam esse contrato. O BZ vence no **último dia útil do 2º mês
+   anterior** ao do contrato (o de dezembro em 30/10); o limite é o dia útil antes dele, do lado seguro, para cobrir um
+   feriado de Londres. Em 07/10/2026: BZZ26 no imediato e no curto, BZF27 no médio e BZH27 no longo.
+3. **A curva vai ao bloco 2.2** (antes SEM DADO): o ajuste de cada vencimento no último pregão. **Sem liquidez mínima**:
+   o volume do Yahoo não é gravado (ADR 0096), e os primeiros vencimentos do Brent estão entre os contratos mais
+   negociados do mundo. O texto dos contratos não fala em liquidez.
+4. **Faixas recalibradas no futuro**, pelo critério do ADR 0051: percentis 40 e 80 da variação absoluta de 2010 a
+   2026-10-06 (banco de dev), com a regra de variação do Centro de Decisão, no 1º vencimento contínuo do Yahoo (`BZ=F`)
+   **sem o retorno do 1º pregão de cada mês**, o dia em que a série troca de contrato (202 rolagens desde 2010, mediana
+   de 1,5% de salto, 90% abaixo de 4,8%). Os vencimentos já vencidos não existem mais na fonte; a contínua é o único
+   histórico longo.
+
+   | Horizonte | Futuro (percentis 40 e 80) | Faixa (T1 e T2) | Antes, no Brent à vista |
+   |---|---|---|---|
+   | 1 dia | 0,75% / 2,30% | **0,8% / 2,3%** | 1% / 2,5% |
+   | 7 dias | 1,81% / 5,12% | **1,8% / 5%** | 2% / 6% |
+   | 30 dias | 4,07% / 10,89% | **4% / 11%** | 5% / 12% |
+   | 90 dias | 6,15% / 19,23% | **6% / 19%** | 7% / 21% |
+
+   O mesmo cálculo no Brent à vista reproduziu as faixas da v3; com o salto da rolagem, o futuro daria 0,82 / 2,42;
+   1,88 / 5,39; 4,56 / 11,16; 6,87 / 20,16. O futuro é menos volátil que o físico. As faixas continuam provisórias.
+5. **Prompt v7:** o bloco 1 diz que cada horizonte tem o seu contrato; o item 7 de "Como analisar", que as variações são
+   só do contrato; o item 8 deixa de proibir associar um vencimento a um horizonte (o vencimento de cada um é o da
+   tabela 2.4, não um escolhido pela IA na curva).
+
+**O que não muda.**
+- **Os fatores** (o refino segue com o Brent à vista no crack, ADR 0093) e as validações históricas.
+- **As leituras já gravadas** continuam como foram feitas, com o Brent à vista e a configuração v3; a Qualidade da IA as
+  separa pela versão da configuração (ADR 0064). A leitura de um dia passa ao futuro quando é feita ou refeita
+  (`ANALISE_DIARIA_REFAZER=1`) com a v4.
+
+**Para o David.** Se o contrato por horizonte vale para o petróleo, e se ele concorda com a mudança de nível (o futuro
+estava ~US$ 11 abaixo do físico em setembro de 2026).

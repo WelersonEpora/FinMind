@@ -1,6 +1,6 @@
 # Prompt — Análise diária do petróleo (leitura de tendência em quatro horizontes)
 
-**Versão:** 6
+**Versão:** 7
 
 Histórico: v1 (2026-10-03) - formato inicial (ADR 0051): seis blocos, no molde do prompt do milho (`STATUS_DO_PROJETO.md`,
 §5): os fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do sistema; os
@@ -22,6 +22,11 @@ mostrou reversão no histórico do Brent e não baixa a confiança sozinho.
 v6 (2026-10-07, ADR 0095) - os eventos do petróleo marcados com outro fator que não a OPEP+ e a geopolítica (ou com
 nenhum), que antes não iam ao prompt, vão a uma seção só da base (2.5), sem peso nem leitura do motor; os da OPEP+ e
 da geopolítica seguem nos fatores. O item 4 de "Como analisar" e a legenda do bloco 3 dizem isso.
+v7 (2026-10-07, ADR 0052, adendo, e ADR 0096) - o preço analisado passa do Brent à vista da EIA (o físico, publicado uma
+vez por semana) ao Brent FUTURO da NYMEX (BZ), o instrumento operado, com cada horizonte no seu vencimento: o mais
+próximo que ainda negocia depois da data-alvo, como no milho e no café (ADR 0078). A tabela 2.4 traz o contrato, o
+preço e as variações de cada horizonte; o bloco 2.2 traz a curva (o ajuste de cada vencimento), antes SEM DADO; o
+bloco 1 e os itens 7 e 8 de "Como analisar" dizem como usar os dois. Configuração v4, com as faixas no futuro.
 
 Enviado ao Gemini uma vez por dia pelo coletor `petroleo-analise-ia-diario` (ADR 0052).
 
@@ -38,8 +43,13 @@ americana do mesmo mercado e anda junto com o Brent. Use-os como estão, sem con
 Analise os quatro horizontes da tabela 2.4 (IMEDIATO, CURTO, MEDIO e LONGO). Cada horizonte é uma análise separada:
 leituras diferentes entre horizontes são esperadas e válidas. Não faça síntese nem conclusão entre os horizontes.
 
-Para cada horizonte, responda: para que lado tende o preço do Brent nesse prazo, em que faixa de variação da tabela 2.4
-e com que confiança.
+Para cada horizonte, responda: para que lado tende o preço do Brent futuro nesse prazo, em que faixa de variação da
+tabela 2.4 e com que confiança.
+
+Cada horizonte tem o seu contrato (a linha "Contrato" de cada horizonte na tabela 2.4): o vencimento mais
+próximo que ainda negocia depois da data-alvo. Leia a tendência do Brent nesse contrato, com as variações dele, e
+não as do contrato do bloco 2.1 quando forem diferentes. A curva (2.2) é só referência do preço de cada vencimento:
+não a trate como previsão e não crie preço-alvo com ela.
 
 Você produz leitura de tendência, não recomendação. Não diga para comprar, vender, manter, entrar, sair, proteger ou
 montar posição, nem nada equivalente. A leitura vai para pessoas que decidem; nenhuma ação é executada a partir dela.
@@ -85,12 +95,13 @@ Para cada horizonte, separadamente:
    exemplo, oferta, estoques e posicionamento) podem parecer se confirmar sem serem evidências independentes: diga
    quando for o caso, sem criar regra de desconto.
 7. Preço. Use o histórico (2.1) para dizer quanto do movimento já aconteceu. Um fator que acompanha o preço pode já
-   estar refletido nele. Os horizontes contam da data da análise, não da data do último preço: o preço entre as duas
-   datas é desconhecido. Não o estime. Se houver eventos posteriores ao último preço, diga que o preço pode já ter
+   estar refletido nele. O preço é de um contrato futuro: as variações são só desse contrato, e uma variação SEM DADO
+   é falta de histórico do contrato, não estabilidade do preço. Os horizontes contam da data da análise, não da data
+   do último preço: o preço entre as duas datas é desconhecido. Não o estime. Se houver eventos posteriores ao último preço, diga que o preço pode já ter
    reagido a eles nesse intervalo, sem saber quanto, e considere isso na confiança.
 8. Curva futura. Use a curva (2.2) só como referência de quanto o mercado paga por cada vencimento. Não a trate como
-   previsão, não tire conclusões do formato dela e não associe um vencimento a um horizonte. Se ela estiver SEM DADO,
-   registre a lacuna e não a use como argumento.
+   previsão e não tire conclusões do formato dela. O vencimento de cada horizonte é o da linha "Contrato" da tabela
+   2.4, não um escolhido por você na curva. Se ela estiver SEM DADO, registre a lacuna e não a use como argumento.
 9. Tendência e faixa. Escolha UMA faixa da tabela 2.4 para o horizonte, coerente com a tendência (as faixas BAIXA_*
    são de BAIXA, LATERAL é LATERAL, as ALTA_* são de ALTA). Não use percentual próprio nem preço-alvo.
 10. Confiança. É a firmeza da leitura, não o tamanho do movimento ("ALTA_LEVE" com confiança BAIXA é válido). Considere
@@ -156,10 +167,10 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 
 [2. BASE — montada pelo motor, sem IA]
 
-2.1 PREÇO DO BRENT À VISTA — onde o mercado está e o que já aconteceu
+2.1 PREÇO DO BRENT FUTURO — onde o mercado está e o que já aconteceu
 {{bloco_preco}}
 
-2.2 CURVA FUTURA DO BRENT — precificação de mercado por vencimento, não é previsão
+2.2 CURVA FUTURA DO BRENT — os vencimentos com ajuste no último pregão; precificação de mercado, não é previsão
 {{bloco_curva}}
 
 2.3 SITUAÇÃO DOS DADOS DOS FATORES — calculada pelo motor

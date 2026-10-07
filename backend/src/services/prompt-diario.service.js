@@ -113,7 +113,8 @@ function blocoPreco(preco, dataAnalise, config, ptax = null) {
 
 // Sem fonte (CURVA.fonte null), o prompt diz SEM DADO. Quando houver, a curva entra aqui como vencimento -> preço, sem
 // leitura do formato. Num ativo sem curva no prompt (CURVA.aplica false, o ouro), o bloco não existe. Num futuro da B3
-// com contrato por horizonte (o milho e o café, ADR 0078), cada vencimento com o ajuste e os contratos negociados.
+// com contrato por horizonte (o milho e o café, ADR 0078), cada vencimento com o ajuste e os contratos negociados. Sem
+// liquidez mínima na configuração (o Brent, sem o volume na fonte), só o ajuste.
 function blocoCurva(curva, config) {
   if (!curva) return config.CURVA.semDado;
   const moeda = config.PRECO.moeda || "US$";
@@ -124,9 +125,11 @@ function blocoCurva(curva, config) {
   return [
     `Ajuste de cada vencimento no pregão de ${fmtData(curva.dataReferencia)}, do mais próximo ao mais distante. Só fatos:`,
     "a inclinação da curva não é sinal por si.",
-    ...curva.vencimentos.map((v) =>
-      v.contratosNegociados === undefined ? `${v.vencimento}: ${moeda} ${fmtNumero(v.preco)}` : `${v.rotulo}: ${moeda} ${fmtNumero(v.preco)} | ${liquidez(v)}`
-    ),
+    ...curva.vencimentos.map((v) => {
+      if (v.contratosNegociados === undefined) return `${v.vencimento}: ${moeda} ${fmtNumero(v.preco)}`;
+      const comLiquidez = config.CURVA.liquidezMinima !== null && config.CURVA.liquidezMinima !== undefined;
+      return `${v.rotulo}: ${moeda} ${fmtNumero(v.preco)}${comLiquidez ? ` | ${liquidez(v)}` : ""}`;
+    }),
     `Fonte: ${config.CURVA.fonte || curva.fonte}`
   ].join("\n");
 }
@@ -152,8 +155,10 @@ function linhaContratoDoHorizonte(h, porHorizonte, config) {
   const { dataAlvo, preco, contratosNegociados } = porHorizonte[h.codigo];
   if (!preco.disponivel) return `   Contrato: SEM DADO (nenhum vencimento negociado vale até ${fmtData(dataAlvo)})`;
   const moeda = config.PRECO.moeda || "US$";
-  const liquidez =
-    contratosNegociados === null
+  const semLiquidez = config.CURVA.liquidezMinima === null || config.CURVA.liquidezMinima === undefined;
+  const liquidez = semLiquidez
+    ? null
+    : contratosNegociados === null
       ? "contratos negociados: SEM DADO"
       : `${fmtNumero(contratosNegociados, 0)} contratos negociados no dia${contratosNegociados < config.CURVA.liquidezMinima ? ` (POUCA LIQUIDEZ: menos de ${config.CURVA.liquidezMinima}; preço menos confiável)` : ""}`;
   const variacoes = config.HORIZONTES.map(({ variacao, dias }) => {
@@ -162,7 +167,7 @@ function linhaContratoDoHorizonte(h, porHorizonte, config) {
   }).join(", ");
   return (
     `   Contrato: ${preco.contrato.rotulo}, negocia depois da data-alvo (${fmtData(dataAlvo)}) | ${moeda} ${fmtNumero(preco.valor)} em ` +
-    `${fmtData(preco.dataReferencia)} | ${liquidez} | variação até ${fmtData(preco.dataReferencia)}: ${variacoes}`
+    `${fmtData(preco.dataReferencia)} | ${liquidez ? `${liquidez} | ` : ""}variação até ${fmtData(preco.dataReferencia)}: ${variacoes}`
   );
 }
 

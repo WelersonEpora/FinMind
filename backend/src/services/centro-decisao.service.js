@@ -31,6 +31,14 @@ const ATIVOS = [
     codigo: "PETROLEO",
     nome: "Petróleo",
     series: [
+      // O Brent futuro primeiro: o instrumento operado e o preço de referência da leitura desde a configuração v4 (ADRs
+      // 0052, adendo de 2026-10-07, e 0096). Sem os contratos negociados: o volume do Yahoo não é gravado.
+      {
+        codigo: "BRENT_FUTURO",
+        nome: "Brent futuro (NYMEX BZ)",
+        observavel: "BRENT_FUTURO_PRECOS",
+        futuro: { prefixo: "YAHOO.BZ", campo: "SETTLE", campoContratos: null }
+      },
       { codigo: "BRENT", nome: "Brent à vista (EIA)", observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.BRENT" },
       { codigo: "WTI", nome: "WTI à vista (EIA)", observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.WTI" }
     ]
@@ -74,8 +82,10 @@ const DIAS_EVENTOS = 7;
 const MAX_EVENTOS = 12;
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
-// Os contratos negociados no dia de um futuro da B3: a liquidez (ADR 0078).
+// Os contratos negociados no dia de um futuro da B3: a liquidez (ADR 0078). Um futuro sem esse dado diz
+// `campoContratos: null` (o Brent do Yahoo).
 const CAMPO_CONTRATOS = "CONTRACTS";
+const campoContratosDe = (futuro) => (futuro.campoContratos === undefined ? CAMPO_CONTRATOS : futuro.campoContratos);
 
 function hojeEmSaoPaulo(agora = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
@@ -132,11 +142,27 @@ function calcularVariacoes(pontos, frequencia) {
   return resultado;
 }
 
-// O último dia em que um contrato da B3 vale para uma data-alvo (ADR 0078): o dia 15 do mês de vencimento. O CCM vence
+// O último dia em que um contrato vale para uma data-alvo (ADR 0078). Na B3, o dia 15 do mês de vencimento: o CCM vence
 // no dia 15 (ou no dia útil seguinte) e o ICF depois dele (o último pregão foi do dia 18 ao 23): o dia 15 serve aos dois,
 // do lado seguro. Escolha do FinMind; o decodificador só conhece o mês.
 const DIA_LIMITE_DO_VENCIMENTO = 15;
-const limiteDoVencimento = (contrato) => `${contrato.vencimento}-${String(DIA_LIMITE_DO_VENCIMENTO).padStart(2, "0")}`;
+// O Brent (BZ) vence no último dia útil do 2º mês ANTERIOR ao do contrato (o BZZ26 em 30/10/2026). O limite é o dia útil
+// (seg-sex) antes dele, do lado seguro: cobre um feriado de Londres no último dia, que antecipa o vencimento (ADR 0052,
+// adendo de 2026-10-07).
+function limiteDoBrent(contrato) {
+  const indice = contrato.ano * 12 + (contrato.mes - 1) - 2; // o 2º mês anterior
+  const ultimoDia = new Date(Date.UTC(Math.floor(indice / 12), (indice % 12) + 1, 0));
+  const diasUteisAte = (d, n) => {
+    while (n > 0 || d.getUTCDay() === 0 || d.getUTCDay() === 6) {
+      if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) n -= 1;
+      d.setUTCDate(d.getUTCDate() - 1);
+    }
+    return d;
+  };
+  return diasUteisAte(ultimoDia, 1).toISOString().slice(0, 10);
+}
+const limiteDoVencimento = (contrato) =>
+  contrato.simbolo === "BZ" ? limiteDoBrent(contrato) : `${contrato.vencimento}-${String(DIA_LIMITE_DO_VENCIMENTO).padStart(2, "0")}`;
 
 // Futuro: o vencimento mais próximo que negociou no último pregão até a data. Cada vencimento é uma série própria
 // e nada é emendado: o gráfico e as variações usam só o histórico desse contrato. Com `vencimentoApos` (a data-alvo de
@@ -228,8 +254,9 @@ async function lerCurva(futuro, { data, agora }, deps = {}) {
     .filter((contrato) => contrato && contrato.vencimento >= mesDaData);
   if (contratos.length === 0) return null;
   const serieDe = (c, campo) => `${futuro.prefixo}.${c.ticker}.${campo}`;
+  const campoContratos = campoContratosDe(futuro);
   const linhas = await repo.buscarAsOf({
-    seriesCodes: contratos.flatMap((c) => [serieDe(c, futuro.campo), serieDe(c, CAMPO_CONTRATOS)]),
+    seriesCodes: contratos.flatMap((c) => (campoContratos ? [serieDe(c, futuro.campo), serieDe(c, campoContratos)] : [serieDe(c, futuro.campo)])),
     asOf: instanteDaData(data, agora),
     observadoDesde: somarDias(data, -JANELAS.DIARIA.busca),
     observadoAte: data
@@ -248,8 +275,8 @@ async function lerCurva(futuro, { data, agora }, deps = {}) {
       seriesCode: serieDe(c, futuro.campo),
       preco: doDia.get(serieDe(c, futuro.campo)),
       // Ajuste sem a linha de contratos = nenhum negócio no dia: a B3 deixa o campo vazio e o coletor não grava vazio
-      // (collectors/b3/b3-futuro.collector.js).
-      contratosNegociados: doDia.has(serieDe(c, CAMPO_CONTRATOS)) ? doDia.get(serieDe(c, CAMPO_CONTRATOS)) : 0
+      // (collectors/b3/b3-futuro.collector.js). Sem o dado na fonte (o Brent do Yahoo): null.
+      contratosNegociados: !campoContratos ? null : doDia.has(serieDe(c, campoContratos)) ? doDia.get(serieDe(c, campoContratos)) : 0
     }));
   return { dataReferencia: ultimoPregao, vencimentos };
 }

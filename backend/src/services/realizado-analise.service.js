@@ -36,6 +36,7 @@ const TOLERANCIA_PADRAO_DIAS = 4;
 const SERIES_DE_REFERENCIA = Object.freeze({
   BRENT: { observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.BRENT" },
   WTI: { observavel: "PETROLEO_PRECOS_EIA", seriesCode: "EIA.PETROLEO_PRECOS.WTI" },
+  BRENT_FUTURO: { observavel: "BRENT_FUTURO_PRECOS", futuro: { prefixo: "YAHOO.BZ", campo: "SETTLE", campoContratos: null } },
   GLD: { observavel: "GLD_PRECOS", futuro: { prefixo: "B3.GLD", campo: "SETTLE" } },
   CCM: { observavel: "CCM_PRECOS", futuro: { prefixo: "B3.CCM", campo: "SETTLE" } },
   ICF: { observavel: "ICF_PRECOS", futuro: { prefixo: "B3.ICF", campo: "SETTLE" } }

@@ -48,11 +48,14 @@ const EVENTO = {
   textoPrompt: "EVENTOS DO FATOR — Geopolítica\nCódigo: PETROLEO_GEOPOLITICA"
 };
 
+// O Brent futuro (configuração v4 do petróleo, ADR 0052, adendo de 2026-10-07): o vencimento mais próximo negociado.
 const PRECO = {
   disponivel: true,
-  nome: "Brent à vista (EIA)",
+  nome: "Brent futuro (NYMEX BZ)",
   unidade: "US$/barril",
-  fonte: "EIA - preços à vista (spot)",
+  fonte: "Yahoo Finance (não oficial) - Brent da NYMEX (BZ)",
+  seriesCode: "YAHOO.BZ.BZX26.SETTLE",
+  contrato: { ticker: "BZX26", rotulo: "BZX26 (nov/2026)" },
   valor: 96.16,
   dataReferencia: "2026-09-29",
   publicadoEm: "2026-09-30T15:30:00Z",
@@ -115,7 +118,7 @@ test("os blocos fixos (1, 4, 5 e 6) vão na instrução do sistema; a base e a l
   for (const bloco of ["[2. BASE", "2.1 PREÇO DO BRENT", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
     assert.ok(p.prompt.includes(bloco), bloco);
   }
-  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@6");
+  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@7");
   assert.equal(p.versaoMetodologia, "petroleo-v1 (2026-10-02)");
   assert.equal(p.versaoConfiguracao, config.VERSAO);
   assert.match(p.hashEntrada, /^[0-9a-f]{64}$/);
@@ -135,10 +138,13 @@ test("a instrução não esconde números da metodologia nem recomenda: as faixa
   }
 });
 
-test("a base traz o preço do Brent com as datas e as variações dos horizontes, e a curva sem fonte como SEM DADO", async () => {
+test("a base traz o preço do Brent futuro com o contrato, as datas e as variações dos horizontes, e a curva sem vencimentos como SEM DADO", async () => {
   const d = deps();
   const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, d);
-  assert.deepEqual(d.chamadas.preco, ["BRENT", "2026-10-03"]);
+  assert.deepEqual(d.chamadas.preco, ["BRENT_FUTURO", "2026-10-03"]);
+  assert.deepEqual(d.chamadas.curva, ["YAHOO.BZ", "2026-10-03"]);
+  assert.match(p.prompt, /2\.1 PREÇO DO BRENT FUTURO .*\nSérie: Brent futuro \(NYMEX BZ\), US\$\/barril \| Fonte: Yahoo Finance \(não oficial\)/);
+  assert.match(p.prompt, /Contrato: BZX26 \(nov\/2026\), o vencimento mais próximo negociado até a data/);
   assert.deepEqual(d.chamadas.simular, ["PETROLEO", "2026-10-03"]);
   assert.match(p.prompt, /Último preço: US\$ 96,16 em 29\/09\/2026 \| publicado em 30\/09\/2026 \(data estimada\) \| 4 dia\(s\) antes da data da análise/);
   assert.match(
@@ -147,9 +153,38 @@ test("a base traz o preço do Brent com as datas e as variações dos horizontes
   );
   assert.match(p.prompt, /1 dia \(pregão anterior\): -3,23% \(desde 28\/09\/2026\) \| 7 dias: -0,26% .* \| 90 dias: SEM DADO/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/barril\): 29\/09\/2026: 96,16; 28\/09\/2026: 99,37/);
-  assert.match(p.prompt, /2\.2 CURVA FUTURA DO BRENT .*\nSEM DADO: não há fonte da curva futura do Brent/);
+  assert.match(p.prompt, /2\.2 CURVA FUTURA DO BRENT .*\nSEM DADO: nenhum vencimento do Brent futuro com ajuste até a data\./);
   assert.equal(p.entrada.curva, null);
   assert.equal(p.entrada.precoReferencia.dataReferencia, "2026-09-29");
+});
+
+test("petróleo (ADR 0052, adendo de 2026-10-07): cada horizonte no seu vencimento do Brent e a curva só com o ajuste, sem liquidez", async () => {
+  const contrato = (ticker, rotulo, valor) => ({ ...PRECO, seriesCode: `YAHOO.BZ.${ticker}.SETTLE`, contrato: { ticker, rotulo }, valor });
+  // Análise de 07/10: o Z26 vence em 30/10, então o médio (06/11) cai no F27 e o longo (05/01) no H27.
+  const porAlvo = {
+    "2026-11-06": contrato("BZF27", "BZF27 (jan/2027)", 97.59),
+    "2027-01-05": contrato("BZH27", "BZH27 (mar/2027)", 93.25)
+  };
+  const curva = {
+    dataReferencia: "2026-10-06",
+    vencimentos: [
+      { ticker: "BZZ26", rotulo: "BZZ26 (dez/2026)", vencimento: "2026-12", seriesCode: "YAHOO.BZ.BZZ26.SETTLE", preco: 100.58, contratosNegociados: null },
+      { ticker: "BZF27", rotulo: "BZF27 (jan/2027)", vencimento: "2027-01", seriesCode: "YAHOO.BZ.BZF27.SETTLE", preco: 97.59, contratosNegociados: null }
+    ]
+  };
+  const d = deps({ preco: contrato("BZZ26", "BZZ26 (dez/2026)", 100.58), precoPorAlvo: (alvo) => porAlvo[alvo], curva });
+  d.agora = new Date("2026-10-07T15:00:00Z");
+  const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-07" }, d);
+
+  assert.deepEqual(d.chamadas.alvos, ["2026-10-08", "2026-10-14", "2026-11-06", "2027-01-05"]);
+  assert.match(p.prompt, /BZZ26 \(dez\/2026\): US\$ 100,58\nBZF27 \(jan\/2027\): US\$ 97,59\nFonte: Yahoo Finance, não oficial/);
+  assert.match(p.prompt, /MEDIO \(Médio, 30 dias\).*\n {3}Contrato: BZF27 \(jan\/2027\), negocia depois da data-alvo \(06\/11\/2026\) \| US\$ 97,59 em 29\/09\/2026 \| variação até/);
+  assert.match(p.prompt, /LONGO \(Longo, 90 dias\).*\n {3}Contrato: BZH27 \(mar\/2027\)/);
+  assert.doesNotMatch(p.prompt, /contratos negociados|POUCA LIQUIDEZ/);
+  const medio = p.entrada.horizontes.find((h) => h.codigo === "MEDIO");
+  assert.equal(medio.contrato.ticker, "BZF27");
+  assert.equal(medio.seriesCode, "YAHOO.BZ.BZF27.SETTLE");
+  assert.equal(p.entrada.precoReferencia.serie, "BRENT_FUTURO");
 });
 
 test("sem preço na data, o bloco diz SEM DADO", async () => {

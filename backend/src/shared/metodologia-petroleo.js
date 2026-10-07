@@ -366,10 +366,11 @@ const FATORES_PETROLEO = montarFatores("PETROLEO", DEFINICOES);
 // (docs/conversa-david-respostas-fel1.md, pontos 2 a 4).
 const DO_ATIVO = {
   decisoes: [
-    "Preço de referência: o Brent à vista (EIA), o instrumento operado; até 2026-10-03, o WTI. As faixas de variação foram recalibradas no Brent. David, 2026-10-04 (ADR 0052, adendo).",
+    "Preço de referência: o Brent futuro (NYMEX BZ, pelo Yahoo, fonte não oficial e provisória), o instrumento operado, com cada horizonte no vencimento que ainda negocia depois da data-alvo, a curva no prompt e as faixas recalibradas no futuro. Usuário, 2026-10-07 (ADRs 0052, adendo de 2026-10-07, e 0096). Antes: o Brent à vista da EIA (David, 2026-10-04) e, até 2026-10-03, o WTI.",
     "Leitura diária de tendência da IA no Centro de Decisão: quatro horizontes (1, 7, 30 e 90 dias), contados da data da análise, cada um com uma faixa de variação calibrada no histórico (provisória). Leitura, não recomendação. David, 2026-10-03 (ADRs 0051 e 0052)."
   ],
   perguntas: [
+    "Brent futuro como referência (decisão do usuário de 2026-10-07, para confirmar): o contrato por horizonte vale para o petróleo, como no milho e no café? E a mudança de nível está de acordo (em setembro de 2026, o futuro ficou ~US$ 11 abaixo do Brent à vista da EIA)? A assinatura da ICE (~US$ 2.500/ano), a fonte oficial, vai ao Comitê.",
     "Formato da leitura da IA: as faixas calibradas por horizonte (hoje) atendem, ou a IA deve dar uma variação central em % com as 6 classes fixas do prompt do milho (de irrelevante a excepcional)? Os cenários altista, neutro e baixista, sem probabilidade, podem entrar.",
     "Peso e agregação: o mapa sazonal de pesos e as regras de agregação propostas para o milho (blocos com teto de peso, fundos como multiplicador, conflito entre blocos reduz a confiança) valem também para o petróleo (ex.: a temporada de gasolina dos EUA)? Hoje o peso é o do FEL 1, e a IA explica as forças, sem agregação.",
     "Validação dos eventos: os eventos da OPEP+ e da geopolítica vão ao prompt sem validação humana, cada um com o link da fonte. A validação humana antes do prompt, pedida no fator 8 do milho, vale também aqui?"

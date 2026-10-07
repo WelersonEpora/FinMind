@@ -77,9 +77,8 @@ No Yahoo:
 
 ## Fora do escopo (de propósito)
 
-- **Trocar o preço de referência da leitura** para o Brent futuro (com o contrato por horizonte, como no milho e no
-  café, ADR 0078, e as faixas recalibradas pelo critério do ADR 0051): decisão à parte, num adendo ao ADR 0052; sugerido
-  confirmar com o David pela diferença de nível.
+- **Trocar o preço de referência da leitura** para o Brent futuro: decisão à parte, tomada pelo usuário no mesmo dia
+  (ADR 0052, adendo de 2026-10-07: contrato por horizonte, curva no prompt e faixas no futuro).
 - **O gráfico da Qualidade da IA com as duas linhas** (o futuro como preço da avaliação, o físico da EIA como
   contexto): depois da troca.
 - **Coletar a versão gratuita da ICE automaticamente** (navegador automatizado): rejeitado. Contornaria a barreira que

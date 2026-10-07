@@ -12,7 +12,10 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // v1 (2026-10-03): horizontes contados da data do último preço. v2 (2026-10-03): da data da análise (REFERENCIA_HORIZONTES).
 // v3 (2026-10-04): o preço de referência passa do WTI ao Brent, o instrumento que o Comitê opera (decisão do David,
 // ADR 0052, adendo), com as faixas recalibradas no Brent.
-const VERSAO = 3;
+// v4 (2026-10-07): o preço passa do Brent à vista (EIA, o físico, publicado uma vez por semana) ao Brent FUTURO (NYMEX BZ,
+// pelo Yahoo, ADR 0096), o instrumento operado; cada horizonte no vencimento que ainda vale depois da data-alvo, a curva no
+// prompt e as faixas recalibradas no futuro (decisão do usuário, ADR 0052, adendo de 2026-10-07).
+const VERSAO = 4;
 
 // Os quatro horizontes, cada um analisado separadamente (decisão do usuário, 2026-10-03). `variacao`: a janela do
 // Centro de Decisão com o mesmo prazo (centro-decisao.service.js::VARIACOES), a que o bloco de preço mostra.
@@ -23,17 +26,22 @@ const HORIZONTES = Object.freeze([
   { codigo: "LONGO", rotulo: "Longo", dias: 90, variacao: "d90" }
 ]);
 
-// As faixas de variação do Brent, em %, por horizonte. PROVISÓRIAS (2026-10-04): T1 e T2 são os percentis 40 e 80 da
-// variação absoluta do Brent à vista de 2010 a 2026-09-29 (banco de dev), arredondados, com a mesma regra de variação do
-// Centro de Decisão: |1 dia| 0,87 / 2,47%; |7 dias| 2,10 / 5,75%; |30 dias| 4,81 / 12,32%; |90 dias| 7,16 / 20,83%.
-// Só o longo muda contra as do WTI da v2 (0,93 / 2,59; 2,15 / 5,78; 5,00 / 12,03; 7,78 / 20,27: 8 e 20).
+// As faixas de variação do Brent, em %, por horizonte. PROVISÓRIAS. v4 (2026-10-07): T1 e T2 são os percentis 40 e 80 da
+// variação absoluta do Brent FUTURO, o preço que a leitura mede: o 1º vencimento contínuo do Yahoo (BZ=F) de 2010 a
+// 2026-10-06 (banco de dev), SEM o retorno do 1º pregão de cada mês (o dia em que a série troca de contrato: mediana de
+// 1,5% de salto, 90% abaixo de 4,8%), arredondados, com a regra de variação do Centro de Decisão: |1 dia| 0,75 / 2,30%;
+// |7 dias| 1,81 / 5,12%; |30 dias| 4,07 / 10,89%; |90 dias| 6,15 / 19,23%. Com o salto da rolagem: 0,82 / 2,42; 1,88 /
+// 5,39; 4,56 / 11,16; 6,87 / 20,16. O mesmo cálculo no Brent à vista reproduz as faixas da v3.
 // Assim, ~40% dos casos históricos caem em LATERAL e ~20% em FORTE, nos quatro horizontes. O mesmo critério dos
 // limiares dos fatores (percentis ~40 e ~80); a metodologia ajusta.
+//
+// v3 (2026-10-04), para registro: os percentis do Brent à vista de 2010 a 2026-09-29: 1 / 2,5%; 2 / 6%; 5 / 12%; 7 / 21%.
+// As leituras da v3 continuam medidas por essa régua, gravada com elas (ADR 0064).
 const FAIXAS = Object.freeze({
-  IMEDIATO: { t1: 1, t2: 2.5 },
-  CURTO: { t1: 2, t2: 6 },
-  MEDIO: { t1: 5, t2: 12 },
-  LONGO: { t1: 7, t2: 21 }
+  IMEDIATO: { t1: 0.8, t2: 2.3 },
+  CURTO: { t1: 1.8, t2: 5 },
+  MEDIO: { t1: 4, t2: 11 },
+  LONGO: { t1: 6, t2: 19 }
 });
 
 // De onde os horizontes são contados (ADR 0052, adendo de 2026-10-03): da DATA DA ANÁLISE. A v1 contava da data do
@@ -45,29 +53,37 @@ const FAIXAS = Object.freeze({
 // As leituras gravadas com a v1 continuam com "DATA_DO_ULTIMO_PRECO" na entrada, e a tela respeita o que foi gravado.
 const REFERENCIA_HORIZONTES = "DATA_DA_ANALISE";
 
-// O preço de referência: o Brent à vista (EIA), o instrumento operado (v3; até a v2, o WTI). A série do Centro de
-// Decisão (centro-decisao.service.js::ATIVOS), quantos pregões o histórico do bloco de preço lista e os textos do bloco
-// que dependem do ativo (o nome curto, a unidade da lista de pregões, o que a tabela 2.4 mede e os avisos da fonte).
-// `emReais`: uma linha com o preço convertido pela PTAX (só no ouro).
+// O preço de referência: o Brent FUTURO (NYMEX BZ, pelo Yahoo, ADR 0096), o vencimento mais próximo negociado (v4; na
+// v3, o Brent à vista da EIA; até a v2, o WTI). A série do Centro de Decisão (centro-decisao.service.js::ATIVOS), quantos
+// pregões o histórico do bloco de preço lista e os textos do bloco que dependem do ativo (o nome curto, a unidade da
+// lista de pregões, o que a tabela 2.4 mede e os avisos da fonte). `emReais`: uma linha com o preço convertido pela
+// PTAX (só no ouro).
 const PRECO = Object.freeze({
-  serie: "BRENT",
+  serie: "BRENT_FUTURO",
   pregoesNoHistorico: 10,
   rotulo: "Brent",
   unidadeHistorico: "US$/barril",
-  descricaoFaixas: "Brent à vista",
-  avisos: Object.freeze(["Aviso: a EIA publica os preços diários uma vez por semana; o último preço pode não refletir fatos posteriores a ele."]),
+  descricaoFaixas: "Brent futuro, no vencimento de cada horizonte (a linha \"Contrato\" de cada um)",
+  avisos: Object.freeze([
+    "Aviso: o preço é o ajuste do Brent futuro da NYMEX (BZ), liquidado pelo ICE Brent, de fonte não oficial (Yahoo Finance). O Brent à vista (físico, publicado pela EIA uma vez por semana) não está neste bloco: em mercado apertado, ele fica acima do futuro.",
+    "Aviso: cada vencimento é uma série própria e nada é emendado: as variações usam só o histórico do contrato atual. O Brent vence no último dia útil do 2º mês anterior ao do contrato (o de dezembro, no fim de outubro)."
+  ]),
   emReais: false
 });
 
-// A curva futura do Brent: sem fonte (o futuro da ICE é pago; a EIA deixou de publicar os vencimentos da NYMEX em
-// 2024-04, ADR 0040). Quando houver, `fonte` diz qual é e o serviço passa a lê-la; até lá, o prompt diz SEM DADO e a
-// resposta registra a lacuna.
+// A curva do Brent e o vencimento de cada horizonte (v4, como no milho e no café, ADR 0078): cada horizonte usa o
+// vencimento mais próximo que ainda vale depois da data-alvo (centro-decisao.service.js::lerFuturo, `vencimentoApos`), e a
+// leitura e a avaliação dele usam esse contrato; a curva inteira (o ajuste de cada vencimento) vai ao bloco 2.2. Sem
+// liquidez mínima (`liquidezMinima: null`): o volume do Yahoo não é gravado (ADR 0096), e os primeiros vencimentos do
+// Brent são dos contratos mais negociados do mundo.
 // `aplica: false` num ativo em que a curva não entra no prompt (o ouro, ADR 0054).
 const CURVA = Object.freeze({
   aplica: true,
-  fonte: null,
-  semDado: "SEM DADO: não há fonte da curva futura do Brent na base (o futuro da ICE é pago).",
-  lacuna: "Curva futura do Brent sem fonte na base"
+  porHorizonte: true,
+  fonte: "Yahoo Finance, não oficial (ajuste de cada vencimento do Brent futuro da NYMEX, BZ)",
+  liquidezMinima: null,
+  semDado: "SEM DADO: nenhum vencimento do Brent futuro com ajuste até a data.",
+  lacuna: "Curva do Brent futuro sem dado na data"
 });
 
 // O texto fixo do prompt (ai/prompts/), o coletor que o envia à IA uma vez por dia (ADR 0052) e o nome desta

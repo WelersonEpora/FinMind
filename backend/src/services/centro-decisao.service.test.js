@@ -9,7 +9,8 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { obterCentroDecisao, calcularVariacoes, ATIVOS } = require("./centro-decisao.service");
+const { obterCentroDecisao, calcularVariacoes, limiteDoVencimento, ATIVOS } = require("./centro-decisao.service");
+const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
 const { buscarNoCatalogo } = require("./observaveis.service");
 
 // 2026-10-02 12:00 em Brasília.
@@ -122,7 +123,8 @@ test("futuro: o vencimento mais próximo que negociou no último pregão até a 
 test("data passada: o que foi publicado depois não aparece (point-in-time)", async () => {
   const repo = repoCom([linha("EIA.PETROLEO_PRECOS.BRENT", "2026-09-22", 70), { ...linha("EIA.PETROLEO_PRECOS.BRENT", "2026-09-23", 71), published_at: new Date("2026-09-30T15:00:00Z") }]);
   const { centroDecisao } = await obterCentroDecisao(
-    { ativo: "PETROLEO", data: "2026-09-25" },
+    // O Brent à vista da EIA (não o padrão do petróleo, o futuro): publicado uma semana depois.
+    { ativo: "PETROLEO", data: "2026-09-25", serie: "BRENT" },
     { agora: AGORA, observationRepository: repo, geopoliticaService: geopoliticaFalsa(), analiseDiariaRepository: { buscarAnaliseDoDia: async () => null } }
   );
 
@@ -283,4 +285,13 @@ test("variações: ponto anterior, último ponto até N dias antes; série mensa
   assert.ok(mensal.d30);
 
   assert.equal(calcularVariacoes([{ data: "2026-10-01", valor: 1 }], "DIARIA").d1, null);
+});
+
+test("limite do vencimento: dia 15 do mês na B3; no Brent, o dia útil antes do último do 2º mês anterior", () => {
+  const limite = (ticker) => limiteDoVencimento(decodificarFuturoB3(ticker));
+  assert.equal(limite("CCMX26"), "2026-11-15");
+  assert.equal(limite("BZZ26"), "2026-10-29"); // vence em 30/10 (sexta)
+  assert.equal(limite("BZF27"), "2026-11-27"); // vence em 30/11 (segunda): a sexta antes
+  assert.equal(limite("BZH27"), "2027-01-28"); // vence em 29/01/2027
+  assert.equal(limite("BZG27"), "2026-12-30"); // virada de ano: vence em 31/12
 });
