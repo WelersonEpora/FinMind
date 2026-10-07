@@ -53,16 +53,18 @@ const fimDeSemana = computed(() => dias.value.filter((d) => diaDaSemana(d) === 0
 // semana): dois dias vizinhos nunca têm o mesmo fundo, e cada grupo de barras (as quatro de uma data-alvo) fica separado
 // do vizinho. Branco e cinza, e não uma cor, para não competir com as dos horizontes (o âmbar do longo sumiria num fundo
 // amarelo).
+// A inicial de cada dia da semana, na base do gráfico (domingo = 0, como no getUTCDay).
+const INICIAL_DO_DIA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 const diasBrancos = computed(() => dias.value.filter((d) => [1, 3, 5].includes(diaDaSemana(d))))
-// A virada de cada mês: o dia 1, menos o primeiro dia da janela. O nome sai no topo, com o ano em janeiro, e some quando
-// encostaria no "hoje".
+// A virada de cada mês: o dia 1, menos o primeiro dia da janela. O nome sai acima da área do gráfico, em negrito, com o
+// ano em janeiro (fora da área, não encosta no "hoje").
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const viradas = computed(() =>
   dias.value
     .filter((d, i) => i > 0 && d.endsWith('-01'))
     .map((d) => {
       const mes = MESES[Number(d.slice(5, 7)) - 1]
-      return { data: d, nome: mes === 'jan' ? `${mes}/${d.slice(2, 4)}` : mes, rotulo: Math.abs(x(d) - x(props.hoje)) >= 36 }
+      return { data: d, nome: mes === 'jan' ? `${mes}/${d.slice(2, 4)}` : mes }
     })
 )
 const ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
@@ -253,6 +255,14 @@ onBeforeUnmount(() => observador?.disconnect())
           <line :x1="x(d)" :x2="x(d)" :y1="TOPO + ALT_PLOT" :y2="TOPO + ALT_PLOT + 4" class="leque__tique" />
           <text :x="x(d)" :y="ALTURA - 9" text-anchor="middle" class="leque__texto">{{ ddmm(d) }}</text>
         </g>
+        <text
+          v-for="d in dias"
+          :key="`ini${d}`"
+          :x="x(d)"
+          :y="TOPO + ALT_PLOT - 4"
+          text-anchor="middle"
+          class="leque__texto leque__inicial"
+        >{{ INICIAL_DO_DIA[diaDaSemana(d)] }}</text>
         <line x1="0" :x2="larguraTotal" :y1="TOPO + ALT_PLOT" :y2="TOPO + ALT_PLOT" class="leque__base" />
 
         <rect
@@ -306,7 +316,7 @@ onBeforeUnmount(() => observador?.disconnect())
 
         <g v-for="v in viradas" :key="`v${v.data}`">
           <line :x1="x(v.data) - largura / 2" :x2="x(v.data) - largura / 2" :y1="TOPO - 6" :y2="TOPO + ALT_PLOT" class="leque__mes" />
-          <text v-if="v.rotulo" :x="x(v.data) - largura / 2 + 4" :y="TOPO + 8" class="leque__texto">{{ v.nome }}</text>
+          <text :x="x(v.data) - largura / 2 + 4" :y="TOPO - 10" class="leque__texto leque__texto--mes">{{ v.nome }}</text>
         </g>
         <line :x1="x(hoje)" :x2="x(hoje)" :y1="TOPO - 6" :y2="TOPO + ALT_PLOT" class="leque__hoje" />
         <text :x="x(hoje) + 4" :y="TOPO + 8" class="leque__texto leque__texto--hoje">hoje</text>
@@ -366,6 +376,10 @@ onBeforeUnmount(() => observador?.disconnect())
   font-weight: 700;
   fill: var(--p-text-color);
 }
+.leque__texto--mes {
+  fill: var(--p-text-color);
+  font-weight: 700;
+}
 .leque__texto--hoje {
   fill: var(--p-text-color);
   font-weight: 600;
@@ -377,6 +391,9 @@ onBeforeUnmount(() => observador?.disconnect())
 .leque__base {
   stroke: var(--p-surface-300);
   stroke-width: 1;
+}
+.leque__inicial {
+  font-size: 9px;
 }
 .leque__tique {
   stroke: var(--p-text-muted-color);
