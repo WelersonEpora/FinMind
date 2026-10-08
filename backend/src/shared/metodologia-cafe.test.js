@@ -11,10 +11,11 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { FATORES } = require("./fatores-fel1");
 const { SITUACAO, obterMetodologiaCafe } = require("./metodologia-cafe");
+const { VALIDACAO_MOTORES } = require("./metodologia-base");
 const { buscarNoCatalogo } = require("../services/observaveis.service");
 const { obterMetodologiaAtivo, ATIVOS_COM_PROMPT_DIARIO } = require("../services/metodologia-ativo.service");
 
-test("os 8 fatores do café do FEL 1, na ordem da planilha, como proposta do Motor do Café v1", () => {
+test("os 8 fatores do café do FEL 1, na ordem da planilha, do Motor do Café v1, validados pelo Comitê (ADR 0108)", () => {
   const { ativo, fatores } = obterMetodologiaCafe();
   assert.equal(ativo, "CAFE");
   assert.deepEqual(
@@ -22,7 +23,8 @@ test("os 8 fatores do café do FEL 1, na ordem da planilha, como proposta do Mot
     FATORES.filter((f) => f.ativo === "CAFE").map((f) => f.codigo)
   );
   for (const fator of fatores) {
-    assert.equal(fator.proposta.situacao, SITUACAO.PROPOSTA, fator.codigo);
+    assert.equal(fator.proposta.situacao, SITUACAO.VALIDADA, fator.codigo);
+    assert.deepEqual(fator.proposta.validacao, VALIDACAO_MOTORES, fator.codigo);
     assert.match(fator.proposta.autoria, /Motor do Café v1/, fator.codigo);
     // As regras como o estudo escreveu: hipóteses, sem limiar.
     assert.match(fator.proposta.regrasEspecialista.alta, /Hipótese v0 — não validada/, fator.codigo);

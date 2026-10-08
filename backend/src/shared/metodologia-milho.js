@@ -1,6 +1,6 @@
 "use strict";
 
-const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-base");
+const { SITUACAO, VALIDACAO_MOTORES, montarFatores, montarMetodologia } = require("./metodologia-base");
 const { resumoParaTela } = require("../factors/agregacao/agregacao-milho");
 
 // Metodologia dos 8 fatores do milho: só as definições (o formato de cada uma está em metodologia-base.js). Fonte do
@@ -12,8 +12,8 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-milho");
 // caber no motor fica dito no cálculo do fator. O próprio documento diz: proposta para deliberação do Comitê, limiares e
 // pesos ILUSTRATIVOS, a calibrar em backtest.
 //
-// Limite (CLAUDE.md e ADR 0050): o milho não vai ao prompt diário, ao Centro de Decisão nem à IA até a aprovação do
-// Comitê, como foi com o petróleo (ADR 0052) e o ouro (ADR 0054). Nada daqui gera sinal de compra ou venda.
+// Aprovado pelo Comitê em 2026-10-04 (ADR 0058), vai ao prompt diário e ao Centro de Decisão; o motor foi validado como
+// está pelo Comitê, com o David, em 2026-10-07 (ADR 0108). Nada daqui gera sinal de compra ou venda.
 //
 // A validação histórica (parte D) é contra o Indicador do Milho CEPEA/ESALQ (B3, R$/saca, desde 2018-06-08, ADR 0021),
 // o preço em que o CCM liquida e o histórico mais longo do milho brasileiro na base.
@@ -45,8 +45,9 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-milho");
 // v20 (2026-10-06): os ajustes ao FEL 1 em cada fator, sem revisão do documento; a pergunta sai (ADR 0082).
 // v21 (2026-10-07): os eventos saem dos fatores F1 a F7 e vão a uma seção da base do prompt; o F8 fica com os dele
 // (ADR 0095).
-const VERSAO = 21;
-const DATA_VERSAO = "2026-10-07";
+// v22 (2026-10-08): o motor validado pelo Comitê, com o David, em 2026-10-07; os fatores saem como validados (ADR 0108).
+const VERSAO = 22;
+const DATA_VERSAO = "2026-10-08";
 const AUTORIA_DAVID = "David, Motor do Milho v0 (2026-10-02, ADR 0055)";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0055)";
 
@@ -421,7 +422,7 @@ const DEFINICOES = [
   }
 ];
 
-const FATORES_MILHO = montarFatores("MILHO", DEFINICOES);
+const FATORES_MILHO = montarFatores("MILHO", DEFINICOES, VALIDACAO_MOTORES);
 
 // O que vale para o ativo, não para um fator (metodologia-base.js). As decisões vêm das respostas do David ao FEL 1
 // (ADR 0055); as perguntas, da Seção 5 da proposta dele ("Pendências para deliberação do Comitê") e da conversa marcada

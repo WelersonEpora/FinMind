@@ -11,10 +11,11 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { FATORES } = require("./fatores-fel1");
 const { SITUACAO, obterMetodologiaMilho } = require("./metodologia-milho");
+const { VALIDACAO_MOTORES } = require("./metodologia-base");
 const { buscarNoCatalogo } = require("../services/observaveis.service");
 const { obterMetodologiaAtivo, ATIVOS_COM_PROMPT_DIARIO } = require("../services/metodologia-ativo.service");
 
-test("os 8 fatores do milho do FEL 1, na ordem da planilha, todos como proposta do David (v0)", () => {
+test("os 8 fatores do milho do FEL 1, na ordem da planilha, da proposta do David (v0), validados pelo Comitê (ADR 0108)", () => {
   const { ativo, fatores } = obterMetodologiaMilho();
   assert.equal(ativo, "MILHO");
   assert.deepEqual(
@@ -22,7 +23,8 @@ test("os 8 fatores do milho do FEL 1, na ordem da planilha, todos como proposta 
     FATORES.filter((f) => f.ativo === "MILHO").map((f) => f.codigo)
   );
   for (const fator of fatores) {
-    assert.equal(fator.proposta.situacao, SITUACAO.PROPOSTA, fator.codigo);
+    assert.equal(fator.proposta.situacao, SITUACAO.VALIDADA, fator.codigo);
+    assert.deepEqual(fator.proposta.validacao, VALIDACAO_MOTORES, fator.codigo);
     assert.match(fator.proposta.autoria, /David, Motor do Milho v0/, fator.codigo);
     assert.match(fator.proposta.regrasEspecialista.alta, /^R-[A-Z]+-01 v0/, fator.codigo);
     assert.match(fator.proposta.regrasEspecialista.baixa, /^R-[A-Z]+-02 v0/, fator.codigo);

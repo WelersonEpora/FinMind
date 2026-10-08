@@ -18,5 +18,6 @@ combina os fatores é a IA, orientada pelo prompt (no milho, com o peso do mês 
 Comitê definirem essas regras (`STATUS_DO_PROJETO.md`, §4).
 
 Restrições que continuam valendo (`CLAUDE.md`): nenhuma regra, fórmula ou limiar que o David ou o Comitê não tenham
-definido (uma proposta fica marcada como `PROPOSTA`, ADR 0050); a leitura da IA é **tendência, nunca recomendação de
+definido (uma proposta fica marcada como `PROPOSTA`, ADR 0050; os fatores dos quatro ativos estão `VALIDADA` desde
+2026-10-07, ADR 0108); a leitura da IA é **tendência, nunca recomendação de
 compra ou venda**; nenhuma execução automática de ordens.

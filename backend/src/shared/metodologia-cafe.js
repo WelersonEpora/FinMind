@@ -1,6 +1,6 @@
 "use strict";
 
-const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-base");
+const { SITUACAO, VALIDACAO_MOTORES, montarFatores, montarMetodologia } = require("./metodologia-base");
 const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 
 // Metodologia dos 8 fatores do café: só as definições (o formato de cada uma está em metodologia-base.js). Fonte do FEL
@@ -15,7 +15,8 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 //
 // Aprovação do Comitê (2026-10-05, ADR 0062): o Motor do Café v1 como está na tela, com os limiares calibrados pelo
 // FinMind, vai ao prompt diário, à leitura de tendência da IA e ao Centro de Decisão, como o milho (ADR 0058). Leitura
-// de tendência, nunca recomendação: nada daqui gera sinal de compra ou venda.
+// de tendência, nunca recomendação: nada daqui gera sinal de compra ou venda. O motor foi validado como está pelo
+// Comitê, com o David, em 2026-10-07 (ADR 0108).
 
 // v1 (2026-10-04): os 8 fatores do Motor do Café v1, todos calculados com a calibração do FinMind.
 // v2 (2026-10-05): o vencimento do ICF de cada horizonte e a curva no prompt; a pergunta sai (ADR 0078).
@@ -32,8 +33,9 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 // confiança (ADR 0089, revisão); os textos do F6 e do F7 dizem o que o histórico sustenta.
 // v13 (2026-10-07): os eventos saem dos 8 fatores e vão a uma seção da base do prompt (ADR 0095).
 // v14 (2026-10-07): a agregação em código sai do prompt (ADR 0066, adendo); as perguntas do ativo viram decisões.
-const VERSAO = 14;
-const DATA_VERSAO = "2026-10-07";
+// v15 (2026-10-08): o motor validado pelo Comitê, com o David, em 2026-10-07; os fatores saem como validados (ADR 0108).
+const VERSAO = 15;
+const DATA_VERSAO = "2026-10-08";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
   "O limiar é calibração do FinMind (o estudo deixa \"[CALIBRAR COM DADOS POINT-IN-TIME]\"): a posição da medida no próprio histórico, neutra do percentil 20 ao 80 (a faixa que o estudo usa no COT), forte abaixo do 10 ou acima do 90.";
@@ -363,7 +365,7 @@ const DEFINICOES = [
   }
 ];
 
-const FATORES_CAFE = montarFatores("CAFE", DEFINICOES);
+const FATORES_CAFE = montarFatores("CAFE", DEFINICOES, VALIDACAO_MOTORES);
 
 // O que vale para o ativo, não para um fator (metodologia-base.js): o que o Comitê aprovou em 2026-10-05 (ADR 0062) e o
 // que segue em aberto.

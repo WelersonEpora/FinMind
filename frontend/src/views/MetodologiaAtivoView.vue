@@ -38,7 +38,8 @@ const resumoDoAtivo = computed(() => {
 })
 const opcoesAtivo = computed(() => (resposta.value?.ativos || []).map((a) => ({ ...a, icone: iconeAtivo(a.codigo) })))
 
-const ROTULO_SITUACAO = { PROPOSTA: 'Proposta, aguardando o David', VALIDADA: 'Validada pelo David' }
+// O que roda está validado e não leva selo (ADR 0108): só a proposta (um ativo novo) é marcada, no resumo e no cálculo.
+const motorValidado = computed(() => Boolean(metodologia.value?.fatores.every((f) => f.proposta.situacao === 'VALIDADA')))
 
 // O nome de um fator do ativo pelo código (o fator de que outro é contexto, ADR 0054).
 function nomeDoFator(codigo) {
@@ -214,7 +215,8 @@ watch(ativo, carregar, { immediate: true })
             <div class="metodologia-ativo__secao-cabecalho">
               <h2 class="metodologia-ativo__secao-titulo">Fatores</h2>
               <span class="metodologia-ativo__contexto-resumo">
-                {{ metodologia.fatores.length }} fatores · proposta v{{ metodologia.versao }} de {{ formatarData(metodologia.dataVersao) }}
+                {{ metodologia.fatores.length }} fatores ·{{ motorValidado ? '' : ' proposta' }}
+                v{{ metodologia.versao }} de {{ formatarData(metodologia.dataVersao) }}
               </span>
             </div>
             <p v-if="simulacao" class="metodologia-ativo__simulando">
@@ -243,10 +245,6 @@ watch(ativo, carregar, { immediate: true })
                   <p class="metodologia-ativo__objetivo">{{ fator.fel1.direcao }}</p>
 
                   <div class="metodologia-ativo__marcas">
-                    <!-- Tudo é proposta (o resumo ao lado de "Fatores" e o modal dizem): no card, só a exceção (fator validado). -->
-                    <span v-if="fator.proposta.situacao === 'VALIDADA'" class="metodologia-ativo__situacao metodologia-ativo__situacao--validada">
-                      {{ ROTULO_SITUACAO.VALIDADA }}
-                    </span>
                     <!-- Dado insuficiente em vermelho, como etiqueta: é um alerta, não uma marca como as outras. -->
                     <span
                       v-if="fator.dados.avaliacao"
@@ -256,7 +254,7 @@ watch(ativo, carregar, { immediate: true })
                       <i class="bi" :class="fator.dados.avaliacao.suficiente ? 'bi-check-circle' : 'bi-exclamation-circle'"></i>
                       {{ fator.dados.avaliacao.suficiente ? 'Dado suficiente' : 'Dado insuficiente' }}
                     </span>
-                    <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> Proposta calculada</span>
+                    <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> {{ fator.proposta.situacao === 'VALIDADA' ? 'Calculado' : 'Proposta calculada' }}</span>
                     <span v-if="fator.deEvento" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Fator de evento</span>
                     <span v-if="fator.comEventos" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Com eventos</span>
                     <span v-if="fator.ajustesFel1?.length" class="metodologia-ativo__calculado" :title="fator.ajustesFel1.map((a) => a.campo).join(', ')">
@@ -376,13 +374,6 @@ watch(ativo, carregar, { immediate: true })
           <section class="metodologia-ativo__bloco metodologia-ativo__bloco--proposta">
             <h4>
               Como medir
-              <!-- Tudo é proposta, validada com o uso e pelo Comitê: o selo só marca a exceção (fator validado). -->
-              <span
-                v-if="fatorSelecionado.proposta.situacao === 'VALIDADA'"
-                class="metodologia-ativo__situacao metodologia-ativo__situacao--validada"
-              >
-                {{ ROTULO_SITUACAO.VALIDADA }}
-              </span>
             </h4>
             <p v-if="fatorSelecionado.proposta.autoria" class="metodologia-ativo__autoria">
               Proposta de {{ fatorSelecionado.proposta.autoria }}. O que o FinMind acrescentou para o cálculo está dito na leitura.

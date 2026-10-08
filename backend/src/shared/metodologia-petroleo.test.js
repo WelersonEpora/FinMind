@@ -11,6 +11,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { FATORES } = require("./fatores-fel1");
 const { SITUACAO, obterMetodologiaPetroleo } = require("./metodologia-petroleo");
+const { VALIDACAO_MOTORES } = require("./metodologia-base");
 const { buscarNoCatalogo } = require("../services/observaveis.service");
 const { obterMetodologiaAtivo, calcularFator, obterEventosFator, simularFatores, listarParametros, salvarParametros } = require("../services/metodologia-ativo.service");
 const { PARAMETROS_PADRAO } = require("../factors/estoques-petroleo-eia.factor");
@@ -60,8 +61,8 @@ test("cada fator traz as 4 colunas do FEL 1 preenchidas", () => {
   }
 });
 
-test("toda proposta sai marcada como PROPOSTA: nenhuma foi validada pelo David ainda", () => {
-  assert.ok(fatores.every((fator) => fator.proposta.situacao === SITUACAO.PROPOSTA));
+test("os 10 fatores saem validados pelo Comitê, com o David, em 2026-10-07 (ADR 0108)", () => {
+  assert.ok(fatores.every((fator) => fator.proposta.situacao === SITUACAO.VALIDADA && fator.proposta.validacao === VALIDACAO_MOTORES));
 });
 
 test("todo fator tem dado (observável ou eventos) e ao menos uma pergunta ao David ou uma decisão (a OPEP+, ADR 0091)", () => {
@@ -269,7 +270,7 @@ for (const codigo of Object.keys(LINHAS_SINTETICAS)) {
 test("o cálculo devolve a proposta com a situação dela e recusa fator sem cálculo e data inválida", async () => {
   const deps = { pointInTimeService: semDados, fatorParametroRepository: repoFalso() };
   const { calculo } = await calcularFator("PETROLEO", "petroleo_estoques_eia", { desde: "2026-01-02" }, deps);
-  assert.equal(calculo.situacao, "PROPOSTA");
+  assert.equal(calculo.situacao, "VALIDADA");
   assert.equal(calculo.tempoReal, false);
   assert.deepEqual(calculo.pontos, []);
   assert.ok(calculo.exemplos.cenarios.length > 0);
@@ -426,7 +427,7 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   assert.equal(simulacao.fatores.length, 10);
   assert.deepEqual(simulacao.fatores.filter((f) => f.tipo === "EVENTO").map((f) => f.codigo), ["PETROLEO_GEOPOLITICA"]);
   assert.ok(simulacao.fatores.filter((f) => f.tipo === "CALCULADO").every((f) => f.medida === null && f.textoPrompt.startsWith("FATOR — ")));
-  assert.equal(simulacao.versaoMetodologia, "petroleo-v11 (2026-10-07)");
+  assert.equal(simulacao.versaoMetodologia, "petroleo-v12 (2026-10-08)");
   // Os eventos do ativo numa seção da base (ADR 0095), sem os dos dois fatores de evento.
   assert.deepEqual(eventosDoAtivo, { janelaDias: 7, janelaPorFator: {}, excluirFatores: ["PETROLEO_OPEP", "PETROLEO_GEOPOLITICA"] });
   assert.equal(simulacao.eventosDoAtivo.textoPrompt, "EVENTOS DO ATIVO");

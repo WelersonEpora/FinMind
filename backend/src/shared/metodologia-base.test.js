@@ -17,6 +17,14 @@ test("o fator leva o nome e o peso do FEL 1 e começa como proposta", () => {
   assert.equal(fator.evento, null);
 });
 
+test("com a validação do ativo, todo fator sai VALIDADA e leva quem, quando e o ADR; validação incompleta é erro", () => {
+  const validacao = { por: "Comitê, com o David", data: "2026-10-07", adr: "ADR 0108" };
+  const fatores = montarFatores("OURO", [definicao("OURO_DOLAR"), definicao("OURO_JUROS_REAIS")], validacao);
+  assert.ok(fatores.every((f) => f.proposta.situacao === SITUACAO.VALIDADA && f.proposta.validacao === validacao));
+  assert.equal(fatores[0].proposta.objetivo, "x");
+  assert.throws(() => montarFatores("OURO", [definicao("OURO_DOLAR")], { por: "Comitê", data: "2026-10-07" }), /ADR/);
+});
+
 test("um código fora do catálogo, ou de outro ativo, é erro", () => {
   assert.throws(() => montarFatores("OURO", [definicao("OURO_INEXISTENTE")]), /OURO_INEXISTENTE/);
   assert.throws(() => montarFatores("OURO", [definicao("PETROLEO_DOLAR")]), /PETROLEO_DOLAR/);

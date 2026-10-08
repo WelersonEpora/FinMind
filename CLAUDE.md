@@ -14,7 +14,9 @@ dados de milho e ouro** (as fontes do relatório FEL 1 do especialista de mercad
 "David"), guardada com data de publicação. Nos quatro ativos (petróleo, ouro, milho e café),
 a cadeia roda inteira: os fatores, o prompt diário e a leitura de tendência da IA no Centro
 de Decisão (ADRs 0050 a 0052, 0054, 0058 e 0062), com o realizado de cada horizonte e a tela Qualidade
-da IA, que mede as leituras contra dois benchmarks (ADRs 0063 e 0064). O que segue com o David e o Comitê está em
+da IA, que mede as leituras contra dois benchmarks (ADRs 0063 e 0064). Em 2026-10-07 o Comitê, com o David, validou os
+quatro motores como estão (ADR 0108): a fase agora é acompanhar a Qualidade da IA e ajustar. O que roda conta como validado, sem
+selo na tela; a solução de um problema é validada no Comitê antes de ir ao sistema, num ADR. O que segue com o David e o Comitê está em
 `STATUS_DO_PROJETO.md`, §4.
 
 ## Restrições permanentes (não negociáveis nesta fase)

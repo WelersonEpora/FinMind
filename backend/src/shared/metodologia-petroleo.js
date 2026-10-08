@@ -1,10 +1,10 @@
 "use strict";
 
-const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-base");
+const { SITUACAO, VALIDACAO_MOTORES, montarFatores, montarMetodologia } = require("./metodologia-base");
 
-// Metodologia dos 10 fatores do petróleo: só as definições (o formato de cada uma está em metodologia-base.js). Uma
-// PROPOSTA para o David validar, não uma regra (ADR 0050). Fonte do FEL 1: a tabela "Fatores de Influência de Preço:
-// Petróleo", v1.1.
+// Metodologia dos 10 fatores do petróleo: só as definições (o formato de cada uma está em metodologia-base.js). Nasceu
+// como PROPOSTA para o David validar (ADR 0050); o motor foi validado como está pelo Comitê, com o David, em 2026-10-07
+// (ADR 0108). Fonte do FEL 1: a tabela "Fatores de Influência de Preço: Petróleo", v1.1.
 //
 // Desde a aprovação do David (2026-10-03), a leitura dos fatores vai ao prompt diário e a leitura de tendência da IA
 // aparece no Centro de Decisão (ADR 0052). Nada daqui gera sinal de compra ou venda.
@@ -23,8 +23,9 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // fica a confirmação do Brent futuro com o David (ADR 0104).
 // v5 (2026-10-07): as perguntas da geopolítica (F3) viram decisões: fator próprio, o evento mais grave, a ameaça conta
 // com menos peso que a interrupção e a janela de 7 dias, sem vigência (ADR 0098).
-const VERSAO = 11;
-const DATA_VERSAO = "2026-10-07";
+// v12 (2026-10-08): o motor validado pelo Comitê, com o David, em 2026-10-07; os fatores saem como validados (ADR 0108).
+const VERSAO = 12;
+const DATA_VERSAO = "2026-10-08";
 
 const DEFINICOES = [
   {
@@ -377,7 +378,7 @@ const DEFINICOES = [
   }
 ];
 
-const FATORES_PETROLEO = montarFatores("PETROLEO", DEFINICOES);
+const FATORES_PETROLEO = montarFatores("PETROLEO", DEFINICOES, VALIDACAO_MOTORES);
 
 // O que vale para o ativo, não para um fator (metodologia-base.js): o preço de referência e a leitura da IA. As
 // perguntas vêm das respostas do David ao FEL 1 (ADR 0055) e da conversa marcada com ele

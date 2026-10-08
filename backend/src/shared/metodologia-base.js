@@ -12,8 +12,8 @@ const { FATORES } = require("./fatores-fel1");
 //              (o FEL 1 foi escrito com apoio de IA: um requisito dele pode não ser necessário).
 //   proposta - um rascunho do fator nas três camadas do motor (STATUS_DO_PROJETO.md, §5): a medida (A. Medir), a
 //              comparação (B. Ler) e um esboço da leitura (C. Decidir, só o Comitê), escrito para abrir caminho e ser
-//              corrigido. Fica com `situacao: "PROPOSTA"` até o David validar; aí vira "VALIDADA"
-//              com a data e a referência da validação (no ADR). Opcionais: `autoria` (de quem é a proposta, quando não
+//              corrigido. Fica com `situacao: "PROPOSTA"` até o David validar; aí vira "VALIDADA", com a validação do
+//              ativo (3º parâmetro de `montarFatores`: quem, quando e o ADR) em `validacao`. Opcionais: `autoria` (de quem é a proposta, quando não
 //              é do FinMind: ex.: o Motor do Milho v0 do David) e `regrasEspecialista` ({ alta, baixa }: as regras como
 //              o especialista as escreveu, sem reescrever).
 //   perguntas - o que o David precisa decidir para a proposta virar regra.
@@ -80,6 +80,8 @@ const { FATORES } = require("./fatores-fel1");
 //                origem: DAVID | DERIVADA | PROPOSTA, fonte, prompt }] }; `prompt`: a frase exata que vai ao prompt. Vem do agregador (factors/agregacao/), nunca escrita à mão.
 
 const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
+// A validação dos motores dos quatro ativos, na reunião de 2026-10-07: como estavam, com as decisões já registradas.
+const VALIDACAO_MOTORES = Object.freeze({ por: "Comitê, com o David", data: "2026-10-07", adr: "ADR 0108" });
 const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const PESOS = ["Alto", "Médio", "Baixo"];
 const SITUACAO_AGREGACAO = { ORIENTACAO: "ORIENTACAO", PARCIAL: "PARCIAL", FORA: "FORA" };
@@ -108,8 +110,11 @@ function montarAjustesFel1(fator, definicao) {
 }
 
 // As definições de um ativo -> os fatores com o nome e o peso do FEL 1. Um código fora do catálogo, ou de outro
-// ativo, é erro de programação.
-function montarFatores(ativo, definicoes) {
+// ativo, é erro de programação. `validacao` (opcional): { por, data, adr }, o motor do ativo validado por inteiro (o
+// Comitê, com o David, em 2026-10-07, ADR 0108): todos os fatores saem como VALIDADA, com ela.
+function montarFatores(ativo, definicoes, validacao = null) {
+  if (validacao && (!validacao.por || !validacao.data || !validacao.adr)) throw new Error(`${ativo}: validação sem quem, quando ou o ADR`);
+  const situacao = validacao ? { situacao: SITUACAO.VALIDADA, validacao } : { situacao: SITUACAO.PROPOSTA };
   return definicoes.map((definicao) => {
     const fator = FATORES.find((item) => item.codigo === definicao.codigo);
     if (!fator || fator.ativo !== ativo) throw new Error(`Fator ausente no catálogo do FEL 1 para ${ativo}: ${definicao.codigo}`);
@@ -125,7 +130,7 @@ function montarFatores(ativo, definicoes) {
       peso: fator.peso,
       fel1: definicao.fel1,
       dados: definicao.dados,
-      proposta: { situacao: SITUACAO.PROPOSTA, ...definicao.proposta },
+      proposta: { ...situacao, ...definicao.proposta },
       perguntas: definicao.perguntas,
       decisoes: definicao.decisoes || [],
       ajustesFel1: montarAjustesFel1(fator, definicao),
@@ -292,4 +297,4 @@ function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, 
   };
 }
 
-module.exports = { SITUACAO, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, montarFatores, montarMetodologia };
+module.exports = { SITUACAO, VALIDACAO_MOTORES, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, montarFatores, montarMetodologia };

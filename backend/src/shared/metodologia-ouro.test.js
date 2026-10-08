@@ -11,10 +11,11 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { FATORES } = require("./fatores-fel1");
 const { SITUACAO, obterMetodologiaOuro } = require("./metodologia-ouro");
+const { VALIDACAO_MOTORES } = require("./metodologia-base");
 const { buscarNoCatalogo } = require("../services/observaveis.service");
 const { obterMetodologiaAtivo } = require("../services/metodologia-ativo.service");
 
-test("os 8 fatores do ouro do FEL 1, na ordem da planilha, todos como proposta", () => {
+test("os 8 fatores do ouro do FEL 1, na ordem da planilha, validados pelo Comitê (ADR 0108)", () => {
   const { ativo, fatores } = obterMetodologiaOuro();
   assert.equal(ativo, "OURO");
   assert.deepEqual(
@@ -22,7 +23,8 @@ test("os 8 fatores do ouro do FEL 1, na ordem da planilha, todos como proposta",
     FATORES.filter((f) => f.ativo === "OURO").map((f) => f.codigo)
   );
   for (const fator of fatores) {
-    assert.equal(fator.proposta.situacao, SITUACAO.PROPOSTA, fator.codigo);
+    assert.equal(fator.proposta.situacao, SITUACAO.VALIDADA, fator.codigo);
+    assert.deepEqual(fator.proposta.validacao, VALIDACAO_MOTORES, fator.codigo);
     // Cada fator tem o que falta decidir ou o que o David já decidiu (ADR 0054).
     assert.ok(fator.perguntas.length + fator.decisoes.length > 0, fator.codigo);
     assert.ok(fator.dados.avaliacao?.texto, fator.codigo);
@@ -53,7 +55,7 @@ test("a geopolítica é o fator de evento (janela de 7 dias); os outros sete sã
 test("decisões do David (ADR 0054): a inflação é contexto do juro real; o COT e os bancos centrais saem das perguntas", () => {
   const { fatores, versao } = obterMetodologiaOuro();
   const fator = (codigo) => fatores.find((f) => f.codigo === codigo);
-  assert.equal(versao, 2);
+  assert.equal(versao, 3);
   assert.equal(fator("OURO_INFLACAO").contextoDe, "OURO_JUROS_REAIS");
   assert.deepEqual(fatores.filter((f) => f.contextoDe).map((f) => f.codigo), ["OURO_INFLACAO"]);
   for (const codigo of ["OURO_FUNDOS", "OURO_BANCOS_CENTRAIS"]) {

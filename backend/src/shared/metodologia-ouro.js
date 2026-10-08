@@ -1,10 +1,10 @@
 "use strict";
 
-const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-base");
+const { SITUACAO, VALIDACAO_MOTORES, montarFatores, montarMetodologia } = require("./metodologia-base");
 
-// Metodologia dos 8 fatores do ouro: só as definições (o formato de cada uma está em metodologia-base.js). Uma
-// PROPOSTA para o David validar, não uma regra (ADR 0053), no molde da do petróleo (ADR 0050). Fonte do FEL 1: a
-// tabela "Fatores de Influência de Preço: Ouro", v1.1.
+// Metodologia dos 8 fatores do ouro: só as definições (o formato de cada uma está em metodologia-base.js). Nasceu como
+// PROPOSTA para o David validar (ADR 0053), no molde da do petróleo (ADR 0050); o motor foi validado como está pelo
+// Comitê, com o David, em 2026-10-07 (ADR 0108). Fonte do FEL 1: a tabela "Fatores de Influência de Preço: Ouro", v1.1.
 //
 // A validação histórica de cada fator é contra o ouro da LBMA (PM, em US$, diário), o histórico mais longo na base; a
 // LBMA saiu em 2026-10-01 (ADR 0044), então o histórico vai até 2026-09-28.
@@ -16,8 +16,9 @@ const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-ba
 // 3 anos anteriores. Nada daqui gera sinal de compra ou venda.
 
 // v1 (2026-10-03): a proposta (ADR 0053). v2 (2026-10-04): as decisões do David (ADR 0054).
-const VERSAO = 2;
-const DATA_VERSAO = "2026-10-04";
+// v3 (2026-10-08): o motor validado pelo Comitê, com o David, em 2026-10-07; os fatores saem como validados (ADR 0108).
+const VERSAO = 3;
+const DATA_VERSAO = "2026-10-08";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0054)";
 
 const DEFINICOES = [
@@ -302,7 +303,7 @@ const DEFINICOES = [
   }
 ];
 
-const FATORES_OURO = montarFatores("OURO", DEFINICOES);
+const FATORES_OURO = montarFatores("OURO", DEFINICOES, VALIDACAO_MOTORES);
 
 // O que vale para o ativo, não para um fator (metodologia-base.js): o preço de referência e a leitura da IA. As
 // perguntas vêm das respostas do David ao FEL 1 (ADR 0055) e da conversa marcada com ele
