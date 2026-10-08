@@ -1,7 +1,7 @@
 "use strict";
 
 // Backfill do preço diário de um futuro da B3 por vencimento - milho (CCM),
-// café arábica (ICF) ou ouro em dólar (GLD) - que roda fora da rotina diária (scripts/run-coleta.js).
+// café arábica (ICF), ouro em dólar (GLD) ou soja (SJC) - que roda fora da rotina diária (scripts/run-coleta.js).
 // Reaproveita o coletor real (collectors/b3/b3-futuro.collector.js), o runner e
 // o log de execução; só troca a fase de download para pedir um intervalo longo
 // de pregões.
@@ -10,7 +10,7 @@
 // padrão é pedir uma folga a mais para trás e deixar as datas fora da janela
 // virarem "sem arquivo". Reexecutar é seguro (idempotente por valor, ADR 0008).
 //
-// Uso (`--produto` obrigatório: ccm, icf ou gld; npm run backfill:b3-ccm / backfill:b3-icf / backfill:b3-gld):
+// Uso (`--produto` obrigatório: ccm, icf, gld ou sjc; npm run backfill:b3-ccm / -icf / -gld / -sjc):
 //   node scripts/backfill-b3-futuro.js --produto=icf                          (padrão: 500 dias para trás)
 //   node scripts/backfill-b3-futuro.js --produto=icf --desde=2025-06-01
 //   node scripts/backfill-b3-futuro.js --produto=icf --desde=2025-06-01 --ate=2025-12-31

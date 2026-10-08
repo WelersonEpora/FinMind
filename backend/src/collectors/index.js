@@ -78,6 +78,8 @@ function bootstrapCollectors() {
     // público fechou em 2026-10-01 (licença da IBA). O histórico dele continua no banco e o código de
     // lbma/ fica, sem registro. Se o GLD faz o papel do preço do ouro nos fatores, decide o David.
     registerCollector(criarColetorFuturoB3("gld"));
+    // Soja: o futuro SJC da B3, liquidado pelo preço da CME (ADR 0109). Fase 1 da soja: só aquisição de dados.
+    registerCollector(criarColetorFuturoB3("sjc"));
     registerCollector(b3MilhoEsalqCollector);
     registerCollector(criarColetorComexExportacao("milho"));
     registerCollector(criarColetorComexExportacao("cafe"));

@@ -101,7 +101,7 @@ ir ao sistema, num ADR. Os pontos da conversa com o David (etapas 1 e 3) seguem 
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
 | Centro de Decisão | A tela inicial (`/`), no desenho do AgroMind: para um ativo (ouro, petróleo, milho, café) e uma data, o preço como era conhecido no fim daquele dia (point-in-time, com troca de série, mini-gráfico e variações; futuros pelo vencimento mais próximo, sem emendar) e a leitura de geopolítica da data, com os eventos da semana. Nos quatro ativos, o espaço da análise mostra a leitura diária de tendência da IA nos quatro horizontes (ADRs 0052, 0054, 0058 e 0062). Nenhum sinal de compra ou venda é gerado — ADR 0048 |
 | Qualidade da IA | `/qualidade-ia`: por ativo e horizonte, o que a IA leu contra o que o preço fez, em direção e faixa, contra os benchmarks Sempre Lateral e Persistência nas mesmas linhas, com o n e as linhas de cada número; o gráfico "faixas lidas × preço" mostra cada leitura na data-alvo, com os quatro horizontes lado a lado; sem índice único nem cor de acerto — ADR 0064 |
-| Telas de dados | `/dados-mercado/observaveis` (62 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Telas de dados | `/dados-mercado/observaveis` (71 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` na `servidor02` (coleta 04:00, 06:00, 08:00 **UTC**; backup 10:00 UTC, **não versionado**) — ADR 0004, ADR 0026 |
@@ -253,9 +253,9 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>B3 — futuros (CCM, ICF, GLD) · Milho, café, ouro · CSV e PDF · nível 5 (limitado) · Dev e servidor</summary>
+<summary>B3 — futuros (CCM, ICF, GLD, SJC) · Milho, café, ouro, soja · CSV e PDF · nível 5 (limitado) · Dev e servidor (SJC só em dev)</summary>
 
-**Acesso:** CSV do Up2Data e PDF do Boletim Diário. **Ressalva principal:** **Histórico curto**: CCM e ICF desde 2022-03-21, com buraco de ~9 meses em 2023; GLD desde 2025-07-21. Contratos em aberto só até 2025-12-11. O GLD é um futuro, não o fixing: emendá-lo à LBMA é cálculo. Decisões: David (se o GLD faz o papel do preço do ouro). **Evidência:** ADRs 0009, 0020, 0028, 0044.
+**Acesso:** CSV do Up2Data e PDF do Boletim Diário. **Ressalva principal:** **Histórico curto**: CCM, ICF e SJC desde 2022-03-21, com buraco de ~9 meses em 2023; GLD desde 2025-07-21. Contratos em aberto só até 2025-12-11. O GLD é um futuro, não o fixing: emendá-lo à LBMA é cálculo. O SJC é liquidado pelo preço da soja da CME (Chicago em US$/saca), fase 1 da soja, só aquisição. Decisões: David (se o GLD faz o papel do preço do ouro). **Evidência:** ADRs 0009, 0020, 0028, 0044, 0109.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
@@ -265,6 +265,8 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 | Café arábica B3 (ICF) - liquidez | Os campos do CCM; contratos em aberto só até 2025-12-11 | Diária | 2022-03-21 | Estimado | Dev e servidor |
 | Ouro B3 (GLD) - preços | Ajuste, último, máxima, mínima, médio e oscilação (sem abertura), em US$/oz | Diária | 2025-07-21 (1º pregão) | Estimado | Dev e servidor |
 | Ouro B3 (GLD) - liquidez | Contratos, negócios e volume financeiro (sem contratos em aberto) | Diária | 2025-07-21 | Estimado | Dev e servidor |
+| Soja B3 (SJC) - preços | Os campos do CCM, em US$/saca (liquidação pelo preço da CME) | Diária | 2022-03-21 (o mesmo buraco de 2023) | Estimado | Dev; servidor pendente |
+| Soja B3 (SJC) - liquidez | Os campos do CCM; contratos em aberto só até 2025-12-11 | Diária | 2022-03-21 | Estimado | Dev; servidor pendente |
 
 </details>
 
@@ -530,6 +532,7 @@ no ADR de cada fonte.
 | Petróleo: o Brent futuro | Em uso desde 2026-10-07 (ADR 0052, adendo; Yahoo, fonte não oficial e provisória, ADR 0096); falta a confirmação do David (§4). A assinatura da ICE (US$ 2.500/ano), a fonte oficial, é decisão do Comitê |
 | Série contínua do GLD (ouro) | O horizonte de 90 dias do ouro fica muitas vezes sem a variação de 90 dias, porque cada vencimento do GLD tem pouco histórico e nada é emendado (ADR 0054). Emendar os vencimentos é um cálculo do David (ADR 0044) |
 | Lacunas declaradas das v1 | Milho: o etanol brasileiro no F5 (ADR 0073) e os fatores ausentes (ADR 0080); café: o INMET no clima (ADR 0083). Ficaram para depois da v1 |
+| Soja: fase 1, só aquisição (ADR 0109) | Autorizada pelo usuário em 2026-10-08. Feito: o futuro SJC da B3. Falta, uma fonte por vez, cada uma com o seu reconhecimento: Crop Progress, VHI (`SOYB`), área plantada, WASDE, Grain Stocks, Conab, COT, eventos e os preços mensais do FMI (`docs/proposta-ativo-soja.md`, §2.13) |
 | Qualidade da IA: medidas para depois | Calibração da confiança, taxa de inversão, índice único e análise estatística (ADR 0064) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): 
@@ -543,8 +546,12 @@ Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a 
 
 ### Carga histórica pendente no servidor
 
-Nenhuma no momento. Backfill validado em dev que ainda não rodou na VM entra aqui; ao rodar, sai daqui e a fonte passa a
-"dev e servidor" em "Fontes" (§2).
+Backfill validado em dev que ainda não rodou na VM entra aqui; ao rodar, sai daqui e a fonte passa a "dev e servidor"
+em "Fontes" (§2).
+
+- **B3, futuro de soja SJC** (ADR 0109): `npm run backfill:b3-sjc` (Up2Data, a janela de ~15 meses; **urgente**, a
+  janela anda) e depois `npm run backfill:b3-sjc-bdi` (Boletim Diário, de 2022-03-21 a 2025-12-11; só completa o que
+  falta). Dev: 949 pregões de 2022-03-21 a 2026-10-07 (Up2Data desde 2025-06-10), 0 falhas.
 
 As últimas, conferidas no banco do servidor em 2026-10-08: o EIA STEO (226 edições, ADR 0091), a ICO (162 edições), a
 ECF (8 edições) e as sacas aguardando classificação da ICE (desde 2016-10-03), as três do ADR 0061. As anteriores (Grain Stocks, etanol do WASDE, exportação de milho por destino, ouro do FMI, World Gold Council, Cecafé e
@@ -569,7 +576,7 @@ Os motores dos quatro ativos foram validados em 2026-10-07 (ADR 0108). O que seg
 | Avaliação da saída da IA | **Delegada pelo David ao usuário em 2026-10-05.** Metodologia no ADR 0064, tela Qualidade da IA. Fica para depois: calibração da confiança, taxa de inversão, índice único e análise estatística |
 | Condições de sinal operacional | Em aberto: nenhum sinal é gerado hoje |
 | Execução automática de ordens | **Não existe nesta fase** (restrição permanente, `CLAUDE.md`): uma pessoa decide e executa (`docs/architecture.md`) |
-| Soja como 5º ativo | **Proposta** do FinMind em `docs/proposta-ativo-soja.md` (2026-10-08), para o Comitê e o David: se e quando a soja entra, os fatores e as regras. Os pesos e a agregação são a etapa seguinte |
+| Soja como 5º ativo | **Proposta** do FinMind em `docs/proposta-ativo-soja.md` (2026-10-08), para o Comitê e o David: os fatores e as regras. Os pesos e a agregação são a etapa seguinte. A fase 1 (só aquisição de dados) foi autorizada pelo usuário em 2026-10-08 (ADR 0109); nada da soja vai ao motor antes do Comitê |
 
 As 16 perguntas da análise crítica (`docs/analise-critica-fel1-milho-ouro.md`, §H) foram respondidas pelo Comitê em
 2026-10-01 e pelo David por escrito em 2026-10-03; as respostas estão no ADR 0055. As aprovações de cada ativo estão nos
@@ -607,8 +614,9 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 |---|---|---|
 | Motores dos quatro ativos validados | Na reunião de 2026-10-07, o Comitê, com o David, validou os motores do petróleo, do ouro, do milho e do café como estão; a fase passa a ser acompanhar a Qualidade da IA para ajustar. Os 34 fatores saem como validados no código (metodologias: petróleo v12, ouro v3, milho v22 e café v15), o prompt de cada fator diz "Regra: validada"; o que roda conta como validado, sem selo na tela, e a solução de um problema passa pelo Comitê antes de ir ao sistema. A agregação em código e os pontos da conversa com o David não mudam | ADR 0108; §1 e §2 |
 | Status mais enxuto | Com os motores validados, saíram as perguntas da análise crítica (todas respondidas, ADR 0055), o material preparado para as reuniões e as seções de confirmação dos motores do milho, do ouro e do petróleo (antigas §5, 5b e 5c), já cobertas pelos ADRs e pela tela de metodologia. A §4 ficou só com o que segue em aberto; as seções seguintes foram renumeradas | §4 |
-| Status revisado | As cargas históricas dadas como pendentes (EIA STEO, ICO, ECF e as sacas pendentes da ICE) já tinham rodado no servidor, conferidas no banco: a lista ficou vazia, e ICO e ECF passam a "dev e servidor", nível 5 (com a ICE, também em `docs/reconhecimento-fontes/README.md`). O "Falta fazer" ganhou o acompanhamento da Qualidade da IA, o teste da agregação do petróleo, as lacunas das v1 e as medidas para depois da Qualidade da IA; a ICO saiu das fontes candidatas (implementada, ADR 0061); 62 cards na tela de observáveis | §2 e §3 |
+| Status revisado | As cargas históricas dadas como pendentes (EIA STEO, ICO, ECF e as sacas pendentes da ICE) já tinham rodado no servidor, conferidas no banco: a lista ficou vazia, e ICO e ECF passam a "dev e servidor", nível 5 (com a ICE, também em `docs/reconhecimento-fontes/README.md`). O "Falta fazer" ganhou o acompanhamento da Qualidade da IA, o teste da agregação do petróleo, as lacunas das v1 e as medidas para depois da Qualidade da IA; a ICO saiu das fontes candidatas (implementada, ADR 0061); 69 cards na tela de observáveis (o status dizia 60) | §2 e §3 |
 | Proposta da soja como 5º ativo | Uma proposta para o Comitê e o David: o SJC da B3 (liquidado pelo preço de Chicago, em dólar) como preço de referência, 4 fatores (oferta dos EUA, oferta da América do Sul, demanda pela soja dos EUA e política), 3 regras sem peso (calendário da safra, folga do balanço e o posicionamento dos fundos, igual ao café), a fase 1 só com fontes já coletadas e a validação por contribuição incremental. Nada implementado nem autorizado | `docs/proposta-ativo-soja.md` |
+| Soja, fase 1: o futuro SJC da B3 | Autorizada pelo usuário (só aquisição, ADR 0109). O SJC entra como mais um produto da B3, coletado todo dia pelo Up2Data, com o histórico do Boletim Diário desde 2022-03-21; o parser do boletim passou a aceitar o título da tabela quebrado em duas linhas (o do SJC). Dois cards novos (preços e liquidez), 71 no total. Em dev: 949 pregões; no servidor, o backfill está pendente (§3) | ADR 0109 |
 
 </details>
 

@@ -15,6 +15,8 @@
 //
 // CCM (milho): ADRs 0009 e 0020. ICF (café arábica): ADR 0028. GLD (ouro em dólar, segmento FINANCIAL):
 // ADR 0044 - sem BDI, porque estreou em 2025-07-21, dentro da janela do Up2Data, que cobre o histórico inteiro.
+// SJC (soja com liquidação financeira pelo minicontrato de soja da CME, US$/saca): ADR 0109 - o BDI tem a tabela
+// por vencimento de 2022-03-21 a 2025-12-11, no mesmo layout do CCM e do ICF (conferido em 2026-10-08).
 const PRODUTOS = {
   ccm: {
     simbolo: "CCM",
@@ -45,6 +47,17 @@ const PRODUTOS = {
     prefixoSerie: "B3.GLD",
     unidadePreco: "USD/oz",
     codigoColetor: "b3-gld-futuro"
+  },
+  sjc: {
+    simbolo: "SJC",
+    nome: "soja",
+    segmento: "AGRIBUSINESS",
+    prefixoSerie: "B3.SJC",
+    unidadePreco: "USD/saca",
+    codigoColetor: "b3-sjc-futuro",
+    codigoColetorBdi: "b3-sjc-bdi",
+    tituloBdi: /^SJC: Soja com Liquida/i,
+    resumoBdi: /^SJC: SOJA/
   }
 };
 

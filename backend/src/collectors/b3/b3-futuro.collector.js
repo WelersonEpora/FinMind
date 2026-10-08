@@ -248,7 +248,7 @@ function normalizar(produto, rawItems) {
   return { validos, invalidos };
 }
 
-// Coletor de um produto de b3-produtos.js ("ccm", "icf", "gld").
+// Coletor de um produto de b3-produtos.js ("ccm", "icf", "gld", "sjc").
 function criarColetorFuturoB3(chave) {
   const produto = produtoB3(chave);
   const downloadIntervalo = (opcoes) => baixarIntervalo(produto, opcoes);

@@ -24,6 +24,8 @@
     "backfill:b3-icf": "node scripts/backfill-b3-futuro.js --produto=icf",
     "backfill:b3-gld": "node scripts/backfill-b3-futuro.js --produto=gld --desde=2025-07-21",
     "backfill:b3-icf-bdi": "node scripts/backfill-b3-futuro-bdi.js --produto=icf",
+    "backfill:b3-sjc": "node scripts/backfill-b3-futuro.js --produto=sjc",
+    "backfill:b3-sjc-bdi": "node scripts/backfill-b3-futuro-bdi.js --produto=sjc",
     "backfill:b3-milho-esalq": "node scripts/backfill-b3-milho-esalq.js",
     "backfill:comex-milho": "node scripts/backfill-comex-exportacao.js --produto=milho",
     "backfill:comex-cafe": "node scripts/backfill-comex-exportacao.js --produto=cafe",

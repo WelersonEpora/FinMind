@@ -149,6 +149,17 @@ function ehMoldura(conteudo) {
   return /^BDI$/.test(conteudo) || /REFERENTE A/i.test(conteudo) || /^\d{1,3}$/.test(conteudo);
 }
 
+// O título termina com o parêntese fechado ("(Contrato = 450 Sacas; Cotação = US$/60kg)")? `aberto`: se a linha anterior
+// do título deixou um parêntese aberto.
+function parentesesAbertos(conteudo, aberto = false) {
+  let saldo = aberto ? 1 : 0;
+  for (const c of conteudo) {
+    if (c === "(") saldo += 1;
+    else if (c === ")") saldo -= 1;
+  }
+  return saldo > 0;
+}
+
 // Varre as linhas de todas as páginas, em ordem, procurando o título do produto seguido de
 // "Mercado Futuro". Devolve { cabecalho: string, linhas: [{ vencimento, tokens, textoOriginal }] } ou
 // null se a tabela não existir no boletim. O título pode ficar no pé de uma página e "Mercado Futuro"
@@ -157,6 +168,7 @@ function ehMoldura(conteudo) {
 function localizarTabela(paginas, tituloBdi) {
   let estado = "fora";
   let cabecalho = "";
+  let tituloAberto = false;
   const linhas = [];
 
   for (const pagina of paginas) {
@@ -165,11 +177,20 @@ function localizarTabela(paginas, tituloBdi) {
       const conteudo = linha.itens.map((it) => texto(it.str)).join(" ");
 
       if (estado === "fora") {
-        if (tituloBdi.test(primeiro)) estado = "titulo";
+        if (tituloBdi.test(primeiro)) {
+          estado = "titulo";
+          tituloAberto = parentesesAbertos(conteudo);
+        }
         continue;
       }
       if (ehMoldura(conteudo)) continue;
       if (estado === "titulo") {
+        // Título longo quebra em duas linhas (o do SJC: "...Cotação =" e "US$/60kg)"): enquanto o parêntese do
+        // título está aberto, a linha seguinte é a continuação dele, não a tabela.
+        if (tituloAberto && !/^Mercado /i.test(conteudo)) {
+          tituloAberto = parentesesAbertos(conteudo, tituloAberto);
+          continue;
+        }
         estado = /^Mercado Futuro$/i.test(conteudo) ? "tabela" : "fora";
         continue;
       }

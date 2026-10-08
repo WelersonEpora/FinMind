@@ -1910,7 +1910,8 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
-  // --- Futuros da B3 por vencimento: milho (CCM, ADR 0009), café arábica (ICF, ADR 0028) e ouro em dólar (GLD, ADR 0044) ---
+  // --- Futuros da B3 por vencimento: milho (CCM, ADR 0009), café arábica (ICF, ADR 0028), ouro em dólar (GLD, ADR 0044)
+  // e soja (SJC, ADR 0109) ---
   // Dois cards por produto sobre as MESMAS séries `B3.<PRODUTO>.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por
   // vencimento (nunca uma série contínua). `porVencimento` faz o serviço descobrir
@@ -1944,6 +1945,17 @@ const CATALOGO_OBSERVAVEIS = [
       fonteCollectorCode: "b3-gld-futuro",
       semBdi: true,
       notaLiquidez: " O volume financeiro é em reais, mesmo com o contrato cotado em dólares (1 onça troy)."
+    },
+    {
+      simbolo: "SJC",
+      titulo: "Soja B3 (SJC)",
+      mercadoria: "soja (liquidação financeira pelo minicontrato de soja da CME)",
+      unidadePreco: "US$/saca",
+      fonteCollectorCode: "b3-sjc-futuro",
+      notaLiquidez:
+        " O volume financeiro é em reais, mesmo com o contrato cotado em dólares (450 sacas de 60 kg). O preço é o de Chicago convertido de bushel para saca (uma saca tem 2,2046 bushels).",
+      historico:
+        "de 2022-03-21 a 2025-12-11, o Boletim Diário de Informações (PDF, carga histórica única, ADR 0109); a partir de 2025-06-10, o arquivo diário do Up2Data (coleta diária, janela de ~15 meses)."
     }
   ].flatMap(({ simbolo, titulo, mercadoria, unidadePreco, fonteCollectorCode, notaLiquidez, historico, semBdi }) =>
     [

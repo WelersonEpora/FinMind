@@ -10,7 +10,7 @@
 // boletim com a tabela é 2022-03-21). ~940 PDFs de ~500 KB, 10-20 min. Reexecutar é seguro: o que já
 // está no banco é ignorado (idempotente).
 //
-// Uso (`--produto` obrigatório: ccm ou icf; npm run backfill:b3-ccm-bdi / backfill:b3-icf-bdi):
+// Uso (`--produto` obrigatório: ccm, icf ou sjc; npm run backfill:b3-ccm-bdi / backfill:b3-icf-bdi / backfill:b3-sjc-bdi):
 //   node scripts/backfill-b3-futuro-bdi.js --produto=icf
 //   node scripts/backfill-b3-futuro-bdi.js --produto=icf --desde=2023-01-02 --ate=2023-01-31   (teste com poucos boletins)
 

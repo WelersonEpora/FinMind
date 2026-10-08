@@ -231,6 +231,43 @@ test("extrairFuturos (ICF): boletim sem a tabela do café diz qual produto falto
   assert.match(r.motivo, /futuros do ICF/);
 });
 
+// 2024-03-15 (real): o título do SJC é longo e quebra em duas linhas ("...Cotação =" e "US$/60kg)") antes de
+// "Mercado Futuro"; depois, as opções com o mesmo título quebrado.
+function paginaSjc() {
+  return {
+    itens: [
+      ...linha(520, ["SJC: Soja com Liquidação Financeira Cross Listing (Contrato = 450 Sacas; Cotação =", 28.1]),
+      ...linha(511, ["US$/60kg)", 28.1]),
+      ...linha(490, ["Mercado Futuro", 28.1]),
+      ...CABECALHO(477),
+      ...linha(459, ["X24", 28.1], ["548", 99.9], ["2", 145], ["2", 191], ["117.363", 208], ["26,02", 262], ["26,02", 293], ["26,20", 324], ["26,11", 354], ["26,20", 381], ["26,2511", 407], ["0,0827↑", 446], ["25,85", 501], ["26,68", 551]),
+      ...linha(400, ["SJC: Soja com Liquidação Financeira Cross Listing (Contrato = 450 Sacas; Cotação =", 28.1]),
+      ...linha(391, ["US$/60kg)", 28.1]),
+      ...linha(370, ["Mercado de Opções Sobre Futuro - Compra", 28.1]),
+      ...RODAPE("REFERENTE A SEXTA-FEIRA - 15 DE MARÇO DE 2024 - Nº 51")
+    ]
+  };
+}
+
+test("extrairFuturos (SJC): título quebrado em duas linhas antes de 'Mercado Futuro' (achado real, 2024-03-15)", () => {
+  const sjc = parser.extrairFuturos([paginaSjc()], PRODUTOS.sjc);
+  assert.equal(sjc.situacao, "ok");
+  assert.equal(sjc.dataReferencia, "2024-03-15");
+  assert.deepEqual(sjc.linhas.map((l) => l.vencimento), ["X24"]);
+  const x24 = sjc.linhas[0].valores;
+  assert.equal(x24.SETTLE, 26.2511);
+  assert.equal(x24.OPEN_INTEREST, 548);
+  assert.equal(x24.VOLUME_BRL, 117363);
+  // A continuação do título não engole uma tabela de outro produto: o CCM continua sem tabela aqui.
+  assert.equal(extrairFuturosCcm([paginaSjc()]).situacao, "sem_tabela");
+});
+
+test("extrairFuturos (SJC): boletim no layout novo (resumo 'SJC: SOJA FINANCEIRA...') é 'sem_tabela'", () => {
+  const r = parser.extrairFuturos([{ itens: [...linha(500, ["SJC: SOJA FINANCEIRA CROSS LISTING", 28.1]), ...RODAPE("REFERENTE A TERÇA-FEIRA - 10 DE FEVEREIRO DE 2026 - Nº 28")] }], PRODUTOS.sjc);
+  assert.equal(r.situacao, "sem_tabela");
+  assert.match(r.motivo, /layout novo/);
+});
+
 test("extrairDataReferencia lê a data do rodapé, inclusive mês com acento (MARÇO)", () => {
   assert.equal(parser.extrairDataReferencia([{ itens: linha(10, ["REFERENTE A SEGUNDA-FEIRA - 21 DE MARÇO DE 2022 - Nº 54", 300]) }]), "2022-03-21");
   assert.equal(parser.extrairDataReferencia([{ itens: linha(10, ["sem data", 300]) }]), null);
