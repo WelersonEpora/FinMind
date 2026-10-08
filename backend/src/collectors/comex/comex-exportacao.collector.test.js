@@ -172,7 +172,7 @@ test("café: pede o NCM 09011110 e grava COMEX.CAFE.EXPORT.*, num coletor própr
   assert.equal(validos[0].metadata.ncm, "09011110");
   assert.equal(cafe.codigo, "comex-cafe-exportacao");
   assert.equal(coletor.codigo, "comex-milho-exportacao");
-  assert.throws(() => comex.criarColetorComexExportacao("soja"), /desconhecido/);
+  assert.throws(() => comex.criarColetorComexExportacao("trigo"), /desconhecido/);
 });
 
 // Por país de destino (ADR 0034). Fixture real (details: ["country"], NCM 10059010, 2025, 2026-10-01), reduzida.

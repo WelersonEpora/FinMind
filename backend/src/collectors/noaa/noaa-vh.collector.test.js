@@ -67,6 +67,25 @@ test("estado: confere a província pedida; valor fora de 0-100 é inválido, sem
   assert.match(invalidos[0].motivo, /0-100/);
 });
 
+test("-1 é semana sem dado na fonte: aviso, nada gravado, sem contar como falha (achado real: soja, Buenos Aires, 1994)", () => {
+  const itens = coletor.parse({ respostas: [{ regiao: "BR_MT", texto: RESPOSTA_MT }] });
+  itens[0] = { ...itens[0], valor: "-1.00" };
+  const { validos, invalidos, avisos } = coletor.normalize(itens);
+  assert.equal(validos.length, 2);
+  assert.equal(invalidos.length, 0);
+  assert.equal(avisos.length, 1);
+  assert.match(avisos[0].motivo, /sem dado/);
+});
+
+test("soja: a máscara SOYB, os três países e as regiões de contexto", () => {
+  assert.equal(criarColetorVh("soja").codigo, "noaa-vh-soja");
+  assert.equal(CULTURAS.soja.tagCropland, "SOYB");
+  assert.deepEqual(
+    CULTURAS.soja.regioes.map((r) => r.codigo),
+    ["EUA", "BRASIL", "ARGENTINA", "BR_MT", "BR_PR", "BR_RS", "BR_GO", "AR_BUENOS_AIRES", "AR_CORDOBA", "AR_SANTA_FE"]
+  );
+});
+
 test("faixa global: o cabeçalho traz o código da faixa (W65) no lugar do país", () => {
   const resposta =
     "Mean data for W65 ( Global: 55S~65N),  from 2026 to 2026, weekly; version='GC_Current'<br>for   area with 'MAIZ' <br>\n" +
@@ -126,7 +145,7 @@ test("download: uma requisição por região, do ano anterior ao corrente; erro 
 
 test("criarColetorVh: cultura não configurada é erro de programação", () => {
   assert.equal(coletor.codigo, "noaa-vh-milho");
-  assert.throws(() => criarColetorVh("soja"), /não configurada/);
+  assert.throws(() => criarColetorVh("trigo"), /não configurada/);
 });
 
 // --- café (ADR 0030): no Brasil uma série só ("café", máscara ACOF); no mundo e nos hemisférios, arábica e robusta ---

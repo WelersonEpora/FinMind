@@ -39,7 +39,9 @@ const CONTRATOS = {
   corn: { codigoCftc: "002602", prefixo: "CFTC.CORN", nome: "Milho (CBOT)" },
   coffee: { codigoCftc: "083731", prefixo: "CFTC.COFFEE", nome: "Café arábica (ICE Coffee C)" },
   // Petróleo WTI da NYMEX (CL), desde 2026-10-01 (ADR 0040). O WTI da ICE Europe (067411) é outro contrato.
-  crude: { codigoCftc: "067651", prefixo: "CFTC.CRUDE_WTI", nome: "Petróleo WTI (NYMEX)" }
+  crude: { codigoCftc: "067651", prefixo: "CFTC.CRUDE_WTI", nome: "Petróleo WTI (NYMEX)" },
+  // Soja da CBOT (ZS), fase 1 da soja, só aquisição (ADR 0110). Farelo (026603) e óleo (007601) ficam de fora.
+  soybeans: { codigoCftc: "005602", prefixo: "CFTC.SOYBEANS", nome: "Soja (CBOT)" }
 };
 
 const CAMPOS = [

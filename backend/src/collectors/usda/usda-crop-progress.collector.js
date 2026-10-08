@@ -7,7 +7,7 @@ const { somarDias, proximaSegunda, diaDaSemanaIso, paraDate } = require("../../s
 const { zonedParaUtc } = require("../../shared/utils/zoned-time");
 const { persistirObservacoes } = require("../base/persist-observations");
 
-// USDA NASS Crop Progress (milho, nível nacional, semanal) via a API
+// USDA NASS Crop Progress (milho e, desde 2026-10-08, soja; nível nacional, semanal) via a API
 // QuickStats. EXIGE chave gratuita (NASS_API_KEY) - sem ela o coletor não é
 // registrado (ver collectors/index.js).
 //
@@ -16,7 +16,7 @@ const { persistirObservacoes } = require("../base/persist-observations");
 // unit_desc, statisticcat_desc, load_time) são os da documentação do QuickStats.
 //
 // Observáveis: CONDITION (% da lavoura por classe: VERY POOR..EXCELLENT) e
-// PROGRESS (% plantado/emergido/...). Código: USDA.CORN.<CATEGORIA>.<CLASSE>.
+// PROGRESS (% plantado/emergido/...). Código: USDA.CORN.<CATEGORIA>.<CLASSE> (soja: USDA.SOYBEANS.<CATEGORIA>.<CLASSE>).
 //
 // published_at: o Crop Progress sai às 16:00 ET no PRIMEIRO DIA ÚTIL da
 // semana - normalmente segunda, mas terça quando a segunda é feriado federal
@@ -31,6 +31,13 @@ const SOURCE_CODE = "USDA_NASS";
 // desde 1900 devolve as mesmas linhas que desde 1980). Cada série começa no seu ano.
 const ANO_INICIAL_PADRAO = 1980;
 const CATEGORIAS = ["CONDITION", "PROGRESS"];
+
+// Uma entrada por cultura: a mesma consulta com outro `commodity_desc`. Soja desde 2026-10-08, fase 1 da soja, só
+// aquisição (ADR 0110).
+const CULTURAS = {
+  milho: { codigo: "usda-nass-crop-progress-milho", commodity: "CORN", prefixo: "USDA.CORN" },
+  soja: { codigo: "usda-nass-crop-progress-soja", commodity: "SOYBEANS", prefixo: "USDA.SOYBEANS" }
+};
 
 // n-ésima segunda-feira de um mês (n=1..5) ou a última (n=-1).
 function enesimaSegunda(ano, mes, n) {
@@ -72,7 +79,7 @@ function publicadoEm(weekEnding) {
   return zonedParaUtc(dataDeDivulgacao(weekEnding), "16:00", "America/New_York");
 }
 
-async function download({ signal }) {
+async function download(cultura, { signal }) {
   if (!env.collectors.nassApiKey) {
     throw new UpstreamServiceError("NASS_API_KEY não configurada - o Crop Progress precisa da chave gratuita do QuickStats (https://quickstats.nass.usda.gov/api).");
   }
@@ -83,7 +90,7 @@ async function download({ signal }) {
       key: env.collectors.nassApiKey,
       source_desc: "SURVEY",
       sector_desc: "CROPS",
-      commodity_desc: "CORN",
+      commodity_desc: cultura.commodity,
       statisticcat_desc: categoria,
       agg_level_desc: "NATIONAL",
       freq_desc: "WEEKLY",
@@ -122,7 +129,7 @@ function classeDe(unitDesc) {
     .replace(/\s+/g, "_");
 }
 
-function normalize(rawItems) {
+function normalize(cultura, rawItems) {
   const validos = [];
   const invalidos = [];
 
@@ -147,7 +154,7 @@ function normalize(rawItems) {
     }
 
     validos.push({
-      series_code: `USDA.CORN.${r.statisticcat_desc}.${classe}`,
+      series_code: `${cultura.prefixo}.${r.statisticcat_desc}.${classe}`,
       observed_at: r.week_ending,
       value: valor,
       unit: "pct",
@@ -168,18 +175,30 @@ function normalize(rawItems) {
   return { validos, invalidos };
 }
 
-module.exports = {
-  codigo: "usda-nass-crop-progress-milho",
-  get timeoutMs() {
-    return env.collectors.sourceTimeoutMs;
-  },
-  get tentativasRetry() {
-    return env.collectors.retryTentativas;
-  },
-  download,
-  parse,
-  normalize,
-  persist: persistirObservacoes,
+// Coletor de uma cultura de CULTURAS ("milho", "soja").
+function criarColetorCropProgress(chave) {
+  const cultura = CULTURAS[chave];
+  if (!cultura) throw new Error(`Cultura do Crop Progress desconhecida: ${chave} (conhecidas: ${Object.keys(CULTURAS).join(", ")}).`);
+  return {
+    codigo: cultura.codigo,
+    get timeoutMs() {
+      return env.collectors.sourceTimeoutMs;
+    },
+    get tentativasRetry() {
+      return env.collectors.retryTentativas;
+    },
+    download: (opcoes) => download(cultura, opcoes),
+    parse,
+    normalize: (rawItems) => normalize(cultura, rawItems),
+    persist: persistirObservacoes
+  };
+}
+
+// O módulo continua sendo o coletor do milho (o de antes), com a fábrica ao lado.
+// (Object.assign sobre o próprio coletor preserva os getters de timeout e de retentativas.)
+module.exports = Object.assign(criarColetorCropProgress("milho"), {
+  criarColetorCropProgress,
+  CULTURAS,
   dataDeDivulgacao,
   segundaEhFeriadoFederalEUA
-};
+});

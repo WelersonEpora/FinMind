@@ -43,6 +43,7 @@
     "backfill:imea-paridade": "node scripts/backfill-imea-paridade.js",
     "backfill:noaa-vh": "node scripts/backfill-noaa-vh.js",
     "backfill:noaa-vh-cafe": "node scripts/backfill-noaa-vh.js --cultura=cafe",
+    "backfill:noaa-vh-soja": "node scripts/backfill-noaa-vh.js --cultura=soja",
     "backfill:ice-cafe-estoques": "node scripts/backfill-ice-cafe-estoques.js",
     "backfill:ico-cafe": "node scripts/backfill-ico-cafe.js",
     "backfill:eia-steo": "node scripts/backfill-eia-steo.js",

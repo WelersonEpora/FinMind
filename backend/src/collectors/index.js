@@ -25,6 +25,7 @@ const { criarColetorFred, SERIES_COLETADAS: SERIES_FRED } = require("./fred/fred
 const fredCpiCollector = require("./fred/fred-cpi.collector");
 const fredCafeFmiCollector = require("./fred/fred-cafe-fmi.collector");
 const fredMilhoFmiCollector = require("./fred/fred-milho-fmi.collector");
+const fredSojaFmiCollector = require("./fred/fred-soja-fmi.collector");
 const { criarColetorCot } = require("./cftc/cftc-cot.collector");
 const usdaCropProgressCollector = require("./usda/usda-crop-progress.collector");
 const { criarColetorFuturoB3 } = require("./b3/b3-futuro.collector");
@@ -72,6 +73,7 @@ function bootstrapCollectors() {
     registerCollector(criarColetorCot("corn"));
     registerCollector(criarColetorCot("coffee"));
     registerCollector(criarColetorCot("crude"));
+    registerCollector(criarColetorCot("soybeans"));
     registerCollector(criarColetorFuturoB3("ccm"));
     registerCollector(criarColetorFuturoB3("icf"));
     // Ouro: o futuro em dólar da B3 (GLD, ADR 0044). O LBMA Gold Price saiu da coleta diária: o feed
@@ -112,20 +114,23 @@ function bootstrapCollectors() {
     registerCollector(imeaParidadeMilhoCollector);
     registerCollector(criarColetorVh("milho"));
     registerCollector(criarColetorVh("cafe"));
+    registerCollector(criarColetorVh("soja"));
     registerCollector(coletorCpc);
 
-    // O CPI e os preços do café e do milho do FMI vêm do ALFRED (versões com a data real), que só existe na API do
-    // FRED (ADRs 0033, 0045 e 0069).
+    // O CPI e os preços do café, do milho e da soja do FMI vêm do ALFRED (versões com a data real), que só existe na API do
+    // FRED (ADRs 0033, 0045, 0069 e 0110).
     if (env.collectors.fredApiKey) {
       registerCollector(fredCpiCollector);
       registerCollector(fredCafeFmiCollector);
       registerCollector(fredMilhoFmiCollector);
+      registerCollector(fredSojaFmiCollector);
     } else {
-      logger.warn("FRED_API_KEY não definida - coletores do ALFRED (CPI dos EUA e preços do café e do milho do FMI) não registrados.");
+      logger.warn("FRED_API_KEY não definida - coletores do ALFRED (CPI dos EUA e preços do café, do milho e da soja do FMI) não registrados.");
     }
 
     if (env.collectors.nassApiKey) {
       registerCollector(usdaCropProgressCollector);
+      registerCollector(usdaCropProgressCollector.criarColetorCropProgress("soja"));
     } else {
       logger.warn("NASS_API_KEY não definida - coletor do USDA Crop Progress (milho) não registrado.");
     }

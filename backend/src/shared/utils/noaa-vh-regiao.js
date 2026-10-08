@@ -33,6 +33,11 @@ const REGIOES = {
   BR_ES: "Brasil - Espírito Santo",
   BR_BA: "Brasil - Bahia",
   BR_RO: "Brasil - Rondônia",
+  // Soja (ADR 0110): o Rio Grande do Sul e as províncias argentinas.
+  BR_RS: "Brasil - Rio Grande do Sul",
+  AR_BUENOS_AIRES: "Argentina - Buenos Aires",
+  AR_CORDOBA: "Argentina - Córdoba",
+  AR_SANTA_FE: "Argentina - Santa Fe",
   EUA_IA: "EUA - Iowa",
   EUA_IL: "EUA - Illinois",
   EUA_NE: "EUA - Nebraska",

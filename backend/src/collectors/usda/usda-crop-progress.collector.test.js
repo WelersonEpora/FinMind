@@ -61,6 +61,17 @@ test("normalize: série USDA.CORN.<CATEGORIA>.<CLASSE>, published_at 16:00 ET ES
   assert.equal(planted.value, 1000, "separador de milhar removido");
 });
 
+test("soja: a mesma consulta com outra cultura, séries USDA.SOYBEANS (ADR 0110); cultura desconhecida falha cedo", () => {
+  const soja = collector.criarColetorCropProgress("soja");
+  assert.equal(soja.codigo, "usda-nass-crop-progress-soja");
+  assert.equal(collector.codigo, "usda-nass-crop-progress-milho");
+  const { validos } = soja.normalize([
+    { week_ending: "2026-08-02", statisticcat_desc: "PROGRESS", unit_desc: "PCT SETTING PODS", Value: "61" }
+  ]);
+  assert.deepEqual(validos.map((v) => [v.series_code, v.value]), [["USDA.SOYBEANS.PROGRESS.SETTING_PODS", 61]]);
+  assert.throws(() => collector.criarColetorCropProgress("trigo"), /desconhecida/);
+});
+
 test("normalize rejeita linha sem week_ending", () => {
   const { validos, invalidos } = collector.normalize([{ statisticcat_desc: "CONDITION", unit_desc: "PCT GOOD", Value: "5" }]);
 

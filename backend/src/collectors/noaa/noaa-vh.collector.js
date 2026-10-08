@@ -115,6 +115,28 @@ const CULTURAS = {
       { codigo: "INDIA", pais: "IND", provinceId: 0, nome: "India" },
       { codigo: "HONDURAS_ARABICA", pais: "HND", provinceId: 0, nome: "Honduras" }
     ]
+  },
+  // Soja (máscara SOYB), fase 1 da soja, só aquisição (ADR 0110): os três países que os fatores leem (EUA no F1;
+  // Brasil e Argentina no F2) e, como contexto, as 4 maiores UFs de soja e as 3 maiores províncias argentinas. Ids
+  // conferidos pelo cabeçalho da própria série em 2026-10-08 (BRA 21 = Rio Grande do Sul; ARG 1 = Buenos Aires,
+  // 6 = Córdoba, 21 = Santa Fe).
+  soja: {
+    codigo: "noaa-vh-soja",
+    tagCropland: "SOYB",
+    nome: "soja",
+    prefixoSerie: "NOAA_VH.SOJA",
+    regioes: [
+      { codigo: "EUA", pais: "USA", provinceId: 0, nome: "United States" },
+      { codigo: "BRASIL", pais: "BRA", provinceId: 0, nome: "Brazil" },
+      { codigo: "ARGENTINA", pais: "ARG", provinceId: 0, nome: "Argentina" },
+      { codigo: "BR_MT", pais: "BRA", provinceId: 11, nome: "Mato Grosso" },
+      { codigo: "BR_PR", pais: "BRA", provinceId: 16, nome: "Paraná" },
+      { codigo: "BR_RS", pais: "BRA", provinceId: 21, nome: "Rio Grande do Sul" },
+      { codigo: "BR_GO", pais: "BRA", provinceId: 9, nome: "Goiás" },
+      { codigo: "AR_BUENOS_AIRES", pais: "ARG", provinceId: 1, nome: "Buenos Aires" },
+      { codigo: "AR_CORDOBA", pais: "ARG", provinceId: 6, nome: "Córdoba" },
+      { codigo: "AR_SANTA_FE", pais: "ARG", provinceId: 21, nome: "Santa Fe" }
+    ]
   }
 };
 
@@ -206,6 +228,7 @@ function criarColetorVh(chaveCultura) {
   function normalize(itens) {
     const validos = [];
     const invalidos = [];
+    const avisos = [];
     for (const { regiao, indice, ano, semana, valor } of itens) {
       const item = { regiao: regiao.codigo, indice: indice.campo, ano, semana, valor };
       const fim = fimDaSemana(Number(ano), Number(semana));
@@ -214,6 +237,12 @@ function criarColetorVh(chaveCultura) {
         continue;
       }
       const value = String(valor).trim() === "" ? NaN : Number(valor);
+      // -1 é o código da fonte para semana sem dado (achado real: soja em Buenos Aires, semanas 24 a 28 de 1994). Defeito
+      // conhecido: vira aviso, nada gravado, e não conta como falha.
+      if (value === -1) {
+        avisos.push({ item, motivo: "Semana sem dado na fonte (valor -1): nada gravado." });
+        continue;
+      }
       if (!Number.isFinite(value) || value < 0 || value > 100) {
         invalidos.push({ item, motivo: `Valor fora da escala 0-100: "${valor}".` });
         continue;
@@ -241,7 +270,7 @@ function criarColetorVh(chaveCultura) {
         }
       });
     }
-    return { validos, invalidos };
+    return { validos, invalidos, avisos };
   }
 
   return {

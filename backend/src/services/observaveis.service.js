@@ -578,12 +578,14 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://www.bls.gov/cpi/"
     }
   },
-  // Um card por contrato (o café, Coffee C da ICE, desde 2026-09-28 - ADR 0028; o petróleo WTI, desde 2026-10-01 - ADR 0040).
+  // Um card por contrato (o café, Coffee C da ICE, desde 2026-09-28 - ADR 0028; o petróleo WTI, desde 2026-10-01 - ADR 0040;
+  // a soja da CBOT, desde 2026-10-08 - ADR 0110).
   ...[
     { instrumentCode: "COT_OURO", mercado: "Ouro (COMEX)", chave: "gold", prefixo: "GOLD" },
     { instrumentCode: "COT_MILHO", mercado: "Milho (CBOT)", chave: "corn", prefixo: "CORN" },
     { instrumentCode: "COT_CAFE", mercado: "Café arábica (ICE Coffee C)", chave: "coffee", prefixo: "COFFEE" },
-    { instrumentCode: "COT_PETROLEO_WTI", mercado: "Petróleo WTI (NYMEX)", chave: "crude", prefixo: "CRUDE_WTI" }
+    { instrumentCode: "COT_PETROLEO_WTI", mercado: "Petróleo WTI (NYMEX)", chave: "crude", prefixo: "CRUDE_WTI" },
+    { instrumentCode: "COT_SOJA", mercado: "Soja (CBOT)", chave: "soybeans", prefixo: "SOYBEANS" }
   ].map(({ instrumentCode, mercado, chave, prefixo }) => ({
     instrumentCode,
     origem: "observation",
@@ -659,6 +661,56 @@ const CATALOGO_OBSERVAVEIS = [
       descricao: cartao.descricao,
       metodologia:
         "Relatório semanal (semana terminada no domingo), publicado às 16:00 ET do primeiro dia útil da semana - feriado federal desloca para terça. A fonte não informa a hora da publicação: a data de disponibilidade é ESTIMADA por esse calendário. Só de abril a novembro; fora da temporada não há dado novo.",
+      formatoOrigem: "JSON (API QuickStats do USDA NASS)",
+      urlOficial: "https://quickstats.nass.usda.gov/api"
+    }
+  })),
+
+  // --- USDA NASS Crop Progress da soja (EUA), semanal (fase 1 da soja, ADR 0110) ---
+  // Os mesmos dois cards do milho, com as etapas da soja; o mesmo coletor, outra cultura.
+  ...[
+    {
+      instrumentCode: "USDA_SOJA_CONDICAO",
+      nome: "Soja EUA - Condição da lavoura (USDA)",
+      modalidadePrincipal: "good",
+      series: [
+        ["very_poor", "VERY_POOR"],
+        ["poor", "POOR"],
+        ["fair", "FAIR"],
+        ["good", "GOOD"],
+        ["excellent", "EXCELLENT"]
+      ].map(([modalidade, classe]) => ({ modalidade, seriesCode: `USDA.SOYBEANS.CONDITION.${classe}` })),
+      descricao:
+        "Porcentagem da lavoura de soja dos EUA em cada classe de condição (muito ruim, ruim, regular, boa, excelente), conforme o relatório semanal Crop Progress do USDA. As cinco classes somam 100%. O valor em destaque é só a classe \"boa\": nenhuma soma ou índice é calculado aqui."
+    },
+    {
+      instrumentCode: "USDA_SOJA_PROGRESSO",
+      nome: "Soja EUA - Progresso da safra (USDA)",
+      modalidadePrincipal: "harvested",
+      series: [
+        ["planted", "PLANTED"],
+        ["emerged", "EMERGED"],
+        ["blooming", "BLOOMING"],
+        ["setting_pods", "SETTING_PODS"],
+        ["dropping_leaves", "DROPPING_LEAVES"],
+        ["harvested", "HARVESTED"]
+      ].map(([modalidade, etapa]) => ({ modalidade, seriesCode: `USDA.SOYBEANS.PROGRESS.${etapa}` })),
+      descricao:
+        "Porcentagem acumulada da área de soja dos EUA que já atingiu cada etapa do ciclo (plantio, emergência, floração, formação de vagens, queda das folhas e colheita), conforme o Crop Progress do USDA. Cada etapa só é reportada dentro da sua janela do ano; o valor em destaque é a colheita."
+    }
+  ].map((cartao) => ({
+    ...cartao,
+    origem: "observation",
+    unidade: "%",
+    casasDecimais: 0,
+    frequencia: "SEMANAL",
+    toleranciaDias: 10,
+    fonte: "USDA NASS - Crop Progress",
+    fonteCollectorCode: "usda-nass-crop-progress-soja",
+    fonteDetalhe: {
+      descricao: cartao.descricao,
+      metodologia:
+        "Relatório semanal (semana terminada no domingo), publicado às 16:00 ET do primeiro dia útil da semana - feriado federal desloca para terça. A fonte não informa a hora da publicação: a data de disponibilidade é ESTIMADA por esse calendário. Só de abril a novembro; fora da temporada não há dado novo. A condição da soja começa em 1986; as etapas, de 1980 a 1999 conforme a etapa. Fase 1 da soja, só aquisição (ADR 0110).",
       formatoOrigem: "JSON (API QuickStats do USDA NASS)",
       urlOficial: "https://quickstats.nass.usda.gov/api"
     }
@@ -1202,7 +1254,7 @@ const CATALOGO_OBSERVAVEIS = [
       metodologia:
         "Um valor por semana e região, desde 1982. A semana N vai do dia do ano 7(N-1)+1 ao 7N (guia da NOAA); a data da observação é o último dia da semana. A NOAA disponibiliza a semana no dia seguinte ao fim (regra da própria página): a data de disponibilidade é ESTIMADA como o fim desse dia. Semanas sem dado de satélite (1984-85, 1994-95, 2003-05) ficam em branco. A NOAA reprocessa a série e suaviza os valores recentes: a coleta diária relê o ano corrente e o anterior, e uma mudança vira versão nova. O histórico é a versão reprocessada de hoje (o que se sabia em cada data só existe daqui para frente). A máscara de cultura é fixa (MapSPAM 2010) e não separa a safrinha da 1ª safra: a estação se vê pela semana do ano. Conferido contra secas conhecidas: EUA em 2012 (VHI 33-39 no verão; 64 em 2014) e Mato Grosso em 2021 (VHI 30-39 na safrinha). Licença: dado do governo dos EUA (domínio público).",
       escopo:
-        "só milho, só os três índices (VHI, VCI, TCI), no mundo (55°S a 65°N) e nos hemisférios Norte (0 a 65°N) e Sul (40°S a 0), que são médias ponderadas pela área do milho e diluem choques regionais (na seca de 2012 os EUA foram a 33-35 e o mundo, a ~44), em EUA, Brasil, Argentina, China e Ucrânia, nas 5 maiores UFs de milho (MT, PR, GO, MS, MG) e nos 5 maiores estados de milho dos EUA (Iowa, Illinois, Nebraska, Minnesota, Indiana). A fonte cobre 161 países e outras culturas (soja, trigo...), não coletados; o café tem card próprio. Não coletados: o NDVI e a temperatura suavizados (insumos dos índices), a distribuição por faixa de VHI e a versão experimental WF2025. Nenhum fator: como o índice entra no preço é definição do Comitê.",
+        "só milho, só os três índices (VHI, VCI, TCI), no mundo (55°S a 65°N) e nos hemisférios Norte (0 a 65°N) e Sul (40°S a 0), que são médias ponderadas pela área do milho e diluem choques regionais (na seca de 2012 os EUA foram a 33-35 e o mundo, a ~44), em EUA, Brasil, Argentina, China e Ucrânia, nas 5 maiores UFs de milho (MT, PR, GO, MS, MG) e nos 5 maiores estados de milho dos EUA (Iowa, Illinois, Nebraska, Minnesota, Indiana). A fonte cobre 161 países e outras culturas (trigo, arroz...), não coletadas; o café e a soja têm card próprio. Não coletados: o NDVI e a temperatura suavizados (insumos dos índices), a distribuição por faixa de VHI e a versão experimental WF2025. Nenhum fator: como o índice entra no preço é definição do Comitê.",
       formatoOrigem: "Texto (tabela da página \"VH Time Series by administrative regions for specific crop\" da NOAA STAR, sem chave; endpoint não documentado como API)",
       urlOficial: "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot"
     }
@@ -1241,6 +1293,43 @@ const CATALOGO_OBSERVAVEIS = [
         "Um valor por semana e região, desde 1982, com as mesmas regras do card do milho: semana N = dias do ano 7(N-1)+1 a 7N, data de disponibilidade ESTIMADA no dia seguinte ao fim da semana, releitura do ano corrente e do anterior, histórico reprocessado (o que se sabia em cada data só existe daqui para frente). A NOAA tem duas máscaras de café (MapSPAM 2010), arábica e robusta, mas no Brasil elas cobrem os mesmos pixels (1982-2026: diferença máxima de 0,7 ponto no Brasil e nas UFs): por isso o Brasil e as UFs têm uma série só, \"café\" (arábica e conilon juntos), e o mundo e os hemisférios, onde as duas diferem (até 10 pontos, porque o robusta é o do Vietnã e da Indonésia), têm arábica e robusta separados. Nos outros países produtores vale a máscara do tipo que domina a produção na PSD do USDA (robusta no Vietnã, na Indonésia e em Uganda; arábica na Colômbia, na Etiópia e em Honduras); na Índia as duas cobrem os mesmos pixels e a série é \"café\". O índice mostra o dano de uma geada semanas depois: não é alerta de geada. Licença: dado do governo dos EUA (domínio público).",
       escopo:
         "só café, só os três índices (VHI, VCI, TCI), no Brasil e nas 5 maiores UFs produtoras segundo a Conab (MG, SP e ES no arábica; ES, BA e RO no conilon), nos 7 maiores produtores depois do Brasil pela PSD do USDA (safra 2025, acima de 5 milhões de sacas: Vietnã, Colômbia, Indonésia, Etiópia, Uganda, Índia e Honduras, um tipo por país), e no mundo (55°S a 65°N) e nos hemisférios Norte e Sul, separados em arábica e robusta. Nenhum fator: como o índice entra no preço é definição do Comitê.",
+      formatoOrigem: "Texto (tabela da página \"VH Time Series by administrative regions for specific crop\" da NOAA STAR, sem chave; endpoint não documentado como API)",
+      urlOficial: "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot"
+    }
+  },
+
+  // --- NOAA STAR - saúde da vegetação sobre a área da soja, semanal (fase 1 da soja, ADR 0110) ---
+  // Séries `NOAA_VH.SOJA.<REGIAO>.<INDICE>`: os três países que os fatores da proposta leem e as regiões de contexto.
+  {
+    instrumentCode: "NOAA_VH_SOJA",
+    origem: "observation",
+    nome: "Clima sobre a soja - saúde da vegetação (NOAA)",
+    unidade: "índice 0-100",
+    casasDecimais: 2,
+    frequencia: "SEMANAL",
+    toleranciaDias: 9,
+    fonte: "NOAA STAR - Vegetation Health por cultura",
+    fonteCollectorCode: "noaa-vh-soja",
+    porRegiao: {
+      prefixoSerie: "NOAA_VH.SOJA",
+      campoReferencia: "VHI",
+      itemPrincipal: "EUA",
+      itensPadrao: ["EUA", "BRASIL", "ARGENTINA"],
+      descritor: "noaa-vh"
+    },
+    campoPrincipal: "VHI",
+    campos: [
+      { codigo: "VHI", nome: "VHI - saúde da vegetação", unidade: "índice 0-100", casasDecimais: 2 },
+      { codigo: "VCI", nome: "VCI - condição da vegetação (umidade)", unidade: "índice 0-100", casasDecimais: 2 },
+      { codigo: "TCI", nome: "TCI - condição térmica (calor)", unidade: "índice 0-100", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Efeito do clima sobre a lavoura de soja, medido por satélite só onde há soja plantada: o VHI (saúde da vegetação, 0 a 100) é a média do VCI (verdor, ligado à umidade) e do TCI (temperatura, ligado ao calor). Abaixo de 40 a NOAA classifica como estresse. É um indicador pronto da fonte, não o tempo (chuva, temperatura) nem um cálculo do FinMind.",
+      metodologia:
+        "Um valor por semana e região, desde 1982, com as mesmas regras do card do milho: semana N = dias do ano 7(N-1)+1 a 7N, data de disponibilidade ESTIMADA no dia seguinte ao fim da semana, releitura do ano corrente e do anterior, histórico reprocessado (o que se sabia em cada data só existe daqui para frente). Máscara de soja da NOAA (SOYB, MapSPAM 2010). Semanas que a fonte marca sem dado (-1; ex.: Buenos Aires, semanas 24 a 28 de 1994) não são gravadas. Licença: dado do governo dos EUA (domínio público).",
+      escopo:
+        "só soja, só os três índices (VHI, VCI, TCI), nos EUA, no Brasil e na Argentina (os três países que os fatores da proposta da soja leem) e, como contexto, nas 4 maiores UFs de soja (MT, PR, RS, GO) e nas 3 maiores províncias argentinas (Buenos Aires, Córdoba, Santa Fe). Fase 1 da soja, só aquisição: nenhum fator.",
       formatoOrigem: "Texto (tabela da página \"VH Time Series by administrative regions for specific crop\" da NOAA STAR, sem chave; endpoint não documentado como API)",
       urlOficial: "https://www.star.nesdis.noaa.gov/smcd/emb/vci/VH/vh_adminMeanByCrop.php?type=Province_Weekly_MeanPlot"
     }
@@ -1554,6 +1643,35 @@ const CATALOGO_OBSERVAVEIS = [
         "Preço mensal do milho do FMI (Primary Commodity Prices, \"Global price of Corn\"): o preço do maior exportador (os EUA), em dólares por tonelada métrica, média do mês. É o preço do milho americano em dólar, onde o efeito do clima dos EUA é direto; serve para validar os fatores do milho contra Chicago (o ZC da CME é pago). Valores como publicados, sem conversão.",
       metodologia:
         "Um valor por mês (o dia da observação é o 1º do mês), desde jan/1992. O preço é revisado: vem do ALFRED, o arquivo de versões do FRED, cada versão na data em que chegou ao FRED (91 versões, desde 06/11/2015; os meses anteriores entram com a data dessa versão, um limite superior). O FRED atualiza o release de forma irregular: a data é quando o dado ficou disponível pelo FRED, não quando o FMI publicou. Mensal: serve para a validação histórica e para ciclos longos, não para regras diárias (o preço diário é o futuro CCM da B3). Licença: \"Copyright © 2016, International Monetary Fund. Reprinted with permission\" (termos do FMI não lidos). Uso atual: pesquisa interna (ADR 0069).",
+      formatoOrigem: "API REST do FRED/ALFRED (com chave; sem reserva)",
+      urlOficial: "https://www.imf.org/en/Research/commodity-prices"
+    }
+  },
+
+  // --- FMI - preços mensais da soja, do óleo e do farelo de soja, pelo ALFRED (fase 1 da soja, ADR 0110) ---
+  {
+    instrumentCode: "SOJA_PRECOS_FMI",
+    origem: "observation",
+    nome: "Soja - preços mensais do FMI (grão, óleo e farelo)",
+    unidade: "US$/t",
+    casasDecimais: 2,
+    frequencia: "MENSAL",
+    // O mesmo release do milho e do café (ADRs 0045 e 0069).
+    toleranciaDias: 100,
+    fonte: "FMI - Primary Commodity Prices (pelo ALFRED)",
+    fonteCollectorCode: "fred-soja-fmi",
+    porCampo: { prefixoSerie: "FRED" },
+    campoPrincipal: "PSOYBUSDM",
+    campos: [
+      { codigo: "PSOYBUSDM", nome: "Soja (grão)", unidade: "US$/t", casasDecimais: 2 },
+      { codigo: "PSOILUSDM", nome: "Óleo de soja", unidade: "US$/t", casasDecimais: 2 },
+      { codigo: "PSMEAUSDM", nome: "Farelo de soja", unidade: "US$/t", casasDecimais: 2 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "Preços mensais do FMI (Primary Commodity Prices) da soja, do óleo de soja e do farelo de soja, em dólares por tonelada métrica, média do mês. Séries de pesquisa da fase 1 da soja: a validação dos fatores em 30 e 90 dias e a margem de esmagamento candidata. O preço oficial da soja é o futuro SJC da B3. Valores como publicados, sem conversão.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês), desde jan/1992. Os preços são revisados: vêm do ALFRED, o arquivo de versões do FRED, cada versão na data em que chegou ao FRED (91 versões, desde 06/11/2015; os meses anteriores entram com a data dessa versão, um limite superior). O FRED atualiza o release de forma irregular: a data é quando o dado ficou disponível pelo FRED, não quando o FMI publicou. Licença: \"Copyright © 2016, International Monetary Fund. Reprinted with permission\" (termos do FMI não lidos). Uso atual: pesquisa interna (ADR 0110).",
       formatoOrigem: "API REST do FRED/ALFRED (com chave; sem reserva)",
       urlOficial: "https://www.imf.org/en/Research/commodity-prices"
     }

@@ -95,5 +95,5 @@ test("campo numérico ausente vira inválido, sem descartar os outros campos da 
 });
 
 test("contrato desconhecido falha cedo", () => {
-  assert.throws(() => criarColetorCot("soja"), /desconhecido/);
+  assert.throws(() => criarColetorCot("trigo"), /desconhecido/);
 });
