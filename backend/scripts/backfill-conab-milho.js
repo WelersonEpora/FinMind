@@ -1,6 +1,6 @@
 "use strict";
 
-// Backfill do milho da Conab (Boletim da Safra de Grãos) - roda fora da rotina diária
+// Backfill do milho ou da soja (`--produto`, padrão milho; a soja é a fase 1, ADR 0114) da Conab (Boletim da Safra de Grãos) - roda fora da rotina diária
 // (scripts/run-coleta.js). Reaproveita o coletor real (collectors/conab/conab-milho.collector.js), o
 // runner e o log de execução; só troca a fase de download para baixar TODOS os levantamentos que o
 // índice da Conab ainda mantém (15 em 2026-09: fev/2025 a set/2026), em vez de só o mais recente. ADR 0017.
@@ -16,18 +16,21 @@
 // O histórico anterior a fev/2025 NÃO está nos levantamentos mensais (as séries históricas da Conab, de
 // 1976/77 em diante, são outro produto, sem vintage - ADR 0016) e não é carregado aqui.
 //
-// Uso:
+// Uso (pelo npm: `backfill:conab-milho` e `backfill:conab-soja`):
 //   node scripts/backfill-conab-milho.js
+//   node scripts/backfill-conab-milho.js --produto=soja
 
 const { sequelize } = require("../src/models");
 const { executarColetor } = require("../src/collectors/base/collector-runner");
-const conabCollector = require("../src/collectors/conab/conab-milho.collector");
+const conab = require("../src/collectors/conab/conab-milho.collector");
 const logger = require("../src/shared/logger");
 
 const TIMEOUT_BACKFILL_MS = 30 * 60 * 1000;
 
 async function main() {
-  logger.info({}, "Iniciando backfill do milho da Conab (levantamentos do índice)");
+  const produto = /^--produto=(.+)$/.exec(process.argv.slice(2).find((a) => a.startsWith("--produto=")) || "")?.[1] || "milho";
+  const conabCollector = conab.criarColetorConab(produto);
+  logger.info({ produto }, `Iniciando backfill da Conab (${produto}, levantamentos do índice)`);
 
   const coletorBackfill = {
     ...conabCollector,

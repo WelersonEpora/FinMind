@@ -256,3 +256,27 @@ test("persist diário: o levantamento já ingerido é descartado (não vira 'con
   await collector.persist(proximo, { execucaoId: "x" }, depsFake({ carregadas, escritas }));
   assert.equal(escritas.length, proximo.length, "levantamento com outro instante de publicação entra");
 });
+
+test("soja (ADR 0114): coletor e fonte próprios, e o backfill da soja na mensagem; produto desconhecido falha cedo", async () => {
+  const soja = collector.criarColetorConab("soja");
+  assert.equal(soja.codigo, "conab-soja");
+  assert.equal(collector.codigo, "conab-milho", "o módulo continua sendo o coletor do milho");
+  assert.throws(() => collector.criarColetorConab("trigo"), /desconhecido/);
+
+  const { buffer, ...semArquivo } = levantamentoBase();
+  assert.ok(buffer);
+  const levantamento = {
+    ...semArquivo,
+    estimativa: { mes: 9, ano: 2026 },
+    mesBalanco: { mes: 9, ano: 2026 },
+    invalidos: [],
+    observacoes: [{ seriesCode: "CONAB.SOJA.BALANCO.PRODUCAO", observedAt: "2025-09-01", valor: 180406.6, unidade: "mil t", tipo: "BALANCO", regiao: "BRASIL", metrica: "PRODUCAO", safra: "2025/26" }]
+  };
+  const { validos, invalidos } = soja.normalize([levantamento]);
+  assert.equal(invalidos.length, 0);
+  assert.equal(validos[0].source_code, "CONAB_LEVANTAMENTO_SAFRAS_SOJA");
+  assert.equal(validos[0].metadata.produto, "soja");
+
+  const resultado = await soja.persist(validos, { execucaoId: "x" }, depsFake());
+  assert.match(resultado.falhas[0].motivo, /npm run backfill:conab-soja/);
+});

@@ -4,9 +4,10 @@ const { URL } = require("node:url");
 const env = require("../../config/env");
 const { UpstreamServiceError } = require("../../shared/errors");
 const { persistirPorEdicao } = require("../base/persist-observations");
-const { lerPlanilha, extrairLevantamento } = require("./conab-milho.parser");
+const { lerPlanilha, extrairLevantamento, PRODUTOS } = require("./conab-milho.parser");
 
-// Conab - Boletim da Safra de Grãos: milho por safra (1ª, 2ª, 3ª e total), por Região/UF, e balanço de
+// Conab - Boletim da Safra de Grãos (milho e, desde 2026-10-08, soja: fase 1 da soja, só aquisição, ADR 0114; a mesma
+// planilha, outras abas): milho por safra (1ª, 2ª, 3ª e total), por Região/UF, e balanço de
 // oferta e demanda (estoque, consumo, importação, exportação). Um levantamento por mês, lido da planilha
 // XLSX de cada levantamento. ADR 0017.
 //
@@ -29,7 +30,12 @@ const { lerPlanilha, extrairLevantamento } = require("./conab-milho.parser");
 //     guarda duas versões no mesmo `published_at`), como no WASDE.
 
 const URL_INDICE = "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/safras/safra-de-graos/boletim-da-safra-de-graos";
-const SOURCE_CODE = "CONAB_LEVANTAMENTO_SAFRAS";
+// Um coletor por produto, com os mesmos levantamentos; a soja tem fonte própria (o descarte dos levantamentos já
+// ingeridos olha a fonte; ver o WASDE, ADR 0111).
+const COLETORES = {
+  milho: { codigo: "conab-milho", sourceCode: "CONAB_LEVANTAMENTO_SAFRAS", produto: PRODUTOS.milho, scriptBackfill: "backfill:conab-milho" },
+  soja: { codigo: "conab-soja", sourceCode: "CONAB_LEVANTAMENTO_SAFRAS_SOJA", produto: PRODUTOS.soja, scriptBackfill: "backfill:conab-soja" }
+};
 const PAUSA_MS = 1_000;
 const TIMEOUT_MS = 10 * 60 * 1000;
 const TAMANHO_MINIMO_XLSX = 200_000;
@@ -141,13 +147,11 @@ async function downloadTodos({ signal, fetchFn, esperar } = {}) {
 
 // ---------------------------------------------------------------- persist
 
-const mensagemSemCarga = ({ series, valores }) =>
-  `Carga histórica da Conab ainda não feita para ${series} série(s) (${valores} valores não gravados): rode "npm run backfill:conab-milho" antes da coleta diária.`;
-
-const persist = (validos, contexto, deps = {}) =>
-  persistirPorEdicao(validos, contexto, deps, { sourceCode: SOURCE_CODE, exigirCargaInicial: true, mensagemSemCarga });
-const persistirBackfill = (validos, contexto, deps = {}) =>
-  persistirPorEdicao(validos, contexto, deps, { sourceCode: SOURCE_CODE, exigirCargaInicial: false, mensagemSemCarga });
+function persistir(config, validos, contexto, deps, exigirCargaInicial) {
+  const mensagemSemCarga = ({ series, valores }) =>
+    `Carga histórica da Conab (${config.produto.nome}) ainda não feita para ${series} série(s) (${valores} valores não gravados): rode "npm run ${config.scriptBackfill}" antes da coleta diária.`;
+  return persistirPorEdicao(validos, contexto, deps, { sourceCode: config.sourceCode, exigirCargaInicial, mensagemSemCarga });
+}
 
 // ---------------------------------------------------------------- parse / normalize
 
@@ -157,14 +161,14 @@ function identificar(levantamento) {
 
 // Cada levantamento vira { ...levantamento, observacoes, invalidos, estimativa, mesBalanco, erro }. Falha ao
 // ler UMA planilha não aborta as demais.
-function parse(rawData) {
+function parse(config, rawData) {
   if (!Array.isArray(rawData)) {
     throw new UpstreamServiceError("Resposta da Conab em formato inesperado (esperava uma lista de levantamentos).");
   }
   return rawData.map((item) => {
     const { buffer, ...base } = item;
     try {
-      return { ...base, ...extrairLevantamento(lerPlanilha(buffer)) };
+      return { ...base, ...extrairLevantamento(lerPlanilha(buffer), config.produto) };
     } catch (err) {
       return { ...base, erro: `Falha ao ler a planilha: ${err.message}` };
     }
@@ -189,7 +193,7 @@ function conferirMes(levantamento) {
   return null;
 }
 
-function normalize(levantamentos) {
+function normalize(config, levantamentos) {
   const validos = [];
   const invalidos = [];
 
@@ -216,13 +220,13 @@ function normalize(levantamentos) {
         observed_at: o.observedAt,
         value: o.valor,
         unit: o.unidade,
-        source_code: SOURCE_CODE,
+        source_code: config.sourceCode,
         published_at: levantamento.publicadoEm,
         published_at_is_estimated: false,
         published_at_basis: "source",
         metadata: {
           fonte: "Conab - Boletim da Safra de Grãos",
-          produto: "milho",
+          produto: config.produto.nome,
           tipo: o.tipo,
           regiao: o.regiao,
           metrica: o.metrica,
@@ -242,22 +246,34 @@ function normalize(levantamentos) {
   return { validos, invalidos };
 }
 
-module.exports = {
-  codigo: "conab-milho",
-  timeoutMs: TIMEOUT_MS,
-  get tentativasRetry() {
-    return env.collectors.retryTentativas;
-  },
-  download,
-  downloadTodos,
-  parse,
-  normalize,
-  persist,
-  persistirBackfill,
+// Coletor de um produto de COLETORES ("milho", "soja").
+function criarColetorConab(chave) {
+  const config = COLETORES[chave];
+  if (!config) throw new Error(`Produto da Conab desconhecido: ${chave} (conhecidos: ${Object.keys(COLETORES).join(", ")}).`);
+  return {
+    codigo: config.codigo,
+    timeoutMs: TIMEOUT_MS,
+    get tentativasRetry() {
+      return env.collectors.retryTentativas;
+    },
+    download,
+    downloadTodos,
+    parse: (rawData) => parse(config, rawData),
+    normalize: (levantamentos) => normalize(config, levantamentos),
+    persist: (validos, contexto, deps = {}) => persistir(config, validos, contexto, deps, true),
+    persistirBackfill: (validos, contexto, deps = {}) => persistir(config, validos, contexto, deps, false),
+    SOURCE_CODE: config.sourceCode
+  };
+}
+
+// O módulo continua sendo o coletor do milho (o de antes), com a fábrica ao lado.
+// (Object.assign sobre o próprio coletor preserva o getter de retentativas.)
+module.exports = Object.assign(criarColetorConab("milho"), {
+  criarColetorConab,
+  COLETORES,
   extrairLevantamentosDoIndice,
   extrairDatasDaPagina,
   baixarLevantamentos,
   conferirMes,
-  SOURCE_CODE,
   PAUSA_MS
-};
+});

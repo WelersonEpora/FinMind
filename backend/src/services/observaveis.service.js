@@ -1627,6 +1627,62 @@ const CATALOGO_OBSERVAVEIS = [
         "Balanço de oferta e demanda do milho no Brasil por safra, conforme o Boletim da Safra de Grãos da Conab: estoque inicial e final, produção, importação, suprimento, consumo, exportação e demanda total, em mil toneladas. Na safra em projeção vale o mês do levantamento."
     }
   },
+  // Soja (fase 1 da soja, só aquisição, ADR 0114): os mesmos levantamentos, a aba "Soja" (uma safra só) e o balanço da
+  // aba "Suprimento - Soja" (só o grão).
+  {
+    instrumentCode: "CONAB_SOJA_SAFRA",
+    nome: "Soja por UF (Conab)",
+    unidade: "mil t",
+    casasDecimais: 1,
+    ...BASE_CONAB_MILHO,
+    fonteCollectorCode: "conab-soja",
+    porRegiao: {
+      prefixoSerie: "CONAB.SOJA",
+      campoReferencia: "PRODUCAO_TOTAL",
+      itemPrincipal: "BRASIL",
+      itensPadrao: ["BRASIL", "MT", "PR", "RS", "GO"],
+      descritor: "conab"
+    },
+    campoPrincipal: "PRODUCAO_TOTAL",
+    campos: [
+      { codigo: "PRODUCAO_TOTAL", nome: "Produção", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "AREA_TOTAL", nome: "Área", unidade: "mil ha", casasDecimais: 1 },
+      { codigo: "PRODUTIVIDADE_TOTAL", nome: "Produtividade", unidade: "kg/ha", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      ...FONTE_DETALHE_CONAB_MILHO,
+      escopo:
+        "só soja em grão, com área, produtividade e produção de todas as regiões e das 27 UFs. O vintage começa em fev/2025 (o que o índice da Conab ainda mantém); as séries históricas desde 1976/77 e os preços da Conab não foram carregados. Fase 1 da soja, só aquisição: nenhum fator lê esta série.",
+      descricao:
+        "Soja por região ou UF, conforme o Boletim da Safra de Grãos da Conab (estimativa da Conab, não do USDA): área, produtividade e produção. Cada levantamento mensal revisa a estimativa da safra; uma linha por região ou UF."
+    }
+  },
+  {
+    instrumentCode: "CONAB_SOJA_BALANCO",
+    nome: "Soja - balanço nacional (Conab)",
+    unidade: "mil t",
+    casasDecimais: 1,
+    ...BASE_CONAB_MILHO,
+    fonteCollectorCode: "conab-soja",
+    porCampo: { prefixoSerie: "CONAB.SOJA.BALANCO" },
+    campoPrincipal: "ESTOQUE_FINAL",
+    campos: [
+      { codigo: "ESTOQUE_FINAL", nome: "Estoque final", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "ESTOQUE_INICIAL", nome: "Estoque inicial", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "PRODUCAO", nome: "Produção", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "IMPORTACAO", nome: "Importação", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "SEMENTES_OUTROS", nome: "Sementes e outros", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "EXPORTACAO", nome: "Exportação", unidade: "mil t", casasDecimais: 1 },
+      { codigo: "PROCESSAMENTO", nome: "Processamento (esmagamento)", unidade: "mil t", casasDecimais: 1 }
+    ],
+    fonteDetalhe: {
+      ...FONTE_DETALHE_CONAB_MILHO,
+      escopo:
+        "só o balanço NACIONAL da soja em grão, por safra, a partir de 2020/21 (cada levantamento reestima todas as safras da aba). Farelo e óleo, que a mesma aba traz, não são coletados. Fase 1 da soja, só aquisição: nenhum fator lê esta série.",
+      descricao:
+        "Balanço de oferta e demanda da soja em grão no Brasil por safra, conforme o Boletim da Safra de Grãos da Conab: estoque inicial e final, produção, importação, sementes e outros, exportação e processamento, em mil toneladas."
+    }
+  },
 
   // --- Conab - café por safra, região e UF (Boletim da Safra de Café, ADR 0029) ---
   {

@@ -38,6 +38,7 @@
     "backfill:usda-grain-stocks": "node scripts/backfill-usda-grain-stocks.js",
     "backfill:usda-grain-stocks-soja": "node scripts/backfill-usda-grain-stocks.js --cultura=soja",
     "backfill:conab-milho": "node scripts/backfill-conab-milho.js",
+    "backfill:conab-soja": "node scripts/backfill-conab-milho.js --produto=soja",
     "backfill:conab-cafe": "node scripts/backfill-conab-cafe.js",
     "agregacao:cafe": "node scripts/agregacao-cafe-historico.js",
     "agregacao:milho": "node scripts/agregacao-milho-historico.js",

@@ -101,7 +101,7 @@ ir ao sistema, num ADR. Os pontos da conversa com o David (etapas 1 e 3) seguem 
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
 | Centro de Decisão | A tela inicial (`/`), no desenho do AgroMind: para um ativo (ouro, petróleo, milho, café) e uma data, o preço como era conhecido no fim daquele dia (point-in-time, com troca de série, mini-gráfico e variações; futuros pelo vencimento mais próximo, sem emendar) e a leitura de geopolítica da data, com os eventos da semana. Nos quatro ativos, o espaço da análise mostra a leitura diária de tendência da IA nos quatro horizontes (ADRs 0052, 0054, 0058 e 0062). Nenhum sinal de compra ou venda é gerado — ADR 0048 |
 | Qualidade da IA | `/qualidade-ia`: por ativo e horizonte, o que a IA leu contra o que o preço fez, em direção e faixa, contra os benchmarks Sempre Lateral e Persistência nas mesmas linhas, com o n e as linhas de cada número; o gráfico "faixas lidas × preço" mostra cada leitura na data-alvo, com os quatro horizontes lado a lado; sem índice único nem cor de acerto — ADR 0064 |
-| Telas de dados | `/dados-mercado/observaveis` (80 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Telas de dados | `/dados-mercado/observaveis` (82 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` na `servidor02` (coleta 04:00, 06:00, 08:00 **UTC**; backup 10:00 UTC, **não versionado**) — ADR 0004, ADR 0026 |
@@ -213,14 +213,16 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Conab · Milho, café · XLSX/XLS por levantamento · nível 4–5 · Dev e servidor</summary>
+<summary>Conab · Milho, café, soja · XLSX/XLS por levantamento · nível 4–5 · Dev e servidor (soja só em dev)</summary>
 
-**Acesso:** XLSX/XLS por levantamento (página HTML). **Ressalva principal:** **Versões só desde fev/2025 (milho) e jan/2023 (café)**: antes disso a Conab não mantém as páginas; sem API (quebra se o layout mudar); o custo do café não tem data de publicação; **preço mínimo do café bloqueado por reCAPTCHA**. **Evidência:** ADRs 0017, 0029, 0043.
+**Acesso:** XLSX/XLS por levantamento (página HTML). **Ressalva principal:** **Versões só desde fev/2025 (milho) e jan/2023 (café)**: antes disso a Conab não mantém as páginas; sem API (quebra se o layout mudar); o custo do café não tem data de publicação; **preço mínimo do café bloqueado por reCAPTCHA**. **Evidência:** ADRs 0017, 0029, 0043, 0114.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | Milho por safra e UF | Área, produtividade e produção da 1ª, 2ª e 3ª safra e do total, por região e UF | Por safra, revista a cada levantamento mensal | Versões desde fev/2025 | Real (data e hora do levantamento); limite superior nas safras antigas | Dev e servidor |
 | Milho - balanço nacional | Estoques, produção, importação, suprimento, consumo, exportação e demanda | Por safra, revista a cada levantamento | Safras desde 2018/19; versões desde fev/2025 | Real | Dev e servidor |
+| Soja por UF | Área, produtividade e produção, por região e UF (fase 1 da soja, ADR 0114) | Por safra, revista a cada levantamento mensal | Versões desde fev/2025 | Real (data e hora do levantamento) | Dev; servidor pendente (backfill) |
+| Soja - balanço nacional | O grão: estoques, produção, importação, sementes, exportação e processamento (aba própria, transposta; farelo e óleo de fora) | Por safra, revista a cada levantamento | Safras desde 2020/21; versões desde fev/2025 | Real | Dev; servidor pendente (backfill) |
 | Café - safra por região e UF | Área, produtividade e produção do total, do arábica e do conilon | Por safra, 3 ou 4 levantamentos por ano | Versões desde jan/2023 | Real (estimado num levantamento republicado) | Dev e servidor |
 | Café arábica e conilon - custo de produção | Custo variável, fixo, operacional e total, em R$/ha e R$/saca, por município | Anual | Arábica 2003; conilon 2007 | Não informado (data da coleta) | Dev e servidor |
 
@@ -347,7 +349,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>USDA (ESMIS) — WASDE, área plantada e Grain Stocks · Milho, soja · HTML e arquivos · nível 5 · Dev e servidor (soja só em dev)</summary>
+<summary>USDA (ESMIS) — WASDE, área plantada e Grain Stocks · Milho, soja · HTML e arquivos · nível 5 · Dev e servidor</summary>
 
 **Acesso:** HTML da listagem (raspado) + XLS/CSV de cada edição. **Ressalva principal:** **WASDE só desde 2011, área e estoques só desde 2001** (antes, só PDF/TXT); listagem raspada, sem API confirmada; **em banco novo, o backfill vem ANTES da coleta diária**; licença não confirmada. **Evidência:** ADRs 0015, 0027, 0035, 0111 a 0113.
 
@@ -355,12 +357,12 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 |---|---|---|---|---|---|
 | Milho EUA (WASDE) | Balanço por safra: 13 atributos e o milho usado para etanol | Mensal (uma edição por mês) | Edições desde 2011-01 | Real (data do release), com as versões | Dev e servidor |
 | Milho por país (WASDE) | ~20 regiões, 7 atributos | Mensal | Edições desde 2011-01 | Real, com as versões | Dev e servidor |
-| Soja EUA (WASDE) | Balanço do grão por safra: 13 atributos, com esmagamento, semente e resíduo (fase 1 da soja, ADR 0111) | Mensal | Edições desde 2011-01 | Real, com as versões | Dev; servidor pendente (backfill) |
-| Soja por país (WASDE) | 16 regiões (com o Paraguai), 7 atributos, com o esmagamento; óleo e farelo de fora | Mensal | Edições desde 2011-01 | Real, com as versões | Dev; servidor pendente (backfill) |
+| Soja EUA (WASDE) | Balanço do grão por safra: 13 atributos, com esmagamento, semente e resíduo (fase 1 da soja, ADR 0111) | Mensal | Edições desde 2011-01 | Real, com as versões | Dev e servidor |
+| Soja por país (WASDE) | 16 regiões (com o Paraguai), 7 atributos, com o esmagamento; óleo e farelo de fora | Mensal | Edições desde 2011-01 | Real, com as versões | Dev e servidor |
 | Milho EUA - área plantada | Intenção de plantio (fim de março) e área plantada (fim de junho) | 2 edições por ano | Edições desde 2001-06-29 | Real (só a data), com as versões | Dev e servidor |
-| Soja EUA - área plantada | Os mesmos dois relatórios, a tabela da soja (fase 1 da soja, ADR 0112) | 2 edições por ano | Edições desde 2001-06-29 | Real (só a data), com as versões | Dev; servidor pendente (backfill) |
+| Soja EUA - área plantada | Os mesmos dois relatórios, a tabela da soja (fase 1 da soja, ADR 0112) | 2 edições por ano | Edições desde 2001-06-29 | Real (só a data), com as versões | Dev e servidor |
 | Estoques trimestrais de milho dos EUA (Grain Stocks) | Total, na fazenda e fora da fazenda, em 1º de dez, mar, jun e set | Trimestral | Edições desde 2001-06-29 | Real (só a data), com as versões | Dev e servidor |
-| Estoques trimestrais de soja dos EUA (Grain Stocks) | O bloco da soja da mesma tabela, as mesmas posições e datas (fase 1 da soja, ADR 0113) | Trimestral | Edições desde 2001-06-29 | Real (só a data), com as versões | Dev; servidor pendente (backfill) |
+| Estoques trimestrais de soja dos EUA (Grain Stocks) | O bloco da soja da mesma tabela, as mesmas posições e datas (fase 1 da soja, ADR 0113) | Trimestral | Edições desde 2001-06-29 | Real (só a data), com as versões | Dev e servidor |
 
 </details>
 
@@ -542,7 +544,7 @@ no ADR de cada fonte.
 | Petróleo: o Brent futuro | Em uso desde 2026-10-07 (ADR 0052, adendo; Yahoo, fonte não oficial e provisória, ADR 0096); falta a confirmação do David (§4). A assinatura da ICE (US$ 2.500/ano), a fonte oficial, é decisão do Comitê |
 | Série contínua do GLD (ouro) | O horizonte de 90 dias do ouro fica muitas vezes sem a variação de 90 dias, porque cada vencimento do GLD tem pouco histórico e nada é emendado (ADR 0054). Emendar os vencimentos é um cálculo do David (ADR 0044) |
 | Lacunas declaradas das v1 | Milho: o etanol brasileiro no F5 (ADR 0073) e os fatores ausentes (ADR 0080); café: o INMET no clima (ADR 0083). Ficaram para depois da v1 |
-| Soja: fase 1, só aquisição (ADRs 0109 a 0113) | Autorizada pelo usuário em 2026-10-08. Feito: o futuro SJC da B3, o COT, os preços mensais do FMI, a saúde da vegetação (`SOYB`), o Crop Progress, o WASDE, a área plantada e o Grain Stocks. Falta, uma fonte por vez, cada uma com o seu reconhecimento: a Conab e os eventos (`docs/proposta-ativo-soja.md`, §2.13) |
+| Soja: fase 1, só aquisição (ADRs 0109 a 0114) | Autorizada pelo usuário em 2026-10-08. Feito: o futuro SJC da B3, o COT, os preços mensais do FMI, a saúde da vegetação (`SOYB`), o Crop Progress, o WASDE, a área plantada, o Grain Stocks e a Conab. Falta a frente dos eventos (a leitura diária por IA), que precisa de configuração própria e será discutida antes (`docs/proposta-ativo-soja.md`, §2.13) |
 | Qualidade da IA: medidas para depois | Calibração da confiança, taxa de inversão, índice único e análise estatística (ADR 0064) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): 
@@ -559,15 +561,12 @@ Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a 
 Backfill validado em dev que ainda não rodou na VM entra aqui; ao rodar, sai daqui e a fonte passa a "dev e servidor"
 em "Fontes" (§2).
 
-- **WASDE, balanço da soja** (ADR 0111): `npm run backfill:wasde-soja` (~190 downloads), **antes da 1ª coleta diária
-  depois do deploy** (sem a carga, a coleta diária recusa a soja e pede o backfill). Dev: 21.139 linhas em 125 séries, de 2011-01-12 a 2026-09-11, 0 falhas (fora a edição especial de 2014-01-23, sem planilha, como no milho).
-- **USDA, área plantada da soja** (ADR 0112): `npm run backfill:usda-area-plantada-soja` (51 downloads, ~2 minutos), também
-  **antes da 1ª coleta diária depois do deploy**. Dev: 89 linhas, os anos de plantio de 2000 a 2026, 0 falhas.
-- **USDA, Grain Stocks da soja** (ADR 0113): `npm run backfill:usda-grain-stocks-soja` (~105 downloads, ~3 minutos), também
-  **antes da 1ª coleta diária depois do deploy**. Dev: 566 linhas em 102 edições, de 2000 a 2026; termina em sucesso parcial
-  pelas 2 edições sem CSV (2013-11-19 e 2019-01-11), como a do milho.
+- **Conab, soja** (ADR 0114): `npm run backfill:conab-soja` (15 levantamentos, ~1 minuto), **antes da 1ª coleta diária depois
+  do deploy**. Dev: 1.074 linhas em 112 séries, 0 falhas.
 
-As últimas, em 2026-10-08: a saúde da vegetação sobre a soja (68.300 valores, igual a dev; ADR 0110; o COT, os preços do
+As últimas, em 2026-10-08: a área plantada (89 linhas) e o Grain Stocks da soja (566 linhas, com as 2 edições sem CSV,
+como no milho), iguais a dev (ADRs 0112 e 0113), o WASDE da soja (21.139 linhas, igual a dev; ADR 0111; o 3º bloco foi interrompido por um deploy e
+repetido com `--anoInicial=2021`), a saúde da vegetação sobre a soja (68.300 valores, igual a dev; ADR 0110; o COT, os preços do
 FMI e o Crop Progress da soja carregam o histórico inteiro na coleta diária), o futuro de soja SJC da B3 (949 pregões, de
 2022-03-21 a 2026-10-07, igual a dev; ADR 0109), o EIA STEO (226 edições, ADR 0091), a ICO (162 edições), a
 ECF (8 edições) e as sacas aguardando classificação da ICE (desde 2016-10-03), as três do ADR 0061. As anteriores (Grain Stocks, etanol do WASDE, exportação de milho por destino, ouro do FMI, World Gold Council, Cecafé e
@@ -634,9 +633,10 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 | Proposta da soja como 5º ativo | Uma proposta para o Comitê e o David: o SJC da B3 (liquidado pelo preço de Chicago, em dólar) como preço de referência, 4 fatores (oferta dos EUA, oferta da América do Sul, demanda pela soja dos EUA e política), 3 regras sem peso (calendário da safra, folga do balanço e o posicionamento dos fundos, igual ao café), a fase 1 só com fontes já coletadas e a validação por contribuição incremental. Nada implementado nem autorizado | `docs/proposta-ativo-soja.md` |
 | Soja, fase 1: o futuro SJC da B3 | Autorizada pelo usuário (só aquisição, ADR 0109). O SJC entra como mais um produto da B3, coletado todo dia pelo Up2Data, com o histórico do Boletim Diário desde 2022-03-21; o parser do boletim passou a aceitar o título da tabela quebrado em duas linhas (o do SJC). Dois cards novos (preços e liquidez), 71 no total. Em dev e no servidor: 949 pregões | ADR 0109 |
 | Soja, fase 1: COT, preços do FMI, saúde da vegetação e Crop Progress | Quatro fontes que já coletamos, para outra cultura ou contrato (ADR 0110): o COT da soja da CBOT (desde 2006), os preços mensais do FMI de grão, óleo e farelo (desde 1992, com as versões), o VHI sobre a soja em 10 regiões (desde 1982) e o Crop Progress da soja (condição desde 1986). O coletor do Crop Progress virou fábrica por cultura, sem mudar o do milho; a NOAA passou a tratar o -1 da fonte (semana sem dado) como aviso. Cinco cards novos, 76 no total | ADR 0110 |
-| Soja, fase 1: WASDE | O balanço da soja, das mesmas edições do milho desde 2011: o grão nos EUA (13 atributos, com esmagamento, semente e resíduo) e 16 regiões (com Brasil, Argentina, Paraguai e China). O leitor e o coletor do WASDE viraram um por produto, sem mudar o do milho; a soja tem fonte própria, para a carga em blocos não confundir as edições do milho com as dela. Conferido nas 187 planilhas, 0 inválidos. Dois cards novos, 78 no total. Em dev: 21.139 linhas em 125 séries, reexecução idempotente; no servidor, o backfill está pendente (§3) | ADR 0111 |
-| Soja, fase 1: área plantada | A intenção de plantio (Prospective Plantings, março) e a área plantada (Acreage, junho) da soja dos EUA, dos mesmos CSV do milho desde 2001 (51 edições, 0 erros; a de março e a de junho de 2025 e 2026 batem com o WASDE de maio e de julho). O leitor e o coletor viraram um por cultura, sem mudar o do milho. Um card novo, 79 no total. Em dev: 89 linhas, idempotente; no servidor, o backfill está pendente (§3) | ADR 0112 |
-| Soja, fase 1: Grain Stocks | Os estoques de soja dos EUA em 1º de dezembro, março, junho e setembro, por posição, do mesmo relatório do milho desde 2001 (102 edições, 0 erros; o 1º de setembro de 2025 bate com o estoque final do WASDE). O leitor e o coletor viraram um por grão, sem mudar o do milho. Um card novo, 80 no total. Em dev: 566 linhas, idempotente; no servidor, o backfill está pendente (§3) | ADR 0113 |
+| Soja, fase 1: WASDE | O balanço da soja, das mesmas edições do milho desde 2011: o grão nos EUA (13 atributos, com esmagamento, semente e resíduo) e 16 regiões (com Brasil, Argentina, Paraguai e China). O leitor e o coletor do WASDE viraram um por produto, sem mudar o do milho; a soja tem fonte própria, para a carga em blocos não confundir as edições do milho com as dela. Conferido nas 187 planilhas, 0 inválidos. Dois cards novos, 78 no total. Em dev e no servidor: 21.139 linhas em 125 séries, reexecução idempotente | ADR 0111 |
+| Soja, fase 1: área plantada | A intenção de plantio (Prospective Plantings, março) e a área plantada (Acreage, junho) da soja dos EUA, dos mesmos CSV do milho desde 2001 (51 edições, 0 erros; a de março e a de junho de 2025 e 2026 batem com o WASDE de maio e de julho). O leitor e o coletor viraram um por cultura, sem mudar o do milho. Um card novo, 79 no total. Em dev e no servidor: 89 linhas, idempotente | ADR 0112 |
+| Soja, fase 1: Grain Stocks | Os estoques de soja dos EUA em 1º de dezembro, março, junho e setembro, por posição, do mesmo relatório do milho desde 2001 (102 edições, 0 erros; o 1º de setembro de 2025 bate com o estoque final do WASDE). O leitor e o coletor viraram um por grão, sem mudar o do milho. Um card novo, 80 no total. Em dev e no servidor: 566 linhas, idempotente | ADR 0113 |
+| Soja, fase 1: Conab | A soja dos mesmos levantamentos do milho (15, desde fev/2025): área, produtividade e produção por UF (a aba "Soja", lida pelo leitor do milho sem mudança) e o balanço do grão, de uma aba própria e transposta (safras nas colunas), com leitor novo; farelo e óleo de fora. O coletor virou um por produto, sem mudar o do milho. 0 erros nos 15. Dois cards novos, 82 no total. Em dev: 1.074 linhas, idempotente; no servidor, o backfill está pendente (§3) | ADR 0114 |
 
 </details>
 

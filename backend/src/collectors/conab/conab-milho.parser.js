@@ -1,7 +1,8 @@
 "use strict";
 
-// Extrai o MILHO de uma planilha de levantamento da Conab (Boletim da Safra de Grãos, XLSX mensal).
-// ADR 0017. Funciona sobre matrizes de células (array de linhas), não sobre o arquivo: a leitura do
+// Extrai o MILHO (ADR 0017) e a SOJA (ADR 0114) de uma planilha de levantamento da Conab (Boletim da Safra de Grãos,
+// XLSX mensal). O que muda por produto (abas e leitor do balanço) está em PRODUTOS; os comentários abaixo descrevem o
+// milho, e o da soja está em `extrairBalancoSoja`. Funciona sobre matrizes de células (array de linhas), não sobre o arquivo: a leitura do
 // XLSX fica em `lerPlanilha`, e o resto é função pura, testável sem arquivo.
 //
 // O layout foi conferido nas 15 planilhas que o índice da Conab mantém (safras 2024/25 e 2025/26,
@@ -95,7 +96,7 @@ function lerMesRotulo(celula) {
 // ---------------------------------------------------------------- abas de safra (1a, 2a, 3a, total)
 
 // Uma aba -> { observacoes, invalidos, estimativa }. Lança Error se o layout não é o esperado.
-function extrairAbaDeSafra(linhas, tipo) {
+function extrairAbaDeSafra(linhas, tipo, serie = "MILHO") {
   const cabecalho = linhas.findIndex((l) => texto(l[0]) === "REGIÃO/UF");
   if (cabecalho < 0) throw new Error(`aba "${tipo}": cabeçalho "REGIÃO/UF" não encontrado.`);
 
@@ -163,7 +164,7 @@ function extrairAbaDeSafra(linhas, tipo) {
           continue;
         }
         observacoes.push({
-          seriesCode: `CONAB.MILHO.${regiao}.${bloco.metrica}_${tipo}`,
+          seriesCode: `CONAB.${serie}.${regiao}.${bloco.metrica}_${tipo}`,
           observedAt: safra.observedAt,
           valor,
           unidade: bloco.unidade,
@@ -250,25 +251,109 @@ function extrairBalanco(linhas) {
   return { observacoes, invalidos, mesAtual };
 }
 
+// ---------------------------------------------------------------- balanço da soja (aba Suprimento - Soja)
+
+// A soja tem aba própria de balanço, TRANSPOSTA em relação à do milho (conferida nos 15 levantamentos): as safras nas
+// colunas (de 2020/21 até a corrente, todas reestimadas a cada levantamento) e uma linha por item, em três blocos
+// numerados: "1. Soja em grão", "2. Farelo" e "3. Óleo". Só o grão é lido (como no WASDE, ADR 0111). A nota "Estimativa
+// em <mês>/<ano>" no rodapé é o mês do balanço. Unidade: mil t (a produção é a da aba "Soja", em mil t).
+const ITENS_DO_BALANCO_SOJA = {
+  "ESTOQUE INICIAL": "ESTOQUE_INICIAL",
+  PRODUCAO: "PRODUCAO",
+  IMPORTACAO: "IMPORTACAO",
+  "SEMENTES/OUTROS": "SEMENTES_OUTROS",
+  EXPORTACAO: "EXPORTACAO",
+  PROCESSAMENTO: "PROCESSAMENTO",
+  "ESTOQUE FINAL": "ESTOQUE_FINAL"
+};
+
+// Aba "Suprimento - Soja" -> { observacoes, invalidos, mesAtual }. Lança Error se o layout mudou.
+function extrairBalancoSoja(linhas) {
+  const cabecalho = linhas.findIndex((l) => texto(l[0]) === "PRODUTO" && texto(l[1]) === "SAFRA");
+  if (cabecalho < 0) throw new Error('aba "Suprimento - Soja": cabeçalho "PRODUTO / SAFRA" não encontrado.');
+  const safras = [];
+  (linhas[cabecalho + 1] || []).forEach((celula, coluna) => {
+    const m = RE_SAFRA_BALANCO.exec(texto(celula));
+    if (!m) return;
+    const safra = lerSafra(m[1].slice(2), m[2]);
+    if (!safra) throw new Error(`aba "Suprimento - Soja": rótulo de safra inválido "${texto(celula)}".`);
+    safras.push({ coluna, ...safra });
+  });
+  if (safras.length === 0) throw new Error('aba "Suprimento - Soja": nenhuma safra no cabeçalho.');
+
+  const inicio = linhas.findIndex((l, i) => i > cabecalho && /^1\.\s*Soja em gr[aã]o$/i.test(texto(l[0])));
+  if (inicio < 0) throw new Error('aba "Suprimento - Soja": bloco "1. Soja em grão" não encontrado.');
+
+  const observacoes = [];
+  const invalidos = [];
+  const itensAchados = new Set();
+  let mesAtual = null;
+  for (let k = inicio + 1; k < linhas.length; k += 1) {
+    const rotulo = texto(linhas[k][0]);
+    const nota = RE_NOTA_ESTIMATIVA.exec(rotulo);
+    if (nota) {
+      const mes = MESES_POR_EXTENSO[semAcento(nota[1]).toLowerCase()];
+      if (mes) mesAtual = { mes, ano: Number(nota[2]) };
+    }
+    // Itens do grão: "1.1. Estoque Inicial" ... "1.7. Estoque Final". O bloco seguinte ("2. Farelo") encerra.
+    const item = /^1\.\d+\.?\s*(.+)$/.exec(rotulo);
+    if (!item) continue;
+    const codigo = ITENS_DO_BALANCO_SOJA[semAcento(item[1]).toUpperCase().replace(/\s+/g, " ")];
+    if (!codigo) {
+      invalidos.push({ motivo: `aba "Suprimento - Soja": item desconhecido "${rotulo}".` });
+      continue;
+    }
+    itensAchados.add(codigo);
+    for (const safra of safras) {
+      const valor = numero(linhas[k][safra.coluna]);
+      if (valor === null) continue;
+      if (Number.isNaN(valor)) {
+        invalidos.push({ motivo: `aba "Suprimento - Soja", ${codigo} ${safra.safra}: valor não numérico ("${texto(linhas[k][safra.coluna])}").` });
+        continue;
+      }
+      observacoes.push({
+        seriesCode: `CONAB.SOJA.BALANCO.${codigo}`,
+        observedAt: safra.observedAt,
+        valor,
+        unidade: UNIDADE_DO_BALANCO,
+        tipo: "BALANCO",
+        regiao: "BRASIL",
+        metrica: codigo,
+        safra: safra.safra
+      });
+    }
+  }
+  const faltando = Object.values(ITENS_DO_BALANCO_SOJA).filter((c) => !itensAchados.has(c));
+  if (faltando.length > 0) throw new Error(`aba "Suprimento - Soja": itens do grão não encontrados: ${faltando.join(", ")}.`);
+  return { observacoes, invalidos, mesAtual };
+}
+
+// Um produto por entrada: as abas de safra (nome -> tipo), a aba do balanço e o leitor dela, e o segmento do código da
+// série (`CONAB.<serie>.<REGIAO>.<METRICA>_<TIPO>`, `CONAB.<serie>.BALANCO.<ITEM>`).
+const PRODUTOS = {
+  milho: { nome: "milho", serie: "MILHO", abasDeSafra: ABAS_DE_SAFRA, abaBalanco: ABA_BALANCO, extrairBalanco },
+  soja: { nome: "soja", serie: "SOJA", abasDeSafra: { Soja: "TOTAL" }, abaBalanco: "Suprimento - Soja", extrairBalanco: extrairBalancoSoja }
+};
+
 // ---------------------------------------------------------------- levantamento inteiro
 
-// Planilha lida ([{ nome, linhas }]) -> tudo do milho. Lança Error se alguma aba esperada faltar.
-function extrairLevantamento(planilha) {
+// Planilha lida ([{ nome, linhas }]) -> tudo do produto (padrão: o milho). Lança Error se alguma aba esperada faltar.
+function extrairLevantamento(planilha, produto = PRODUTOS.milho) {
   const porNome = new Map(planilha.map((aba) => [aba.nome, aba.linhas]));
   const observacoes = [];
   const invalidos = [];
   let estimativa = null;
 
-  for (const [nomeAba, tipo] of Object.entries(ABAS_DE_SAFRA)) {
+  for (const [nomeAba, tipo] of Object.entries(produto.abasDeSafra)) {
     if (!porNome.has(nomeAba)) throw new Error(`aba "${nomeAba}" não encontrada na planilha.`);
-    const aba = extrairAbaDeSafra(porNome.get(nomeAba), tipo);
+    const aba = extrairAbaDeSafra(porNome.get(nomeAba), tipo, produto.serie);
     observacoes.push(...aba.observacoes);
     invalidos.push(...aba.invalidos);
     if (tipo === "TOTAL") estimativa = aba.estimativa;
   }
 
-  if (!porNome.has(ABA_BALANCO)) throw new Error(`aba "${ABA_BALANCO}" não encontrada na planilha.`);
-  const balanco = extrairBalanco(porNome.get(ABA_BALANCO));
+  if (!porNome.has(produto.abaBalanco)) throw new Error(`aba "${produto.abaBalanco}" não encontrada na planilha.`);
+  const balanco = produto.extrairBalanco(porNome.get(produto.abaBalanco));
   observacoes.push(...balanco.observacoes);
   invalidos.push(...balanco.invalidos);
 
@@ -284,9 +369,11 @@ function lerPlanilha(buffer) {
 }
 
 module.exports = {
+  PRODUTOS,
   extrairLevantamento,
   extrairAbaDeSafra,
   extrairBalanco,
+  extrairBalancoSoja,
   lerPlanilha,
   slugRegiao,
   lerSafra,

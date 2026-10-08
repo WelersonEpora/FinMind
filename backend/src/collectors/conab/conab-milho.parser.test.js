@@ -7,6 +7,8 @@ const {
   extrairLevantamento,
   extrairAbaDeSafra,
   extrairBalanco,
+  extrairBalancoSoja,
+  PRODUTOS,
   lerPlanilha,
   slugRegiao,
   lerSafra,
@@ -215,4 +217,61 @@ test("lerPlanilha + extrairLevantamento leem um XLSX de verdade (ida e volta pel
   assert.equal(achar(r, "CONAB.MILHO.MT.PRODUCAO_2A", "2025-09-01").valor, 58577.1);
   assert.equal(achar(r, "CONAB.MILHO.BALANCO.ESTOQUE_FINAL", "2025-09-01").valor, 15654.04);
   assert.equal(r.invalidos.length, 0);
+});
+
+// ---- Soja (ADR 0114): a aba "Soja" (o layout das abas do milho, uma safra só) e o balanço TRANSPOSTO da aba
+// "Suprimento - Soja" (safras nas colunas, um item por linha; layout real de set/2026).
+const SUPRIMENTO_SOJA = [
+  [],
+  [],
+  [],
+  [],
+  ["PRODUTO", "SAFRA"],
+  [null, "2023/24", "2024/25", "2025/26"],
+  ["1. Soja em grão"],
+  ["1.1. Estoque Inicial", 11033.78, 7231.15, 9974.63],
+  ["1.2. Produção", 151283.4, 171480.5, 180406.6],
+  ["1.3. Importação", 820.96, 969, 900],
+  ["1.4. Sementes/Outros", 3427.47, 3638.69, 3766.19],
+  ["1.5. Exportação", 98814.52, 108181.06, 116203.75],
+  ["1.6. Processamento", 53665, 57886.27, 62137.74],
+  ["1.7. Estoque Final", 7231.15, 9974.63, 9173.54],
+  // Farelo e óleo repetem os itens (Estoque Inicial, Produção...): não podem virar soja em grão.
+  ["2. Farelo"],
+  ["2.1. Estoque Inicial", 3523.07, 2589.02, 3802.37],
+  ["2.2. Produção", 41019.22, 44233.72, 47805.81],
+  ["3. Óleo"],
+  ["3.6. Estoque Final", 465.24, 660.56, 835.91],
+  ["Nota: Estimativa em setembro/2026."],
+  ["Estoque de Passagem: 31 de Dezembro"]
+];
+
+test("soja, balanço transposto: só o grão (farelo e óleo de fora), uma série por item, mês da nota de rodapé", () => {
+  const r = extrairBalancoSoja(SUPRIMENTO_SOJA);
+  assert.equal(r.invalidos.length, 0);
+  assert.equal(r.observacoes.length, 21, "7 itens x 3 safras");
+  assert.deepEqual(r.mesAtual, { mes: 9, ano: 2026 });
+  assert.equal(achar(r, "CONAB.SOJA.BALANCO.PRODUCAO", "2025-09-01").valor, 180406.6);
+  assert.equal(achar(r, "CONAB.SOJA.BALANCO.PROCESSAMENTO", "2024-09-01").valor, 57886.27);
+  assert.equal(achar(r, "CONAB.SOJA.BALANCO.SEMENTES_OUTROS", "2023-09-01").valor, 3427.47);
+  assert.equal(achar(r, "CONAB.SOJA.BALANCO.ESTOQUE_FINAL", "2025-09-01").valor, 9173.54, "o do grão, não o do óleo (835,91)");
+  assert.equal(achar(r, "CONAB.SOJA.BALANCO.PRODUCAO", "2025-09-01").unidade, "mil t");
+
+  const semItem = SUPRIMENTO_SOJA.filter((l) => l[0] !== "1.6. Processamento");
+  assert.throws(() => extrairBalancoSoja(semItem), /não encontrados: PROCESSAMENTO/);
+  assert.throws(() => extrairBalancoSoja(SUPRIMENTO_SOJA.filter((l) => l[0] !== "1. Soja em grão")), /bloco "1. Soja em grão"/);
+});
+
+test("soja, levantamento: a aba Soja vira CONAB.SOJA.<REGIAO>.<METRICA>_TOTAL e o milho continua sendo o padrão", () => {
+  const planilha = [...planilhaCompleta(), { nome: "Soja", linhas: abaDeSafra(DADOS_TOTAL) }, { nome: "Suprimento - Soja", linhas: SUPRIMENTO_SOJA }];
+  const soja = extrairLevantamento(planilha, PRODUTOS.soja);
+  assert.equal(soja.invalidos.length, 0);
+  assert.deepEqual(soja.estimativa, { mes: 9, ano: 2026 });
+  assert.deepEqual(soja.mesBalanco, { mes: 9, ano: 2026 });
+  assert.equal(achar(soja, "CONAB.SOJA.MT.PRODUCAO_TOTAL", "2025-09-01").valor, 58577.1);
+  assert.equal(soja.observacoes.some((o) => o.seriesCode.startsWith("CONAB.MILHO")), false);
+
+  const milho = extrairLevantamento(planilha);
+  assert.equal(milho.observacoes.some((o) => o.seriesCode.startsWith("CONAB.SOJA")), false);
+  assert.throws(() => extrairLevantamento(planilhaCompleta(), PRODUTOS.soja), /aba "Soja" não encontrada/);
 });

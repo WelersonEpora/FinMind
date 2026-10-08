@@ -110,6 +110,8 @@ function bootstrapCollectors() {
     registerCollector(icoCafeCollector);
     registerCollector(ecfCafeEstoquesCollector);
     registerCollector(conabMilhoCollector);
+    // Soja, fase 1 (só aquisição, ADR 0114): os mesmos levantamentos, outras abas.
+    registerCollector(conabMilhoCollector.criarColetorConab("soja"));
     registerCollector(conabCafeCollector);
     registerCollector(conabCustoCafeCollector);
     registerCollector(cecafeResumoDiarioCollector);
