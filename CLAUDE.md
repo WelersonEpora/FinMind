@@ -54,7 +54,7 @@ decidiu e quando. O assistente propõe; não decide por nenhum dos dois.
   não proponha fonte nova por iniciativa própria. Fonte nova só com uma demanda
   específica (do David, do Comitê ou do usuário), se estiver no FEL 1 e com
   autorização explícita do usuário registrada num ADR. As candidatas estão em
-  `docs/reconhecimento-fontes/README.md`; as perguntas ao David, na §4 do status.
+  `docs/reconhecimento-fontes/README.md`; o que segue em aberto com o David, na §4 do status.
 
 ## Arquitetura e estrutura do repositório
 
@@ -400,8 +400,8 @@ esses arquivos para a imagem; um teste falha se o status citar um ADR ou documen
 que não existe. Escreva as menções nesses formatos para virarem link.
 **Ao fechar uma entrega, atualize-o no mesmo commit**
 (data de "Última atualização" incluída); ele só aponta para os ADRs/docs, nunca
-copia conteúdo deles. Quando o David responder uma das perguntas da §4,
-registre a resposta e a data ali (e num ADR, se a decisão for estrutural). O
+copia conteúdo deles. Quando o David ou o Comitê decidir um item da §4,
+registre a decisão e a data ali (e num ADR, se a decisão for estrutural). O
 antigo `docs/pendente-especialista-david.md` foi aposentado em 2026-09-28: o
 status é o único lugar do que falta decidir.
 
@@ -412,8 +412,8 @@ Ver `STATUS_DO_PROJETO.md` (visão atual) e "O que está pronto" em `README.md`
 
 ## O que ainda depende das definições do David
 
-Ver `STATUS_DO_PROJETO.md`, §4 ("O que o David e o Comitê ainda definem" e as
-perguntas). Qualquer regra/cálculo do motor analítico, condições de sinal
+Ver `STATUS_DO_PROJETO.md`, §4 ("O que ainda depende do David e do Comitê"; as
+perguntas já respondidas estão no ADR 0055). Qualquer regra/cálculo do motor analítico, condições de sinal
 operacional e formato de apresentação continuam bloqueados até o David/Comitê
 definir; execução automática de ordens não existe nesta fase. **Exceção:** a
 avaliação das leituras da IA foi delegada pelo David ao usuário em 2026-10-05; a

@@ -10,7 +10,7 @@ const { FATORES } = require("./fatores-fel1");
 //   dados    - o que o FinMind já coleta para o fator (cards do catálogo de observáveis) e as lacunas conhecidas.
 //              É fato, não proposta. `avaliacao` (opcional): se o dado basta para o fator, com a evidência do histórico
 //              (o FEL 1 foi escrito com apoio de IA: um requisito dele pode não ser necessário).
-//   proposta - um rascunho do fator nas três camadas do motor (STATUS_DO_PROJETO.md, §5): a medida (A. Medir), a
+//   proposta - um rascunho do fator nas três camadas do motor (ADR 0050): a medida (A. Medir), a
 //              comparação (B. Ler) e um esboço da leitura (C. Decidir, só o Comitê), escrito para abrir caminho e ser
 //              corrigido. Fica com `situacao: "PROPOSTA"` até o David validar; aí vira "VALIDADA", com a validação do
 //              ativo (3º parâmetro de `montarFatores`: quem, quando e o ADR) em `validacao`. Opcionais: `autoria` (de quem é a proposta, quando não

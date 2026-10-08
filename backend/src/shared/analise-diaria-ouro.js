@@ -53,7 +53,7 @@ const PRECO = Object.freeze({
 });
 
 // Sem curva no ouro: o futuro do ouro é o preço à vista mais os juros e não traz expectativa de mercado
-// (STATUS_DO_PROJETO.md, §5; ADR 0054). O prompt do ouro não tem o bloco da curva e a falta dela não é lacuna.
+// (ADR 0054). O prompt do ouro não tem o bloco da curva e a falta dela não é lacuna.
 const CURVA = Object.freeze({ aplica: false, fonte: null, semDado: null, lacuna: null });
 
 const NOME = "analise-diaria-ouro";

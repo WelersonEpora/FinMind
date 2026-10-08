@@ -57,10 +57,10 @@ ir ao sistema, num ADR. Os pontos da conversa com o David (etapas 1 e 3) seguem 
 
 | Etapa | O quê | Responsável | Situação |
 |---|---|---|---|
-| 1. Decisões de base | Critérios do backtest, preço e orçamento, instrumento e horizontes, ajustes no FEL 1 | Comitê | Respostas por escrito do David recebidas em 2026-10-03 (§4, ADR 0055). Faltam os 10 pontos em aberto, para a conversa com o David (`docs/conversa-david-respostas-fel1.md`). FEL 1 revisado previsto para 2026-10-15 |
+| 1. Decisões de base | Critérios do backtest, preço e orçamento, instrumento e horizontes, ajustes no FEL 1 | Comitê | Respostas por escrito do David recebidas em 2026-10-03 (ADR 0055). Faltam os 10 pontos em aberto, para a conversa com o David (`docs/conversa-david-respostas-fel1.md`). FEL 1 revisado previsto para 2026-10-15 |
 | 2. Fatores, prompt e leitura da IA | Os fatores de cada ativo, o prompt diário e a leitura de tendência no Centro de Decisão | David/Comitê aprovam; FinMind monta | **Feito nos quatro ativos e validado pelo Comitê, com o David, em 2026-10-07** (tabela abaixo; ADR 0108) |
 | 3. Pontos em aberto do motor | O que ficou provisório em cada ativo (tabela abaixo) | David → FinMind | Aguardam a conversa da etapa 1 |
-| 4. Comparação com o realizado e avaliação | Para cada leitura e horizonte, em que faixa o preço de fato caiu, e as medidas de direção e de faixa contra dois benchmarks. A avaliação foi delegada pelo David ao usuário em 2026-10-05 (§4, "Avaliação da saída da IA") | FinMind | **Feito em 2026-10-05 (ADRs 0063 e 0064)**: o realizado em cada horizonte do Centro de Decisão, a partir do preço da data da análise, e a tela Qualidade da IA (`/qualidade-ia`), por ativo e horizonte, com as linhas de cada número. Fora desta versão: calibração da confiança, taxa de inversão, índice único e análise estatística |
+| 4. Comparação com o realizado e avaliação | Para cada leitura e horizonte, em que faixa o preço de fato caiu, e as medidas de direção e de faixa contra dois benchmarks. A avaliação foi delegada pelo David ao usuário em 2026-10-05 (§4) | FinMind | **Feito em 2026-10-05 (ADRs 0063 e 0064)**: o realizado em cada horizonte do Centro de Decisão, a partir do preço da data da análise, e a tela Qualidade da IA (`/qualidade-ia`), por ativo e horizonte, com as linhas de cada número. Fora desta versão: calibração da confiança, taxa de inversão, índice único e análise estatística |
 | 5. Agregação e backtest | Os pesos e a agregação dos fatores em código (hoje a IA combina os fatores pelo prompt; no milho, com o peso do mês, ADR 0065) e o backtest com os critérios da etapa 1 | Comitê + FinMind | Depende da 1 e da 3. **Café: medida no histórico do ICF em 2026-10-07**, não supera os benchmarks e saiu do prompt e do Centro de Decisão, por decisão do usuário (esteve em produção de 2026-10-05 a 2026-10-07); fica na tela de metodologia, como a do milho (ADRs 0066, adendo, e 0081) |
 | 6. Simulação | Pelo menos 6 meses de leituras registradas e avaliadas (FEL 1, §12.1, Camada 3) | FinMind executa, Comitê avalia | **Fase atual, desde a validação dos motores (2026-10-07, ADR 0108):** o Comitê acompanha a Qualidade da IA para ajustar os motores. As leituras se acumulam desde a aprovação de cada ativo, e a Qualidade da IA já as mede (etapa 4). O horizonte de 90 dias dos futuros fica sem preço até a decisão dos vencimentos por horizonte |
 
@@ -70,7 +70,7 @@ ir ao sistema, num ADR. Os pontos da conversa com o David (etapas 1 e 3) seguem 
 |---|---|---|---|---|
 | Petróleo (10 fatores) | David, em reunião, 2026-10-03; motor validado pelo Comitê, com o David, 2026-10-07 (ADR 0108) | Brent futuro (NYMEX BZ, Yahoo), um vencimento por horizonte, desde 2026-10-07 (decisão do usuário, a confirmar com o David); antes, o Brent à vista, desde 2026-10-04 | Faixas provisórias, recalibradas no futuro; peso e agregação (ponto 3 da conversa). Pendências por fator, decididas pelo usuário uma a uma: a OPEP+ (F1) com o STEO da EIA no lugar das cotas, inacessíveis, lido em quatro casos (corte, aumento, interrupção e neutro), e toda decisão de produção como evento (ADR 0091); o refino (F9) como contexto da demanda, sem pressão própria, porque contra o Brent a margem alta antecede queda, não alta (ADR 0093); os fundos (F8) só como informação, porque o extremo não mostrou reversão nem continuação por episódio (ADR 0094); os estoques (F2) com a média de 5 anos como o esperado e a direção do especialista como leitura da situação (não antecipam até 90 dias), com Cushing, gasolina e destilados como contexto (ADR 0097); a geopolítica (F3) como fator próprio, pelo evento mais grave da janela de 7 dias, com a ameaça pesando menos que a interrupção (ADR 0098); a demanda (F4) só com os EUA e o consumo medido, porque a China do JODI não mostra relação com o Brent e a queda de 2026 acompanha a perda de oferta da OPEP (ADR 0099); o dólar (F5) com o índice das economias avançadas, como fator próprio, o que mais antecipa o preço (ADR 0100); a produção dos EUA (F6) com o crescimento anual, sem o rig count, e o recorde só como informação (ADR 0101); os juros (F7) com o Treasury de 10 anos e direção própria, a meta do Fed como contexto (ADR 0102); a oferta não-OPEP (F10) somada, como leitura da situação (ADR 0103). As validações foram refeitas contra o Brent à vista em 2026-10-06; com a troca para o Brent futuro, as já feitas valem (as duas séries vão no mesmo sentido em 96% das semanas em 6 meses), e os demais foram validados contra o futuro: nenhum dos 10 fatores tem pergunta pendente (prompt v9: as validações são todas contra o Brent). Do ativo, decididas pelo usuário: as faixas calibradas, o peso do FEL 1 sem agregação até um teste contra os benchmarks com as leituras do Brent futuro, e os eventos sem aprovação humana (ADR 0104); fica a confirmação do Brent futuro com o David | ADRs 0050, 0051, 0052, 0091, 0093, 0094, 0096, 0097, 0098, 0099, 0100, 0101, 0102, 0103 e 0104 |
 | Ouro (8) | David, 2026-10-03; motor validado pelo Comitê, com o David, 2026-10-07 (ADR 0108) | GLD da B3, vencimento mais próximo | Instrumento (ponto 1); série contínua do GLD: o horizonte de 90 dias fica muitas vezes sem a variação (ADR 0044); faixas provisórias; peso e agregação | ADRs 0053 e 0054 |
-| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0); motor validado pelo Comitê, com o David, 2026-10-07 (ADR 0108) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, à espera do Comitê; o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio), do usuário (ADR 0077); agregação em código (etapa 5): proposta do FinMind na tela, fora do prompt por decisão do usuário (2026-10-06), sem superar os benchmarks no histórico do CCM (ADR 0081); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); faixas calibradas no próprio CCM (ADR 0058, adendo), não as classes fixas do David (usuário, ADR 0079); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068); os ajustes ao FEL 1 na tela, sem revisão do documento (usuário, por delegação do David, ADR 0082) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072, 0073, 0074, 0075, 0076, 0077, 0078, 0079, 0080, 0081 e 0082 |
+| Milho (8) | Comitê, 2026-10-04 (Motor do Milho v0); motor validado pelo Comitê, com o David, 2026-10-07 (ADR 0108) | CCM | Peso por mês e agregação: no prompt como tabela fixa e orientação em texto desde 2026-10-05, por decisão do usuário, validado com o motor em 2026-10-07 (ADR 0108); o peso do F1 de janeiro a maio (Baixo) e do F2 em janeiro e fevereiro (Médio), do usuário (ADR 0077); agregação em código (etapa 5): proposta do FinMind na tela, fora do prompt por decisão do usuário (2026-10-06), sem superar os benchmarks no histórico do CCM (ADR 0081); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); faixas calibradas no próprio CCM (ADR 0058, adendo), não as classes fixas do David (usuário, ADR 0079); o limite de 3 dos 5 estados da previsão do CPC no F1, do FinMind (ADRs 0067 e 0068); os ajustes ao FEL 1 na tela, sem revisão do documento (usuário, por delegação do David, ADR 0082) | ADRs 0055, 0056, 0057, 0058, 0059, 0065, 0067, 0068, 0069, 0070, 0071, 0072, 0073, 0074, 0075, 0076, 0077, 0078, 0079, 0080, 0081 e 0082 |
 | Café (8) | Comitê, 2026-10-05 (Motor do Café v1); motor validado pelo Comitê, com o David, 2026-10-07 (ADR 0108) | ICF | Faixas calibradas no ICF, não as classes fixas do David (usuário, ADR 0079); o vencimento de cada horizonte e o mínimo de 100 contratos com aviso, do usuário (ADR 0078); o clima (F1) com o VHI, as janelas do estudo e o INMET depois da v1, do usuário (ADR 0083); a safra (F2) com os limiares de partida e a bienalidade como contexto, do usuário (ADR 0084); os estoques (F3) com o ritmo da v1 e as pendentes e a ECF como contexto, do usuário (ADR 0085); o dólar (F4) com a regra de baixa o ano todo, sem a condição do preço recorde, do usuário (ADR 0086); o custo (F5) com a mediana dos municípios e o custo operacional como COE, do usuário (ADR 0087); a demanda (F6) com o consumo do PSD, a faixa neutra calibrada e a arbitragem como contexto, do usuário (ADR 0088); os fundos (F7) na janela de 3 anos e só como informação, sem mudar a confiança, do usuário (ADR 0089); os juros (F8) com o juro nominal e o dólar global como contexto, do usuário (ADR 0090); a agregação em código medida no histórico e fora do prompt, na tela como referência (usuário, ADR 0066, adendo de 2026-10-07); nenhuma pergunta do ativo pendente | ADRs 0060, 0061, 0062, 0066, 0078, 0079, 0083, 0084, 0085, 0086, 0087, 0088, 0089 e 0090 |
 | **Comum aos quatro** | — | — | Eventos vão à IA sem validação humana (ponto 4), numa seção só da base do prompt, com a condição que cada um afeta; ficam no fator só os de fator de evento (geopolítica, OPEP+ e o F8 do milho), por decisão do usuário (ADR 0095); o formato de apresentação; o horizonte de 90 dias dos três futuros não tem preço na avaliação (o contrato da leitura vence antes; ADR 0064); a agregação em código segue proposta do FinMind, fora da validação (ADR 0108) | ADRs 0055, 0064, 0095 e 0108 |
 
@@ -79,8 +79,8 @@ ir ao sistema, num ADR. Os pontos da conversa com o David (etapas 1 e 3) seguem 
 | Momento | O que acontece | Responsável |
 |---|---|---|
 | 1a. Reunião | **Feita em 2026-10-01**: perguntas 2, 3 e 8 respondidas (seguir com o histórico disponível) | FinMind apresenta, Comitê responde |
-| 1b. Retorno | **Feito em 2026-10-03**: documento do David com as respostas P1 a P16, a confirmação da §5 e o Motor do Milho v0 | Comitê |
-| 1c. Registro | **Feito em 2026-10-04**: respostas no §4 e no ADR 0055 | FinMind |
+| 1b. Retorno | **Feito em 2026-10-03**: documento do David com as respostas P1 a P16, a confirmação das medidas de cada fator e o Motor do Milho v0 | Comitê |
+| 1c. Registro | **Feito em 2026-10-04**: respostas no ADR 0055 | FinMind |
 | 1d. Conversa | Os 10 pontos em aberto (instrumento do ouro e do petróleo, formato da leitura da IA, peso e agregação, validação dos eventos, paridade, insumos, critérios do backtest, fontes novas, tendência e recomendação, Motor do Milho v0): `docs/conversa-david-respostas-fel1.md`, com espaço para a resposta | Welerson com o David |
 
 </details>
@@ -101,7 +101,7 @@ ir ao sistema, num ADR. Os pontos da conversa com o David (etapas 1 e 3) seguem 
 | Tela "Status do projeto" | `/status-projeto` (menu Sistema): renderiza este arquivo, via `GET /api/v1/status-projeto`. Visível a **todo usuário autenticado** — temporária, a retirar depois da fase de desenvolvimento. O `deploy.yml` copia o arquivo para a imagem do backend |
 | Centro de Decisão | A tela inicial (`/`), no desenho do AgroMind: para um ativo (ouro, petróleo, milho, café) e uma data, o preço como era conhecido no fim daquele dia (point-in-time, com troca de série, mini-gráfico e variações; futuros pelo vencimento mais próximo, sem emendar) e a leitura de geopolítica da data, com os eventos da semana. Nos quatro ativos, o espaço da análise mostra a leitura diária de tendência da IA nos quatro horizontes (ADRs 0052, 0054, 0058 e 0062). Nenhum sinal de compra ou venda é gerado — ADR 0048 |
 | Qualidade da IA | `/qualidade-ia`: por ativo e horizonte, o que a IA leu contra o que o preço fez, em direção e faixa, contra os benchmarks Sempre Lateral e Persistência nas mesmas linhas, com o n e as linhas de cada número; o gráfico "faixas lidas × preço" mostra cada leitura na data-alvo, com os quatro horizontes lado a lado; sem índice único nem cor de acerto — ADR 0064 |
-| Telas de dados | `/dados-mercado/observaveis` (60 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| Telas de dados | `/dados-mercado/observaveis` (62 cards) e `/dados-mercado/execucoes` — ADR 0005 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` na `servidor02` (coleta 04:00, 06:00, 08:00 **UTC**; backup 10:00 UTC, **não versionado**) — ADR 0004, ADR 0026 |
@@ -168,7 +168,7 @@ fevereiro) ficam no card de pesos, marcados com † (ADR 0077).
 **Quem interpreta esses dados:** os fatores de cada ativo e a leitura diária de tendência da IA, nos quatro ativos (§1,
 "Próximos passos"). A agregação dos fatores em código, os sinais, o backtest e a execução de ordens seguem vazios, à
 espera das definições do David (ver `CLAUDE.md`, "Restrições permanentes"). O desenho já está decidido: o motor prepara
-a base (fatores e regras do Comitê) e a IA gera a leitura, que uma pessoa decide se segue (§5).
+a base (fatores e regras do Comitê) e a IA gera a leitura, que uma pessoa decide se segue (ADR 0055, pergunta 11).
 
 ### Fontes
 
@@ -437,7 +437,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>ICO — Coffee Market Report · Café · PDF mensal · nível 4 · Dev; servidor pendente</summary>
+<summary>ICO — Coffee Market Report · Café · PDF mensal · nível 5 · Dev e servidor</summary>
 
 **Acesso:** PDF mensal público, sem chave; reuso livre citando a ICO. **Ressalva principal:** **mensal e revisado**: a fonte corrige os próprios erros no relatório seguinte (cada correção fica com a data do relatório que a trouxe); `published_at` real só de out/2023 em diante (antes, estimado em fim do mês + 45 dias); 9 tabelas são imagem ou PDF ilegível (2015 a 2017) e ficam de fora. **Evidência:** ADR 0061.
 
@@ -448,7 +448,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>ECF — estoques nos portos europeus · Café · PDF · nível 4 · Dev; servidor pendente</summary>
+<summary>ECF — estoques nos portos europeus · Café · PDF · nível 5 · Dev e servidor</summary>
 
 **Acesso:** PDF anual público, substituído a cada 2 meses; `robots.txt` livre. **Ressalva principal:** **~2 meses de atraso e revisado**; erros de digitação da fonte tratados como aviso; inclui os certificados da ICE nos portos (dupla contagem com Londres da ICO); licença não lida, uso interno. **Evidência:** ADR 0061.
 
@@ -517,19 +517,23 @@ Cruzamento com os fatores do milho e do ouro: `docs/cobertura-fatores-fel1-milho
 <summary>3. Falta fazer</summary>
 
 A aquisição de dados está encerrada (§1): o que falta é trabalho sobre os dados já coletados, conforme as decisões do
-David e do Comitê. O histórico das ondas de coleta (milho e ouro, café, petróleo) está nas "Entregas realizadas" (§7) e
+David e do Comitê. O histórico das ondas de coleta (milho e ouro, café, petróleo) está nas "Entregas realizadas" (§6) e
 no ADR de cada fonte.
 
 ### O que falta
 
 | Item | Situação |
 |---|---|
-| Pontos em aberto do motor | Por ativo, na tabela "O motor por ativo" (§1); dependem da conversa com o David |
-| Petróleo: o Brent futuro como preço de referência | Feito em 2026-10-07 por decisão do usuário (ADR 0052, adendo), a confirmar com o David: o contrato por horizonte e a mudança de nível (o futuro ~US$ 11 abaixo do físico em setembro). O gráfico da Qualidade da IA mostra o Brent à vista da EIA como contexto, ao lado do futuro. A assinatura da ICE (US$ 2.500/ano), a fonte oficial, é decisão do Comitê |
+| Acompanhar a Qualidade da IA | A fase atual (ADR 0108): ver como cada motor se sai e levar ao Comitê a solução de cada problema antes de aplicá-la |
+| Pontos em aberto do motor | Por ativo, na tabela "O motor por ativo" (§1); dependem da conversa com o David (§4) |
+| Petróleo: teste da agregação | Com algumas semanas de leituras com o Brent futuro (desde 2026-10-07), testar uma agregação pelos papéis dos fatores contra os benchmarks da Qualidade da IA; a decisão volta com números (ADR 0104) |
+| Petróleo: o Brent futuro | Em uso desde 2026-10-07 (ADR 0052, adendo; Yahoo, fonte não oficial e provisória, ADR 0096); falta a confirmação do David (§4). A assinatura da ICE (US$ 2.500/ano), a fonte oficial, é decisão do Comitê |
 | Série contínua do GLD (ouro) | O horizonte de 90 dias do ouro fica muitas vezes sem a variação de 90 dias, porque cada vencimento do GLD tem pouco histórico e nada é emendado (ADR 0054). Emendar os vencimentos é um cálculo do David (ADR 0044) |
+| Lacunas declaradas das v1 | Milho: o etanol brasileiro no F5 (ADR 0073) e os fatores ausentes (ADR 0080); café: o INMET no clima (ADR 0083). Ficaram para depois da v1 |
+| Qualidade da IA: medidas para depois | Calibração da confiança, taxa de inversão, índice único e análise estatística (ADR 0064) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): 
-ICO, geada, preço mínimo do café pelas portarias do MAPA, Baker Hughes, OPEP, API internacional da EIA e os derivados
+geada, preço mínimo do café pelas portarias do MAPA, Baker Hughes, OPEP, API internacional da EIA e os derivados
 do JODI, com o fator que cada uma atenderia, em `docs/reconhecimento-fontes/README.md`.
 
 ### Infraestrutura pendente
@@ -539,19 +543,11 @@ Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a 
 
 ### Carga histórica pendente no servidor
 
-Backfills já validados em dev que ainda não rodaram na VM. Ao rodar, tirar a linha daqui e marcar "dev e servidor"
-no status da fonte e da série em "Fontes" (§2).
+Nenhuma no momento. Backfill validado em dev que ainda não rodou na VM entra aqui; ao rodar, sai daqui e a fonte passa a
+"dev e servidor" em "Fontes" (§2).
 
-- **EIA STEO** (ADR 0091): `npm run backfill:eia-steo`, ~45 min (226 edições, ~10 s cada), **antes** da 1ª coleta
-  diária com o coletor novo. Dev: 226 edições, 0 falhas.
-- **ICO** (ADR 0061): `npm run backfill:ico-cafe`, ~8 min, **antes** da 1ª coleta diária com o coletor novo. Dev:
-  1.595 valores, 127 revisões.
-- **ECF** (ADR 0061): `npm run backfill:ecf-cafe`, < 1 min, também antes da coleta diária. Dev: 312 valores, 8
-  revisões.
-- **ICE, sacas aguardando classificação** (ADR 0061): `npm run backfill:ice-cafe-estoques -- --serie=pendente`, em
-  segundo plano (~15 h, o mesmo ritmo do backfill original).
-
-As anteriores (Grain Stocks, etanol do WASDE, exportação de milho por destino, ouro do FMI, World Gold Council, Cecafé e
+As últimas, conferidas no banco do servidor em 2026-10-08: o EIA STEO (226 edições, ADR 0091), a ICO (162 edições), a
+ECF (8 edições) e as sacas aguardando classificação da ICE (desde 2016-10-03), as três do ADR 0061. As anteriores (Grain Stocks, etanol do WASDE, exportação de milho por destino, ouro do FMI, World Gold Council, Cecafé e
 andamento do IMEA) rodaram no servidor em 2026-10-01, com os mesmos números de dev.
 
 A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy é a carga (ADR 0031). O mesmo vale para as séries do ouro no FRED e o CPI (ADR 0033), que baixam a série inteira, com todas as versões, a cada coleta, e para o petróleo (EIA e COT do WTI, ADR 0040; ANP, ADR 0041; JODI, ADRs 0042 e 0046) e o preço mensal do café do FMI (ADR 0045).
@@ -559,1030 +555,30 @@ A PSD do café não precisa de backfill: a 1ª coleta diária depois do deploy �
 </details>
 
 <details>
-<summary>4. Bloqueado — depende do David / Comitê</summary>
+<summary>4. O que ainda depende do David e do Comitê</summary>
 
-**O que o David e o Comitê ainda definem** (a lista que ficava num documento à parte, aposentado em 2026-09-28):
+Os motores dos quatro ativos foram validados em 2026-10-07 (ADR 0108). O que segue em aberto:
 
 | Definição | Situação |
 |---|---|
-| Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro; as fontes e a planilha de fatores), aguardando a aprovação do Comitê. A coleta de milho e ouro foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR (ADRs 0001, 0006, 0008, 0009, 0013, 0015, 0017 a 0025, 0027, 0033 a 0037 e 0039); a do café seguiu do mesmo jeito (ADRs 0028 a 0032, 0038 e 0061), e a do petróleo começou em 2026-10-01 (ADRs 0040 a 0042) |
-| Regras e cálculos do motor (camadas B e C) | Em aberto: é a etapa 1 dos "Próximos passos" e o §5 (a medida de cada fator, camada A, é proposta pelo FinMind para o Comitê confirmar) |
+| Os 10 pontos da conversa com o David | Em aberto: `docs/conversa-david-respostas-fel1.md`, com espaço para a resposta (entre eles, a confirmação do Brent futuro no petróleo e o instrumento do ouro). Os pontos por ativo estão na tabela "O motor por ativo" (§1) |
+| FEL 1 revisado | O David revisa o documento e envia ao Comitê, previsto para 2026-10-15 (ADR 0055) |
+| Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro), aguardando a aprovação do Comitê. A coleta foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR; está encerrada desde 2026-10-01 (§1) |
+| Agregação dos fatores e backtest | Em aberto: os critérios do backtest (o David propôs duas réguas e Sharpe ≥ 0,5, ADR 0055) e a agregação em código, que segue proposta do FinMind só na tela de metodologia (ADRs 0066 e 0081) |
 | Formato de apresentação dos resultados | Em aberto (dashboard, relatório, alerta...) |
-| Avaliação da saída da IA | **Delegada pelo David ao usuário em 2026-10-05.** Metodologia no ADR 0064: por ativo e horizonte, o acerto de direção, a faixa exata e a distância média entre faixas, contra os benchmarks Sempre Lateral e Persistência, nas mesmas linhas; tela Qualidade da IA. Fica para depois: calibração da confiança, taxa de inversão, índice único e análise estatística. O papel da IA já foi decidido (pergunta 11) |
+| Avaliação da saída da IA | **Delegada pelo David ao usuário em 2026-10-05.** Metodologia no ADR 0064, tela Qualidade da IA. Fica para depois: calibração da confiança, taxa de inversão, índice único e análise estatística |
 | Condições de sinal operacional | Em aberto: nenhum sinal é gerado hoje |
-| Execução automática de ordens | **Não existe nesta fase** (restrição permanente, `CLAUDE.md`): uma pessoa decide e executa. A arquitetura mantém análise e execução em camadas separadas (`docs/architecture.md`) |
+| Execução automática de ordens | **Não existe nesta fase** (restrição permanente, `CLAUDE.md`): uma pessoa decide e executa (`docs/architecture.md`) |
+| Soja como 5º ativo | **Proposta** do FinMind em `docs/proposta-ativo-soja.md` (2026-10-08), para o Comitê e o David: se e quando a soja entra, os fatores e as regras. Os pesos e a agregação são a etapa seguinte |
 
-Perguntas da análise crítica (`docs/analise-critica-fel1-milho-ouro.md`, §H).
-Preencher a resposta e a data quando o David responder.
-
-**Reunião do Comitê em 2026-10-01:** perguntas 2, 3 e 8 respondidas (seguir com o histórico disponível). O
-David vai mandar um **documento respondendo todas as perguntas**; ao chegar, registrar cada resposta e a data abaixo.
-
-**Reunião com o David em 2026-10-03 (relato do Welerson):** o David **aprovou as decisões dos fatores do petróleo** (§5c,
-ADRs 0050 e 0051) e pediu o mesmo para os fatores do **ouro**; ele termina os do milho e depois faz os do café, e vai
-mandar as respostas por escrito. Com isso, o petróleo ganhou a leitura diária de tendência da IA no Centro de Decisão
-(ADR 0052).
-
-**Conversa com o David em 2026-10-03 (relato do Welerson, registrado em 2026-10-04):** o David **deu o sinal verde para
-os fatores do ouro** e decidiu: o preço de referência é o futuro **GLD da B3** (a LBMA fica como histórico); a
-**inflação vira contexto do juro real**; o **COT fica na leitura "amplifica"**, como qualificador; os **bancos centrais**
-usam o **World Gold Council** contra o **ritmo dos 3 anos anteriores**. Com isso, o ouro ganhou a leitura diária de
-tendência da IA no Centro de Decisão (ADR 0054).
-
-**Documento do David, recebido em 2026-10-03 (registrado em 2026-10-04, ADR 0055):** responde às 16 perguntas
-(abaixo), confirma as medidas da §5 e traz o **Motor do Milho v0**: regras de alta e baixa para cada fator, peso por
-mês, correlações e um prompt para a IA, como proposta para o Comitê. As respostas foram escritas antes da reunião de
-2026-10-03; onde divergem, vale a decisão mais nova (ex.: o GLD no ouro). Os **10 pontos em aberto** entre as respostas
-e o que já roda estão em `docs/conversa-david-respostas-fel1.md`, para a conversa com o David. **Ponto 1, petróleo: resolvido em 2026-10-04**: o David confirmou o Brent como o instrumento operado, e a leitura diária passou do WTI ao Brent (ADR 0052, adendo); em 2026-10-07, por decisão do usuário a confirmar com o David, do Brent à vista ao Brent futuro, o operado (ADR 0052, adendo de 2026-10-07). O ouro segue em aberto.
-
-**Prioridade da próxima reunião (decidido em 2026-09-22, auditoria da camada de
-dados; a 2 somada em 2026-09-23; a 8 e a ordem, em 2026-09-27):** primeiro o
-**"Backtest em detalhe"** (abaixo da tabela: o que é e o que o Comitê define), depois
-a **pergunta 8** (quantos anos de histórico, que resolve boa parte da 2), depois as
-**perguntas 2 e 3** (juntas: preço futuro do milho e orçamento), porque definem se o
-backtest é viável, e por fim a **9 e a 10** (contra o que comparar e limites fixados
-antes). As **5, 6 e 11** deixaram de ser perguntas em 2026-09-27: viraram informes, para
-ciência do Comitê. Ver `docs/cobertura-fatores-fel1-milho-ouro.md`, §7.
-
-| # | Pergunta | Trava? | Resposta / data |
-|---|---|---|---|
-| 1 | Milho + Ouro como **prova de arquitetura** (sem mudar a ordem CAFÉ→PETRÓLEO→MILHO→OURO) é aceitável? | | **David, por escrito (2026-10-03, ADR 0055):** **sim**, como trilha de validação em paralelo, sem mudar a ordem CAFÉ→PETRÓLEO→MILHO→OURO |
-| 2 | Milho: podemos seguir só com o **CCM (B3)**, que é grátis mas só tem **~4 anos** de histórico, ou precisamos do **ZC (CME)**, que é **pago**? Ouro: **GC** ou preço de referência? (A LBMA fechou o feed em 2026-10-01; o preço diário passou a ser o futuro **GLD da B3**, grátis, desde 2025-07-21, ADR 0044) **Discutir depois da pergunta 8**, que resolve boa parte desta. **Detalhe para a reunião logo abaixo da tabela** | | **Respondida na reunião do Comitê (2026-10-01): seguir com o histórico disponível.** Milho com o CCM (B3), sem o ZC; ouro com o LBMA (até 2026-09-30) e o GLD da B3; café com o ICF da B3 (o mesmo histórico curto do CCM) e, para ciclos longos, o preço mensal do FMI desde 1992 (ADR 0045), sem o KC da ICE, que é pago. **David, por escrito (2026-10-03, ADR 0055):** o preço de referência é o do **instrumento operado**; milho só com o CCM (o ZC entra como fator, se houver); ouro na LBMA, escrito antes da decisão do GLD (ADR 0054), que prevalece. Ele cita a **Pepperstone (ouro e Brent)**: o instrumento operado do ouro e do petróleo volta à conversa (`docs/conversa-david-respostas-fel1.md`, ponto 1) |
-| 3 | Existe **orçamento para dados de preço**? Sem isso não há backtest. **Para o milho, é respondida junto com a pergunta 2** (escolher o ZC = ter orçamento para ele); segue valendo para o **ouro** (o futuro GC da CME também é pago) | | **Respondida na reunião do Comitê (2026-10-01): seguir com o histórico disponível**, sem comprar dado de preço (nem ZC, nem GC). **David, por escrito (2026-10-03, ADR 0055):** premissa de fontes gratuitas; um **caixa para aquisições**, só para o que for fator de sucesso, com o **Luiz** gerindo os custos junto do Welerson e da Carla e levando ao Comitê. Anuncia uma **camada de análise técnica gráfica** (B3; Pepperstone), a definir por ele |
-| 4 | Confirmam que o **COTAHIST não atende CCM/ICF**? Qual a alternativa? (o ADR 0009 já confirma que não atende; para o CCM, a alternativa encontrada foi o Boletim Diário da B3, ADR 0020 — ver pergunta 2). **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** **confirmado**: o COTAHIST não atende; a §6.5.2 do FEL 1 será corrigida. Vale o Boletim Diário + Up2Data (ADR 0020) para o CCM e o mesmo caminho para o ICF (já feito, ADR 0028) |
-| 5 | **Vintage do agro (para ciência do Comitê):** o dado do agro é revisado depois de publicado, e parte do passado só existe na versão final. Isso limita o **backtest** de algumas regras (sobretudo as da Safrinha antes de fev/2025), mas o impacto é localizado: o WASDE tem as revisões do milho desde 2011 (EUA e ~20 países, incluindo o Brasil), e **a partir de agora o FinMind guarda cada revisão de todas as fontes**. A avaliação da IA será feita daqui para frente. **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** ciência. A aproximação pelo WASDE para a safrinha antes de fev/2025 está **validada**, declarada como aproximação, medindo o viés com os dois vintages onde houver. A §12.3 fica |
-| 6 | **Licença e redistribuição (para ciência do Comitê):** hoje todo o uso é interno (decisão de 2026-09-21). **Antes de exibir, redistribuir ou comercializar** dados ou análises para terceiros, algumas fontes exigem licença ou autorização específica: LBMA (ouro), CEPEA/ESALQ e B3 (preços do milho) e Conab. **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** ciência. Uso interno coberto; antes de externalizar: IBA/LBMA, CEPEA (CC BY-NC) e B3. Dados do governo americano são domínio público |
-| 7 | **CEPEA** está bloqueada para automação. Export manual é aceitável em produção? | | **Não se aplica mais** (decisão do usuário, 2026-09-23): o mesmo indicador vem da B3, automatizado, desde 2018-06-08 — ADR 0021. Só voltaria se o David pedir o histórico anterior a 2018. **David, por escrito (2026-10-03, ADR 0055):** confirmado, pela B3 |
-| 8 | **Contradição do FEL 1:** o backtest precisa de **1 a 5 anos** de histórico (§4) ou de **10 a 15 anos** (§12.1)? Qual vale? **Discutir antes da pergunta 2:** com 1 a 5 anos, o CCM (~4,5 anos, grátis) praticamente atende; com 10 a 15, o milho só fecha com o ZC (pago). **Detalhe logo abaixo da tabela** | | **Respondida na reunião do Comitê (2026-10-01): o backtest usa o histórico disponível** (CCM e ICF desde 2022; no ouro, LBMA e GLD). **David, por escrito (2026-10-03, ADR 0055):** a §12.1 é o alvo, em **duas fases**: Fase 1 no CCM (2022+), declarando a limitação; Fase 2 no ZC, se houver orçamento. **100 operações** como critério prático; testes em mercado com **lotes mínimos** assim que o sistema estiver pronto |
-| 9 | Qual o **benchmark** do Sharpe mínimo, isto é, **contra o que** o resultado do backtest é comparado (ex.: só comprar e segurar)? **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** **duas réguas**: comprar e segurar o ativo **e** o CDI; a regra só passa se superar as duas. O CDI não é coletado (temos a Selic): ponto 7 da conversa |
-| 10 | **Tarefa do Comitê:** fixar os **limites de aprovação da §12.2 antes do primeiro teste**, a "nota que passa" (Sharpe mínimo, perda máxima tolerada, número mínimo de operações etc.). O FEL 1 já exige que seja antes: definir depois de ver o resultado invalida o teste. **Depende das perguntas 8 e 9.** Ver "Backtest em detalhe", abaixo da tabela | | **David, por escrito (2026-10-03, ADR 0055):** **proposta**: Sharpe ≥ 0,5 dentro da amostra e ≥ 0,3 fora; drawdown ≤ 15%; 100 operações; profit factor ≥ 2,0; degradação no walk-forward ≤ 20%. Ainda não fixada: faltam o cálculo do Sharpe, os custos, a métrica da degradação e o mínimo da Fase 1 (ponto 7 da conversa) |
-| 11 | **O papel da IA (para ciência do Comitê):** a IA é a **analista** do processo e **gera a recomendação** (comprar, vender, manter ou ficar de fora, no curto, médio e longo prazo), sempre com base nos dados e nas regras que o motor envia. Uma pessoa decide e executa; nenhuma ordem sai automaticamente. Ver §5, "O papel da IA" | | **David, por escrito (2026-10-03, ADR 0055):** **confirmado** (motor determinístico + IA analista) |
-| 12 | **Como abastecer o fator 8 do milho (política comercial: China, tarifas)?** Proposta: (1) **exportação por destino**, número oficial: **já coletada desde 2026-10-01** (ADR 0034, só aquisição); a medida, B e C são do Comitê, como nos demais fatores; (2) **tarifas e decisões de governo**, que são eventos: **desde 2026-10-02 entram na leitura diária de eventos de mercado** (ADR 0049; USTR, Casa Branca, MOFCOM, MAPA e USDA FAS), com tipo, ativos, fator e link da página oficial, capturados no dia em que saem; a medida, B e C seguem do Comitê. A IA nunca produz um número que entre no motor. **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** **aprovada** em duas partes: a participação da China com a variação contra o mesmo mês do ano anterior; tarifas como eventos, sem backtest do passado. Pede para avaliar os eventos também no milho e no café; a validação humana dos eventos é o ponto 4 da conversa |
-| 13 | **Ajustes no documento FEL 1 (para os autores corrigirem):** inconsistências encontradas no relatório v1.1 e na planilha, reunidas num item só: a Seção 16 citada mas inexistente, o COTAHIST, o WASDE e o café, o período do Crop Progress e o prazo da demo. Nenhuma trava o FinMind. **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** o David revisa o FEL 1 e envia ao Comitê **até 2026-10-15**. **Usuário, por delegação do David (2026-10-06, ADR 0082):** o David não revisa o documento; como o FinMind lê cada inconsistência está em "Como tratamos as considerações do FEL 1" (§2) |
-| 14 | **WASDE impacta café** (planilha) ou não (texto revisado)? Qual prevalece? **Incluída no item 13** | | **David, por escrito (2026-10-03, ADR 0055):** **vale o texto**: o WASDE não cobre café. A planilha será corrigida e ganha o Coffee: World Markets and Trade (USDA FAS) |
-| 15 | **FAO/AMIS** foi reconhecida e **adiada**: o WASDE já traz o balanço mundial do milho com vintage. Existe necessidade de implantá-la no futuro? **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** **não é necessária**; segue adiada |
-| 16 | **Paridade de exportação do milho:** o FinMind deve guardar a **paridade já calculada pelo IMEA** (valor pronto), os **componentes** dela (frete, prêmio de porto) ou nada por ora? **Detalhe logo abaixo da tabela** | | **David, por escrito (2026-10-03, ADR 0055):** **opção 1, a paridade pronta do IMEA**, sem os componentes, com ressalvas (praça MT, quebra na troca de contrato, porto). **Coletada desde 2026-10-04 (ADR 0057)**, com a tabela diária desde 2021-05-31; a praça é o ponto 5 da conversa |
-
-<details>
-<summary>Backtest em detalhe — o que é e o que o Comitê define (perguntas 8, 9 e 10; ler antes das outras)</summary>
-
-**O que é:** fingir que estamos numa data do passado, aplicar uma regra usando **só o que se sabia naquele dia**,
-anotar a decisão e depois ver o que o preço fez. Repete-se para centenas de datas e soma-se o resultado. Responde a
-uma pergunta: **"se essa regra existisse nos últimos X anos, teria funcionado?"**
-
-**Exemplos com os nossos fatores** (as regras são **inventadas**, só para ilustrar):
-
-| Fator | Regra (fictícia) | Como se testa | Armadilha |
-|---|---|---|---|
-| COT (fundos) | "Fundos muito comprados → preço cai nas 4 semanas seguintes" | Toda sexta desde 2006: olhar o COT publicado naquele dia e o preço 4 semanas depois | O COT se refere à **terça** mas só sai na **sexta**: usar o dado na terça é saber 3 dias antes de todo mundo |
-| WASDE (estoque/uso) | "Corte do estoque/uso dos EUA → alta no mês seguinte" | Cada edição desde 2011 (~180 testes) | Nenhuma: temos o número exato de cada edição. É o nosso melhor caso |
-| Safrinha (Conab) | "3 revisões seguidas para cima → pesa para baixa" | Cada levantamento mensal | Antes de fev/2025 só existe o número final: a regra não pode ser testada ali (pergunta 5) |
-| Crop Progress | "Lavoura abaixo de 60% boa + excelente em julho → alta até a colheita" | Um julho por ano | Com o preço do CCM desde 2022, são **só 4 julhos**: 4 acertos podem ser sorte |
-| Sistema completo (FEL 1, §12) | Todas as regras juntas, gerando operações | Simular as operações descontando os custos (corretagem, rolagem, spread) | Esquecer um custo faz o resultado parecer melhor do que é |
-
-**Cada fator do FEL 1 é um candidato a backtest.** Os fatores vieram do conhecimento de mercado (FEL 1, §7.2), não
-de um teste com dados. Um fator sozinho ("o WASDE influencia o preço") não se testa: testa-se a **regra** que o Comitê
-construir sobre ele. Em princípio, todo fator pode ser validado; na prática, depende de haver dado e casos
-suficientes. Os 8 do milho:
-
-| Fator | Dá para validar? | Por quê |
-|---|---|---|
-| 3. WASDE (estoque/uso) | ✅ Bem | Uma edição por mês desde 2011, com a data de cada número |
-| 7. COT (fundos) | ✅ Bem | Semanal desde 2006, muitos casos |
-| 4. Dólar | ✅ Bem | Diário desde 1994; a paridade do IMEA, diária desde 2021-05-31 (ADR 0057) |
-| 5. Etanol (EIA) | ✅ Razoável | Semanal desde 2010 |
-| 1. Crop Progress | ⚠️ Pouco | Um ciclo por ano: com o CCM desde 2022, são só 4 safras |
-| 2. Safrinha (Conab) | ⚠️ Pouco | Revisões só desde fev/2025; antes, só a aproximação pelo WASDE (pergunta 5) |
-| 6. Insumos (IMEA) | ⚠️ Ainda não | O histórico com as datas de publicação começou agora |
-| 8. Política comercial | ❌ Difícil | Tarifas são eventos raros e não são números; a exportação por destino é coletada desde 2026-10-01 (ADR 0034), com histórico desde 2005 |
-
-Um backtest precisa de muitas repetições para separar regra de sorte. Nos fatores com poucos casos (um por ano, ou
-eventos raros), a validação vem mais da experiência de mercado do que do teste, e isso deve ser dito abertamente.
-
-**A recomendação da IA não passa por backtest.** O modelo **conhece** o passado (aprendeu com textos da época), então
-o teste seria viciado. Ela é testada **daqui para frente**, em simulação: é a "Camada 3 — Demo" do FEL 1 (§12.1, no
-mínimo 6 meses). O backtest vale para as regras B e C, feitas em código.
-
-**Quem define o quê:**
-
-| Quem | Define |
-|---|---|
-| **Comitê** | **O que testar:** as regras B e C de cada fator. **Com quanto histórico:** pergunta 8. **Contra o que comparar:** pergunta 9 (ex.: "só comprar e segurar"). **Qual resultado aprova:** os limites da §12.2, definidos **antes** do teste (pergunta 10). E qual instrumento e horizonte (item 7 da §5) |
-| **FinMind (engenharia)** | **Como testar sem trapacear:** só o dado publicado em cada data (o motor já faz isso), custos descontados, e o período usado para ajustar a regra separado do período usado para testá-la (walk-forward). A §12 do FEL 1 já define boa parte disso |
-
-**O que o FEL 1 já pede como critério de aprovação (§12.2):** número mínimo de operações (sugere 100 por ativo),
-Sharpe mínimo (retorno ajustado ao risco), perda máxima tolerada (drawdown), profit factor, desempenho fora da amostra
-que não degrade demais, lucro mantido com custos 50% maiores e resultado estável com pequenas mudanças nos parâmetros.
-**Os limites de cada um estão em aberto**, e a §12.2 exige que sejam fixados antes do teste: definir depois de ver o
-resultado é se enganar.
-
-**Ordem sugerida na reunião:** esta seção → **pergunta 8** (quantos anos; resolve boa parte da 2) → **perguntas 2 e 3**
-(preço e orçamento) → **9 e 10** (comparação e limites).
-
-**Como apresentar:** "Backtest é testar uma regra no passado, só com o que se sabia em cada data. O Comitê decide o
-que testar, com quanto histórico, contra o que comparar e qual resultado aprova, antes de testar. A engenharia garante
-que o teste não trapaceia. A IA é testada daqui para frente, em simulação."
+As 16 perguntas da análise crítica (`docs/analise-critica-fel1-milho-ouro.md`, §H) foram respondidas pelo Comitê em
+2026-10-01 e pelo David por escrito em 2026-10-03; as respostas estão no ADR 0055. As aprovações de cada ativo estão nos
+ADRs 0052, 0054, 0058 e 0062.
 
 </details>
 
 <details>
-<summary>Pergunta 8 em detalhe — quantos anos de backtest (para levar à reunião)</summary>
-
-**A decisão:** quantos anos de histórico o backtest precisa ter para o Comitê confiar numa regra? O próprio FEL 1 dá
-duas respostas diferentes (`docs/analise-critica-fel1-milho-ouro.md`, contradição 1). O texto, conferido no relatório
-v1.1 em 2026-09-27:
-
-- **§4 (Metodologia, item "Execução"):** "Backtest histórico (**1 a 5 anos**) com separação in-sample/out-of-sample
-  e walk-forward analysis [...]. Os critérios de aprovação estão detalhados na Seção 12."
-- **§12.1 (Camada 1, acrescentada na v1.1):** "Backtest histórico: **10 a 15 anos** de dados point-in-time, cobrindo
-  ao menos um ciclo completo de alta e de baixa **em cada commodity** (para o café, obrigatoriamente incluindo a geada
-  de 2021; para o petróleo, o choque de 2020 e o de 2022)."
-
-**Não é uma diferença por ativo:** nenhuma das duas passagens fala de um ativo específico. A §4 vale para o sistema
-todo, e a §12.1 vale para "cada commodity". **Indício de qual prevalece:** a própria §4 remete os critérios à §12, que
-é mais nova (v1.1) e mais detalhada; tudo indica que a §4 ficou desatualizada. Mesmo assim, cabe ao Comitê confirmar.
-A §12.1 também traz um critério melhor que o número de anos: **um ciclo completo de alta e de baixa**, e a §12.2
-sugere **no mínimo 100 operações por ativo** no backtest.
-
-**Por que importa:** esta resposta decide a pergunta 2. É o critério; a pergunta 2 (CCM ou ZC) é a consequência.
-
-| Se valer | Milho | Ouro |
-|---|---|---|
-| **1 a 5 anos** (§4) | O **CCM** (grátis, desde mar/2022, ~4,5 anos) praticamente atende, com o buraco de ~9 meses em 2023. Nada a comprar | O **LBMA** (1968 a 2026-09-30) atende com folga no passado; daí em diante, o **GLD da B3** (futuro, desde 2025-07-21). Emendar os dois é decisão do David (ADR 0044) |
-| **10 a 15 anos** (§12.1) | Só o **ZC** (Chicago, pago) tem histórico para isso. O CCM só chega lá por volta de 2032-2037 | O LBMA atende até 2026-09-30; para continuar a série, o GLD emendado ou a licença da IBA (o feed público fechou em 2026-10-01; pergunta 6) |
-
-**E os fatores?** O preço não é o único limite. Com 10 a 15 anos, o **WASDE** atende (revisões desde 2011, ~15 anos),
-mas a **Conab** (revisões só desde fev/2025) não; ela entraria com o número revisado ou pela aproximação do WASDE
-(pergunta 5).
-
-**Nossa leitura:** 1 a 5 anos é pouco para testar regras de um ativo com ciclo anual de safra: 4 anos são só 4 safras,
-e dificilmente um ciclo completo de alta e de baixa.
-Mas 10 a 15 anos custam dinheiro (ZC) e esbarram no vintage do agro. Um caminho intermediário: testar agora com o que
-existe (CCM, ~4,5 anos), declarando o limite, e usar o ZC para confirmar as regras num histórico longo, se houver
-orçamento (pergunta 3).
-
-**A IA não entra nesta conta.** A recomendação da IA é avaliada daqui para frente, não no passado (pergunta 5): o
-número de anos de backtest vale para as regras B e C, feitas em código.
-
-**Como apresentar:** "O FEL 1 pede 1 a 5 anos na §4 e 10 a 15 na §12.1, as duas para todos os ativos. A §12 é a
-mais nova e a própria §4 remete a ela, então entendemos que vale a §12.1. Confirmam? Se sim, o milho exige comprar o
-ZC para o histórico longo; se valer a §4, o CCM gratuito atende."
-
-</details>
-
-<details>
-<summary>Pergunta 2 em detalhe — preço futuro do milho (para levar à reunião)</summary>
-
-**A decisão:** o FinMind pode fazer a análise e o backtest do milho **só com o CCM
-(B3)**, aceitando um histórico curto, ou precisamos do **ZC (CME/Chicago)**, que é **pago**? Esta resposta
-já responde a **pergunta 3 (orçamento) para o milho**: escolher o ZC é aprovar gasto com dado de preço.
-
-**O que temos hoje do CCM (B3, R$/saca) — grátis:**
-
-- Preço diário **por vencimento** (ajuste, abertura, máxima, mínima, médio, último), negócios, contratos,
-  volume e **contratos em aberto**.
-- **Desde 2022-03-21 — cerca de 4 anos e meio** (backfill do Boletim Diário da B3 + coleta diária), no
-  servidor desde 2026-09-23.
-- **Com um buraco de ~9 meses em 2023** (fev a nov): a B3 publicou esses boletins sem a tabela de
-  derivativos. Não há outra fonte grátis para esse período.
-- Contratos em aberto por vencimento **só até 2025-12-11** (a B3 deixou de publicar); preço e liquidez
-  seguem diários.
-- **Antes de 2022, nada de graça.** O histórico mais antigo do CCM só existe comprando da própria B3 (preço
-  não publicado, só por cotação).
-
-**Nossa leitura:** acreditamos que é possível trabalhar com o CCM — é o preço que o mercado brasileiro de
-fato negocia —, **mas com apenas ~4 anos de backfill**, e com o buraco de 2023. Isso fica **abaixo dos
-10–15 anos** que o próprio relatório FEL 1 pede para backtest (§12.1; a §4 fala em 1–5 anos — ver pergunta 8).
-
-**O ZC (CME, US$/bushel) — pago:**
-
-- É a referência mundial do milho, muito mais líquido que o CCM, com **histórico longo** (16+ anos por
-  vencimento, com contratos em aberto).
-- **Não há fonte grátis confiável.** As grátis (Yahoo, Stooq, Investing) são vetadas pelo próprio FEL 1
-  para decisão (série contínua com rolagem opaca). A Nasdaq Data Link (antiga Quandl) descontinuou a série.
-- **Opção mais barata encontrada (não contratada):** Databento, pagando só pelo uso — histórico de 2010 em
-  diante; estimativa de uma compra única pequena (possivelmente dentro do crédito grátis de US$ 125 da
-  conta nova — **a confirmar** com o cálculo de custo da própria Databento antes de qualquer compra).
-  Alternativas: Norgate (~US$ 270/ano, desde 1980, mas presa ao Windows), FirstRate (compra única, preço
-  não publicado), CME DataMine (oficial, só por cotação).
-- **Licença:** uso interno (análise e backtest da equipe) em geral é permitido; **mostrar o dado da CME a
-  usuários de fora** exige licença de distribuição da CME — muda o custo se o FinMind virar produto.
-
-**As respostas possíveis, e o que cada uma implica:**
-
-1. **Só CCM** → nada a comprar; backtest do milho limitado a ~4 anos (com o buraco de 2023) até o
-   histórico crescer com a coleta diária.
-2. **CCM + ZC** (o ZC como histórico longo e fator de preço global; o CCM como preço local operado) →
-   precisa de orçamento (pergunta 3). É a nossa recomendação técnica.
-3. **Só ZC** → precisa de orçamento; perde o preço em reais que o produtor brasileiro negocia.
-
-Em qualquer caso, **qual dos dois é o ativo operado** é uma decisão do Comitê; converter o ZC para R$/saca
-(paridade) é um fator, que também passa por ele.
-
-</details>
-
-<details>
-<summary>Pergunta 9 em detalhe — contra o que comparar o backtest (para levar à reunião)</summary>
-
-**A decisão:** o resultado do backtest vai ser comparado **com o quê**? O FEL 1 (§12.2) pede um "Sharpe mínimo", mas
-não diz a referência.
-
-**Por que precisa de comparação:** um número sozinho não diz se é bom. Se o backtest mostrar que o sistema ganharia
-12% ao ano (número ilustrativo):
-
-- e o milho subiu 15% ao ano no período, **só comprar e segurar** teria sido melhor: o sistema não acrescentou nada;
-- e o CDI rendeu 11%, deixar o dinheiro aplicado daria quase o mesmo **sem risco nenhum**.
-
-**O que é o Sharpe:** o retorno **por unidade de risco**. Um sistema que ganha 12% com pouca oscilação é melhor que um
-que ganha 12% com altos e baixos violentos.
-
-**As referências mais comuns:**
-
-| Referência | A pergunta que ela responde |
-|---|---|
-| **Comprar e segurar o milho** | O sistema é melhor do que ficar comprado o tempo todo? |
-| **CDI** | Vale o risco, ou era melhor deixar o dinheiro aplicado? |
-| **Ficar de fora** | O sistema ganha alguma coisa, ou perde dinheiro? |
-| **Decisão aleatória** | O sistema acerta mais do que uma moeda jogada para cima? |
-
-**Nossa leitura:** usar **duas réguas ao mesmo tempo**, comprar e segurar o milho **e** o CDI. A regra só é aprovada
-se superar as duas. A análise crítica do FEL 1 já apontava o "comprar e segurar" como o mínimo; o CDI entra porque, no
-Brasil, é o custo de oportunidade de qualquer dinheiro parado.
-
-**O Sharpe fica no backtest; o CDI também vai para o prompt.** São dois usos diferentes:
-
-- **No backtest,** o Sharpe e a referência servem para o Comitê **aprovar ou reprovar uma regra**, olhando o passado
-  inteiro. Não vão para o prompt: não dizem nada sobre a decisão de hoje.
-- **No prompt,** a Selic de hoje entra como **custo de oportunidade** (§5, exemplo do prompt): a IA só recomenda
-  comprar se o ganho que os fatores sugerem compensar o risco frente ao dinheiro parado. Com a Selic alta, o milho
-  precisa entregar mais para valer a pena, e a recomendação plausível passa a ser "ficar de fora".
-
-**Como apresentar:** "O FEL 1 pede um Sharpe mínimo, mas não diz comparado com quê. Propomos duas réguas: a regra
-precisa ser melhor do que só comprar e segurar o milho e melhor do que deixar o dinheiro no CDI. Concordam?"
-
-</details>
-
-<details>
-<summary>Pergunta 4 em detalhe — COTAHIST e o histórico do CCM (para levar à reunião)</summary>
-
-**Mais informe do que pergunta.** Já verificamos e já temos a alternativa: ao Comitê só cabe confirmar.
-
-**De onde vem:** o relatório FEL 1 (§6.5.2) diz que o **COTAHIST**, o arquivo gratuito de histórico de cotações da
-B3, "atende ICF e CCM" (futuros de café arábica e de milho). Se fosse verdade, teríamos de graça o histórico completo
-do preço futuro do milho.
-
-**O que verificamos:** **não atende** (ADR 0009). O COTAHIST é o histórico do **mercado à vista** (ações, fundos
-etc.); os futuros ficam em outra área da B3 ("Derivativos → Ajustes do pregão"). A afirmação do relatório está
-errada.
-
-**A alternativa que encontramos:** o histórico do CCM foi montado com duas fontes da própria B3, ambas gratuitas:
-
-- **Up2Data** (CSV): a coleta diária, com uma janela de ~15 meses.
-- **Boletim Diário** (PDF, ADR 0020): de **21/03/2022 a 11/12/2025**, com abertura e contratos em aberto.
-
-Resultado: **o CCM está coberto desde mar/2022, por vencimento.** Antes de 2022 não encontramos fonte gratuita.
-
-**O que resta ao Comitê:**
-
-1. **Confirmar** que o COTAHIST não atende, para corrigir o §6.5.2 do FEL 1 e ninguém mais contar com ele.
-2. **ICF (café):** o caminho do Boletim Diário deve servir também para o café, mas não foi testado (o café está fora
-   do escopo por enquanto).
-3. **A consequência importante está na pergunta 2, não aqui:** a alternativa tem ~4 anos e meio de histórico. Se isso
-   basta ou se é preciso pagar pelo ZC da CME é o que a pergunta 2 decide.
-
-**Como apresentar:** "O relatório indicava o COTAHIST para o CCM; ele não atende. Encontramos o Boletim Diário da B3 e
-cobrimos o CCM desde 2022. O que falta decidir, se 4 anos bastam, é a pergunta 2."
-
-</details>
-
-<details>
-<summary>Pergunta 5 em detalhe — vintage do agro (informe, para levar à reunião)</summary>
-
-**Não é uma decisão, é um informe:** o Comitê precisa estar ciente de um limite do backtest e de como ele está sendo
-resolvido.
-
-**O que é "vintage":** o número **como ele era conhecido em cada data**. O dado do agro é uma estimativa que a fonte
-revisa. Exemplo real do banco, a Safrinha 2024/25 da Conab:
-
-| Publicado em | Estimativa da 2ª safra 2024/25 |
-|---|---|
-| 13/02/2025 | 96.048 mil t |
-| 10/07/2025 | 104.538 mil t |
-| 14/08/2025 | 109.567 mil t |
-| 11/09/2025 | 112.033 mil t |
-| 11/12/2025 | **113.228 mil t** (final) |
-
-De fevereiro ao fim, a estimativa subiu 18%.
-
-**Por que isso importa no backtest:** o backtest testa uma regra no passado: roda o motor numa data antiga, só com o
-que se sabia naquela data, e compara com o que o preço fez depois. Em fev/2025, o mercado conhecia 96 milhões de t.
-Se o teste usar o número final (113), o motor "sabe" algo que ninguém sabia, e o resultado sai melhor do que seria na
-vida real (viés de olhar o futuro). Quando a fonte só publica o número atual, as estimativas antigas **não existem mais
-em lugar nenhum**: não é uma escolha nossa.
-
-**Onde estamos (milho):**
-
-| Situação | Fontes |
-|---|---|
-| ✅ Todas as revisões, histórico longo | **WASDE** (desde 2011): balanço do milho dos EUA e de ~20 países, **incluindo o Brasil** (total, sem separar as safras). **IMEA oferta e demanda** (desde 2014, só MT) |
-| ⚠️ Revisões só desde fev/2025 | **Conab** |
-| ⚠️ Revisões começando agora | **IMEA** safra e custo; **NOAA** (a fonte reprocessa o histórico) |
-| — Quase não revisam | Dólar PTAX, COT, preços da B3 |
-
-**O impacto é localizado:**
-
-- **Importa muito** nas regras baseadas em revisão ou surpresa: sem vintage, elas nem podem ser calculadas no
-  passado. É o caso da Safrinha antes de fev/2025.
-- **Importa pouco** nos dados que quase não revisam (dólar, COT, preços da B3).
-- **O limite maior é outro:** o preço do CCM só existe desde 2022 (pergunta 2), então o backtest do milho já fica na
-  janela de 2022 a 2026. Nessa janela, o WASDE (peso Alto) tem vintage completo; a Conab tem desde fev/2025.
-- **Há uma aproximação para a Safrinha:** o WASDE traz a produção de milho do **Brasil** com todas as revisões desde
-  2011 (ex.: safra 2024/25, de 127 milhões de t em mai/2024 a 136 em nov/2025). Não é a 2ª safra nem o número da
-  Conab, mas é o melhor substituto para testar no passado uma regra da Safrinha antes de fev/2025, se o Comitê
-  aceitar.
-- **O viés pode ser medido:** com o WASDE, dá para rodar o mesmo teste com o número da época e com o final e saber de
-  quanto é a diferença.
-- **O FEL 1 já define a regra (§12.3):** "vedado o uso de série de preços revisada ou de dado fundamentalista sem data
-  de publicação". Então o backtest **não usa o número final no lugar do da época**, nem com o viés declarado. O motor
-  já cumpre isso sozinho: ele só enxerga o que estava publicado em cada data (point-in-time). Na prática, antes de
-  fev/2025 a Safrinha da Conab fica **sem dado** no backtest, e a saída é a aproximação pelo WASDE (que tem as datas de
-  publicação), se o Comitê aceitar.
-
-**A partir de agora, o problema acaba:** a coleta guarda cada revisão de todas as fontes e nunca apaga (camada
-point-in-time, ADR 0008). Cada mês que passa aumenta o histórico honesto.
-
-**A IA é avaliada daqui para frente.** No passado, o modelo de IA **conhece** o que aconteceu (aprendeu com textos da
-época), e nenhum dado corrige isso. A recomendação da IA será avaliada registrando cada recomendação e comparando
-depois com o que o preço fez (§5, "Memória com avaliação").
-
-**Como apresentar:** "Dado do agro muda depois de publicado, e parte do passado só existe na versão final. Isso
-limita o teste de algumas regras no passado, sobretudo a Safrinha antes de 2025. O WASDE tem o histórico completo do
-milho, inclusive do Brasil, e daqui para frente guardamos todas as revisões. A IA será avaliada daqui para frente de qualquer jeito."
-
-</details>
-
-<details>
-<summary>Pergunta 6 em detalhe — licença e redistribuição (informe, para levar à reunião)</summary>
-
-**Não é uma decisão, é um informe.** Hoje o FinMind usa os dados **só internamente**, e isso não exige nada (decisão
-de 2026-09-21). Mas "gratuito" não quer dizer "pode redistribuir": **antes de exibir, redistribuir ou comercializar
-dados ou análises para terceiros** (clientes, relatórios, um produto), algumas fontes exigem licença ou autorização
-específica.
-
-**O que dizem as fontes** (termos lidos a partir das páginas oficiais; é um resumo, não um parecer jurídico):
-
-| Situação | Fonte | O que os termos dizem |
-|---|---|---|
-| 🔴 Exige licença ou autorização | **LBMA** (preço do ouro) | O preço é administrado pela IBA (ICE), que exige licença "para obter, usar ou redistribuir" o dado atual ou histórico. Tabela de taxas não lida (ADR 0009). **Desde 2026-10-01 o feed público fechou**: dado novo só com licença; a coleta foi encerrada (ADR 0044) |
-| 🔴 | **CEPEA/ESALQ** (Indicador do Milho, via B3) | CC BY-NC 4.0: **sem uso comercial** e sem retransmitir séries de preço sem autorização (ADR 0021) |
-| 🔴 | **B3** (CCM, ICF, GLD, Indicador, Boletim Diário) | Os Termos de Uso da B3 pedem autorização para reprodução ou distribuição comercial (ADRs 0020 e 0021) |
-| 🟡 Permite, com condição | **Conab** | A página de preços cita CC BY-ND 3.0 (**sem derivações**), e a Conab se declara fora da Política de Dados Abertos. Não verificado nos arquivos da safra (ADR 0016) |
-| 🟡 | **BCB** (Focus, reservas) | ODbL: redistribuir exige atribuição, e uma base derivada precisa sair com a mesma licença (ADRs 0022 e 0023) |
-| 🟡 | **FRED** (juros e dólar dos EUA) | 3 das 4 séries são domínio público, com citação; a `T10YIE` não foi confirmada. Ao exibir a terceiros, aviso de que o Fed não endossa (ADR 0009) |
-| 🟢 Domínio público, com citação | **EIA** (etanol) e **NOAA** (saúde da vegetação) | Dado do governo dos EUA, livre para usar e distribuir (ADRs 0024 e 0025) |
-| ⚪ Não verificado | **USDA** (WASDE, Crop Progress), **CFTC** (COT), **IMEA**, **Comex Stat** | Os dos EUA são de governo e provavelmente livres, mas os termos não foram lidos. IMEA e Comex Stat não publicam termo explícito |
-
-**O ponto mais sensível é o preço.** Justamente as fontes de preço (LBMA e B3 no ouro; CEPEA/ESALQ e B3 no milho) são as
-mais restritas, e o preço é o dado principal da recomendação da IA (§5). No caso da LBMA, a IBA fala em licença até
-para *usar* o dado, e não esclarece se o uso interno está coberto; em 2026-10-01 fechou o acesso público, e o ouro diário passou a vir da B3 (GLD, ADR 0044).
-
-**Como apresentar:** "Hoje o uso é interno e está tudo certo. Se um dia os dados ou as recomendações saírem para
-terceiros, precisamos antes de licença da LBMA, da CEPEA e da B3, e rever os termos da Conab e do BCB. As fontes do
-governo americano são livres."
-
-</details>
-
-<details>
-<summary>Pergunta 12 em detalhe — como abastecer o fator 8, política comercial (para levar à reunião)</summary>
-
-**O problema:** o fator 8 do milho ("Política comercial e exportações — China, tarifas", peso Médio) é o único dos 8
-**sem dado nenhum** hoje. A planilha indica Comex Stat e USDA como fontes e "exportações, tarifas" como indicadores.
-
-**O fator tem duas partes, e só uma precisa de IA:**
-
-| Parte | O que é | Como abastecer |
-|---|---|---|
-| **Exportação por destino** (quanto vai para a China) | Número, de fonte oficial. **Hoje não temos:** só coletamos o total exportado | **Estender** o coletor do **Comex Stat** que já existe (não é um coletor novo): a mesma API tem a quebra por país. Sem IA |
-| **Tarifas e decisões de governo** | Evento, não número ("a China anunciou tarifa sobre o milho dos EUA em DD/MM"). **Desde 2026-10-02** na leitura diária de eventos de mercado (ADR 0049) | A IA lê as **fontes oficiais autorizadas** e registra cada evento de forma estruturada |
-
-**A exportação por destino segue o mesmo caminho dos outros fatores.** Não sabemos ainda se ela impacta o preço: está
-no FEL 1 por conhecimento de mercado (a China pode trocar o Brasil pelos EUA como fornecedor), e é o backtest que vai
-confirmar. A sequência proposta:
-
-1. **O Comitê confirma** que a exportação por destino faz sentido e qual medida usar. Opções de medida (A): volume
-   para a China no mês, participação da China no total exportado (%), variação contra o mesmo mês do ano anterior (o
-   milho tem safra: comparar com o mês anterior engana).
-2. **Estendemos o coletor** do Comex Stat (só depois da confirmação: só coletamos o que o motor vai usar).
-3. **Calculamos a medida (A)**, como nos demais fatores.
-4. **O Comitê define B e C**: por exemplo, "a participação da China está acima ou abaixo da média de 5 anos?" (B) e
-   "se a China compra mais do Brasil, isso pesa para alta?" (C). O motor aplica as regras em código.
-5. **A regra passa pelo backtest.** Há histórico do fator desde 2005 (mensal); o limite é o preço (CCM desde 2022).
-
-**Atualização de 2026-10-02:** a busca de eventos por IA existe (ADRs 0047 e 0049) e já cobre as tarifas do milho. O
-que segue era a proposta original, mantida como referência para o Comitê.
-
-**Como seria o registro de um evento:** tipo (tarifa, cota, embargo, acordo), país que decidiu, país afetado, produto,
-data do anúncio, data em que vale e **link da fonte**, com a página guardada no dia. Boletins oficiais que servem:
-governo dos EUA (USTR, Federal Register), da China (Ministério do Comércio) e do Brasil (Gecex/Camex).
-
-**A IA só extrai; a regra é do Comitê.** A IA faz o papel de coleta: lê o boletim e devolve o evento estruturado. O
-que o evento **significa** para o preço segue o mesmo caminho dos outros fatores: o Comitê define B e C, e o motor as
-aplica em código antes do prompt. O Comitê decide, por exemplo, quais tipos de evento contam, por quanto tempo um
-evento continua valendo, e para que lado ele pesa.
-
-Exemplo (**evento e regra fictícios**, só para mostrar o formato):
-
-| Etapa | Resultado |
-|---|---|
-| **Coleta (IA)** | Boletim do Ministério do Comércio da China → evento: tipo **embargo**, decidido pela **China**, afeta os **EUA**, produto **milho**, anunciado em **10/03**, link da fonte |
-| **A. Medir** | Eventos em vigor: 1 restrição da China ao milho dos EUA, anunciada há 20 dias |
-| **B. Ler** (regra do Comitê) | "Restrição recente (até 90 dias) de um grande comprador a um concorrente do Brasil" |
-| **C. Decidir** (regra do Comitê) | "Restrição da China aos EUA → a demanda tende a migrar para o Brasil → pesa para alta, peso Médio" |
-
-No prompt, entraria assim:
-
-```text
-[2. BASE]
-Fator 8 - Política comercial (peso Médio)
-  - Eventos em vigor (últimos 90 dias):
-    10/03 - China: embargo ao milho dos EUA | Fonte: Ministério do Comércio da China | <link>
-
-[3. LEITURA DO MOTOR]
-  Fator 8 - Política comercial (peso Médio): PESA PARA ALTA
-    Regra: R-POL-01 v0 (fictícia) | motivo: restrição da China aos EUA há 20 dias (limite: 90)
-```
-
-**Os limites, para ficar claro:**
-
-- **A IA nunca produz um número que entre no motor.** Ela transforma um anúncio oficial num registro estruturado,
-  com o link para conferir. Todo número (volume exportado, alíquota) vem da fonte oficial.
-- **Os eventos só valem daqui para frente.** O registro precisa ser feito no dia em que o evento sai. Buscar hoje os
-  eventos de 2023 traz o mesmo problema do vintage (pergunta 5): a IA lê a internet de hoje e já sabe o que aconteceu
-  depois. Por isso os eventos acumulam histórico a partir da captura e **não servem para backtest do passado**.
-- **Eventos são raros:** mesmo com captura, uma regra sobre tarifas terá poucos casos para validar (ver "Backtest em
-  detalhe"). A validação desse fator vai depender mais da experiência de mercado.
-
-**O mesmo caminho serve ao ouro:** o fator "Geopolítica e risco sistêmico" (peso Alto) também é feito de eventos e
-poderia ser abastecido da mesma forma, se o Comitê quiser tratá-lo depois.
-
-**Como apresentar:** "O fator 8 é o único sem dado. A parte da exportação para a China é número oficial: se fizer
-sentido para vocês, estendemos um coletor que já temos, e vocês definem a leitura e a regra, como nos outros fatores. A parte das tarifas são eventos: propomos que a IA leia boletins oficiais e registre
-cada evento com data e link, a partir de agora. A IA nunca vira fonte de número. Concordam?"
-
-</details>
-
-<details>
-<summary>Pergunta 13 em detalhe — ajustes no documento FEL 1 (para levar à reunião)</summary>
-
-**O que é:** ao ler o relatório FEL 1 v1.1 e a planilha `controle_fatores.xlsx`, encontramos trechos que se
-contradizem ou que citam o que não existe. Nenhum trava o FinMind; são correções de documento, para os autores
-fazerem. Reunimos todos aqui para resolver em poucos minutos na reunião.
-
-| # | Onde | O que está escrito | O que ajustar |
-|---|---|---|---|
-| 1 | Página 1 × fim do documento | "Ver **Seção 16** — Registro de Revisão", mas o documento termina na **Seção 14** | Incluir a Seção 16 (o que mudou da v1.0 para a v1.1) ou tirar a referência |
-| 2 | §6.5.2 | O **COTAHIST** "atende ICF e CCM" | Não atende: é só do mercado à vista. Alternativa encontrada: Boletim Diário da B3 (pergunta 4) |
-| 3 | §6.2 × planilha, aba "Calendário de Relatórios" | O texto diz "o WASDE **não cobre café** — ver Coffee: World Markets and Trade, bianual"; o calendário lista o WASDE com "Ativo impactado: Milho, **Café**". Na aba "Controle de Fatores", nenhum fator do café usa o WASDE: ali está coerente | Corrigir só o calendário: na linha do WASDE, "Milho, Café" → "**Milho**"; e incluir uma linha para o **Coffee: World Markets and Trade** (USDA, semestral), que é o relatório do USDA para o café (antiga pergunta 14) |
-| 4 | §7.4 × planilha | Crop Progress: o texto diz "**abr-nov**"; a planilha diz "**mar-nov**" | Unificar o período |
-| 5 | §4 × §12 | Demo: a §4 diz "mínimo de **3 meses**"; a §12 afirma que a §4 previa "**60 dias**" (e propõe 6 meses) | Corrigir a frase da §12 |
-| 6 | §4 × §12.1 | Backtest: **1 a 5 anos** × **10 a 15 anos** | Depende de uma decisão do Comitê: **pergunta 8** |
-
-**Por que a Seção 16 importa mais do que parece:** várias dessas inconsistências (itens 3, 5 e 6) nasceram na revisão
-da v1.0 para a v1.1. Com o registro de revisão, ficaria claro qual versão de cada trecho vale.
-
-**Como apresentar:** "Encontramos seis ajustes no documento do FEL 1. Cinco são correções simples que vocês podem
-fazer; o sexto, os anos de backtest, é a pergunta 8. Nenhum trava o nosso trabalho."
-
-</details>
-
-<details>
-<summary>Pergunta 15 em detalhe — FAO/AMIS (para levar à reunião)</summary>
-
-**A decisão:** o FinMind precisa, no futuro, de uma **segunda visão do balanço mundial do milho** (FAO/AMIS),
-além da do USDA que já temos? Enquanto o Comitê não pedir, a fonte fica **adiada**.
-
-**O que já temos:** o **WASDE** (USDA), com o balanço do milho dos EUA e de ~20 regiões do mundo (produção,
-consumo, estoques, comércio), **mês a mês desde 2011, com o histórico de revisões** (ADR 0015). É o que o
-relatório FEL 1 pede ao citar "balanço global de grãos".
-
-**O que a FAO/AMIS acrescentaria:**
-
-- A **AMIS** publica o mesmo tipo de balanço, mensal, com **três fontes lado a lado**: a própria FAO, o IGC
-  (Conselho Internacional de Grãos) e o USDA. Serve para ver onde as estimativas divergem.
-- O **FAOSTAT** traz a produção **anual** de cada país desde **1961**, com mais de um ano de atraso, sem estoque
-  nem balanço.
-
-**Comentários complementares:**
-
-- **O relatório descreve a fonte de forma otimista.** Diz "FAOSTAT API pública; AMIS com dados em Excel":
-  desde 2025 a API do FAOSTAT exige conta e token (o download em lote segue aberto), e a AMIS **não tem API
-  oficial** — a antiga foi desativada e o portal atual não oferece o balanço em planilha.
-- **O único acesso automatizado viável à AMIS seria ler o PDF mensal** (AMIS Market Monitor, ~10 edições por
-  ano), com o mesmo método já usado no IMEA. O portal consulta o banco da FAO de um jeito que não é uma
-  interface publicada; não recomendamos construir sobre ele.
-- **Licença:** os números da FAO são livres com citação (CC BY 4.0); os do **IGC**, que aparecem na AMIS, são
-  dado comercial do IGC, com redistribuição não esclarecida.
-- **Custo:** dado grátis; o custo é de desenvolvimento e manutenção de um leitor de PDF.
-
-**As respostas possíveis:**
-
-1. **Não é necessária** → a fonte sai da lista; o balanço mundial segue só pelo WASDE.
-2. **É necessária** → pedir acesso aos dados à secretaria da AMIS e, enquanto isso, implementar a leitura do
-   PDF mensal.
-3. **Só a produção histórica longa (desde 1961)** → carga única do FAOSTAT pelo download em lote.
-
-Evidência completa: `docs/reconhecimento-fontes/fao-amis.md`.
-
-</details>
-
-<details>
-<summary>Pergunta 16 em detalhe — paridade de exportação do milho (para levar à reunião)</summary>
-
-**De onde veio esta pergunta:** a auditoria da camada de dados (2026-09-22) listou "frete marítimo / prêmio de
-porto" como lacuna, porque o fator da paridade não teria matéria-prima sem eles, e o frete entrou em "Falta
-fazer". Ao procurar a fonte, encontramos as rotas de frete rodoviário do IMEA e **nos perguntamos por que estávamos
-buscando o frete**: sozinho, ele não serve ao motor. É só um componente da paridade, e usá-lo exigiria o FinMind
-montar a própria fórmula. A pergunta real, portanto, não é "onde achar o frete", mas **"o que o motor precisa para
-este fator"**, e isso pede uma resposta do Comitê antes de qualquer coleta.
-
-**A decisão:** para o fator do milho **"Dólar (USDBRL) e paridade de exportação"** (peso Médio), o que o FinMind
-deve guardar? A regra é guardar só o que o motor vai usar: um dado coletado sem uso é custo de manutenção sem
-retorno.
-
-**O que o FEL 1 pede:** "a paridade de exportação (preço interno vs. Chicago + frete + câmbio) explica por que o
-milho brasileiro sobe quando o dólar sobe", com os portos de Santos e Paranaguá e o Arco Norte (Itaqui, Barcarena,
-Miritituba/Santarém), "rota que define a base do Centro-Oeste onde o CCM se forma". A planilha de fatores dá como
-fontes "Cepea, Comex Stat" e como dado "Paridade de exportação, USDBRL". **Nenhum documento nomeia uma fonte de
-frete.** O dólar (desde 1994) e a exportação do Comex Stat (desde 2005) já estão coletados.
-
-**O que existe, de graça, no IMEA** (fonte que o FEL 1 já lista para o milho):
-
-- **A paridade pronta.** O **Boletim Semanal – Milho** (PDF, toda segunda, **572 edições desde 2015-02-02**) traz
-  todo dia a **paridade de exportação calculada pelo IMEA** (R$/saca, para um contrato de Chicago de referência;
-  hoje, jul/26), o **diferencial de base** (milho em MT menos Chicago, em R$/saca), o **prêmio portuário** e o frete.
-  A metodologia publicada pelo IMEA (edição de 2020): Chicago do contrato de referência, mais ou menos o prêmio no
-  porto de Paranaguá, menos o frete rodoviário até o porto e o custo portuário, tudo em reais. É um valor
-  **publicado pela fonte**, não um cálculo do FinMind.
-- **Os componentes soltos.** A API do IMEA traz **28 rotas de frete rodoviário** de grãos saindo de Mato Grosso,
-  em R$/t, **só o valor atual**, sem histórico. Sozinhas, não servem ao motor: seriam insumo para o FinMind calcular a
-  própria paridade, e essa fórmula é um fator.
-
-**Comentários complementares:**
-
-- **A paridade do IMEA é a de Mato Grosso**, trazida do porto até a fazenda. Não é a de Campinas, onde o CCM se
-  liquida (Indicador CEPEA/ESALQ). Qual praça importa para o motor é uma escolha do Comitê.
-- **É uma série por contrato de referência**, que muda com o tempo (hoje, jul/26): cada troca de contrato é uma
-  quebra na série.
-- **O porto do prêmio não está claro:** a metodologia de 2020 fala de Paranaguá, mas a tabela de 2026 mostra o prêmio
-  de **Santos**, atribuído à Esalq (licença a verificar). A nota de metodologia não aparece mais no boletim.
-- **Custo:** dado grátis. O custo é um leitor de PDF, com a tabela lida por coordenada (a extração por texto
-  desalinha as colunas), como no balanço do IMEA (ADR 0019), para layouts que mudaram entre 2015 e 2026.
-- **Frete marítimo** (também citado no FEL 1): nenhuma fonte encontrada.
-- **O dado não decide nada sozinho:** como a paridade entra na decisão de compra ou venda é regra do motor, que
-  segue com o Comitê.
-
-**As respostas possíveis:**
-
-1. **Só a paridade pronta do IMEA** (com o diferencial de base) → leitor do boletim semanal, histórico desde
-   2015. É a nossa recomendação: é o dado que o FEL 1 descreve, já calculado pela fonte.
-2. **Paridade e componentes** (prêmio e frete por rota) → o mesmo leitor com mais colunas. Só faz sentido se o
-   Comitê quiser decompor a paridade no motor.
-3. **Nada por ora** → o fator fica só com dólar e exportação. Nada é implementado.
-
-Evidência: `STATUS_DO_PROJETO.md` §2 (ressalvas, linha "Frete e paridade de exportação") e os boletins do catálogo
-de arquivos do IMEA (`api1.imea.com.br/api/arquivo?cadeia=3`, "Boletim Semanal - Milho").
-
-</details>
-
-</details>
-
-<details>
-<summary>5. Confirmar entendimento — Motor do Milho</summary>
-
-**Para a reunião.** Queremos confirmar com o Comitê como entendemos os **8 fatores do milho** da planilha
-`controle_fatores.xlsx` (aba "Controle de Fatores"). Nome, peso e fonte vêm da planilha; a coluna "Resumo (cálculo)"
-está vazia, e é ela que propomos preencher. Os exemplos usam **números reais do banco** (dev, 2026-09-26).
-**Nenhum número da tabela de fatores diz se o preço sobe ou desce:** é só a medida de cada fator. Quem recomenda é a
-IA, no fim do processo.
-
-### Como entendemos o motor
-
-**O produto do FinMind é a recomendação da IA.** Todo o resto existe para que ela seja a mais embasada possível:
-
-```text
-Coleta → A. Medir → B. Ler → C. Decidir → prompt → IA analista → RECOMENDAÇÃO → uma pessoa decide
-         └──── motor, sem IA: base ───┘            └─────── a estrela ──────┘
-```
-
-Cada fator passa por três camadas no motor. O FinMind só adianta a primeira:
-
-| Camada | O que é | Exemplo | Quem decide |
-|---|---|---|---|
-| **A. Medir** | Transformar o dado publicado no indicador que a planilha nomeia, com a definição usual do mercado | estoque/uso = estoque final ÷ uso total | Propomos aqui; **o Comitê confirma** |
-| **B. Ler** | Comparar a medida com o próprio histórico ou com a expectativa | percentil em 10 anos; surpresa contra o relatório anterior | Comitê (método) |
-| **C. Decidir** | Direção e peso de cada fator, por regras com limiar | "estoque/uso baixo pesa para alta, peso Alto" | **Só o Comitê** |
-
-**O Comitê define as regras, e o motor executa as três camadas em código.** Sem IA, a mesma entrada sempre dá a mesma
-base. Cada medida da camada A segue o molde do fator que já existe (juro real 10a, do ouro): função determinística e
-versionada, que só usa o que já estava publicado na data consultada (point-in-time) e nunca é gravada no banco.
-
-### O papel da IA: a recomendação
-
-**A IA é a analista do processo** (decidido em 2026-09-27; informe 11 da §4). Ela recebe a base do motor, as
-medidas e a leitura de cada fator, confronta os fatores entre si e **recomenda manter, comprar ou vender, no curto,
-no médio e no longo prazo**. A decisão e a execução são de uma pessoa: nenhuma ordem sai da resposta da IA.
-
-- **O nosso maior desafio é a base, não a IA.** Uma recomendação só é tão boa quanto os dados e as regras que chegam a
-  ela. Cada fonte coletada e cada regra definida pelo Comitê tornam a recomendação mais certeira.
-- **Sempre contra o preço.** O preço é o dado principal da base: a IA recebe o preço de hoje e a curva de preços
-  futuros (no milho, os vencimentos do CCM) e responde, para cada horizonte, se os fatores sustentam um preço acima ou
-  abaixo do que o mercado já paga por aquele prazo.
-- **Crítica, direta e objetiva.** A recomendação vem primeiro, com a tese em poucas frases, o argumento mais forte
-  contra ela e o que a invalidaria. Todo argumento cita o número e a fonte.
-- **Sem embasamento, não recomenda.** Se os fatores de peso Alto estiverem sem dado, ou se os fatores se anularem,
-  a resposta é "dados insuficientes" naquele horizonte. Isso é uma resposta válida, não uma falha.
-- **Interpretação própria aparece como tal.** Onde o Comitê ainda não definiu a regra de um fator, a IA pode
-  interpretar a medida, mas marca a interpretação como "sem regra do Comitê" e reduz a confiança.
-
-### Os 8 fatores do milho
-
-Dificuldade: 🟢 **fácil** (dado já coletado, cálculo de uma linha) · 🟡 **médio** (dado parcial ou depende de uma
-resposta do Comitê) · 🔴 **difícil** (falta a fonte).
-
-| # | Fator (peso) | Resumo do cálculo | Exemplo com dado real | Dificuldade |
-|---|---|---|---|---|
-| 1 | Clima e safra nos EUA — Crop Progress (Alto) | **% da lavoura em condição boa + excelente** (USDA, semanal, durante a safra). Complemento: **VHI** da NOAA, a saúde da vegetação medida só sobre a área do milho (0 a 100) | Semana até 20/09/2026: 44% boa + 13% excelente = **57%**. VHI dos EUA, semana até 23/09: **48,8** | 🟢 Soma de duas classes que o USDA publica; desde 1980 |
-| 2 | Safrinha brasileira, 2ª safra (Alto) | **Produção estimada da 2ª safra** (Conab, Brasil) e a **revisão** contra o levantamento anterior | Safra 2025/26: 112.130,8 mil t no 12º levantamento (15/09/2026) contra 111.030,9 mil t no 11º (13/08) = **+1.099,9 mil t (+1,0%)** | 🟡 Cálculo simples, mas as revisões só existem desde fev/2025 (informe da pergunta 5) |
-| 3 | Estoques globais e balanço — WASDE (Alto) | **Estoque/uso = estoque final ÷ uso total**, dos EUA e do mundo, e a revisão contra a edição anterior. No mundo, o uso é o consumo interno total (exportação e importação se anulam) | Safra 2026/27, WASDE de 11/09/2026: EUA 1.567 ÷ 16.180 M bu = **9,7%** (na edição de 12/08: 1.653 ÷ 16.330 = 10,1%, revisão de −0,4 p.p.). Mundo: 272,1 ÷ 1.320,2 Mt = **20,6%** | 🟢 Indicador citado pelo nome na planilha ("relação estoque/uso"); revisões desde 2011 |
-| 4 | Dólar (USDBRL) e paridade de exportação (Médio) | **Dólar PTAX de venda** (BCB), como publicado. **Paridade:** a já calculada pelo IMEA (MT, R$/saca), se a pergunta 16 aprovar | Dólar em 25/09/2026: **R$ 5,1991**. Paridade: coletada desde 2026-10-04 (ADR 0057) | ✅ Calculado (ADR 0056); a base mistura Campinas e MT |
-| 5 | Demanda de etanol e biocombustível (Médio) | **Produção semanal e estoques de etanol** dos EUA (EIA), como publicados | Semana até 18/09/2026: **1.028 mil barris/dia**; estoques de **24.683 mil barris** | 🟢 Pronto. Falta a parte do USDA (milho usado para etanol, no WASDE), não extraída |
-| 6 | Custo de insumos — fertilizantes, diesel (Médio) | **Peso dos fertilizantes no custo total** e a variação no mês (IMEA, custo de produção de MT, R$/ha) | Ago/2026, média de MT: R$ 1.404,89 de R$ 6.724,28 por hectare = **20,9%** do custo; **−2,4%** contra julho | 🔴 Só Mato Grosso e custo agregado; sem preço de fertilizante ou diesel isolado |
-| 7 | Especulação e posicionamento de fundos — COT (Médio) | **Posição líquida dos fundos** = managed money comprado − vendido, em contratos e em % dos contratos em aberto (CFTC, milho de Chicago) | Semana até 15/09/2026 (publicada em 18/09): 483.738 − 69.278 = **414.460 contratos**, **22,5%** de 1.843.824 | 🟢 Desde 2006; o mesmo cálculo serve ao ouro |
-| 8 | Política comercial e exportações — China, tarifas (Médio) | **Exportação brasileira por destino** (Comex Stat), com a China em destaque. Tarifas são eventos, não números | Hoje só o total: **4,65 milhões de t** exportadas em ago/2026, sem o destino | 🟡 Destino: a API do Comex Stat já usada tem a quebra por país (falta estender o coletor). 🔴 Tarifas: são eventos, a registrar a partir de boletins oficiais (pergunta 12) |
-
-<details>
-<summary>Exemplo: do fator à recomendação da IA (ilustração, nada implementado)</summary>
-
-**Ilustração** de como o Motor do Milho levaria os números da tabela acima até a recomendação da IA. Nenhuma IA foi
-chamada.
-
-**Fluxo:** fatores medidos (camada A) → leitura de cada fator pelas regras do Comitê (camadas B e C), **aplicadas pelo
-motor, em código** → base com a medida e a leitura → prompt → **IA analista → recomendação estruturada** → **uma
-pessoa decide**.
-
-**O motor prepara, a IA analisa e recomenda.** O motor mede (A) e lê cada fator pelas regras do Comitê (B e C),
-sempre do mesmo jeito. A IA recebe esse material, pesa os fatores uns contra os outros e recomenda. Quanto mais firme a
-base (fatores com dado e com regra do Comitê), mais embasada a recomendação. Sem regras, os números chegam à IA sem
-leitura, e ela teria de interpretar tudo sozinha, com confiança baixa.
-
-**Um fator do começo ao fim: a Safrinha (fator 2).** Os números são reais (Conab, banco de dev, 2026-09-26). O método
-de B e a regra de C são **fictícios**, inventados só para mostrar o formato. Não são proposta: quem os define é o
-Comitê (item 4 de "O que queremos confirmar", abaixo).
-
-| Etapa | O que faz | Resultado na Safrinha |
-|---|---|---|
-| **Coleta** (já existe) | Guarda o boletim da Conab como publicado, uma linha por levantamento, sem apagar as anteriores | Produção da 2ª safra 2025/26: 111.030,9 mil t no 11º levantamento (13/08) e 112.130,8 mil t no 12º (15/09) |
-| **A. Medir** | Calcula o indicador da planilha: nível da produção e revisão contra o levantamento anterior | **112.130,8 mil t; revisão de +1.099,9 mil t (+1,0%)** |
-| **B. Ler** | Situa a medida. Método fictício: (1) contra a safra anterior; (2) sequência das revisões | (1) **−1,0%** contra a safra 2024/25 (113.228,4 mil t, número final da Conab em 11/12/2025); (2) **3ª revisão seguida para cima** (jul, ago e set) e +1,5% contra a 1ª estimativa (110.460,4 mil t, out/2025). **Leitura:** "safra do tamanho da anterior, com estimativa subindo há três meses". Ainda sem direção |
-| **C. Decidir** | Aplica a regra do Comitê e dá direção e peso. Regra fictícia "R-SAF-01 v0": 2 ou mais revisões seguidas para cima, com a safra a menos de 2% da anterior, = oferta crescendo, pesa para baixa | **Fator 2: pesa para baixa, peso Alto** (a partir de 3 revisões para cima e −1,0% contra a safra anterior) |
-
-Com só 14 revisões guardadas (desde fev/2025), não dá para dizer se +1,0% é uma revisão grande ou pequena para
-setembro. É o limite do vintage do agro (pergunta 5 da §4): o histórico de revisões cresce a cada levantamento.
-
-**Como a Safrinha entra no prompt junto com os outros fatores.** Cada fator entra em dois lugares: a medida (A) no
-bloco 2, ao lado dos demais fatores, e a leitura (B e C) no bloco 3. Se a regra fictícia existisse, o bloco 3 seria
-este:
-
-```text
-[3. LEITURA DO MOTOR — camadas B e C, aplicadas em código pelas regras do Comitê]
-Versão das regras: v0 (ilustração)
-  Fator 2 - Safrinha (peso Alto): PESA PARA BAIXA
-    Regra: R-SAF-01 v0 (fictícia) | motivo: 3ª revisão seguida para cima (+1,0% no 12º levantamento);
-    produção -1,0% contra a safra 2024/25, dentro da faixa de ±2%
-  Fatores 1, 3, 4, 5, 6, 7 e 8: sem leitura definida
-```
-
-A IA usa essa leitura como **um dos argumentos da recomendação**: a Safrinha, com peso Alto, entra nos fatores a favor
-ou contra a tese, ao lado dos outros fatores, e é citada com o número e a regra. Ela não reabre a regra: se o motor
-diz "pesa para baixa", a IA não conclui o contrário sobre a Safrinha. O que ela decide é como esse fator se soma aos
-demais em cada horizonte. Nos fatores sem regra, interpreta a medida e marca "sem regra do Comitê".
-
-O prompt completo, como ele seria hoje, sem nenhuma regra do Comitê definida:
-
-```text
-[1. PAPEL E OBJETIVO]
-Você é um analista sênior do mercado de milho. Com base SOMENTE na BASE e na LEITURA DO MOTOR
-abaixo, recomende MANTER, COMPRAR ou VENDER milho em três horizontes:
-curto (<prazo a definir pelo Comitê>), médio (<a definir>) e longo (<a definir>).
-Em cada horizonte, a pergunta é: os fatores sustentam um preço ACIMA ou ABAIXO do que o
-mercado já paga hoje pelo vencimento daquele prazo?
-Seja crítico, direto e objetivo. Sua recomendação vai para uma pessoa, que decide e executa.
-
-[2. BASE — montada pelo motor, sem IA]
-Data da análise: 26/09/2026. Só entram dados publicados até essa data.
-
-PREÇO DO MILHO (referência de cada horizonte; pregão de 25/09/2026)
-  - Hoje, físico: Indicador do Milho ESALQ/B3, R$ 69,65/saca
-    Variação: +1,8% em 1 mês | +10,1% em 3 meses | +8,2% em 12 meses
-    Fonte: B3 (arquivo Indic) | publicado: 25/09/2026
-  - Curva do CCM (B3, R$/saca), preço de ajuste por vencimento:
-      Vencimento   Ajuste   Negócios   Contratos negociados
-      nov/2026     75,52     5.384       14.357
-      jan/2027     79,45     2.214        2.927
-      mar/2027     81,71       914        1.128
-      mai/2027     79,70       236          277
-      jul/2027     78,65       422          875
-      set/2027     78,34       665        1.124
-      nov/2027     80,48        78          120
-    Contratos em aberto: SEM DADO desde dez/2025 (a fonte atual não os publica)
-    Fonte: B3 (Up2Data) | publicado: 25/09/2026
-
-CUSTO DE OPORTUNIDADE (o que o dinheiro rende parado, sem risco)
-  - Selic efetiva: 13,65% ao ano | meta: 13,75% ao ano (o CDI acompanha a Selic de perto)
-    Fonte: BCB | referência: 25/09/2026
-
-Fator 1 - Clima e safra nos EUA (peso Alto)
-  - Lavoura em condição boa + excelente: 57% (44% + 13%)
-    Fonte: USDA Crop Progress | referência: semana até 20/09/2026 | publicado: 21/09/2026
-  - Saúde da vegetação (VHI) sobre o milho dos EUA: 48,8 (escala 0 a 100)
-    Fonte: NOAA STAR | referência: semana até 23/09/2026 | publicado: 24/09/2026 (estimado)
-Fator 2 - Safrinha brasileira (peso Alto)
-  - Produção da 2ª safra 2025/26: 112.130,8 mil t; revisão: +1.099,9 mil t (+1,0%)
-    Fonte: Conab, 12º levantamento | publicado: 15/09/2026
-Fator 3 - Estoques e balanço, WASDE (peso Alto)
-  - Estoque/uso dos EUA 2026/27: 9,7% (edição anterior: 10,1%; revisão: -0,4 p.p.)
-  - Estoque/uso do mundo 2026/27: 20,6%
-    Fonte: USDA WASDE | publicado: 11/09/2026
-Fator 4 - Dólar e paridade de exportação (peso Médio)
-  - Dólar PTAX de venda: R$ 5,1991 | Fonte: BCB | referência: 25/09/2026
-  - Paridade de exportação: SEM DADO
-Fator 5 - Etanol (peso Médio)
-  - Produção: 1.028 mil barris/dia; estoques: 24.683 mil barris
-    Fonte: EIA | referência: semana até 18/09/2026 | publicado: 23/09/2026 (estimado)
-Fator 6 - Custo de insumos (peso Médio)
-  - Fertilizantes: 20,9% do custo de produção; -2,4% contra julho (só Mato Grosso)
-    Fonte: IMEA | referência: ago/2026 | publicado: 15/09/2026
-Fator 7 - Posicionamento de fundos, COT (peso Médio)
-  - Posição líquida dos fundos: +414.460 contratos (22,5% dos contratos em aberto)
-    Fonte: CFTC | referência: 15/09/2026 | publicado: 18/09/2026
-Fator 8 - Política comercial (peso Médio)
-  - Exportação total do Brasil: 4,65 milhões de t em ago/2026 | Fonte: Comex Stat
-  - Exportação por destino (China): SEM DADO | Tarifas: SEM DADO
-
-[3. LEITURA DO MOTOR — camadas B e C, aplicadas em código pelas regras do Comitê]
-Versão das regras: <a definir pelo Comitê>
-  Fator 1 a 8, leitura de cada um:  <resultado da regra do Comitê, com o id e a versão da regra>
-  Peso de cada fator:               Alto ou Médio, da planilha do Comitê
-  Orientação para combinar:         <se o Comitê quiser dar uma; senão, a IA pondera pelos pesos>
-Hoje nenhuma regra está definida: todos os fatores estão "sem leitura definida".
-
-[4. COMO ANALISAR]
-  - Comece pelos fatores de peso Alto; os de peso Médio confirmam ou enfraquecem a tese.
-  - Onde o bloco 3 tem leitura, ela vale para aquele fator: use-a e cite a regra; não a contradiga.
-  - Onde não tem, você pode interpretar a medida, mas marque "sem regra do Comitê" e reduza a confiança.
-  - Para cada horizonte, pese os fatores a favor e contra e chegue a UMA ação, SEMPRE comparada ao
-    preço do vencimento daquele prazo: diga se os fatores já parecem refletidos nesse preço.
-  - Use a variação recente do preço: um preço que já subiu com os mesmos fatores pode já tê-los
-    incorporado.
-  - Vencimento com poucos negócios não é referência confiável: diga isso e reduza a confiança.
-  - Só recomende COMPRAR se o ganho que os fatores sugerem no horizonte compensar o risco, comparado a
-    deixar o dinheiro rendendo a Selic no mesmo período. Se não compensar, a recomendação é ficar de fora.
-  - Seja crítico: diga o argumento mais forte CONTRA a sua recomendação e a condição objetiva que a
-    invalidaria. Aponte dado velho, estimado ou ausente que enfraqueça a análise.
-  - Seja direto e objetivo: a recomendação vem primeiro; frases curtas; nada de "depende" sem dizer do quê.
-  - Se os fatores de peso Alto estiverem sem dado, ou se os fatores se anularem, responda INSUFICIENTE
-    naquele horizonte. É uma resposta válida, não uma falha.
-
-[5. LIMITES]
-  - Use só o que está na BASE e no bloco 3: nenhum número, preço ou notícia de fora, nem da sua memória.
-  - Todo argumento cita o número e a fonte da BASE.
-  - Onde a BASE diz SEM DADO, trate como sem dado; nunca estime.
-  - Em cada horizonte, cite o vencimento e o preço de referência usados. Não invente preço-alvo.
-  - Sua resposta é uma recomendação para uma pessoa decidir; nenhuma ordem é executada a partir dela.
-
-[6. FORMATO DA RESPOSTA — JSON]
-{
-  "dataAnalise": "2026-09-26",
-  "versaoRegras": "...",
-  "recomendacoes": [
-    { "horizonte": "curto",
-      "precoReferencia": { "vencimento": "nov/2026", "ajuste": "75,52" },
-      "acao": "MANTER | COMPRAR | VENDER | INSUFICIENTE",
-      "confianca": "alta | media | baixa",
-      "tese": "no máximo duas frases",
-      "fatoresAFavor": [ { "fator": "<n>", "argumento": "...", "numerosCitados": ["..."] } ],
-      "fatoresContra": [ { "fator": "<n>", "argumento": "...", "numerosCitados": ["..."] } ],
-      "argumentoMaisForteContra": "...",
-      "invalidaSe": "condição objetiva que derruba a tese",
-      "semRegraDoComite": [1, 4, 5, 6, 7, 8] },
-    { "horizonte": "medio", ... },
-    { "horizonte": "longo", ... }
-  ],
-  "lacunas": ["paridade", "exportação por destino", "tarifas", "contratos em aberto do CCM"]
-}
-```
-
-**O que o exemplo mostra, e os cuidados:**
-
-- **A recomendação é tão boa quanto a base.** Hoje, com o bloco 3 vazio, a IA interpretaria os oito fatores
-  sozinha: a resposta certa seria confiança baixa ou INSUFICIENTE. Cada regra definida pelo Comitê troca uma
-  interpretação da IA por uma leitura com critério, e cada fonte nova troca um SEM DADO por um número.
-- **Por que o motor, e não a IA, faz A, B e C.** Em código, a mesma entrada dá sempre a mesma leitura (a IA pode
-  variar de uma chamada para outra), e cada regra pode ser testada no histórico (backtest) sem IA nenhuma. A IA fica
-  com o que só ela faz bem: pesar fatores que apontam para lados diferentes e explicar por quê.
-- **A base é do motor, não da IA.** Todo número vem do banco, com fonte e data de publicação, e nada publicado depois
-  da data da análise entra (point-in-time). Os dados têm datas diferentes (COT de 15/09, WASDE de 11/09, Crop
-  Progress de 20/09), e o prompt mostra isso.
-- **O que falta aparece como falta.** Paridade, exportação por destino e tarifas entram como SEM DADO, e a IA é
-  proibida de estimar.
-- **A resposta é conferível.** Com o formato fixo, dá para checar automaticamente se todo número citado existe na
-  base e se cada ação tem tese, contraponto e condição de invalidação. O prompt é versionado como um fator: modelo,
-  versão e hash registrados em cada execução (ADR 0010).
-- **Medir antes de confiar.** Cada recomendação fica registrada e é comparada depois com o que o preço fez, contra
-  referências simples (manter sempre, neutro, aleatório; ADR 0010). No histórico, o modelo pode "lembrar" o preço que
-  veio depois: o teste precisa esconder o ativo e as datas.
-- **O preço é o dado principal.** Os fatores dizem para onde o mercado *deveria* ir; o preço diz o que ele *já*
-  acredita. Por isso a recomendação é sempre relativa ao preço do vencimento de cada horizonte (a curva do CCM), com
-  o Indicador ESALQ/B3 como preço de hoje. Sem o preço, a IA recomendaria sobre uma notícia talvez já precificada.
-- **O longo prazo pode não ter preço confiável.** Os vencimentos distantes têm poucos negócios (nov/2027: 78), e os
-  contratos em aberto, a melhor medida de liquidez, só existem até dez/2025 (vinham do Boletim Diário, ADR 0020).
-  Quais vencimentos valem para cada horizonte, e quais medidas de preço entram (as variações de 1, 3 e 12 meses são
-  um exemplo), é decisão do Comitê: item 7 abaixo.
-- **O CCM não substitui Chicago como explicação.** WASDE, COT e Crop Progress movem primeiro o preço de Chicago (ZC,
-  pago): sem ele, a IA vê a causa, mas não quanto Chicago já reagiu (pergunta 2 da §4).
-- **No ouro, a curva não entra.** O futuro do ouro é o preço à vista mais os juros e não traz expectativa de
-  mercado. O prompt do ouro levaria o preço do ouro, em US$ e em R$ (com a PTAX), e o histórico recente: o LBMA até 2026-09-30 e, desde então, o futuro GLD da B3 (ADR 0044). **Decidido em 2026-10-03:** o GLD é a referência e a LBMA fica como histórico (ADR 0054).
-- **É uma ilustração, não uma estratégia.** O que se propõe é a estrutura em 6 blocos, não a redação das frases, e
-  os horizontes são do Comitê. **Nenhuma resposta de IA foi gerada**, de propósito: seria uma recomendação sem regra
-  validada.
-
-</details>
-
-### O que queremos confirmar
-
-**Respondido pelo David em 2026-10-03 (ADR 0055):** as medidas valem; COT em managed money, em contratos e em %;
-estoque/uso dos EUA e do mundo, com a revisão; safrinha em nível e revisão (Conab e IMEA); clima com boa + excelente e o
-VHI; insumos pelo IMEA na v1; o instrumento é o CCM, e o perfil é especulativo (swing trade de 7 a 21 dias), não hedge.
-Ele também apontou que o exemplo acima mistura nível e revisão e compara estágios diferentes: no mesmo levantamento
-da safra anterior, o 12º de 2025/26 fica +0,1%, não −1,0%. O que segue em aberto está em
-`docs/conversa-david-respostas-fel1.md`.
-
-1. **As medidas acima** são as que o Comitê tem em mente para cada fator? (linha a linha)
-2. **COT:** managed money (relatório desagregado, o que coletamos) ou não comerciais (relatório legado)? Em contratos
-   ou em % dos contratos em aberto?
-3. **WASDE:** estoque/uso dos EUA, do mundo ou os dois? A revisão de uma edição para a outra conta como informação?
-4. **Safrinha:** vale o nível da produção, a revisão ou os dois? Só Brasil (Conab) ou também Mato Grosso (IMEA)?
-5. **Clima:** % boa + excelente basta, ou o VHI da NOAA entra junto (e de quais regiões)?
-6. **Insumos:** o custo do IMEA (só MT) atende, ou é preciso o preço de fertilizante e diesel? Nesse caso, de qual
-   fonte?
-7. **Preço e instrumento da recomendação.** "Comprar, vender ou manter" *o quê*, e para quem?
-   - **Instrumento:** o que se opera de fato? No milho, o CCM na B3 (com margem e rolagem)? No ouro, um ETF, o ouro
-     físico, o GC ou o GLD da B3 (coletado desde 2026-10-01, com histórico desde 2025-07-21)? O preço de referência é o do instrumento operado.
-   - **Preço por horizonte:** quais vencimentos do CCM correspondem a curto, médio e longo prazo, e qual a liquidez
-     mínima para um vencimento valer como referência?
-   - **Medidas de preço:** além do preço, o que entra (variação em 1, 3 e 12 meses? outra medida)?
-   - **Posição atual:** "manter" supõe uma posição. A IA recebe a posição atual, ou recomenda só "comprado, vendido
-     ou fora"?
-   - **Perfil:** para quem investe, vender o futuro é apostar na queda; para um produtor, é proteção (hedge). Qual é
-     o nosso caso?
-
-### Por onde começamos (se o Comitê confirmar)
-
-1. **COT (fator 7):** o cálculo mais simples e mais usado do mercado, dados completos desde 2006 e **um cálculo só
-   para milho e ouro** (e depois café e petróleo: os 4 ativos da planilha têm um fator de COT). Como segundo fator do
-   sistema, é também quando o molde do juro real vira um padrão para todos.
-2. **Estoque/uso do WASDE (fator 3):** peso Alto, indicador nomeado na planilha e o nosso melhor dado point-in-time
-   (revisões desde 2011).
-3. **% boa + excelente do Crop Progress (fator 1):** peso Alto, cálculo trivial, desde 1980.
-
-Com esses três, somados aos fatores que usam o dado como publicado (dólar e etanol), **5 dos 8 fatores do milho**
-ficam com medida. Os outros três dependem de fonte nova ou de resposta do Comitê.
-
-### Aprendizagem no nosso desenho
-
-No nosso desenho, a **aprendizagem** do motor pode acontecer em **três dimensões**, sempre com uma pessoa decidindo
-e com versão registrada:
-
-| # | Dimensão | Como funciona | Depende de |
-|---|---|---|---|
-| 1 | **Memória com avaliação** | Cada leitura do motor fica registrada e nunca é apagada (data da análise, base, versão das regras, versão do prompt, recomendação da IA). Depois, é comparada com o que o preço fez. É a base das outras duas: sem registro, não há o que avaliar | O Comitê definir o que é acerto (horizonte e métrica): "Avaliação da saída da IA", §4 |
-| 2 | **Aprendizado governado** | Com a avaliação, o Comitê revisa as regras das camadas B e C (direção, pesos, limiares): a versão 1 vira a versão 2. A versão nova só entra depois de testada no histórico, e cada leitura guarda a versão que usou | Histórico de preço para testar (perguntas 2 e 3) |
-| 3 | **Calibração estatística** | O sistema **sugere** pesos e limiares a partir do histórico (fatores contra preço), e o Comitê aprova ou não. Uma sugestão aprovada vira uma versão nova, como na dimensão 2 | Histórico longo de preço e de revisões (perguntas 2, 3 e 5) |
-
-**As regras B e C podem, sim, ser ajustadas ao longo do tempo para melhorar o desempenho** (dimensão 2), com quatro
-condições:
-
-- **Toda mudança vira uma versão nova**, nunca uma edição silenciosa. As leituras passadas continuam ligadas à versão
-  que usaram.
-- **Testada num período que não foi usado para ajustá-la.** Senão, a regra decora o passado e falha no futuro.
-- **Contar as tentativas.** Quanto mais versões testadas, maior a chance de uma parecer boa por acaso (o mesmo cuidado
-  do ADR 0010 com as versões de prompt).
-- **A decisão de adotar é do Comitê.**
-
-**Fica fora do desenho:** o modelo de IA não aprende com o uso. Nada de ajuste fino do modelo, de a IA receber as
-próprias análises antigas para "lembrar", nem de pesos que se ajustam sozinhos: tudo isso mudaria o comportamento sem
-versão e sem auditoria.
-
-</details>
-
-<details>
-<summary>5b. Confirmar entendimento — Motor do Ouro</summary>
-
-**Atualizada pelo ADR 0053 (2026-10-03):** a proposta dos 8 fatores nas três camadas, com o FMI e o World Gold Council
-já coletados e o histórico de cada fator contra a LBMA, está na tela **Metodologia do Ativo** (ouro). Esta seção fica
-como o registro da proposta da camada A ao Comitê; onde as duas diferem (ex.: o dólar, aqui o índice amplo, lá o das
-economias avançadas, como no petróleo), vale a da tela, com a pergunta ao David.
-
-**Para o Comitê confirmar (etapa 2 dos "Próximos passos").** O mesmo exercício da §5 do milho, para os **8 fatores do
-ouro** da planilha `controle_fatores.xlsx` (aba "Controle de Fatores"): nome, peso e fonte vêm da planilha, e propomos
-a coluna "Resumo (cálculo)", que está vazia. O motor é o mesmo (camadas A, B e C, e a IA no fim), descrito na §5; aqui
-só a camada A. Os exemplos usam **números reais do banco** (dev, dados publicados até 2026-09-30). **Nenhum número da
-tabela diz se o preço sobe ou desce:** é só a medida de cada fator.
-
-**A diferença para o milho é a origem das lacunas.** No milho, quase todo fator tem dado oficial com data de
-publicação. No ouro, os fatores macroeconômicos estão prontos (o juro real já é um fator versionado) e os
-fundamentalistas dependem de fontes que **ainda não foram reconhecidas** (FMI, World Gold Council, USGS) ou que não
-existem de graça (o DXY). Nenhuma fonte nova entra sem autorização: a tabela só aponta qual seria a candidata.
-
-### Os 8 fatores do ouro
-
-Dificuldade: 🟢 **fácil** (dado já coletado, cálculo de uma linha) · 🟡 **médio** (dado parcial, substituto ou série
-nova numa fonte que já usamos) · 🔴 **difícil** (falta a fonte, ou o fator não é um número).
-
-| # | Fator (peso) | Resumo do cálculo | Exemplo com dado real | Dificuldade |
-|---|---|---|---|---|
-| 1 | Juros reais (Fed) e rendimento dos títulos (Alto) | **Juro real de 10 anos** dos EUA (`DFII10`, rendimento do título protegido da inflação), como publicado, e a variação em 1 e 12 meses. Complemento: **juro nominal de 10 anos** (`DGS10`). O FOMC (meta do Fed) é série nova na mesma API do FRED, não coletada | 25/09/2026: real **2,83%** (+0,41 p.p. em 1 mês; +1,01 p.p. em 12 meses); nominal **5,17%** | 🟢 Já é o fator versionado `juro-real-10a` (validação cruzada `DGS10 − T10YIE` em 5.932 de 5.932 datas) |
-| 2 | Dólar, índice DXY (Alto) | **Índice amplo do dólar do Fed** (`DTWEXBGS`, 26 moedas) **no lugar do DXY** (ICE, 6 moedas, licenciado), e a variação em 1 e 12 meses | 25/09/2026: **120,33** (+1,3% em 1 mês; −0,1% em 12 meses) | 🟡 Substituto, com outra composição e outro peso por moeda. A fonte da planilha ("US Treasury, World Bank") não publica o DXY (ADR 0009) |
-| 3 | Inflação e expectativas inflacionárias (Alto) | **Inflação implícita de 10 anos** (`T10YIE`, breakeven), como publicada. **CPI dos EUA**: variação em 12 meses, série nova na mesma API do FRED, não coletada | 28/09/2026: breakeven **2,34%** (2,31% um mês antes). CPI: não coletado | 🟡 Breakeven pronto; o CPI é uma série a mais no coletor do FRED, mas é fonte nova (autorização) e revisa (ALFRED, ADR 0011) |
-| 4 | Geopolítica e risco sistêmico (Alto) | **Eventos** (conflitos, sanções, crises), registrados de boletins oficiais com data, como os eventos de tarifa do milho (pergunta 12). Se o Comitê quiser um número: um **índice de risco** pronto, ainda não reconhecido | Leitura diária de eventos de mercado (ADRs 0047 e 0049) | 🟡 Não é um número: são eventos com nível do dia. O "índice de risco" da planilha não diz qual índice |
-| 5 | Demanda de bancos centrais, reservas (Alto) | **Compra líquida de ouro pelos bancos centrais**, em toneladas, por mês (estoque de ouro de cada banco central, mês contra mês). Candidata: estatística de reservas do FMI (SDMX), que a planilha lista no calendário, não reconhecida | Só as **reservas totais do Brasil** (não é ouro): US$ 362.548 milhões em 28/09/2026 (−3,2% em 1 mês) | 🔴 Falta a fonte. As reservas totais do BCB mudam com o câmbio e o preço dos ativos, não medem compra de ouro |
-| 6 | Fluxo de ETFs de ouro (Médio) | **Toneladas de ouro guardadas pelos ETFs** e a variação na semana e no mês (entrada ou saída) | Nenhum dado | 🔴 O World Gold Council não tem API. Candidata a reconhecer: o estoque diário publicado por um grande ETF de ouro |
-| 7 | Posicionamento de fundos, COT (Médio) | **Posição líquida dos fundos** = managed money comprado − vendido, em contratos e em % dos contratos em aberto (CFTC, ouro da COMEX): **o mesmo cálculo do milho** | Semana até 22/09/2026 (publicada em 25/09): 135.699 − 8.310 = **127.389 contratos**, **30,9%** de 412.800 (na semana anterior: 133.116, 32,5%) | 🟢 Desde 2006; uma função para milho, ouro e café |
-| 8 | Produção e oferta de mineração (Baixo) | **Produção mundial de ouro das minas**, em toneladas por ano, e a variação contra o ano anterior (USGS) | Nenhum dado | 🔴 Fonte não reconhecida; anual e com mais de um ano de atraso. **Ignorada no MVP** (peso Baixo, decisão da auditoria de 2026-09-22) |
-
-**Preço do ouro (a referência da recomendação).** O LBMA Gold Price PM (coletado de 1968 a 2026-09-30), em US$ e em R$ (com a
-PTAX do mesmo dia). Em 28/09/2026: **US$ 4.144,55 a onça** (−9,2% em 1 mês; +1,8% em 3 meses; +9,9% em 12 meses) e
-**R$ 21.606** (PTAX 5,2132; +7,2% em 12 meses). Sem curva de vencimentos: o futuro do ouro é o preço à vista mais os
-juros (§5, "O que o exemplo mostra"). A licença da IBA ainda vale antes de exibir a terceiros (informe 6 da §4). **Desde 2026-10-01** a LBMA fechou o feed
-público e o preço diário coletado é o futuro **GLD da B3** (US$/oz, liquidado pelo LBMA, desde 2025-07-21), em média
-0,9% acima do LBMA PM: se ele passa a ser a referência, e como emendar com o LBMA, é decisão do David (ADR 0044).
-
-**Resumo:** 2 fatores com medida pronta (juros reais e COT), 2 com substituto ou série a acrescentar numa fonte que já
-usamos (dólar e inflação) e 4 sem dado (geopolítica, bancos centrais, ETFs e mineração). Somando os pesos: dos **5
-fatores de peso Alto**, 1 está pronto, 2 estão parciais e **2 não têm fonte** (geopolítica e bancos centrais). Cobertura
-completa da matéria-prima: `docs/cobertura-fatores-fel1-milho-ouro.md`, §3.
-
-### O que queremos confirmar
-
-1. **As medidas acima** são as que o Comitê tem em mente para cada fator? (linha a linha)
-2. **Juros:** o juro real de 10 anos basta, ou a meta do Fed (FOMC, oito reuniões por ano) entra também?
-3. **Dólar:** o índice amplo do Fed serve no lugar do DXY? O DXY só existe pago (ICE).
-4. **Inflação:** o breakeven basta, ou o CPI observado entra também? O **Focus** (IPCA, Selic e câmbio, já coletado) e
-   as **reservas do BCB**, que a planilha liga ao ouro ("Relatório Focus e Reservas"), entram em qual fator, ou só no
-   ouro em reais?
-5. **Geopolítica:** evento registrado (como as tarifas do milho), um índice de risco pronto (qual?), ou os dois?
-6. **Bancos centrais:** a compra de ouro do mundo inteiro (FMI ou World Gold Council) ou só a do Brasil?
-7. **ETFs:** o estoque de um grande ETF serve de medida, ou é preciso o total do World Gold Council (sem API)?
-8. **Preço e instrumento:** as mesmas perguntas do item 7 da §5 do milho, para o ouro. Em especial: o ouro em **US$ ou
-   em R$**? E o que se opera de fato (ETF de ouro na B3, ouro físico, o futuro GC, que é pago, pergunta 3, ou o futuro GLD da B3,
-   grátis, com histórico desde 2025-07-21, ADR 0044)? E, com a LBMA fechada, o GLD serve de preço de referência?
-
-### Por onde começamos (se o Comitê confirmar)
-
-1. **COT (fator 7):** a mesma função do milho; fazê-la para os dois de uma vez é o que transforma o molde do juro real
-   num padrão do sistema.
-2. **Juros reais (fator 1):** já pronto; falta só ligá-lo à base do motor.
-3. **Dólar (fator 2), pelo índice amplo do Fed**, se o item 3 for aprovado.
-
-Com esses três, **3 dos 8 fatores do ouro** ficam com medida, 2 deles de peso Alto. Os próximos dependem de
-autorização para uma série nova numa fonte que já usamos (CPI e meta do Fed, no FRED) ou de reconhecer uma fonte nova
-(FMI, ETFs).
-
-</details>
-
-<details>
-<summary>5c. Proposta — Fatores do Petróleo</summary>
-
-**Por decisão do usuário (2026-10-02), o FinMind propõe ao David os 10 fatores do petróleo nas três camadas, para abrir
-caminho: é rascunho, pode estar errado e serve para ser corrigido** (ADR 0050). Cada fator mostra, em blocos separados,
-o que o FEL 1 diz (tipo, direção, mecanismo, fonte), os dados que já coletamos e as lacunas, a proposta (medida,
-comparação e um esboço da leitura) e as perguntas ao David. **Em 2026-10-03 o David aprovou as decisões em reunião**
-(as respostas por escrito virão depois): desde então, o prompt diário vai à IA todo dia e a leitura de tendência
-aparece no Centro de Decisão do petróleo (ADR 0052). Nenhum sinal de compra ou venda é gerado.
-
-O conteúdo está na tela **Metodologia do Ativo** (`/dados-mercado/metodologia/PETROLEO`), e não é copiado aqui. A geopolítica é **fator de evento**, sem cálculo: o resultado são os eventos da leitura diária marcados com ela numa janela de 7 dias, com a data, a idade e a fonte, repassados à IA do ativo como estão. A OPEP+ era fator de evento até 2026-10-06 e passou a **calculada com eventos** (a produção e a capacidade ociosa da OPEP no STEO da EIA, em quatro casos, e os eventos de 45 dias depois do cálculo, ADR 0091). Os outros oito fatores têm a proposta **calculada**: oferta não-OPEP (Brasil, Noruega e Canadá somados, mensal; sem os EUA, que têm fator próprio, e com o Canadá, por decisão do usuário; mede a situação, não antecipa o preço), juros (o Treasury de 10 anos contra 26 semanas antes, e não a meta do Fed, que fora da pandemia não mostrou relação com o preço; a meta fica como contexto), fundos (a posição líquida no COT do WTI contra o percentil dos 3 anos anteriores; o extremo era lido como risco de reversão; desde 2026-10-06, só informação, sem pressão própria, porque contra o Brent a reversão não se sustenta por episódio, ADR 0094), dólar (o índice do Fed das economias avançadas contra a média de 52 semanas; o fator com a relação mais forte com o preço), refino (a margem 3-2-1 com o Brent, calculada pelo FinMind, contra a média de 5 anos, em US$ por barril; hoje extrema, como em 2022; desde 2026-10-06, contexto da demanda, sem pressão própria, ADR 0093), demanda (só os EUA: a China do JODI ficou de fora, "não avaliada" e com uma queda de ~30% em 2026 sem explicação; pergunta ao David), produção dos EUA (o crescimento anual da produção, com a distância do recorde; o dado basta, o rig count não é necessário) e estoques EIA. O de estoques, o piloto: o estoque contra a média da mesma semana nos 5 anos anteriores, no histórico desde 1982, e a **camada C** (direção, intensidade e tendência) com os parâmetros em uso no sistema, guardados no banco com histórico de versões: qualquer usuário simula outros valores na tela, e o admin salva uma versão nova, com o motivo. Em jun/2020 ficou 15% acima da média; em jun/2022, 12,5% abaixo. O **prompt diário de análise** junta os 10 fatores e o WTI à vista numa data, para a IA ler a tendência em 1, 7, 30 e 90 dias (sem recomendar): é mostrado na mesma tela (ADR 0051) e, desde 2026-10-03, enviado ao Gemini uma vez por dia, com a resposta validada, gravada e mostrada no Centro de Decisão (ADR 0052). As
-perguntas que mais destravam:
-
-1. **Estoques EIA (Alto):** "abaixo do esperado" é contra o consenso de analistas (pago, não coletado) ou contra uma
-   referência histórica (a média de 5 anos da mesma semana, que a EIA publica)?
-2. **OPEP+ (Alto):** pesa o anúncio da reunião (evento) ou a produção bombeada (mensal, ~2 meses de atraso)?
-3. **Geopolítica (Alto):** ameaça sem efeito material conta, ou só a interrupção que já aconteceu?
-4. **Fundos (COT):** confirmam os outros fatores ou têm direção própria? (A proposta lê o extremo como risco de reversão.)
-
-</details>
-
-<details>
-<summary>6. Fora do escopo por enquanto</summary>
+<summary>5. Fora do escopo por enquanto</summary>
 
 Não implementar sem autorização explícita registrada em ADR:
 
@@ -1592,15 +588,15 @@ Não implementar sem autorização explícita registrada em ADR:
 - Focus além das expectativas anuais de IPCA, Selic e câmbio (PIB e demais indicadores, mensais/trimestrais, Selic por reunião, inflação 12/24 meses, Top 5), fatores sobre o Focus (surpresa, variação, dispersão); das reservas do BCB, o conceito liquidez, a série mensal e a composição (ouro).
 - Série contínua de futuros, rolagem e backtest.
 - Qualquer sinal, limiar, indicador técnico ou regra de compra/venda.
-- Implementar a IA (o papel dela já está decidido, §5; o ADR 0010 é o desenho do experimento): só depois das regras e
+- Implementar a IA (o papel dela já está decidido, ADR 0055; o ADR 0010 é o desenho do experimento): só depois das regras e
   dos critérios de avaliação do Comitê. Exceção: a leitura de tendência dos quatro ativos (ADRs 0052, 0054, 0058 e 0062), depois da
-  aprovação do David ou do Comitê; a avaliação dela contra o realizado continua com o Comitê.
+  aprovação do David ou do Comitê; a avaliação dela contra o realizado foi delegada ao usuário (ADR 0064).
 - Execução automática de ordens e corretora.
 
 </details>
 
 <details>
-<summary>7. Entregas realizadas</summary>
+<summary>6. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
@@ -1610,6 +606,9 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 | Entrega | Resultado | Onde |
 |---|---|---|
 | Motores dos quatro ativos validados | Na reunião de 2026-10-07, o Comitê, com o David, validou os motores do petróleo, do ouro, do milho e do café como estão; a fase passa a ser acompanhar a Qualidade da IA para ajustar. Os 34 fatores saem como validados no código (metodologias: petróleo v12, ouro v3, milho v22 e café v15), o prompt de cada fator diz "Regra: validada"; o que roda conta como validado, sem selo na tela, e a solução de um problema passa pelo Comitê antes de ir ao sistema. A agregação em código e os pontos da conversa com o David não mudam | ADR 0108; §1 e §2 |
+| Status mais enxuto | Com os motores validados, saíram as perguntas da análise crítica (todas respondidas, ADR 0055), o material preparado para as reuniões e as seções de confirmação dos motores do milho, do ouro e do petróleo (antigas §5, 5b e 5c), já cobertas pelos ADRs e pela tela de metodologia. A §4 ficou só com o que segue em aberto; as seções seguintes foram renumeradas | §4 |
+| Status revisado | As cargas históricas dadas como pendentes (EIA STEO, ICO, ECF e as sacas pendentes da ICE) já tinham rodado no servidor, conferidas no banco: a lista ficou vazia, e ICO e ECF passam a "dev e servidor", nível 5 (com a ICE, também em `docs/reconhecimento-fontes/README.md`). O "Falta fazer" ganhou o acompanhamento da Qualidade da IA, o teste da agregação do petróleo, as lacunas das v1 e as medidas para depois da Qualidade da IA; a ICO saiu das fontes candidatas (implementada, ADR 0061); 62 cards na tela de observáveis | §2 e §3 |
+| Proposta da soja como 5º ativo | Uma proposta para o Comitê e o David: o SJC da B3 (liquidado pelo preço de Chicago, em dólar) como preço de referência, 4 fatores (oferta dos EUA, oferta da América do Sul, demanda pela soja dos EUA e política), 3 regras sem peso (calendário da safra, folga do balanço e o posicionamento dos fundos, igual ao café), a fase 1 só com fontes já coletadas e a validação por contribuição incremental. Nada implementado nem autorizado | `docs/proposta-ativo-soja.md` |
 
 </details>
 
