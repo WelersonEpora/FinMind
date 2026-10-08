@@ -13,7 +13,7 @@
 //   D — Validação histórica: a relação do fator com o preço no histórico (a avaliação do dado do catálogo). Separada
 //       de propósito: contextualiza a qualidade da relação e não entra na leitura atual.
 
-const ROTULO_ATIVO = { PETROLEO: "PETRÓLEO", OURO: "OURO", MILHO: "MILHO", CAFE: "CAFÉ" };
+const ROTULO_ATIVO = { PETROLEO: "PETRÓLEO", OURO: "OURO", MILHO: "MILHO", CAFE: "CAFÉ", SOJA: "SOJA" };
 
 function numero(valor, casas, agrupar = true) {
   return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas, useGrouping: agrupar });
@@ -126,17 +126,27 @@ const SITUACAO_REGRA = { PROPOSTA: "proposta", VALIDADA: "validada" };
 // A 2ª linha do bloco: o código do fator (o que a IA cita na resposta), o tipo no FEL 1, a situação da regra e a
 // versão do cálculo. O nome no FEL 1 NÃO entra: o título diz o dado usado, e o nome do FEL 1 pode citar o que não entra
 // no cálculo (ex.: a Guiana na oferta não-OPEP); ele fica no modal da tela.
+// Um fator fora do FEL 1 (a soja, ADR 0116) diz o tipo e a origem sem chamá-los de FEL 1; uma regra diz o que afeta e em que
+// dimensão.
+const DIMENSAO_REGRA = { APLICABILIDADE: "aplicabilidade", INTENSIDADE: "intensidade", INFORMACAO: "informação" };
 function linhaIdentificacao(fator, calculo) {
   const partes = [`Código: ${fator.codigo}`];
-  if (fator.fel1?.tipo) partes.push(`Tipo no FEL 1: ${fator.fel1.tipo}`);
-  if (fator.proposta?.situacao) partes.push(`Regra: ${SITUACAO_REGRA[fator.proposta.situacao] || fator.proposta.situacao}`);
+  if (fator.regra) {
+    partes.push(`Regra ${fator.regra.sigla}, sem peso`, `Afeta: ${fator.regra.afeta.map((c) => (c === "LEITURA" ? "a leitura consolidada" : c)).join(", ")}`, `Dimensão: ${DIMENSAO_REGRA[fator.regra.dimensao]}`);
+  } else if (fator.origem && fator.fel1?.tipo) partes.push(`Tipo: ${fator.fel1.tipo} (${fator.origem})`);
+  else if (fator.fel1?.tipo) partes.push(`Tipo no FEL 1: ${fator.fel1.tipo}`);
+  // Numa regra, "Regra: validada" repetiria a palavra: a situação dela vai como "Situação".
+  if (fator.proposta?.situacao) partes.push(`${fator.regra ? "Situação" : "Regra"}: ${SITUACAO_REGRA[fator.proposta.situacao] || fator.proposta.situacao}`);
   if (calculo.factorId) partes.push(`Cálculo: ${calculo.factorId} v${calculo.factorVersion}`);
   return partes.join(" | ");
 }
 
 function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
   const { apresentacao } = calculo;
-  const linhas = [`FATOR — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (peso ${fator.peso})`, linhaIdentificacao(fator, calculo)];
+  const titulo = fator.regra
+    ? `REGRA ${fator.regra.sigla} — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (sem peso)`
+    : `FATOR — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (peso ${fator.peso})`;
+  const linhas = [titulo, linhaIdentificacao(fator, calculo)];
   if (!ponto) {
     // Numa simulação, o comum é a publicação registrada do dado ser posterior à data (ex.: o histórico do JODI tem a
     // data da 1ª coleta como limite superior, ADR 0042): pela regra point-in-time, ele ainda não era conhecido.
@@ -148,14 +158,25 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
     // Fator de CONTEXTO ou SÓ DE INFORMAÇÃO (metodologia-base.js, `contextoDe` e `informativo`): sem a regra da pressão
     // nem a pressão. Só a tendência, que diz para onde o dado está indo, e o papel dele.
     const semPressao = fator.contextoDe || fator.informativo;
-    if (!semPressao) {
+    if (fator.regra) {
+      // Uma regra (a soja, ADR 0116): a condição, o estado na data e o que ele muda; sem pressão.
+      linhas.push(
+        `- Condição (${origemDosParametros(calculo.origemParametros, calculo.simulacao)}): ${comPonto(regraDaDecisao(calculo.parametros, apresentacao))}`,
+        "C — Estado da regra:",
+        `- Estado: ${ponto.estadoTexto || "sem estado"}`,
+        `- Efeito: ${comPonto(ponto.efeitoTexto || "sem efeito")}`,
+        `- Quando vale: ${fator.regra.quando}`
+      );
+    } else if (!semPressao) {
       linhas.push(
         `- Regra aplicada (${origemDosParametros(calculo.origemParametros, calculo.simulacao)}): ${comPonto(regraDaDecisao(calculo.parametros, apresentacao))}`
       );
     }
 
     const d = ponto.decisao;
-    if (semPressao) {
+    if (fator.regra) {
+      // o bloco da regra já foi montado acima
+    } else if (semPressao) {
       const decisao = `por decisão ${fator.papelDecididoPor || "do especialista"}`;
       linhas.push(
         "C — Papel na análise:",
@@ -170,9 +191,11 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
       const r = apresentacao.rotulosDecisao;
       linhas.push(
         "C — Leitura do fator:",
-        `- Pressão: ${PRESSAO[d.direcao]}`,
-        `- Intensidade: ${r.intensidade[d.intensidade].toLowerCase()}`,
-        `- Tendência: ${d.tendencia ? r.tendencia[d.tendencia] : "não calculada"}`
+        // Fora da janela da safra (a regra R1 da soja, ADR 0116): o fator não pressiona nesta época.
+        `- Pressão: ${d.foraDaJanela ? "neutra (fora da janela da safra: o fator não pressiona nesta época)" : PRESSAO[d.direcao]}`,
+        ...(d.foraDaJanela ? [] : [`- Intensidade: ${r.intensidade[d.intensidade].toLowerCase()}`]),
+        // Um fator sem tendência (os da soja: o primário muda por publicação) não leva a linha.
+        ...(apresentacao.semTendencia ? [] : [`- Tendência: ${d.tendencia ? r.tendencia[d.tendencia] : "não calculada"}`])
       );
     }
     if (fator.efeitoDefasado) linhas.push(linhaEfeitoDefasado(fator.efeitoDefasado, ponto.observedAt));

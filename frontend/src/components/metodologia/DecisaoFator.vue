@@ -34,6 +34,10 @@ watch(
 )
 
 const ultimo = computed(() => props.calculo.pontos.at(-1) || null)
+// Uma regra (a soja, ADR 0116): o estado na data, sem direção, intensidade nem peso.
+const ehRegra = computed(() => Boolean(ultimo.value?.estado))
+// Os fatores da soja não têm tendência (o primário muda por publicação): a coluna sai.
+const comTendencia = computed(() => !apresentacao.value.semTendencia)
 const editados = computed(() => parametrosAlterados(formulario, props.calculo.parametros))
 const diferenteDoSistema = computed(() => parametrosAlterados(formulario, props.calculo.parametrosSistema))
 const origem = computed(() => descreverOrigemParametros(props.calculo.origemParametros))
@@ -123,7 +127,8 @@ function resumoParametros(parametros) {
 <template>
   <section class="decisao">
     <div class="decisao__topo">
-      <h4>C. Decidir <small>direção, intensidade e tendência com os parâmetros do sistema</small></h4>
+      <h4 v-if="ehRegra">C. Estado da regra <small>com os parâmetros do sistema; sem peso e sem direção própria</small></h4>
+      <h4 v-else>C. Decidir <small>direção, intensidade e tendência com os parâmetros do sistema</small></h4>
       <span v-if="calculo.simulacao" class="decisao__alterado">Simulação: estes valores não estão salvos</span>
     </div>
     <p class="decisao__origem">
@@ -133,7 +138,21 @@ function resumoParametros(parametros) {
       <span v-if="calculo.origemParametros?.motivo" class="decisao__motivo">Motivo: "{{ calculo.origemParametros.motivo }}"</span>
     </p>
 
-    <template v-if="ultimo?.decisao">
+    <template v-if="ehRegra">
+      <p class="decisao__semana">{{ periodoFator.referencia(ultimo.observedAt) }}</p>
+      <div class="decisao__resultado">
+        <div class="decisao__quadro">
+          <span>Estado</span>
+          <strong>{{ ultimo.estado.rotulo }}</strong>
+        </div>
+      </div>
+      <p class="decisao__subtitulo">Como chegamos aqui</p>
+      <ol class="decisao__passos">
+        <li v-for="passo in calculo.explicacao" :key="passo">{{ passo }}</li>
+      </ol>
+    </template>
+
+    <template v-else-if="ultimo?.decisao">
       <p class="decisao__semana">{{ periodoFator.referencia(ultimo.observedAt) }}</p>
       <div class="decisao__resultado">
         <div class="decisao__quadro" :class="classeDirecao(ultimo.decisao.direcao)">
@@ -144,14 +163,14 @@ function resumoParametros(parametros) {
           <span>Intensidade</span>
           <strong>{{ rotulo('intensidade', ultimo.decisao.intensidade) }}</strong>
         </div>
-        <div class="decisao__quadro">
+        <div v-if="comTendencia" class="decisao__quadro">
           <span>Tendência</span>
           <strong>{{ rotulo('tendencia', ultimo.decisao.tendencia) }}</strong>
         </div>
         <div class="decisao__quadro">
           <span>Peso</span>
           <strong>{{ calculo.peso }}</strong>
-          <small>do especialista</small>
+          <small>{{ calculo.pesoDoComite ? 'fixo, do Comitê' : 'do especialista' }}</small>
         </div>
       </div>
 
@@ -243,9 +262,9 @@ function resumoParametros(parametros) {
             <th>{{ periodoFator.unidade }}</th>
             <th>Contexto</th>
             <th>{{ apresentacao.exemplos.colunaValor }}</th>
-            <th>Direção</th>
-            <th>Intensidade</th>
-            <th>Tendência</th>
+            <th v-if="!ehRegra">Direção</th>
+            <th v-if="!ehRegra">Intensidade</th>
+            <th v-if="comTendencia">Tendência</th>
           </tr>
         </thead>
         <tbody>
@@ -253,16 +272,17 @@ function resumoParametros(parametros) {
             <td>{{ periodoFator.data(e.data) }}</td>
             <td>{{ e.rotulo }}</td>
             <td>{{ comSinal(e.valor) }}</td>
-            <td :class="classeDirecao(e.decisao?.direcao)">{{ rotulo('direcao', e.decisao?.direcao) }}</td>
-            <td>{{ rotulo('intensidade', e.decisao?.intensidade) }}</td>
-            <td>{{ rotulo('tendencia', e.decisao?.tendencia) }}</td>
+            <td v-if="!ehRegra" :class="classeDirecao(e.decisao?.direcao)">{{ rotulo('direcao', e.decisao?.direcao) }}</td>
+            <td v-if="!ehRegra">{{ rotulo('intensidade', e.decisao?.intensidade) }}</td>
+            <td v-if="comTendencia">{{ rotulo('tendencia', e.decisao?.tendencia) }}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <p class="decisao__subtitulo">Exemplos: cenários hipotéticos</p>
-    <div class="table-responsive">
+    <!-- Sem cenários (a soja: a decisão depende do período e de várias medidas, não de um número só). -->
+    <p v-if="calculo.exemplos.cenarios.length" class="decisao__subtitulo">Exemplos: cenários hipotéticos</p>
+    <div v-if="calculo.exemplos.cenarios.length" class="table-responsive">
       <table class="table table-sm decisao__tabela">
         <thead>
           <tr>

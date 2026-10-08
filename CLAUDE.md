@@ -15,7 +15,9 @@ dados de milho e ouro** (as fontes do relatório FEL 1 do especialista de mercad
 a cadeia roda inteira: os fatores, o prompt diário e a leitura de tendência da IA no Centro
 de Decisão (ADRs 0050 a 0052, 0054, 0058 e 0062), com o realizado de cada horizonte e a tela Qualidade
 da IA, que mede as leituras contra dois benchmarks (ADRs 0063 e 0064). Em 2026-10-07 o Comitê, com o David, validou os
-quatro motores como estão (ADR 0108): a fase agora é acompanhar a Qualidade da IA e ajustar. O que roda conta como validado, sem
+quatro motores como estão (ADR 0108): a fase agora é acompanhar a Qualidade da IA e ajustar. Em 2026-10-08, a soja virou o
+5º ativo (ADR 0116): fatores, regras e medição da proposta aprovados até o prompt e o Centro de Decisão, com os pesos
+fixos por fator decididos pelo Comitê na mesma data (a relevância por horizonte só como orientação; sem agregação em código). O que roda conta como validado, sem
 selo na tela; a solução de um problema é validada no Comitê antes de ir ao sistema, num ADR. O que segue com o David e o Comitê está em
 `STATUS_DO_PROJETO.md`, §4.
 
@@ -40,7 +42,9 @@ decidiu e quando. O assistente propõe; não decide por nenhum dos dois.
   David em 2026-10-03 (petróleo e ouro) e pelo Comitê em 2026-10-04 (milho) e
   2026-10-05 (café), o prompt diário vai à IA e a leitura de tendência (nunca
   recomendação de compra ou venda) aparece no Centro de Decisão desses ativos;
-  um ativo novo segue a regra acima. **Agregação em código (café e milho, ADRs 0066 e 0081):** a agregação dos
+  a soja, pelo Comitê com o David em 2026-10-08 (ADR 0116), com os pesos fixos do
+  Comitê (os fatores dela não são do FEL 1; a sugestão de agregação do FinMind não
+  foi adotada); um ativo novo segue a regra acima. **Agregação em código (café e milho, ADRs 0066 e 0081):** a agregação dos
   fatores em código (pesos e limiares propostos pelo FinMind, não pelo David) fica só na tela de metodologia, como
   referência marcada como proposta: no histórico, não supera os benchmarks, e saiu do prompt e do Centro de Decisão do
   café em 2026-10-07 (no milho, nunca entrou); os números dela não são atribuídos ao David.

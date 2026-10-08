@@ -202,12 +202,13 @@ function situacaoDoFator(fator, dataAnalise) {
 }
 
 // Um fator de CONTEXTO (metodologia-base.js, `contextoDe`) diz de qual fator é contexto; um SÓ DE INFORMAÇÃO
-// (`informativo`) diz isso: nenhum dos dois tem leitura própria.
+// (`informativo`) diz isso: nenhum dos dois tem leitura própria. Uma REGRA (a soja, ADR 0116) não tem peso.
+const pesoNaCobertura = (f) => (f.regra ? `regra ${f.regra.sigla}, sem peso` : `peso ${f.peso}`);
 function blocoCobertura(fatores, dataAnalise) {
   return fatores
     .map(
       (f, i) =>
-        `${i + 1}. ${f.codigo} — ${f.nome} (peso ${f.peso})` +
+        `${i + 1}. ${f.codigo} — ${f.nome} (${pesoNaCobertura(f)})` +
         `${f.contextoDe ? ` | CONTEXTO de ${f.contextoDe}, sem leitura própria` : ""}${f.informativo ? " | INFORMAÇÃO, sem leitura própria" : ""}` +
         ` | ${situacaoDoFator(f, dataAnalise).texto}`
     )
@@ -352,10 +353,17 @@ function agregacaoParaEntrada(agregacao) {
 // A leitura do motor de um fator calculado, como foi ao prompt. Um fator de CONTEXTO ou SÓ DE INFORMAÇÃO não leva pressão nem intensidade
 // (o texto dele também não, factors/base/texto-prompt.js): só o papel e a tendência.
 function leituraDoFator(f) {
+  // Uma regra (a soja, ADR 0116): o estado, sem pressão.
+  if (f.regra) return f.estado ? { papel: "REGRA", regra: f.regra.sigla, estado: f.estado.codigo } : null;
   if (!f.decisao) return null;
   if (f.contextoDe) return { papel: "CONTEXTO", contextoDe: f.contextoDe, tendencia: f.decisao.tendencia };
   if (f.informativo) return { papel: "INFORMACAO", tendencia: f.decisao.tendencia };
-  return { pressao: f.decisao.direcao, intensidade: f.decisao.intensidade, tendencia: f.decisao.tendencia };
+  return {
+    pressao: f.decisao.direcao,
+    intensidade: f.decisao.intensidade,
+    tendencia: f.decisao.tendencia,
+    ...(f.decisao.foraDaJanela ? { foraDaJanela: true } : {})
+  };
 }
 
 // O que entrou no prompt, estruturado: para guardar com a resposta da IA e reconstituir a entrada (ADR 0010).
@@ -421,6 +429,7 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
       situacaoRegra: f.situacaoRegra,
       ...(f.contextoDe ? { contextoDe: f.contextoDe } : {}),
       ...(f.informativo ? { informativo: true } : {}),
+      ...(f.regra ? { regra: f.regra.sigla } : {}),
       ...situacaoDoFator(f, dataAnalise),
       ...(f.tipo === "CALCULADO"
         ? {

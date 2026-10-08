@@ -6,15 +6,18 @@ const { obterMetodologiaPetroleo } = require("../shared/metodologia-petroleo");
 const { obterMetodologiaOuro } = require("../shared/metodologia-ouro");
 const { obterMetodologiaMilho } = require("../shared/metodologia-milho");
 const { obterMetodologiaCafe } = require("../shared/metodologia-cafe");
+const { obterMetodologiaSoja } = require("../shared/metodologia-soja");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
 const { montarTextoPrompt } = require("../factors/base/texto-prompt");
 const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 
 // Metodologia dos fatores por ativo: a proposta para o David validar (ADRs 0050 e 0053); no milho, a proposta v0 do
-// próprio David (ADR 0055); no café, o Motor do Café v1, com os limiares calibrados pelo FinMind (ADR 0060).
+// próprio David (ADR 0055); no café, o Motor do Café v1, com os limiares calibrados pelo FinMind (ADR 0060); na soja,
+// a proposta da soja aprovada pelo Comitê, com o David (ADR 0116).
 const METODOLOGIAS = {
   CAFE: obterMetodologiaCafe,
+  SOJA: obterMetodologiaSoja,
   MILHO: obterMetodologiaMilho,
   OURO: obterMetodologiaOuro,
   PETROLEO: obterMetodologiaPetroleo
@@ -59,7 +62,14 @@ const CALCULOS = {
   CAFE_CUSTO_PRECO_MINIMO: require("../factors/custos-cafe.factor").METODOLOGIA,
   CAFE_DEMANDA: require("../factors/demanda-cafe.factor").METODOLOGIA,
   CAFE_FUNDOS: require("../factors/fundos-cafe.factor").METODOLOGIA,
-  CAFE_JUROS: require("../factors/juros-cafe.factor").METODOLOGIA
+  CAFE_JUROS: require("../factors/juros-cafe.factor").METODOLOGIA,
+  SOJA_OFERTA_EUA: require("../factors/oferta-eua-soja.factor").METODOLOGIA,
+  SOJA_OFERTA_AMERICA_SUL: require("../factors/oferta-america-sul-soja.factor").METODOLOGIA,
+  SOJA_DEMANDA_EUA: require("../factors/demanda-eua-soja.factor").METODOLOGIA,
+  // As regras da soja (ADR 0116): calculadas como os fatores, sem peso nem pressão (metodologia-base.js, `regra`).
+  SOJA_R1_CALENDARIO: require("../factors/calendario-soja.regra").METODOLOGIA,
+  SOJA_R2_FOLGA_BALANCO: require("../factors/folga-balanco-soja.regra").METODOLOGIA,
+  SOJA_R3_FUNDOS: require("../factors/fundos-soja.regra").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -135,6 +145,14 @@ function mesmosParametros(a, b) {
   return Object.keys(b).every((chave) => Number(a[chave]) === Number(b[chave]));
 }
 
+// A última linha da explicação: o peso do fator (do especialista, ou do Comitê fora do FEL 1), ou que a regra não tem peso.
+function linhaDoPeso(fator) {
+  if (fator.regra) return `Regra ${fator.regra.sigla}: sem peso e sem direção própria.`;
+  // Fora do FEL 1 (a soja), o peso é do Comitê: fixo, igual em todos os horizontes (a relevância por horizonte é outra coisa).
+  if (fator.origem) return `Peso: ${fator.peso}, fixo, do Comitê (${fator.origem}; não é calculado).`;
+  return `Peso: ${fator.peso}, do especialista (não é calculado).`;
+}
+
 // O fator do ativo com cálculo, ou 404.
 function fatorCalculado(ativo, codigoFator) {
   const fator = construtorDoAtivo(ativo)().fatores.find((item) => item.codigo === String(codigoFator || "").toUpperCase());
@@ -159,13 +177,14 @@ function construtorDoAtivo(ativo) {
   return construtor;
 }
 
-// Os 4 ativos do FEL 1, na ordem do Centro de Decisão, para o seletor da tela; `disponivel` diz se a metodologia
-// dele já foi montada.
+// Os 4 ativos do FEL 1 e a soja (ADR 0116), na ordem do Centro de Decisão, para o seletor da tela; `disponivel` diz se
+// a metodologia dele já foi montada.
 const ATIVOS = [
   { codigo: "OURO", nome: "Ouro" },
   { codigo: "PETROLEO", nome: "Petróleo" },
   { codigo: "MILHO", nome: "Milho" },
-  { codigo: "CAFE", nome: "Café" }
+  { codigo: "CAFE", nome: "Café" },
+  { codigo: "SOJA", nome: "Soja" }
 ];
 
 // Ativo fora do FEL 1: 404. Ativo do FEL 1 sem metodologia montada: `metodologia` null (a tela avisa).
@@ -206,6 +225,8 @@ async function calcularFator(ativo, codigoFator, { desde, data, ...opcoes } = {}
       factorVersion: calculo.factorVersion,
       situacao: fator.proposta.situacao,
       peso: fator.peso,
+      // Fora do FEL 1 (a soja, ADR 0116), o peso é do Comitê, não do especialista.
+      pesoDoComite: Boolean(fator.origem),
       parametros,
       simulacao: !mesmosParametros(parametros, sistema.parametros),
       parametrosSistema: sistema.parametros,
@@ -217,7 +238,7 @@ async function calcularFator(ativo, codigoFator, { desde, data, ...opcoes } = {}
       dataSimulada,
       apresentacao: calculo.apresentacao,
       // A decisão da última semana em passos, com os números dela; o peso fecha a lista (vem do FEL 1).
-      explicacao: ultimo?.decisao ? [...calculo.explicar(ultimo, parametros), `Peso: ${fator.peso}, do especialista (não é calculado).`] : [],
+      explicacao: ultimo?.decisao || ultimo?.estado ? [...calculo.explicar(ultimo, parametros), linhaDoPeso(fator)] : [],
       exemplos: calculo.exemplos(todos, parametros),
       pontos
   };
@@ -248,7 +269,9 @@ async function obterEventosFator(ativo, codigoFator, { data } = {}, deps = {}) {
   // na resposta), o peso e o tipo no FEL 1. O serviço de eventos não conhece o catálogo da metodologia. Num fator
   // calculado, o bloco vai logo depois do texto do cálculo, que já identifica o fator.
   const identificacao =
-    `Código: ${fator.codigo} | Peso no FEL 1: ${fator.peso} | Tipo no FEL 1: ${fator.fel1.tipo} | ` +
+    (fator.origem
+      ? `Código: ${fator.codigo} | Peso: ${fator.peso} (${fator.origem}) | Tipo: ${fator.fel1.tipo} | `
+      : `Código: ${fator.codigo} | Peso no FEL 1: ${fator.peso} | Tipo no FEL 1: ${fator.fel1.tipo} | `) +
     `Regra: fator de evento (janela de ${fator.evento.janelaDias} dias)`;
   const [titulo, ...resto] = eventosFator.contexto.split("\n");
   const linhas = janela.comCalculo ? [titulo, ...resto] : [titulo, identificacao, ...resto];
@@ -288,6 +311,8 @@ function resumoCalculado(calculo) {
           rotuloTendencia: d.tendencia ? rotulosDecisao.tendencia[d.tendencia] : null
         }
       : null,
+    // Uma regra (a soja, ADR 0116): o estado na data, sem decisão.
+    estado: ultimo?.estado ? { ...ultimo.estado, texto: ultimo.estadoTexto, efeito: ultimo.efeitoTexto } : null,
     textoPrompt: calculo.textoPrompt,
     // Os campos do ponto que a agregação em código usa além da decisão (`camposAgregacao` da apresentação do fator; o
     // milho, ADR 0081: a colheita de MT do F2).
@@ -324,7 +349,10 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
         observaveis: fator.dados.observaveis,
         // Fator de CONTEXTO de outro (metodologia-base.js): sem leitura própria no prompt.
         ...(fator.contextoDe ? { contextoDe: fator.contextoDe } : {}),
-        ...(fator.informativo ? { informativo: true } : {})
+        ...(fator.informativo ? { informativo: true } : {}),
+        // Uma regra (a soja, ADR 0116) e um fator fora do FEL 1: o prompt não os chama de fator do FEL 1.
+        ...(fator.regra ? { regra: fator.regra } : {}),
+        ...(fator.origem ? { origem: fator.origem } : {})
       };
       if (CALCULOS[fator.codigo]) {
         const { calculo } = await calcularFator(codigo, fator.codigo, { data: dia }, deps);

@@ -1,10 +1,15 @@
 # Proposta — Soja como 5º ativo do FinMind (v2.2)
 
-**Situação:** proposta do FinMind para o Comitê e o David analisarem (v2.2, 2026-10-08). A arquitetura da v2 foi aprovada
-como direção; a v2.1 a ajustou, e a v2.2 separa **fatores, regras e agregação**. Substitui a v1 do mesmo dia.
-Nada foi implementado nem autorizado. Os fatores e as regras são **proposta** (ADR 0050): não alimentam motor, prompt,
-Centro de Decisão nem IA até a aprovação. **Nenhum peso e nenhuma fórmula de agregação são propostos:** os pesos são do
-David, e a agregação é a próxima etapa.
+**Situação:** **aprovada** pelo Comitê, com o David, em 2026-10-08 (ADR 0116): os itens 1 a 6 da §2.15, como propostos,
+até o prompt diário e o Centro de Decisão. Os pesos (item 8), decididos na mesma data (ADR 0116, adendo): fixos por fator
+(F1 e F2 Alto, F3 Médio, F4 Baixo), com a matriz da §2.10 como relevância, não peso, e a agregação pela IA, como no milho
+e no café. Ficaram de fora as fontes da fase 2 (item 7). A validação da §3 passa a ser feita pela
+Qualidade da IA e por um teste depois, como no milho e no café. O texto abaixo é o da v2.2, como foi aprovado; a
+implementação e o que ela operacionalizou estão no ADR 0116.
+
+(Situação da v2.2 quando foi ao Comitê: a arquitetura da v2 foi aprovada como direção; a v2.1 a ajustou, e a v2.2
+separa **fatores, regras e agregação**. Substitui a v1 do mesmo dia. **Nenhum peso e nenhuma fórmula de agregação são
+propostos:** os pesos são do David, e a agregação é a próxima etapa.)
 
 **Premissa (não reaberta):** o preço de referência é o contrato de soja da B3.
 
@@ -271,7 +276,7 @@ etapa.
 - Até a agregação em código ser medida contra os benchmarks, quem combina é a IA, com fatores e regras no prompt
   (ADRs 0066 e 0081).
 
-**Para a próxima etapa:**
+**Para a próxima etapa** (a sugestão do FinMind está em `docs/proposta-pesos-agregacao-soja.md`):
 - Os pesos de F1 a F4 (do David), fixos ou por período, como o peso por mês do milho.
 - A forma de combinar (soma ponderada, precedência, votos) e de tratar fatores que discordam.
 - Quanto a R2 muda a intensidade em cada estado, se é simétrica e se vale para o F4.

@@ -1,7 +1,7 @@
 # Motor analítico
 
-O motor do FinMind **não mora neste diretório**: ele já roda para os quatro ativos (petróleo, ouro, milho e café;
-ADRs 0052, 0054, 0058 e 0062), espalhado pelas peças abaixo. Este diretório guarda só o contrato da parte que ainda
+O motor do FinMind **não mora neste diretório**: ele já roda para os cinco ativos (petróleo, ouro, milho, café e soja;
+ADRs 0052, 0054, 0058, 0062 e 0116), espalhado pelas peças abaixo. Este diretório guarda só o contrato da parte que ainda
 não existe.
 
 | Peça | Onde | O que faz |

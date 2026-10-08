@@ -3,7 +3,8 @@
 // Vocabulário dos eventos de mercado (ADR 0049): os ativos e os tipos de evento. Usado pelo model, pelo parser, pelo
 // coletor e pelo serviço; a migration repete os mesmos valores nos CHECKs (mudou aqui, mude lá numa migration nova).
 
-// SOJA desde 2026-10-08 (fase 1 da soja, só aquisição, ADR 0115): leitura própria, que não vai ao Motor.
+// SOJA desde 2026-10-08 (ADR 0115): leitura própria; com a soja aprovada (ADR 0116), os eventos de política marcam o F4
+// (SOJA_POLITICA) e vão ao prompt diário da soja.
 const ATIVOS = ["OURO", "PETROLEO", "MILHO", "CAFE", "SOJA"];
 const NOME_ATIVO = { OURO: "ouro", PETROLEO: "petróleo", MILHO: "milho", CAFE: "café", SOJA: "soja" };
 // Como o ativo aparece no texto da IA (seções e listas): com acento e em maiúsculas.

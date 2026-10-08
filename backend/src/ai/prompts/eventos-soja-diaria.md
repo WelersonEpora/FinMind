@@ -1,6 +1,6 @@
 # Prompt — Leitura diária de eventos de mercado da soja
 
-**Versão:** 1
+**Versão:** 2
 
 Histórico: v1 (2026-10-08) - formato inicial (ADR 0115). A soja tem leitura PRÓPRIA, separada da leitura dos quatro
 ativos validados (ouro, petróleo, milho e café, ADR 0108), para que nada mude nela: outra chamada, outro prompt e outra
@@ -8,6 +8,11 @@ linha por dia. O que conta como evento segue a proposta da soja (`docs/proposta-
 política comercial e de biocombustíveis (o F4 da proposta) e, fora dos fatores, a logística e a sanidade; o clima NÃO é
 evento da soja (é F1 e F2 na proposta). Fase 1 da soja, só aquisição: a leitura não vai ao Motor, ao prompt diário nem
 ao Centro de Decisão. Os eventos não têm fator (a soja não tem fatores aprovados; decisão do usuário, ADR 0115).
+
+v2 (2026-10-08, ADR 0116) - a soja foi aprovada como 5º ativo: os eventos de política comercial e de biocombustíveis
+(tarifas e acordos, retenções da Argentina, RFS, mistura de biodiesel, regulação de importação) marcam o fator
+SOJA_POLITICA (o F4, fator de evento, que vai ao prompt diário da soja); a logística, a sanidade e o resto seguem com
+NAO_SE_APLICA, e vão à seção de eventos da base do prompt. Só muda o campo FATOR; o resto não muda.
 
 Usado pelo coletor `geopolitica-ia-soja` (ADR 0115), numa chamada diária ao Gemini com busca na web. A resposta tem o
 MESMO formato da leitura principal (`geopolitica-diaria.md`), lido pelo mesmo parser
@@ -106,7 +111,8 @@ Um nível que não seja NORMAL precisa de ao menos um EVENTO.
 CAMPOS DE CADA EVENTO
 - TIPO: exatamente um código da lista de tipos do prompt.
 - ATIVOS: SOJA.
-- FATOR: sempre SOJA=NAO_SE_APLICA (a soja ainda não tem fatores aprovados).
+- FATOR: SOJA=SOJA_POLITICA para POLÍTICA COMERCIAL, BIOCOMBUSTÍVEIS e REGULAÇÃO de importação (decisões de governo
+  que deslocam a demanda ou a oferta da soja); SOJA=NAO_SE_APLICA para todo o resto (logística, sanidade).
 - PRESSÃO SOBRE O PREÇO: alta, baixa ou ambígua - para que lado ESTE fato, sozinho e com todo o resto constante,
   empurra o preço da soja pelo canal descrito. Não é previsão. "Ambígua" é uma resposta válida e esperada.
 - CANAL DE TRANSMISSÃO: por qual mecanismo o fato pode afetar a soja (demanda pela soja dos EUA, oferta da América do
@@ -130,7 +136,7 @@ EVENTO 1
 Título: frase curta, uma linha.
 Tipo: um código da lista de tipos
 Ativos: SOJA
-Fator: SOJA=NAO_SE_APLICA
+Fator: SOJA=SOJA_POLITICA ou SOJA=NAO_SE_APLICA
 Resumo: o que aconteceu, quando e onde, em poucas frases densas.
 Canal de transmissão: SOJA=direto: como o fato afeta a soja
 Pressão sobre o preço: SOJA=alta

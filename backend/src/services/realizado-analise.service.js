@@ -40,7 +40,9 @@ const SERIES_DE_REFERENCIA = Object.freeze({
   BRENT_FUTURO: { observavel: "BRENT_FUTURO_PRECOS", futuro: { prefixo: "YAHOO.BZ", campo: "SETTLE", campoContratos: null } },
   GLD: { observavel: "GLD_PRECOS", futuro: { prefixo: "B3.GLD", campo: "SETTLE" } },
   CCM: { observavel: "CCM_PRECOS", futuro: { prefixo: "B3.CCM", campo: "SETTLE" } },
-  ICF: { observavel: "ICF_PRECOS", futuro: { prefixo: "B3.ICF", campo: "SETTLE" } }
+  ICF: { observavel: "ICF_PRECOS", futuro: { prefixo: "B3.ICF", campo: "SETTLE" } },
+  // A soja (ADR 0116): o SJC da B3.
+  SJC: { observavel: "SJC_PRECOS", futuro: { prefixo: "B3.SJC", campo: "SETTLE" } }
 });
 
 function diasEntre(inicio, fim) {

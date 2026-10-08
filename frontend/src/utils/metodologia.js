@@ -189,6 +189,8 @@ export function temCalendario(pesos) {
 // O resumo ao lado do título "Pesos e relações": o que vai ao prompt diário (o peso, e as relações e regras do
 // especialista como orientação) e, quando existe, a leitura agregada do motor (a agregação em código do FinMind).
 export function resumoPesos(pesos) {
+  // O peso fixo do Comitê e a relevância por horizonte (a soja, ADR 0116): a IA combina, sem agregação em código.
+  if (pesos.relevancia) return 'No prompt: o peso fixo de cada fator (do Comitê) e a relevância por horizonte, como orientação.'
   const peso = temCalendario(pesos) && pesos.noPrompt ? 'o calendário de pesos' : 'o peso do FEL 1'
   const orientacao = []
   if (pesos.pares?.some((par) => par.noPrompt)) orientacao.push('relações')

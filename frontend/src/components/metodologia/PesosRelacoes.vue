@@ -16,6 +16,8 @@ import {
 // v0). Tudo vem da API (`metodologia.pesos`). O prompt usa o peso do FEL 1, ou o calendário quando `pesos.noPrompt`
 // existe (o milho, ADR 0065). A proposta de agregação em código do FinMind (`pesos.agregacaoFinMind`, o café, ADR 0066)
 // fica num card próprio, separada do que é do especialista, com a origem de cada regra.
+// Os horizontes da relevância (a soja), como a leitura da IA os chama.
+const ROTULO_HORIZONTE_RELEVANCIA = { IMEDIATO: '1 dia', CURTO: '7 dias', MEDIO: '30 dias', LONGO: '90 dias' }
 const props = defineProps({
   pesos: { type: Object, required: true },
   // AAAA-MM-DD: o mês destacado no calendário (hoje, ou a data simulada).
@@ -64,6 +66,39 @@ function tituloCelula(fator, mes, i) {
 <template>
   <div class="pesos-relacoes">
     <!-- Peso de cada fator e por mês: só quando o especialista definiu peso próprio (o milho). -->
+    <!-- Peso fixo e relevância por horizonte (a soja, ADR 0116): duas colunas que não se confundem. -->
+    <article v-if="pesos.relevancia" class="pesos-relacoes__card">
+      <header class="pesos-relacoes__card-cabecalho">
+        <h3>Peso por fator e relevância por horizonte</h3>
+      </header>
+      <p class="pesos-relacoes__texto">Do {{ pesos.autoria }}: {{ pesos.descricao }}</p>
+      <div class="pesos-relacoes__rolagem">
+        <table class="pesos-relacoes__tabela">
+          <thead>
+            <tr>
+              <th class="pesos-relacoes__col-fator">Fator</th>
+              <th>Peso (fixo)</th>
+              <th v-for="h in pesos.relevancia.horizontes" :key="h">Relevância em {{ ROTULO_HORIZONTE_RELEVANCIA[h] }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="fator in pesos.relevancia.fatores" :key="fator.codigo">
+              <td class="pesos-relacoes__col-fator">
+                <strong>{{ fator.sigla }}</strong> {{ fator.nome }}
+              </td>
+              <td>
+                <span class="pesos-relacoes__peso" :class="`pesos-relacoes__peso--${classePeso(fator.peso)}`">{{ fator.peso }}</span>
+              </td>
+              <td v-for="h in fator.horizontes" :key="h.horizonte" class="pesos-relacoes__relevancia">
+                {{ h.nivel }}<small v-if="h.nota">{{ h.nota }}</small>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="pesos-relacoes__legenda">{{ pesos.relevancia.descricao }}</p>
+    </article>
+
     <article v-if="temCalendario" class="pesos-relacoes__card">
       <header class="pesos-relacoes__card-cabecalho">
         <h3>Peso por fator e por mês</h3>
@@ -449,6 +484,12 @@ function tituloCelula(fator, mes, i) {
   font-weight: 600;
   color: var(--p-text-muted-color);
   white-space: nowrap;
+}
+
+.pesos-relacoes__relevancia small {
+  display: block;
+  color: var(--p-text-muted-color);
+  font-size: 0.72rem;
 }
 
 .pesos-relacoes__col-fator {

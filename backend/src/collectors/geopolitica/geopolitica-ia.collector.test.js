@@ -879,7 +879,7 @@ const GROUNDING_SOJA = {
 
 test("soja: o prompt usa o arquivo próprio, só as fontes com bloco da soja (papel da soja) e o piso da soja", () => {
   const { versao, prompt, instrucaoDoSistema } = coletor.montarPrompt("2026-10-08", { codigo: "SOJA", nome: "Soja", ativos: ["SOJA"] }, [], "eventos-soja-diaria.md");
-  assert.equal(versao, "eventos-soja-diaria@1");
+  assert.equal(versao, "eventos-soja-diaria@2");
   assert.match(instrucaoDoSistema, /acompanhamento diário da SOJA/);
   assert.match(prompt, /- MOFCOM \(Ministério do Comércio da China\) \(mofcom\.gov\.cn\) - tipos: Política comercial - ativos: soja: tarifas, contramedidas e suspensões da China sobre a soja dos EUA/);
   assert.match(prompt, /site:english\.mofcom\.gov\.cn soybeans tariff/);
@@ -904,7 +904,7 @@ test("soja: coletor próprio; a leitura grava a frente SOJA e só as colunas da 
   assert.equal(soja.codigo, "geopolitica-ia-soja");
   assert.equal(coletor.codigo, "geopolitica-ia-diario", "o módulo continua sendo o coletor da leitura principal");
 
-  const resposta = { dataReferencia: "2026-10-08", versaoPrompt: "eventos-soja-diaria@1", instrucaoDoSistema: "i", chamadas: [chamada("SOJA", TEXTO_SOJA, GROUNDING_SOJA)] };
+  const resposta = { dataReferencia: "2026-10-08", versaoPrompt: "eventos-soja-diaria@2", instrucaoDoSistema: "i", chamadas: [chamada("SOJA", TEXTO_SOJA, GROUNDING_SOJA)] };
   const { validos, invalidos } = soja.normalize(soja.parse(resposta));
   assert.equal(invalidos.length, 0);
   const { leitura, eventos } = validos[0];
@@ -944,5 +944,5 @@ test("soja: o download confere a leitura do dia DA SOJA e faz uma chamada só, c
   assert.deepEqual(perguntas, ["SOJA"]);
   assert.equal(recebidos.length, 1);
   assert.match(recebidos[0].prompt, /leitura de eventos de mercado da soja/);
-  assert.equal(resposta.versaoPrompt, "eventos-soja-diaria@1");
+  assert.equal(resposta.versaoPrompt, "eventos-soja-diaria@2");
 });

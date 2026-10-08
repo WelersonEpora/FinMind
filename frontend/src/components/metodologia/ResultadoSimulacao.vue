@@ -17,7 +17,9 @@ defineProps({
       <template v-if="resultado.medida">
         <span class="resultado__periodo">{{ periodoDoFator(resultado.periodicidade).referencia(resultado.observedAt) }}</span>
         <span>{{ resultado.medida.rotulo }}: <strong>{{ formatarMedida(resultado.medida.valor, resultado.medida.unidade) }}</strong></span>
-        <span v-if="resultado.decisao" class="resultado__decisao" :class="`resultado__decisao--${resultado.decisao.direcao.toLowerCase()}`">
+        <!-- Uma regra (a soja, ADR 0116): o estado, sem direção. -->
+        <span v-if="resultado.estado" class="resultado__decisao">{{ resultado.estado.rotulo }}</span>
+        <span v-else-if="resultado.decisao" class="resultado__decisao" :class="`resultado__decisao--${resultado.decisao.direcao.toLowerCase()}`">
           {{ resultado.decisao.rotuloDirecao }} · {{ resultado.decisao.rotuloIntensidade
           }}<template v-if="resultado.decisao.rotuloTendencia"> · {{ resultado.decisao.rotuloTendencia }}</template>
         </span>

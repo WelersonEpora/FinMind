@@ -258,7 +258,7 @@ test("leitura de tendência da IA (ADRs 0052, 0054, 0058 e 0062): nos quatro ati
 
 test("filtros inválidos: ativo, série e data futura", async () => {
   const deps = { agora: AGORA, observationRepository: repoCom([]), geopoliticaService: geopoliticaFalsa(), analiseDiariaRepository: SEM_ANALISE };
-  await assert.rejects(obterCentroDecisao({ ativo: "SOJA" }, deps), /ativo/);
+  await assert.rejects(obterCentroDecisao({ ativo: "TRIGO" }, deps), /ativo/);
   await assert.rejects(obterCentroDecisao({ ativo: "OURO", serie: "WTI" }, deps), /serie/);
   await assert.rejects(obterCentroDecisao({ data: "2026-10-03" }, deps), /futura/);
   await assert.rejects(obterCentroDecisao({ data: "02/10/2026" }, deps), /AAAA-MM-DD/);

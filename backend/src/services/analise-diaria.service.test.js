@@ -107,7 +107,7 @@ test("o prompt e a resposta saem só sob demanda, como foram gravados; sem leitu
   assert.equal("respostaBruta" in resumo, false);
 
   await assert.rejects(obterPromptEnviado({ ativo: "PETROLEO", data: "2026-10-01" }, { analiseDiariaRepository: repo(null) }), /Não há leitura/);
-  await assert.rejects(obterPromptEnviado({ ativo: "SOJA", data: "2026-10-03" }, { analiseDiariaRepository: repo(REGISTRO) }), /ativo/);
+  await assert.rejects(obterPromptEnviado({ ativo: "TRIGO", data: "2026-10-03" }, { analiseDiariaRepository: repo(REGISTRO) }), /ativo/);
   await assert.rejects(obterPromptEnviado({ ativo: "PETROLEO", data: "03/10/2026" }, { analiseDiariaRepository: repo(REGISTRO) }), /AAAA-MM-DD/);
 });
 

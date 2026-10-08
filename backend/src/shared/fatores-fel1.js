@@ -3,7 +3,8 @@
 // Os 34 fatores do FEL 1 (`docs/Docs_David/controle_fatores.xlsx`, aba "Controle de Fatores"), na ordem e com o nome
 // da planilha. É a única lista de fatores do FinMind: os eventos de mercado (ADR 0049) usam estes códigos no campo
 // `fator`, e um evento que não se encaixa em nenhum fica com NAO_SE_APLICA. Não é lugar de criar fator: um fator novo
-// entra primeiro na planilha (decisão do David e do Comitê).
+// entra primeiro na planilha (decisão do David e do Comitê). A exceção é a soja, que não está no FEL 1: os fatores dela
+// vêm da proposta aprovada pelo Comitê, com o David (ADR 0116), marcados com a `origem`; o peso também é do Comitê.
 //
 // O código é só um identificador estável do fator da planilha (ativo + nome abreviado).
 
@@ -46,7 +47,15 @@ const FATORES = [
   { codigo: "PETROLEO_JUROS", ativo: "PETROLEO", nome: "Juros e expectativas macro", peso: "Médio" },
   { codigo: "PETROLEO_FUNDOS", ativo: "PETROLEO", nome: "Especulação e posicionamento de fundos (COT)", peso: "Médio" },
   { codigo: "PETROLEO_REFINO", ativo: "PETROLEO", nome: "Refino e margens (crack spreads)", peso: "Médio" },
-  { codigo: "PETROLEO_OFERTA_NAO_OPEP", ativo: "PETROLEO", nome: "Oferta não-OPEP (Brasil, Guiana, Noruega)", peso: "Médio" }
+  { codigo: "PETROLEO_OFERTA_NAO_OPEP", ativo: "PETROLEO", nome: "Oferta não-OPEP (Brasil, Guiana, Noruega)", peso: "Médio" },
+
+  // A soja NÃO está no FEL 1: os quatro fatores são os da proposta da soja (docs/proposta-ativo-soja.md, v2.2), aprovada
+  // pelo Comitê, com o David, em 2026-10-08 (ADR 0116). O peso é fixo por fator, na escala do FEL 1, aprovado pelo Comitê
+  // na mesma data (3 = Alto, 2 = Médio, 1 = Baixo); a relevância por horizonte é outra coisa (metodologia-soja.js).
+  { codigo: "SOJA_OFERTA_EUA", ativo: "SOJA", nome: "Oferta dos EUA (a safra em formação)", peso: "Alto", origem: "ADR 0116" },
+  { codigo: "SOJA_OFERTA_AMERICA_SUL", ativo: "SOJA", nome: "Oferta da América do Sul (a safra concorrente)", peso: "Alto", origem: "ADR 0116" },
+  { codigo: "SOJA_DEMANDA_EUA", ativo: "SOJA", nome: "Demanda pela soja dos EUA (exportação e esmagamento)", peso: "Médio", origem: "ADR 0116" },
+  { codigo: "SOJA_POLITICA", ativo: "SOJA", nome: "Política (comércio e biocombustíveis)", peso: "Baixo", origem: "ADR 0116" }
 ];
 
 function fatoresDoAtivo(ativo) {

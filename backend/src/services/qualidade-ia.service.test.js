@@ -163,7 +163,7 @@ test("filtros: período e versão vão ao repository; inválidos são recusados"
   assert.equal(q.totalLeituras, 0);
   assert.ok(q.horizontes.every((h) => h.n === 0 && h.sintese === null));
 
-  await assert.rejects(obterQualidadeIa({ ativo: "SOJA" }, deps), ValidationError);
+  await assert.rejects(obterQualidadeIa({ ativo: "TRIGO" }, deps), ValidationError);
   await assert.rejects(obterQualidadeIa({ ativo: "CAFE", desde: "01/09/2026" }, deps), ValidationError);
   await assert.rejects(obterQualidadeIa({ ativo: "CAFE", versaoConfiguracao: "v1" }, deps), ValidationError);
 });

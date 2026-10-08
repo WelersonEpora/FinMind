@@ -11,7 +11,7 @@ const { ValidationError } = require("../shared/errors");
 
 // Centro de Decisão (ADR 0048): a tela inicial. Para um ATIVO e uma DATA, devolve o preço como era conhecido no fim
 // daquele dia (point-in-time, ADR 0008), a leitura de eventos de mercado daquela data (ADRs 0047 e 0049) e a leitura
-// de tendência da IA feita naquela data (ADRs 0052, 0054, 0058 e 0062, nos quatro ativos). A variação é aritmética
+// de tendência da IA feita naquela data (ADRs 0052, 0054, 0058, 0062 e 0116, nos cinco ativos). A variação é aritmética
 // sobre a própria série (sem limiar, sem sinal).
 //
 // Cada ativo tem uma lista FIXA de séries de preço; a 1ª é o padrão e o usuário troca na tela. Não há regra que
@@ -58,6 +58,16 @@ const ATIVOS = [
     series: [
       { codigo: "ICF", nome: "Futuro B3 (ICF)", observavel: "ICF_PRECOS", futuro: { prefixo: "B3.ICF", campo: "SETTLE" } },
       { codigo: "FMI", nome: "FMI mensal (arábica)", observavel: "CAFE_PRECO_FMI", seriesCode: "FRED.PCOFFOTMUSDM" }
+    ]
+  },
+  {
+    codigo: "SOJA",
+    nome: "Soja",
+    series: [
+      // O SJC primeiro: o preço de referência aprovado pelo Comitê, com o David (2026-10-08, ADR 0116); o FMI mensal (grão),
+      // série de pesquisa (§3.1 da proposta).
+      { codigo: "SJC", nome: "Futuro B3 (SJC)", observavel: "SJC_PRECOS", futuro: { prefixo: "B3.SJC", campo: "SETTLE" } },
+      { codigo: "FMI", nome: "FMI mensal (grão)", observavel: "SOJA_PRECOS_FMI", seriesCode: "FRED.PSOYBUSDM" }
     ]
   }
 ];
@@ -161,8 +171,18 @@ function limiteDoBrent(contrato) {
   };
   return diasUteisAte(ultimoDia, 1).toISOString().slice(0, 10);
 }
-const limiteDoVencimento = (contrato) =>
-  contrato.simbolo === "BZ" ? limiteDoBrent(contrato) : `${contrato.vencimento}-${String(DIA_LIMITE_DO_VENCIMENTO).padStart(2, "0")}`;
+// O SJC (a soja, ADR 0116) vence no fim do mês ANTERIOR ao do contrato: no banco, o último pregão foi do dia 26 ao 30 (o
+// SJCF26 em 29/12/2025, o SJCH26 em 26/02/2026). O limite é o dia 25 do mês anterior, do lado seguro.
+const DIA_LIMITE_DO_SJC = 25;
+function limiteDoSjc(contrato) {
+  const indice = contrato.ano * 12 + (contrato.mes - 1) - 1; // o mês anterior
+  return `${Math.floor(indice / 12)}-${String((indice % 12) + 1).padStart(2, "0")}-${DIA_LIMITE_DO_SJC}`;
+}
+const limiteDoVencimento = (contrato) => {
+  if (contrato.simbolo === "BZ") return limiteDoBrent(contrato);
+  if (contrato.simbolo === "SJC") return limiteDoSjc(contrato);
+  return `${contrato.vencimento}-${String(DIA_LIMITE_DO_VENCIMENTO).padStart(2, "0")}`;
+};
 
 // Futuro: o vencimento mais próximo que negociou no último pregão até a data. Cada vencimento é uma série própria
 // e nada é emendado: o gráfico e as variações usam só o histórico desse contrato. Com `vencimentoApos` (a data-alvo de

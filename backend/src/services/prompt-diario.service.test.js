@@ -220,7 +220,7 @@ test("o mesmo dia e a mesma base dão o mesmo hash; outro ativo não tem prompt 
   const a = (await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps())).promptDiario.hashEntrada;
   const b = (await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps())).promptDiario.hashEntrada;
   assert.equal(a, b);
-  await assert.rejects(montarPromptDiario("SOJA", {}, deps()), (err) => err.statusCode === 404);
+  await assert.rejects(montarPromptDiario("TRIGO", {}, deps()), (err) => err.statusCode === 404);
 });
 
 test("faixas: quatro horizontes com T1 < T2; a classificação do realizado segue as bordas da tabela 2.4", () => {
@@ -291,7 +291,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   // A série exata vai com a leitura (ADR 0064): o realizado não depende da configuração futura.
   assert.equal(p.entrada.precoReferencia.seriesCode, "B3.GLD.GLDZ26.SETTLE");
 
-  await assert.rejects(montarPromptDiario("SOJA", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
+  await assert.rejects(montarPromptDiario("TRIGO", { data: "2026-10-03" }, deps()), /Não há prompt diário/);
 });
 
 test("milho (ADRs 0058, 0078 e 0095): o CCM em reais, sem PTAX, com o contrato de cada horizonte e a curva; os eventos numa seção da base", async () => {

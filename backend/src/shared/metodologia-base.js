@@ -45,6 +45,13 @@ const { FATORES } = require("./fatores-fel1");
 //              { campo, noFel1, ajuste, origem }; `campo` é um dos de CAMPOS_FEL1, `noFel1` o texto como está (conferido
 //              contra o `fel1` ou, no peso, o catálogo: a tela nunca mostra um "de" que não existe) e `origem` quem
 //              decidiu, quando e o ADR. Só na tela: não vai ao prompt.
+//   regra    - (opcional) { sigla, afeta, dimensao, quando }: uma REGRA, e não um fator (a soja, ADR 0116). Calculada
+//              como um fator (o cálculo fica em `factors/`), mas sem peso, sem pressão e fora do catálogo do FEL 1: o
+//              `nome` vem da definição. `sigla` (R1, R2...), `afeta` (os códigos dos fatores do ativo que ela muda, ou
+//              LEITURA, a leitura consolidada), `dimensao` (APLICABILIDADE, INTENSIDADE ou INFORMACAO) e `quando` (em
+//              texto). No prompt, o bloco dela diz o estado na data e o que ele muda.
+// Um fator fora do FEL 1 (a soja, ADR 0116) sai com `origem` (do catálogo): o `fel1` dele é o que a proposta aprovada
+// diz, não a planilha do David, e a tela e o prompt não o chamam de FEL 1.
 // O cálculo de um fator (camadas A, B e C simulada) fica em `factors/` e é ligado a ele em metodologia-ativo.service.js.
 //
 // Além dos fatores, cada ativo tem o que vale para o ATIVO e não para um fator (`doAtivo`): o preço de referência (o
@@ -74,6 +81,10 @@ const { FATORES } = require("./fatores-fel1");
 //   noPrompt   - (opcional) { autorizacao, mesSemDefinicao }: o calendário vai ao prompt diário como uma tabela fixa (o
 //                milho, ADR 0065), com quem autorizou e o que vale no mês que o especialista não definiu. Mudar o que vai
 //                ao prompt sobe a `versao` da metodologia.
+//   relevancia - (opcional) a relevância de cada fator por horizonte (a soja, ADR 0116): { descricao, fatores: { CODIGO:
+//                { IMEDIATO: { nivel: "Alta" | "Média" | "Baixa", nota? }, CURTO, MEDIO, LONGO } } }. NÃO é peso: o peso é
+//                o do catálogo, fixo por fator; a relevância diz em que prazo o fator costuma mover o preço e vai ao
+//                prompt como orientação. Todos os fatores e só eles (as regras não têm relevância aqui).
 //   agregacaoFinMind - (opcional) a proposta de agregação em código do FinMind, separada da do especialista (o café,
 //                ADR 0066): { versao, situacao, adr, descricao, horizontes, familias: [{ codigo, rotulo,
 //                fatores, magnitudeFel1, pesos: { HORIZONTE: % }, composicao }], modificador, regras: [{ regra,
@@ -82,8 +93,12 @@ const { FATORES } = require("./fatores-fel1");
 const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
 // A validação dos motores dos quatro ativos, na reunião de 2026-10-07: como estavam, com as decisões já registradas.
 const VALIDACAO_MOTORES = Object.freeze({ por: "Comitê, com o David", data: "2026-10-07", adr: "ADR 0108" });
+// A aprovação da soja (fatores, regras e medição da proposta v2.2), na reunião de 2026-10-08 (ADR 0116).
+const VALIDACAO_SOJA = Object.freeze({ por: "Comitê, com o David", data: "2026-10-08", adr: "ADR 0116" });
 const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const PESOS = ["Alto", "Médio", "Baixo"];
+const NIVEIS_RELEVANCIA = ["Alta", "Média", "Baixa"];
+const HORIZONTES_RELEVANCIA = ["IMEDIATO", "CURTO", "MEDIO", "LONGO"];
 const SITUACAO_AGREGACAO = { ORIENTACAO: "ORIENTACAO", PARCIAL: "PARCIAL", FORA: "FORA" };
 // A origem de cada regra da agregação do FinMind (ADR 0066): do especialista, derivada do estudo, ou proposta do FinMind.
 const ORIGENS_REGRA = ["DAVID", "DERIVADA", "PROPOSTA"];
@@ -109,16 +124,60 @@ function montarAjustesFel1(fator, definicao) {
   });
 }
 
-// As definições de um ativo -> os fatores com o nome e o peso do FEL 1. Um código fora do catálogo, ou de outro
-// ativo, é erro de programação. `validacao` (opcional): { por, data, adr }, o motor do ativo validado por inteiro (o
-// Comitê, com o David, em 2026-10-07, ADR 0108): todos os fatores saem como VALIDADA, com ela.
+const DIMENSOES_REGRA = ["APLICABILIDADE", "INTENSIDADE", "INFORMACAO"];
+// O peso de uma regra: nenhum (ela não entra na agregação).
+const PESO_REGRA = "Sem peso";
+
+// Uma regra (ver `regra` acima): não está no catálogo; o código começa pelo ativo, e o que ela afeta é um fator do ativo
+// ou a leitura consolidada.
+function montarRegra(ativo, definicao, definicoes, situacao) {
+  const { regra } = definicao;
+  if (!definicao.codigo.startsWith(`${ativo}_`)) throw new Error(`${definicao.codigo}: o código de uma regra começa pelo ativo (${ativo})`);
+  if (FATORES.some((item) => item.codigo === definicao.codigo)) throw new Error(`${definicao.codigo}: uma regra não está no catálogo de fatores`);
+  if (!definicao.nome || !/^R\d+$/.test(regra.sigla || "") || !regra.quando) throw new Error(`${definicao.codigo}: regra sem nome, sigla (R1, R2...) ou quando`);
+  if (!DIMENSOES_REGRA.includes(regra.dimensao)) throw new Error(`${definicao.codigo}: dimensão de regra desconhecida: ${regra.dimensao}`);
+  const fatoresDoAtivo = definicoes.filter((outra) => !outra.regra).map((outra) => outra.codigo);
+  const fora = (regra.afeta || []).filter((codigo) => codigo !== "LEITURA" && !fatoresDoAtivo.includes(codigo));
+  if (!regra.afeta?.length || fora.length) throw new Error(`${definicao.codigo}: a regra afeta o que não é fator do ativo: ${fora.join(", ") || "nada"}`);
+  return {
+    codigo: definicao.codigo,
+    nome: definicao.nome,
+    nomeFel1: definicao.nome,
+    peso: PESO_REGRA,
+    regra: { sigla: regra.sigla, afeta: [...regra.afeta], dimensao: regra.dimensao, quando: regra.quando },
+    origem: null,
+    fel1: definicao.fel1,
+    dados: definicao.dados,
+    proposta: { ...situacao, ...definicao.proposta },
+    perguntas: definicao.perguntas,
+    decisoes: definicao.decisoes || [],
+    ajustesFel1: [],
+    evento: null,
+    janelaEventos: null,
+    contextoDe: null,
+    informativo: false,
+    papelDecididoPor: null,
+    efeitoDefasado: null
+  };
+}
+
+// As definições de um ativo -> os fatores com o nome e o peso do FEL 1 (e as regras, quando o ativo as tem). Um código
+// fora do catálogo, ou de outro ativo, é erro de programação. `validacao` (opcional): { por, data, adr }, o motor do
+// ativo validado por inteiro (o Comitê, com o David, em 2026-10-07, ADR 0108; a soja, em 2026-10-08, ADR 0116): todos
+// saem como VALIDADA, com ela.
 function montarFatores(ativo, definicoes, validacao = null) {
   if (validacao && (!validacao.por || !validacao.data || !validacao.adr)) throw new Error(`${ativo}: validação sem quem, quando ou o ADR`);
   const situacao = validacao ? { situacao: SITUACAO.VALIDADA, validacao } : { situacao: SITUACAO.PROPOSTA };
+  // As regras vêm depois dos fatores: a numeração F1...Fn é a dos fatores.
+  const primeiraRegra = definicoes.findIndex((definicao) => definicao.regra);
+  if (primeiraRegra >= 0 && definicoes.slice(primeiraRegra).some((definicao) => !definicao.regra)) {
+    throw new Error(`${ativo}: as regras vêm depois de todos os fatores`);
+  }
   return definicoes.map((definicao) => {
+    if (definicao.regra) return montarRegra(ativo, definicao, definicoes, situacao);
     const fator = FATORES.find((item) => item.codigo === definicao.codigo);
     if (!fator || fator.ativo !== ativo) throw new Error(`Fator ausente no catálogo do FEL 1 para ${ativo}: ${definicao.codigo}`);
-    if (definicao.contextoDe && !definicoes.some((outra) => outra.codigo === definicao.contextoDe && !outra.contextoDe && !outra.informativo)) {
+    if (definicao.contextoDe && !definicoes.some((outra) => outra.codigo === definicao.contextoDe && !outra.contextoDe && !outra.informativo && !outra.regra)) {
       throw new Error(`${definicao.codigo}: contexto de um fator que não está no ativo (ou que também é contexto): ${definicao.contextoDe}`);
     }
     if (definicao.informativo && definicao.contextoDe) throw new Error(`${definicao.codigo}: informativo e contexto ao mesmo tempo`);
@@ -128,6 +187,9 @@ function montarFatores(ativo, definicoes, validacao = null) {
       nome: definicao.nome || fator.nome,
       nomeFel1: fator.nome,
       peso: fator.peso,
+      regra: null,
+      // Fora do FEL 1 (a soja): de onde o fator vem (o ADR); null num fator da planilha.
+      origem: fator.origem || null,
       fel1: definicao.fel1,
       dados: definicao.dados,
       proposta: { ...situacao, ...definicao.proposta },
@@ -208,6 +270,33 @@ function montarPesoFator(fator, indice, definicao) {
   };
 }
 
+// A relevância por horizonte (a soja, ADR 0116): uma linha por fator, na ordem do ativo, com o peso fixo ao lado (o do
+// catálogo) para a tela mostrar os dois sem confundi-los.
+function montarRelevancia(ativo, fatores, relevancia) {
+  const codigos = fatores.map((f) => f.codigo);
+  const linhas = Object.keys(relevancia.fatores);
+  if (linhas.length !== codigos.length || !codigos.every((c) => linhas.includes(c))) {
+    throw new Error(`${ativo}: a relevância por horizonte precisa de todos os fatores do ativo, e só deles`);
+  }
+  for (const codigo of codigos) {
+    const porHorizonte = relevancia.fatores[codigo];
+    if (!HORIZONTES_RELEVANCIA.every((h) => NIVEIS_RELEVANCIA.includes(porHorizonte[h]?.nivel))) {
+      throw new Error(`${ativo}: relevância de ${codigo} sem um nível conhecido em algum horizonte`);
+    }
+  }
+  return {
+    descricao: relevancia.descricao,
+    horizontes: HORIZONTES_RELEVANCIA,
+    fatores: fatores.map((fator, i) => ({
+      codigo: fator.codigo,
+      sigla: `F${i + 1}`,
+      nome: fator.nome,
+      peso: fator.peso,
+      horizontes: HORIZONTES_RELEVANCIA.map((h) => ({ horizonte: h, nivel: relevancia.fatores[fator.codigo][h].nivel, nota: relevancia.fatores[fator.codigo][h].nota || null }))
+    }))
+  };
+}
+
 // A matriz de relações: uma linha por fator do ativo, com um símbolo conhecido por coluna, e simétrica.
 function validarRelacoes(ativo, codigos, relacoes) {
   const simbolos = new Set(relacoes.simbolos.map((item) => item.simbolo));
@@ -258,6 +347,7 @@ function montarPesos(ativo, fatores, pesos) {
   return {
     autoria: pesos?.autoria || null,
     descricao: pesos?.descricao || null,
+    relevancia: pesos?.relevancia ? montarRelevancia(ativo, fatores, pesos.relevancia) : null,
     // Do especialista e não aprovado pelo Comitê enquanto não houver decisão registrada.
     situacao: pesos ? SITUACAO.PROPOSTA : null,
     fatores: fatores.map((fator, i) => montarPesoFator(fator, i, definicoes[fator.codigo])),
@@ -284,6 +374,7 @@ function montarEventosDoAtivo(fatores) {
   };
 }
 
+// Os pesos são só dos fatores: uma regra não tem peso (ADR 0116).
 function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, pesos = null }) {
   return {
     ativo,
@@ -291,10 +382,10 @@ function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, 
     versao,
     dataVersao,
     doAtivo: montarDoAtivo(ativo, doAtivo),
-    pesos: montarPesos(ativo, fatores, pesos),
+    pesos: montarPesos(ativo, fatores.filter((f) => !f.regra), pesos),
     eventosDoAtivo: montarEventosDoAtivo(fatores),
     fatores
   };
 }
 
-module.exports = { SITUACAO, VALIDACAO_MOTORES, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, montarFatores, montarMetodologia };
+module.exports = { SITUACAO, VALIDACAO_MOTORES, VALIDACAO_SOJA, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, PESO_REGRA, montarFatores, montarMetodologia };

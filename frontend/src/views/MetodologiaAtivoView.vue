@@ -41,6 +41,24 @@ const opcoesAtivo = computed(() => (resposta.value?.ativos || []).map((a) => ({ 
 // O que roda está validado e não leva selo (ADR 0108): só a proposta (um ativo novo) é marcada, no resumo e no cálculo.
 const motorValidado = computed(() => Boolean(metodologia.value?.fatores.every((f) => f.proposta.situacao === 'VALIDADA')))
 
+// Os fatores e, num ativo que as tem (a soja, ADR 0116), as regras: duas seções com o mesmo card. Uma regra não tem peso
+// nem pressão; o título dela leva a sigla (R1, R2...), o de um fator, F1...Fn.
+const secoes = computed(() => {
+  const todos = metodologia.value?.fatores || []
+  const fatores = todos.filter((f) => !f.regra)
+  const regras = todos.filter((f) => f.regra)
+  return [
+    { codigo: 'fatores', titulo: 'Fatores', itens: fatores, resumo: `${fatores.length} fatores` },
+    ...(regras.length ? [{ codigo: 'regras', titulo: 'Regras', itens: regras, resumo: `${regras.length} regras · sem peso nem direção própria` }] : [])
+  ]
+})
+const siglaDoItem = (fator, index) => (fator.regra ? fator.regra.sigla : `F${index + 1}`)
+const DIMENSAO_REGRA = { APLICABILIDADE: 'Aplicabilidade', INTENSIDADE: 'Intensidade', INFORMACAO: 'Só informação' }
+// A definição de um fator fora do FEL 1 ou de uma regra (a soja) é a da proposta aprovada, não a do especialista.
+function origemDaDefinicao(fator) {
+  return fator.regra || fator.origem ? 'o que o Comitê aprovou (proposta da soja, ADR 0116)' : 'o que o especialista escreveu'
+}
+
 // O nome de um fator do ativo pelo código (o fator de que outro é contexto, ADR 0054).
 function nomeDoFator(codigo) {
   return metodologia.value?.fatores.find((f) => f.codigo === codigo)?.nome || codigo
@@ -212,26 +230,27 @@ watch(ativo, carregar, { immediate: true })
               </article>
             </div>
 
-            <div class="metodologia-ativo__secao-cabecalho">
-              <h2 class="metodologia-ativo__secao-titulo">Fatores</h2>
+            <template v-for="secao in secoes" :key="secao.codigo">
+            <div class="metodologia-ativo__secao-cabecalho" :class="{ 'metodologia-ativo__secao-cabecalho--seguinte': secao.codigo === 'regras' }">
+              <h2 class="metodologia-ativo__secao-titulo">{{ secao.titulo }}</h2>
               <span class="metodologia-ativo__contexto-resumo">
-                {{ metodologia.fatores.length }} fatores ·{{ motorValidado ? '' : ' proposta' }}
-                v{{ metodologia.versao }} de {{ formatarData(metodologia.dataVersao) }}
+                {{ secao.resumo }}<template v-if="secao.codigo === 'fatores'"> ·{{ motorValidado ? '' : ' proposta' }}
+                v{{ metodologia.versao }} de {{ formatarData(metodologia.dataVersao) }}</template>
               </span>
             </div>
-            <p v-if="simulacao" class="metodologia-ativo__simulando">
+            <p v-if="simulacao && secao.codigo === 'fatores'" class="metodologia-ativo__simulando">
               <i class="bi bi-clock-history"></i>
               Simulando {{ formatarData(simulacao.data) }}: o que se sabia até o fim deste dia. A decisão usa os parâmetros
               em uso hoje.
             </p>
 
             <div class="metodologia-ativo__cards">
-              <article v-for="(fator, index) in metodologia.fatores" :key="fator.codigo" class="metodologia-ativo__card">
+              <article v-for="(fator, index) in secao.itens" :key="fator.codigo" class="metodologia-ativo__card">
                 <!-- Duas colunas: o conteúdo (nome e peso, como na barra do modal; a direção; as marcas) e, à direita,
                      o botão de detalhes, no meio da altura do card. -->
                 <div class="metodologia-ativo__card-corpo">
                   <div class="metodologia-ativo__card-titulo-grupo">
-                    <h2 class="metodologia-ativo__card-titulo">F{{ index + 1 }} - {{ fator.nome }}</h2>
+                    <h2 class="metodologia-ativo__card-titulo">{{ siglaDoItem(fator, index) }} - {{ fator.nome }}</h2>
                     <span
                       class="metodologia-ativo__badge"
                       :class="{
@@ -266,6 +285,9 @@ watch(ativo, carregar, { immediate: true })
                     <span v-if="fator.informativo" class="metodologia-ativo__calculado" title="Sem pressão própria: não conta a favor nem contra">
                       <i class="bi bi-info-circle"></i> Só informação
                     </span>
+                    <span v-if="fator.regra" class="metodologia-ativo__calculado" :title="fator.regra.quando">
+                      <i class="bi bi-funnel"></i> {{ DIMENSAO_REGRA[fator.regra.dimensao] }}
+                    </span>
                   </div>
 
                   <!-- O resultado do fator na data simulada, numa linha. -->
@@ -284,6 +306,7 @@ watch(ativo, carregar, { immediate: true })
                 </div>
               </article>
             </div>
+            </template>
 
             <!-- Como os fatores se combinam: o peso do FEL 1 e, quando o especialista definiu, o peso por mês, as relações
                  e a agregação (o milho, Motor do Milho v0; o café, Motor do Café v1), com o que vai ao prompt; no café,
@@ -323,7 +346,7 @@ watch(ativo, carregar, { immediate: true })
 
         <div class="metodologia-ativo__modal-body">
           <section class="metodologia-ativo__bloco metodologia-ativo__bloco--fel1">
-            <h4>Definição <small>o que o especialista escreveu</small></h4>
+            <h4>Definição <small>{{ origemDaDefinicao(fatorSelecionado) }}</small></h4>
             <ul>
               <!-- O título do card diz o dado usado; aqui fica o nome que o especialista deu ao fator, quando difere. -->
               <li v-if="fatorSelecionado.nomeFel1 !== fatorSelecionado.nome"><strong>Nome no FEL 1:</strong> {{ fatorSelecionado.nomeFel1 }}</li>
