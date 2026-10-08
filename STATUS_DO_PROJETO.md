@@ -213,7 +213,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Conab · Milho, café, soja · XLSX/XLS por levantamento · nível 4–5 · Dev e servidor (soja só em dev)</summary>
+<summary>Conab · Milho, café, soja · XLSX/XLS por levantamento · nível 4–5 · Dev e servidor</summary>
 
 **Acesso:** XLSX/XLS por levantamento (página HTML). **Ressalva principal:** **Versões só desde fev/2025 (milho) e jan/2023 (café)**: antes disso a Conab não mantém as páginas; sem API (quebra se o layout mudar); o custo do café não tem data de publicação; **preço mínimo do café bloqueado por reCAPTCHA**. **Evidência:** ADRs 0017, 0029, 0043, 0114.
 
@@ -221,8 +221,8 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 |---|---|---|---|---|---|
 | Milho por safra e UF | Área, produtividade e produção da 1ª, 2ª e 3ª safra e do total, por região e UF | Por safra, revista a cada levantamento mensal | Versões desde fev/2025 | Real (data e hora do levantamento); limite superior nas safras antigas | Dev e servidor |
 | Milho - balanço nacional | Estoques, produção, importação, suprimento, consumo, exportação e demanda | Por safra, revista a cada levantamento | Safras desde 2018/19; versões desde fev/2025 | Real | Dev e servidor |
-| Soja por UF | Área, produtividade e produção, por região e UF (fase 1 da soja, ADR 0114) | Por safra, revista a cada levantamento mensal | Versões desde fev/2025 | Real (data e hora do levantamento) | Dev; servidor pendente (backfill) |
-| Soja - balanço nacional | O grão: estoques, produção, importação, sementes, exportação e processamento (aba própria, transposta; farelo e óleo de fora) | Por safra, revista a cada levantamento | Safras desde 2020/21; versões desde fev/2025 | Real | Dev; servidor pendente (backfill) |
+| Soja por UF | Área, produtividade e produção, por região e UF (fase 1 da soja, ADR 0114) | Por safra, revista a cada levantamento mensal | Versões desde fev/2025 | Real (data e hora do levantamento) | Dev e servidor |
+| Soja - balanço nacional | O grão: estoques, produção, importação, sementes, exportação e processamento (aba própria, transposta; farelo e óleo de fora) | Por safra, revista a cada levantamento | Safras desde 2020/21; versões desde fev/2025 | Real | Dev e servidor |
 | Café - safra por região e UF | Área, produtividade e produção do total, do arábica e do conilon | Por safra, 3 ou 4 levantamentos por ano | Versões desde jan/2023 | Real (estimado num levantamento republicado) | Dev e servidor |
 | Café arábica e conilon - custo de produção | Custo variável, fixo, operacional e total, em R$/ha e R$/saca, por município | Anual | Arábica 2003; conilon 2007 | Não informado (data da coleta) | Dev e servidor |
 
@@ -508,14 +508,14 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Eventos de mercado por IA (Gemini com busca na web) · Ouro, petróleo, milho, café, soja · API · nível 4 · Dev e servidor (soja só em dev)</summary>
+<summary>Eventos de mercado por IA (Gemini com busca na web) · Ouro, petróleo, milho, café, soja · API · nível 4 · Dev e servidor</summary>
 
 **Acesso:** uma chamada diária ao Gemini com Google Search (chave gratuita `GEMINI_API_KEY_FREE` primeiro; a paga, `GEMINI_API_KEY`, só no 429 ou 5xx persistente), orientada a uma lista única de 20 fontes autorizadas para os quatro ativos: UKMTO/JMIC, Tesouro dos EUA, OPEP, AP News, USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA (`gov.br/agricultura`), USDA FAS e INMET (desde 2026-10-02, ADR 0049) e CENTCOM, NOAA NHC, BSEE, Bolsa de Comercio de Rosario, governo da Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC (desde 2026-10-06, ADR 0092). Sete tipos de evento (a geopolítica é um deles), cada evento com os ativos afetados e o fator do FEL 1 de cada um. O evento só é aceito com uma página de fonte autorizada, conferida pela URL, que a pesquisa leu e ligou ao texto dele: a citação da IA não basta. **Ressalva principal:** **não é série nem é reproduzível**: uma leitura por dia (nível e resumo de cada ativo e os eventos), que vale da 1ª coleta em diante, sem backtest; a escala de níveis é provisória (a régua é do David); evento sem página de fonte autorizada, ou repetição de um aceito dos 3 dias anteriores, é rejeitado e não vai ao Motor; o número de preço, produção, exportação, estoque e dos relatórios periódicos coletados não vira evento (já é observável), mas o fato que esses números ainda não mostram pode virar (ADR 0092). **Evidência:** ADRs 0047, 0049 e 0092.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | Eventos de mercado - leitura do dia (ouro, petróleo, milho e café) | Nível (NORMAL, ATENÇÃO, RELEVANTE, EXCEPCIONAL) e resumo de cada ativo; eventos com tipo, ativos, fator do FEL 1, canal de transmissão, pressão e fontes; entregue ao Motor por `geopolitica.service.js` | Diária | 2026-10-02 (milho e café também; no servidor, a leitura de 2026-10-02 refeita com duas chamadas: success, 56 s, 0 falhas) | Não se aplica (data de referência = o dia em São Paulo) | Dev e servidor; telas `/dados-mercado/eventos` e Centro de Decisão (ADR 0048) |
-| Eventos de mercado - leitura do dia da soja | Leitura PRÓPRIA (fase 1 da soja, ADR 0115): outra chamada, outro prompt e outra linha por dia, nas mesmas tabelas (coluna `frente`); nível e resumo da soja; eventos com tipo, sem fator; 11 das fontes autorizadas com o papel da soja. Só na tela Eventos; não vai ao Motor | Diária | 2026-10-08 (dev) | Não se aplica | Dev; servidor a partir do deploy |
+| Eventos de mercado - leitura do dia da soja | Leitura PRÓPRIA (fase 1 da soja, ADR 0115): outra chamada, outro prompt e outra linha por dia, nas mesmas tabelas (coluna `frente`); nível e resumo da soja; eventos com tipo, sem fator; 11 das fontes autorizadas com o papel da soja. Só na tela Eventos; não vai ao Motor | Diária | 2026-10-08 (dev e servidor) | Não se aplica | Dev e servidor |
 
 </details>
 
@@ -562,10 +562,9 @@ Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a 
 Backfill validado em dev que ainda não rodou na VM entra aqui; ao rodar, sai daqui e a fonte passa a "dev e servidor"
 em "Fontes" (§2).
 
-- **Conab, soja** (ADR 0114): `npm run backfill:conab-soja` (15 levantamentos, ~1 minuto), **antes da 1ª coleta diária depois
-  do deploy**. Dev: 1.074 linhas em 112 séries, 0 falhas.
+Nenhuma no momento.
 
-As últimas, em 2026-10-08: a área plantada (89 linhas) e o Grain Stocks da soja (566 linhas, com as 2 edições sem CSV,
+As últimas, em 2026-10-08: a soja da Conab (1.074 linhas, 0 falhas, igual a dev; ADR 0114), a área plantada (89 linhas) e o Grain Stocks da soja (566 linhas, com as 2 edições sem CSV,
 como no milho), iguais a dev (ADRs 0112 e 0113), o WASDE da soja (21.139 linhas, igual a dev; ADR 0111; o 3º bloco foi interrompido por um deploy e
 repetido com `--anoInicial=2021`), a saúde da vegetação sobre a soja (68.300 valores, igual a dev; ADR 0110; o COT, os preços do
 FMI e o Crop Progress da soja carregam o histórico inteiro na coleta diária), o futuro de soja SJC da B3 (949 pregões, de
@@ -637,7 +636,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 | Soja, fase 1: WASDE | O balanço da soja, das mesmas edições do milho desde 2011: o grão nos EUA (13 atributos, com esmagamento, semente e resíduo) e 16 regiões (com Brasil, Argentina, Paraguai e China). O leitor e o coletor do WASDE viraram um por produto, sem mudar o do milho; a soja tem fonte própria, para a carga em blocos não confundir as edições do milho com as dela. Conferido nas 187 planilhas, 0 inválidos. Dois cards novos, 78 no total. Em dev e no servidor: 21.139 linhas em 125 séries, reexecução idempotente | ADR 0111 |
 | Soja, fase 1: área plantada | A intenção de plantio (Prospective Plantings, março) e a área plantada (Acreage, junho) da soja dos EUA, dos mesmos CSV do milho desde 2001 (51 edições, 0 erros; a de março e a de junho de 2025 e 2026 batem com o WASDE de maio e de julho). O leitor e o coletor viraram um por cultura, sem mudar o do milho. Um card novo, 79 no total. Em dev e no servidor: 89 linhas, idempotente | ADR 0112 |
 | Soja, fase 1: Grain Stocks | Os estoques de soja dos EUA em 1º de dezembro, março, junho e setembro, por posição, do mesmo relatório do milho desde 2001 (102 edições, 0 erros; o 1º de setembro de 2025 bate com o estoque final do WASDE). O leitor e o coletor viraram um por grão, sem mudar o do milho. Um card novo, 80 no total. Em dev e no servidor: 566 linhas, idempotente | ADR 0113 |
-| Soja, fase 1: Conab | A soja dos mesmos levantamentos do milho (15, desde fev/2025): área, produtividade e produção por UF (a aba "Soja", lida pelo leitor do milho sem mudança) e o balanço do grão, de uma aba própria e transposta (safras nas colunas), com leitor novo; farelo e óleo de fora. O coletor virou um por produto, sem mudar o do milho. 0 erros nos 15. Dois cards novos, 82 no total. Em dev: 1.074 linhas, idempotente; no servidor, o backfill está pendente (§3) | ADR 0114 |
+| Soja, fase 1: Conab | A soja dos mesmos levantamentos do milho (15, desde fev/2025): área, produtividade e produção por UF (a aba "Soja", lida pelo leitor do milho sem mudança) e o balanço do grão, de uma aba própria e transposta (safras nas colunas), com leitor novo; farelo e óleo de fora. O coletor virou um por produto, sem mudar o do milho. 0 erros nos 15. Dois cards novos, 82 no total. Em dev e no servidor: 1.074 linhas, idempotente | ADR 0114 |
 | Soja, fase 1: eventos de mercado | Leitura diária PRÓPRIA da soja (decisão do usuário): outra chamada ao Gemini, outro prompt (`eventos-soja-diaria@1`) e outra linha por dia (a coluna `frente`, com a chave por dia e frente), para que nada mude na leitura dos quatro ativos validados; o prompt das duas chamadas deles ficou idêntico, byte a byte. Nenhuma fonte nova: 11 das autorizadas ganharam o papel e as buscas da soja. Eventos sem fator (a soja não tem fatores aprovados). Só na tela Eventos. Em dev: leitura real com 6 fontes lidas, NORMAL. Com isto, a fase 1 está completa | ADR 0115 |
 
 </details>
