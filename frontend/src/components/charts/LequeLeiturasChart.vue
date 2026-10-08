@@ -446,13 +446,14 @@ onBeforeUnmount(() => observador?.disconnect())
 .leque__linha-fundo {
   fill: none;
   stroke: #ffffff;
-  stroke-width: 5;
+  stroke-width: 2.4;
   stroke-linejoin: round;
 }
+/* Fina, com o contorno branco estreito: a barra por baixo (ex.: a do imediato) continua legível. */
 .leque__linha {
   fill: none;
   stroke: var(--p-text-color);
-  stroke-width: 2;
+  stroke-width: 1.2;
   stroke-linejoin: round;
 }
 .leque__contexto {
