@@ -1506,6 +1506,30 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://esmis.nal.usda.gov/publication/prospective-plantings"
     }
   },
+  // Soja (fase 1 da soja, só aquisição, ADR 0112): as mesmas edições, a tabela da soja.
+  {
+    instrumentCode: "USDA_SOJA_AREA_PLANTADA",
+    origem: "observation",
+    nome: "Soja EUA - Área plantada (USDA)",
+    unidade: "mil acres",
+    casasDecimais: 0,
+    frequencia: "ANUAL",
+    toleranciaDias: 240,
+    fonte: "USDA NASS - Prospective Plantings e Acreage",
+    fonteCollectorCode: "usda-area-plantada-soja",
+    series: [{ modalidade: "area_plantada", seriesCode: "USDA.SOYBEANS.AREA_PLANTED" }],
+    modalidadePrincipal: "area_plantada",
+    fonteDetalhe: {
+      descricao:
+        "Área plantada de soja dos Estados Unidos, em mil acres, conforme dois relatórios do USDA NASS: o Prospective Plantings (fim de março), com a INTENÇÃO de plantio declarada pelos produtores, e o Acreage (fim de junho), com a área já plantada. O WASDE só incorpora esses números semanas depois (a intenção de março só aparece no WASDE de maio).",
+      metodologia:
+        "Um valor por ano de plantio (o dia da observação é 1º de setembro do ano, a mesma convenção do WASDE). Cada edição traz o ano corrente e até dois anos anteriores com o valor que o USDA tinha naquele dia, e cada um vira uma versão: a data de publicação é a REAL do release (listagem do ESMIS, conferida com a data impressa no próprio CSV), às 23:59 UTC por não trazer o horário. Valores como publicados, sem conversão de unidade. O detalhe de cada ponto informa o relatório de origem e se é intenção de plantio ou área plantada.",
+      escopo:
+        "só a área plantada de soja, só o total dos EUA, só os dois relatórios (edições de 2001-06 em diante, as que têm CSV; antes só há TXT/PDF). As reestimativas de agosto a janeiro saem no mesmo dia do WASDE e estão no card \"Soja EUA (WASDE)\". Não coletados: a quebra por estado, a área colhida (no Acreage), a soja plantada depois de outra cultura e a de biotecnologia. Fase 1 da soja, só aquisição: nenhum fator lê esta série.",
+      formatoOrigem: "CSV dentro do ZIP de cada edição no ESMIS (arquivo de publicações do USDA, página HTML, sem chave)",
+      urlOficial: "https://esmis.nal.usda.gov/publication/prospective-plantings"
+    }
+  },
 
   // --- Conab - Boletim da Safra de Grãos, milho (ADR 0017): um levantamento por mês, desde fev/2025 ---
   // Dois cards: o milho por safra (1ª, 2ª, 3ª e total) por Região/UF, com seletor de região e de métrica (como o

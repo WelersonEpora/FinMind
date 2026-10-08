@@ -6,9 +6,10 @@ const { UpstreamServiceError } = require("../../shared/errors");
 const { fimDoDiaUtc } = require("../../shared/utils/date-utils");
 const { lerZip } = require("../../shared/utils/zip");
 const { persistirPorEdicao } = require("../base/persist-observations");
-const { extrairAreaPlantada } = require("./usda-area-plantada.parser");
+const { extrairAreaPlantada, CULTURAS: TABELAS } = require("./usda-area-plantada.parser");
 
-// USDA NASS - área plantada de milho dos EUA, pelo Prospective Plantings (fim de março: a INTENÇÃO de plantio)
+// USDA NASS - área plantada de milho (e, desde 2026-10-08, de soja: fase 1 da soja, só aquisição, ADR 0112) dos EUA,
+// pelo Prospective Plantings (fim de março: a INTENÇÃO de plantio)
 // e pelo Acreage (fim de junho: a área já plantada), lida do CSV de cada edição publicada no ESMIS. ADR 0027.
 //
 // POR QUE O ESMIS E NÃO A API DO QUICKSTATS (a do Crop Progress): o QuickStats guarda uma linha por
@@ -38,8 +39,12 @@ const { extrairAreaPlantada } = require("./usda-area-plantada.parser");
 // ao meio-dia de Washington, e aqui vale o FIM DO DIA em UTC (conservador, como no WASDE).
 
 const BASE_URL = "https://esmis.nal.usda.gov";
-const SOURCE_CODE = "USDA_NASS_AREA";
-const SERIE = "USDA.CORN.AREA_PLANTED";
+// Um coletor por cultura, com as mesmas edições: a soja tem fonte própria (o descarte das edições já ingeridas olha a
+// fonte; ver o WASDE, ADR 0111) e a série no prefixo do Crop Progress dela.
+const CULTURAS = {
+  milho: { codigo: "usda-area-plantada-milho", sourceCode: "USDA_NASS_AREA", serie: "USDA.CORN.AREA_PLANTED", tabela: TABELAS.milho, scriptBackfill: "backfill:usda-area-plantada" },
+  soja: { codigo: "usda-area-plantada-soja", sourceCode: "USDA_NASS_AREA_SOJA", serie: "USDA.SOYBEANS.AREA_PLANTED", tabela: TABELAS.soja, scriptBackfill: "backfill:usda-area-plantada-soja" }
+};
 // O CSV começa no Acreage de 2001-06-29; o Prospective Plantings de 2001-03-30 ainda é só TXT/PDF.
 const DATA_INICIAL = "2001-06-01";
 const PUBLICACOES = {
@@ -166,13 +171,11 @@ async function downloadIntervalo({ dataInicial = DATA_INICIAL, signal, fetchFn, 
 
 // ---------------------------------------------------------------- persist
 
-const mensagemSemCarga = ({ valores }) =>
-  `Carga histórica da área plantada (USDA) ainda não feita (${valores} valores não gravados): rode "npm run backfill:usda-area-plantada" antes da coleta diária.`;
-
-const persist = (validos, contexto, deps = {}) =>
-  persistirPorEdicao(validos, contexto, deps, { sourceCode: SOURCE_CODE, exigirCargaInicial: true, mensagemSemCarga });
-const persistirBackfill = (validos, contexto, deps = {}) =>
-  persistirPorEdicao(validos, contexto, deps, { sourceCode: SOURCE_CODE, exigirCargaInicial: false, mensagemSemCarga });
+function persistir(cultura, validos, contexto, deps, exigirCargaInicial) {
+  const mensagemSemCarga = ({ valores }) =>
+    `Carga histórica da área plantada (USDA, ${cultura.tabela.nome}) ainda não feita (${valores} valores não gravados): rode "npm run ${cultura.scriptBackfill}" antes da coleta diária.`;
+  return persistirPorEdicao(validos, contexto, deps, { sourceCode: cultura.sourceCode, exigirCargaInicial, mensagemSemCarga });
+}
 
 // ---------------------------------------------------------------- parse / normalize
 
@@ -185,7 +188,7 @@ function csvDaEdicao(buffer) {
 
 // Cada edição vira { publicacao, data, slug, arquivo, dataLiberacao, titulo, valores, erro }. Falha ao ler UMA
 // edição não aborta as demais.
-function parse(rawData) {
+function parse(cultura, rawData) {
   if (!Array.isArray(rawData)) {
     throw new UpstreamServiceError("Resposta do ESMIS em formato inesperado (esperava uma lista de edições).");
   }
@@ -193,7 +196,7 @@ function parse(rawData) {
     const base = { publicacao: item.publicacao, data: item.data, slug: item.slug, arquivo: item.arquivo || null };
     if (item.semArquivo) return { ...base, erro: "A edição não tem o arquivo ZIP (CSV) no ESMIS." };
     try {
-      return { ...base, ...extrairAreaPlantada(csvDaEdicao(item.buffer)) };
+      return { ...base, ...extrairAreaPlantada(csvDaEdicao(item.buffer), cultura.tabela) };
     } catch (err) {
       return { ...base, erro: `Falha ao ler o CSV: ${err.message}` };
     }
@@ -213,7 +216,7 @@ function conferirEdicao(edicao) {
   return null;
 }
 
-function normalize(edicoes) {
+function normalize(cultura, edicoes) {
   const validos = [];
   const invalidos = [];
 
@@ -233,17 +236,17 @@ function normalize(edicoes) {
     const anoDaEdicao = Number(edicao.data.slice(0, 4));
     for (const { ano, valor } of edicao.valores) {
       validos.push({
-        series_code: SERIE,
+        series_code: cultura.serie,
         observed_at: `${ano}-09-01`,
         value: valor,
         unit: "mil acres",
-        source_code: SOURCE_CODE,
+        source_code: cultura.sourceCode,
         published_at: fimDoDiaUtc(edicao.data),
         published_at_is_estimated: false,
         published_at_basis: "source",
         metadata: {
           fonte: "USDA NASS (ESMIS)",
-          produto: "milho",
+          produto: cultura.tabela.nome,
           relatorio: nome,
           anoPlantio: ano,
           // Intenção de plantio só no ano da edição do Prospective Plantings; o resto é área plantada estimada.
@@ -262,26 +265,38 @@ function normalize(edicoes) {
   return { validos, invalidos };
 }
 
-module.exports = {
-  codigo: "usda-area-plantada-milho",
-  timeoutMs: TIMEOUT_MS,
-  get tentativasRetry() {
-    return env.collectors.retryTentativas;
-  },
-  download,
-  downloadIntervalo,
-  parse,
-  normalize,
-  persist,
-  persistirBackfill,
+// Coletor de uma cultura de CULTURAS ("milho", "soja").
+function criarColetorAreaPlantada(chave) {
+  const cultura = CULTURAS[chave];
+  if (!cultura) throw new Error(`Cultura da área plantada desconhecida: ${chave} (conhecidas: ${Object.keys(CULTURAS).join(", ")}).`);
+  return {
+    codigo: cultura.codigo,
+    timeoutMs: TIMEOUT_MS,
+    get tentativasRetry() {
+      return env.collectors.retryTentativas;
+    },
+    download,
+    downloadIntervalo,
+    parse: (rawData) => parse(cultura, rawData),
+    normalize: (edicoes) => normalize(cultura, edicoes),
+    persist: (validos, contexto, deps = {}) => persistir(cultura, validos, contexto, deps, true),
+    persistirBackfill: (validos, contexto, deps = {}) => persistir(cultura, validos, contexto, deps, false),
+    SOURCE_CODE: cultura.sourceCode,
+    SERIE: cultura.serie
+  };
+}
+
+// O módulo continua sendo o coletor do milho (o de antes), com a fábrica ao lado.
+// (Object.assign sobre o próprio coletor preserva o getter de retentativas.)
+module.exports = Object.assign(criarColetorAreaPlantada("milho"), {
+  criarColetorAreaPlantada,
+  CULTURAS,
   extrairEdicoesDaPagina,
   escolherUmaPorData,
   listarEdicoes,
   baixarEdicoes,
   conferirEdicao,
   csvDaEdicao,
-  SOURCE_CODE,
-  SERIE,
   DATA_INICIAL,
   PAUSA_MS
-};
+});

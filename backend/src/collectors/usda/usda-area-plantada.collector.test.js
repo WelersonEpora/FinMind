@@ -273,3 +273,20 @@ test("persist (coleta diária) se recusa a gravar com a série vazia; depois do 
   assert.deepEqual([diaria.criados, diaria.atualizados, diaria.ignorados, diaria.falhas.length], [0, 0, 2, 0]);
   assert.equal(repo.linhas.length, 2);
 });
+
+test("soja (ADR 0112): coletor, fonte e série próprios, e o backfill da soja na mensagem; cultura desconhecida falha cedo", async () => {
+  const soja = coletor.criarColetorAreaPlantada("soja");
+  assert.equal(soja.codigo, "usda-area-plantada-soja");
+  assert.equal(coletor.codigo, "usda-area-plantada-milho", "o módulo continua sendo o coletor do milho");
+  assert.throws(() => coletor.criarColetorAreaPlantada("trigo"), /desconhecida/);
+
+  const { validos } = soja.normalize([edicao("prospective-plantings", "2026-03-31", { 2025: 81215, 2026: 84700 })]);
+  const v = validos.find((x) => x.observed_at === "2026-09-01");
+  assert.equal(v.series_code, "USDA.SOYBEANS.AREA_PLANTED");
+  assert.equal(v.source_code, "USDA_NASS_AREA_SOJA");
+  assert.equal(v.metadata.produto, "soja");
+  assert.equal(v.metadata.tipoEstimativa, "intencao");
+
+  const recusada = await soja.persist(validos, { execucaoId: "x" }, { observationRepository: repositorioEmMemoria() });
+  assert.match(recusada.falhas[0].motivo, /backfill:usda-area-plantada-soja/);
+});

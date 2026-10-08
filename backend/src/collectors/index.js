@@ -100,6 +100,8 @@ function bootstrapCollectors() {
     // Soja, fase 1 (só aquisição, ADR 0111): o mesmo WASDE, outra tabela.
     registerCollector(wasdeCollector.criarColetorWasde("soja"));
     registerCollector(usdaAreaPlantadaCollector);
+    // Soja, fase 1 (só aquisição, ADR 0112): as mesmas edições, outra tabela.
+    registerCollector(usdaAreaPlantadaCollector.criarColetorAreaPlantada("soja"));
     registerCollector(usdaGrainStocksCollector);
     registerCollector(usdaPsdCafeCollector);
     registerCollector(iceCafeEstoquesCollector);

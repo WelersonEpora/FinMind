@@ -2,7 +2,7 @@
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { lerLinhaCsv, extrairAreaPlantada } = require("./usda-area-plantada.parser");
+const { CULTURAS, lerLinhaCsv, extrairAreaPlantada } = require("./usda-area-plantada.parser");
 
 // Trechos no layout REAL dos CSV do ESMIS (cortados: poucos estados), um de cada época.
 
@@ -96,4 +96,51 @@ test("recusa a edição (erro, nunca um valor errado) quando falta a tabela, o t
   assert.throws(() => extrairAreaPlantada(PP_2002.replace('"US",79551', '"XX",79551')), /linha do total dos EUA, achei 0/);
   assert.throws(() => extrairAreaPlantada(PP_2014.replace(/\(1,000 acres\)/g, "(1,000 hectares)")), /unidade inesperada/);
   assert.throws(() => extrairAreaPlantada(PP_2014.replace("97155,95365,91691", '97155,"(D)",91691')), /2013 não é um número/);
+});
+
+// ---- Soja (ADR 0112): a mesma tabela por estado, com o título da soja. Trechos do layout REAL: "Soybeans: ..." até
+// 2009 (no Acreage, com a área colhida) e "Soybean Area Planted ..." depois. As tabelas da soja plantada depois de
+// outra cultura e a de biotecnologia ficam de fora.
+const ACREAGE_SOJA_2005 = [
+  '24,"t","Acreage: Released June 30, 2005, by the National Agricultural Statistics Service (NASS), Agricultural Statistics Board, U.S. Department of Agriculture."',
+  '24,"t","Soybeans: Area Planted and Harvested by State and United States, 2004-2005"',
+  '24,"h","","Area Planted","Area Planted","Area Harvested","Area Harvested"',
+  '24,"h","","2004","2005","2004","2005 1/"',
+  '24,"u","","1,000 Acres","1,000 Acres","1,000 Acres","1,000 Acres"',
+  '24,"d","US",75208,73303,73958,72475',
+  '25,"t","Soybeans: Percent of Acreage Planted Following Another Harvested Crop, Selected States and United States, 2001-2005 1/"',
+  '25,"h","","2001","2002","2003","2004","2005"',
+  '25,"d","US",4,4,4,5,5',
+  '60,"t","Soybeans: Biotechnology Varieties by State and United States, Percent of All Soybeans Planted, 2004-2005"',
+  '60,"h","","Area Planted","Area Planted"',
+  '60,"h","","2004","2005"',
+  '60,"d","US",85,87'
+].join("\n");
+
+const PP_SOJA_2026 = [
+  '93,"t","Prospective Plantings: Released March 31, 2026, by the National Agricultural Statistics Service (NASS), Agricultural Statistics Board, United States Department of Agriculture (USDA)."',
+  '93,"t","Soybean Area Planted - States and United States: 2024-2026"',
+  '93,"h","","Area planted","Area planted","Area planted","Area planted"',
+  '93,"h","","2024","2025","2026 1/","Percent of"',
+  '93,"u","","(1,000 acres)","(1,000 acres)","(1,000 acres)","(percent)"',
+  '93,"d","United States",87260,81215,84700,104',
+  // A do milho na mesma edição: a soja não a lê, e o milho não lê a da soja.
+  '91,"t","Corn Area Planted - States and United States: 2024-2026"',
+  '91,"h","","Area planted","Area planted","Area planted","Area planted"',
+  '91,"h","","2024","2025","2026 1/","Percent of"',
+  '91,"u","","(1,000 acres)","(1,000 acres)","(1,000 acres)","(percent)"',
+  '91,"d","United States",90594,98788,95338,97'
+].join("\n");
+
+test("soja: tabela achada pelos dois títulos ('Soybeans:' e 'Soybean'), só a área plantada; milho e soja não se misturam", () => {
+  const soja = CULTURAS.soja;
+  assert.deepEqual(extrairAreaPlantada(ACREAGE_SOJA_2005, soja).valores, [
+    { ano: 2004, valor: 75208 },
+    { ano: 2005, valor: 73303 }
+  ]);
+  const pp = extrairAreaPlantada(PP_SOJA_2026, soja);
+  assert.equal(pp.dataLiberacao, "2026-03-31");
+  assert.deepEqual(pp.valores.map((v) => v.valor), [87260, 81215, 84700]);
+  assert.deepEqual(extrairAreaPlantada(PP_SOJA_2026).valores.map((v) => v.valor), [90594, 98788, 95338], "o padrão continua sendo o milho");
+  assert.throws(() => extrairAreaPlantada(ACREAGE_2005, soja), /área plantada de soja, achei 0/);
 });

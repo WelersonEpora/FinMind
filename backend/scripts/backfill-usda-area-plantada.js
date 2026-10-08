@@ -1,6 +1,6 @@
 "use strict";
 
-// Backfill da área plantada de milho dos EUA (USDA NASS: Prospective Plantings e Acreage, pelo ESMIS) - roda
+// Backfill da área plantada de milho ou de soja dos EUA (`--cultura`, padrão milho; a soja é a fase 1, ADR 0112) (USDA NASS: Prospective Plantings e Acreage, pelo ESMIS) - roda
 // fora da rotina diária (scripts/run-coleta.js). Reaproveita o coletor real
 // (collectors/usda/usda-area-plantada.collector.js), o runner e o log de execução; só troca a fase de
 // download para baixar TODAS as edições com CSV em vez da mais recente de cada publicação. ADR 0027.
@@ -12,13 +12,14 @@
 // 1 s de pausa (a política de uso do ESMIS não foi confirmada): ~1,5 minuto, UMA execução. Reexecutar é seguro
 // (idempotente por valor, ADR 0008): o serviço só grava o que mudou.
 //
-// Uso:
-//   node scripts/backfill-usda-area-plantada.js                      (desde 2001-06, o início do CSV)
+// Uso (pelo npm: `backfill:usda-area-plantada` e `backfill:usda-area-plantada-soja`):
+//   node scripts/backfill-usda-area-plantada.js                      (milho, desde 2001-06, o início do CSV)
+//   node scripts/backfill-usda-area-plantada.js --cultura=soja
 //   node scripts/backfill-usda-area-plantada.js --dataInicial=2015-01-01
 
 const { sequelize } = require("../src/models");
 const { executarColetor } = require("../src/collectors/base/collector-runner");
-const coletor = require("../src/collectors/usda/usda-area-plantada.collector");
+const areaPlantada = require("../src/collectors/usda/usda-area-plantada.collector");
 const logger = require("../src/shared/logger");
 
 const TIMEOUT_BACKFILL_MS = 20 * 60 * 1000;
@@ -33,17 +34,20 @@ function parseArgs() {
 }
 
 function resolverDataInicial({ dataInicial }) {
-  const data = dataInicial || coletor.DATA_INICIAL;
+  const data = dataInicial || areaPlantada.DATA_INICIAL;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Data inicial inválida: ${data} (use AAAA-MM-DD).`);
-  if (data < coletor.DATA_INICIAL) {
-    throw new Error(`Antes de ${coletor.DATA_INICIAL} o ESMIS só tem TXT/PDF, sem leitor implementado (ADR 0027).`);
+  if (data < areaPlantada.DATA_INICIAL) {
+    throw new Error(`Antes de ${areaPlantada.DATA_INICIAL} o ESMIS só tem TXT/PDF, sem leitor implementado (ADR 0027).`);
   }
   return data;
 }
 
 async function main() {
-  const dataInicial = resolverDataInicial(parseArgs());
-  logger.info({ dataInicial }, "Iniciando backfill da área plantada de milho dos EUA (USDA/ESMIS)");
+  const args = parseArgs();
+  const dataInicial = resolverDataInicial(args);
+  const cultura = args.cultura || "milho";
+  const coletor = areaPlantada.criarColetorAreaPlantada(cultura);
+  logger.info({ cultura, dataInicial }, `Iniciando backfill da área plantada dos EUA (USDA/ESMIS, ${cultura})`);
 
   const execucao = await executarColetor(
     {

@@ -1,7 +1,8 @@
 "use strict";
 
-// Leitor do CSV do Prospective Plantings (março) e do Acreage (junho) do USDA NASS: só a área plantada de
-// milho dos EUA. ADR 0027.
+// Leitor do CSV do Prospective Plantings (março) e do Acreage (junho) do USDA NASS: só a área plantada dos EUA, do
+// milho (ADR 0027) e da soja (ADR 0112: "Soybeans: Area Planted..." até 2009, "Soybean Area Planted..." depois; a
+// mesma tabela por estado, conferida nas 51 edições). Os comentários abaixo descrevem o milho.
 //
 // FORMATO (o `*_all*.csv` que vem no ZIP de cada edição no ESMIS, conferido nas 51 edições de 2001 a 2026):
 // cada linha começa pelo número da tabela e por um tipo - "t" (título), "h" (cabeçalho), "u" (unidade) e "d"
@@ -96,9 +97,15 @@ function tituloDe(tabela) {
     .trim();
 }
 
-function ehTabelaDaAreaDoMilho(tabela) {
+// Começo do título da tabela de cada cultura.
+const CULTURAS = {
+  milho: { nome: "milho", titulo: /^corn\b/i },
+  soja: { nome: "soja", titulo: /^soybeans?\b/i }
+};
+
+function ehTabelaDaArea(tabela, cultura = CULTURAS.milho) {
   const titulo = tituloDe(tabela);
-  return /^corn\b/i.test(titulo) && /area planted/i.test(titulo) && !/biotech|left to be planted/i.test(titulo);
+  return cultura.titulo.test(titulo) && /area planted/i.test(titulo) && !/biotech|left to be planted/i.test(titulo);
 }
 
 const RE_ANO = /^(\d{4})(?:\s+\d+\/)?$/;
@@ -126,11 +133,11 @@ function ehMilAcres(texto) {
 
 // CSV de uma edição -> { dataLiberacao, titulo, valores: [{ ano, valor }] }. Lança erro se a tabela, as
 // colunas, o total ou a unidade não forem os esperados: é melhor recusar a edição do que gravar errado.
-function extrairAreaPlantada(textoCsv) {
+function extrairAreaPlantada(textoCsv, cultura = CULTURAS.milho) {
   const tabelas = agruparTabelas(textoCsv);
-  const candidatas = tabelas.filter(ehTabelaDaAreaDoMilho);
+  const candidatas = tabelas.filter((t) => ehTabelaDaArea(t, cultura));
   if (candidatas.length !== 1) {
-    throw new Error(`esperava 1 tabela de área plantada de milho, achei ${candidatas.length} (${candidatas.map(tituloDe).join(" | ") || "nenhuma"}).`);
+    throw new Error(`esperava 1 tabela de área plantada de ${cultura.nome}, achei ${candidatas.length} (${candidatas.map(tituloDe).join(" | ") || "nenhuma"}).`);
   }
   const tabela = candidatas[0];
 
@@ -158,4 +165,4 @@ function extrairAreaPlantada(textoCsv) {
   return { dataLiberacao: dataDeLiberacao(tabelas), titulo: tituloDe(tabela), valores };
 }
 
-module.exports = { lerLinhaCsv, agruparTabelas, dataDeLiberacao, extrairAreaPlantada, ehTabelaDaAreaDoMilho, colunasDeAreaPlantada };
+module.exports = { CULTURAS, lerLinhaCsv, agruparTabelas, dataDeLiberacao, extrairAreaPlantada, ehTabelaDaArea, colunasDeAreaPlantada };
