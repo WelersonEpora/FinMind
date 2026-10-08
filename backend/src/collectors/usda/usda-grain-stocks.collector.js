@@ -5,9 +5,10 @@ const { UpstreamServiceError } = require("../../shared/errors");
 const { fimDoDiaUtc } = require("../../shared/utils/date-utils");
 const { persistirPorEdicao } = require("../base/persist-observations");
 const { listarEdicoes, baixarEdicoes, csvDaEdicao } = require("./usda-area-plantada.collector");
-const { extrairEstoquesMilho, ehOutroRelatorio } = require("./usda-grain-stocks.parser");
+const { extrairEstoques, ehOutroRelatorio, CULTURAS: BLOCOS } = require("./usda-grain-stocks.parser");
 
-// USDA NASS - Grain Stocks: estoques de milho dos EUA em 1º de março, junho, setembro e dezembro, por posição (na
+// USDA NASS - Grain Stocks: estoques de milho (e, desde 2026-10-08, de soja: fase 1 da soja, só aquisição, ADR 0113)
+// dos EUA em 1º de março, junho, setembro e dezembro, por posição (na
 // fazenda, fora da fazenda e total), lidos do CSV de cada edição publicada no ESMIS. ADR 0035.
 //
 // POR QUE O ESMIS E NÃO A API DO QUICKSTATS: a API guarda só o valor revisado (os estoques de 2025 foram
@@ -31,9 +32,13 @@ const { extrairEstoquesMilho, ehOutroRelatorio } = require("./usda-grain-stocks.
 // published_at: a data do release é REAL (listagem do ESMIS, conferida com o CSV). O horário não: o relatório sai
 // ao meio-dia de Washington, e aqui vale o FIM DO DIA em UTC (como no WASDE).
 
-const SOURCE_CODE = "USDA_NASS_GRAIN_STOCKS";
 const PUBLICACAO = "grain-stocks";
-const PREFIXO_SERIE = "USDA.GRAIN_STOCKS.CORN";
+// Um coletor por grão, com as mesmas edições; a soja tem fonte própria (o descarte das edições já ingeridas olha a
+// fonte; ver o WASDE, ADR 0111).
+const CULTURAS = {
+  milho: { codigo: "usda-grain-stocks-milho", sourceCode: "USDA_NASS_GRAIN_STOCKS", prefixoSerie: "USDA.GRAIN_STOCKS.CORN", bloco: BLOCOS.milho, scriptBackfill: "backfill:usda-grain-stocks" },
+  soja: { codigo: "usda-grain-stocks-soja", sourceCode: "USDA_NASS_GRAIN_STOCKS_SOJA", prefixoSerie: "USDA.GRAIN_STOCKS.SOYBEANS", bloco: BLOCOS.soja, scriptBackfill: "backfill:usda-grain-stocks-soja" }
+};
 // O CSV começa na edição de 2001-06-29; antes só TXT/PDF.
 const DATA_INICIAL = "2001-06-01";
 const TIMEOUT_MS = 5 * 60 * 1000;
@@ -50,17 +55,15 @@ async function downloadIntervalo({ dataInicial = DATA_INICIAL, signal, fetchFn, 
   return baixarEdicoes(edicoes, { signal, fetchFn, esperar });
 }
 
-const mensagemSemCarga = ({ valores }) =>
-  `Carga histórica do Grain Stocks (USDA) ainda não feita (${valores} valores não gravados): rode "npm run backfill:usda-grain-stocks" antes da coleta diária.`;
-
-const persist = (validos, contexto, deps = {}) =>
-  persistirPorEdicao(validos, contexto, deps, { sourceCode: SOURCE_CODE, exigirCargaInicial: true, mensagemSemCarga });
-const persistirBackfill = (validos, contexto, deps = {}) =>
-  persistirPorEdicao(validos, contexto, deps, { sourceCode: SOURCE_CODE, exigirCargaInicial: false, mensagemSemCarga });
+function persistir(cultura, validos, contexto, deps, exigirCargaInicial) {
+  const mensagemSemCarga = ({ valores }) =>
+    `Carga histórica do Grain Stocks (USDA, ${cultura.bloco.nome}) ainda não feita (${valores} valores não gravados): rode "npm run ${cultura.scriptBackfill}" antes da coleta diária.`;
+  return persistirPorEdicao(validos, contexto, deps, { sourceCode: cultura.sourceCode, exigirCargaInicial, mensagemSemCarga });
+}
 
 // Cada edição vira { data, slug, arquivo, outroRelatorio | dataLiberacao, titulo, valores | erro }. Falha ao ler
 // UMA edição não aborta as demais.
-function parse(rawData) {
+function parse(cultura, rawData) {
   if (!Array.isArray(rawData)) {
     throw new UpstreamServiceError("Resposta do ESMIS em formato inesperado (esperava uma lista de edições).");
   }
@@ -70,14 +73,14 @@ function parse(rawData) {
     try {
       const csv = csvDaEdicao(item.buffer);
       if (ehOutroRelatorio(csv)) return { ...base, outroRelatorio: true };
-      return { ...base, ...extrairEstoquesMilho(csv) };
+      return { ...base, ...extrairEstoques(csv, cultura.bloco) };
     } catch (err) {
       return { ...base, erro: `Falha ao ler o CSV: ${err.message}` };
     }
   });
 }
 
-function normalize(edicoes) {
+function normalize(cultura, edicoes) {
   const validos = [];
   const invalidos = [];
   const avisos = [];
@@ -100,17 +103,17 @@ function normalize(edicoes) {
 
     for (const { observedAt, posicao, valor, revisado } of edicao.valores) {
       validos.push({
-        series_code: `${PREFIXO_SERIE}.${posicao}`,
+        series_code: `${cultura.prefixoSerie}.${posicao}`,
         observed_at: observedAt,
         value: valor,
         unit: "mil bu",
-        source_code: SOURCE_CODE,
+        source_code: cultura.sourceCode,
         published_at: fimDoDiaUtc(edicao.data),
         published_at_is_estimated: false,
         published_at_basis: "source",
         metadata: {
           fonte: "USDA NASS (ESMIS)",
-          produto: "milho",
+          produto: cultura.bloco.nome,
           relatorio: "Grain Stocks",
           posicao,
           dataRelease: edicao.data,
@@ -126,19 +129,27 @@ function normalize(edicoes) {
   return { validos, invalidos, avisos };
 }
 
-module.exports = {
-  codigo: "usda-grain-stocks-milho",
-  timeoutMs: TIMEOUT_MS,
-  get tentativasRetry() {
-    return env.collectors.retryTentativas;
-  },
-  download,
-  downloadIntervalo,
-  parse,
-  normalize,
-  persist,
-  persistirBackfill,
-  SOURCE_CODE,
-  PREFIXO_SERIE,
-  DATA_INICIAL
-};
+// Coletor de um grão de CULTURAS ("milho", "soja").
+function criarColetorGrainStocks(chave) {
+  const cultura = CULTURAS[chave];
+  if (!cultura) throw new Error(`Grão do Grain Stocks desconhecido: ${chave} (conhecidos: ${Object.keys(CULTURAS).join(", ")}).`);
+  return {
+    codigo: cultura.codigo,
+    timeoutMs: TIMEOUT_MS,
+    get tentativasRetry() {
+      return env.collectors.retryTentativas;
+    },
+    download,
+    downloadIntervalo,
+    parse: (rawData) => parse(cultura, rawData),
+    normalize: (edicoes) => normalize(cultura, edicoes),
+    persist: (validos, contexto, deps = {}) => persistir(cultura, validos, contexto, deps, true),
+    persistirBackfill: (validos, contexto, deps = {}) => persistir(cultura, validos, contexto, deps, false),
+    SOURCE_CODE: cultura.sourceCode,
+    PREFIXO_SERIE: cultura.prefixoSerie
+  };
+}
+
+// O módulo continua sendo o coletor do milho (o de antes), com a fábrica ao lado.
+// (Object.assign sobre o próprio coletor preserva o getter de retentativas.)
+module.exports = Object.assign(criarColetorGrainStocks("milho"), { criarColetorGrainStocks, CULTURAS, DATA_INICIAL });

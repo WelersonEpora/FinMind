@@ -103,6 +103,8 @@ function bootstrapCollectors() {
     // Soja, fase 1 (só aquisição, ADR 0112): as mesmas edições, outra tabela.
     registerCollector(usdaAreaPlantadaCollector.criarColetorAreaPlantada("soja"));
     registerCollector(usdaGrainStocksCollector);
+    // Soja, fase 1 (só aquisição, ADR 0113): as mesmas edições, o bloco da soja.
+    registerCollector(usdaGrainStocksCollector.criarColetorGrainStocks("soja"));
     registerCollector(usdaPsdCafeCollector);
     registerCollector(iceCafeEstoquesCollector);
     registerCollector(icoCafeCollector);

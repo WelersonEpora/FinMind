@@ -53,3 +53,19 @@ test("parse: edição sem ZIP vira erro da edição, sem derrubar o lote", () =>
   assert.match(item.erro, /não tem o arquivo ZIP/);
   assert.throws(() => coletor.parse({}));
 });
+
+test("soja (ADR 0113): coletor, fonte e séries próprios, e o backfill da soja na mensagem; grão desconhecido falha cedo", async () => {
+  const soja = coletor.criarColetorGrainStocks("soja");
+  assert.equal(soja.codigo, "usda-grain-stocks-soja");
+  assert.equal(coletor.codigo, "usda-grain-stocks-milho", "o módulo continua sendo o coletor do milho");
+  assert.throws(() => coletor.criarColetorGrainStocks("trigo"), /desconhecido/);
+
+  const { validos } = soja.normalize([edicao("2026-09-30", [{ observedAt: "2026-09-01", posicao: "TOTAL", valor: 315133 }])]);
+  assert.equal(validos[0].series_code, "USDA.GRAIN_STOCKS.SOYBEANS.TOTAL");
+  assert.equal(validos[0].source_code, "USDA_NASS_GRAIN_STOCKS_SOJA");
+  assert.equal(validos[0].metadata.produto, "soja");
+
+  const repo = { listarSeriesEInstantes: async () => [] };
+  const recusada = await soja.persist(validos, { execucaoId: "x" }, { observationRepository: repo });
+  assert.match(recusada.falhas[0].motivo, /backfill:usda-grain-stocks-soja/);
+});

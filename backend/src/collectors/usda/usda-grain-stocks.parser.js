@@ -1,7 +1,8 @@
 "use strict";
 
-// Leitor do CSV do Grain Stocks do USDA NASS: só os estoques de MILHO dos EUA por posição (na fazenda, fora da
-// fazenda e total), em 1º de março, junho, setembro e dezembro. ADR 0035.
+// Leitor do CSV do Grain Stocks do USDA NASS: só os estoques de MILHO (ADR 0035) e de SOJA (ADR 0113) dos EUA por
+// posição (na fazenda, fora da fazenda e total), em 1º de março, junho, setembro e dezembro. A soja é o último bloco
+// da mesma tabela ("Soybeans"), conferida nas 103 edições. Os comentários abaixo descrevem o milho.
 //
 // FORMATO (o `grst_all_tables.csv` do ZIP de cada edição no ESMIS, conferido nas 103 edições de 2001-06-29 a
 // 2026-09-30): o mesmo do Prospective Plantings (linhas "t", "h", "u", "d" com o número da tabela na frente). A
@@ -25,6 +26,11 @@ const { lerLinhaCsv, dataDeLiberacao } = require("./usda-area-plantada.parser");
 
 const MESES = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
 const POSICOES = { ON_FARM: "ON_FARM", OFF_FARM: "OFF_FARM", TOTAL: "TOTAL" };
+// O rótulo do bloco de cada grão na tabela por posição e mês.
+const CULTURAS = {
+  milho: { nome: "milho", rotulo: /^corn$/i },
+  soja: { nome: "soja", rotulo: /^soybeans$/i }
+};
 
 // Linhas de UMA tabela, na ordem do arquivo: [{ tipo, celulas }] (celulas[0] é o rótulo).
 function linhasPorTabela(textoCsv) {
@@ -107,10 +113,10 @@ function graoDaLinha(linha, colunas) {
 }
 
 // CSV de uma edição -> { dataLiberacao, titulo, valores: [{ observedAt, posicao, valor }] }. Lança erro se a tabela,
-// as colunas ou a unidade não forem os esperados, ou se faltar o milho: é melhor recusar a edição do que gravar
-// errado (inclusive uma data repetida no bloco do milho). Célula vazia (trimestre ainda não estimado) ou "(D)"
+// as colunas ou a unidade não forem os esperados, ou se faltar o grão: é melhor recusar a edição do que gravar
+// errado (inclusive uma data repetida no bloco do grão). Célula vazia (trimestre ainda não estimado) ou "(D)"
 // (sigilo) não é valor.
-function extrairEstoquesMilho(textoCsv) {
+function extrairEstoques(textoCsv, cultura = CULTURAS.milho) {
   const tabelas = linhasPorTabela(textoCsv);
   const candidatas = [...tabelas.values()].filter(ehTabelaPorPosicaoEMes);
   if (candidatas.length === 0) throw new Error("tabela de estoques por posição e mês (unidades domésticas) não encontrada.");
@@ -127,21 +133,21 @@ function extrairEstoquesMilho(textoCsv) {
 
   const valores = [];
   let grao = null;
-  let achouMilho = false;
-  const datasDoMilho = new Set();
+  let achouGrao = false;
+  const datasDoGrao = new Set();
   for (const linha of linhas) {
     const novoGrao = graoDaLinha(linha, colunas);
     if (novoGrao) {
       grao = novoGrao;
-      if (/^corn$/i.test(grao)) achouMilho = true;
+      if (cultura.rotulo.test(grao)) achouGrao = true;
       continue;
     }
-    if (linha.tipo !== "d" || !/^corn$/i.test(grao || "")) continue;
+    if (linha.tipo !== "d" || !cultura.rotulo.test(grao || "")) continue;
     const mes = mesDaData(linha.celulas[0]);
     if (!mes) continue;
-    // Trava: uma data repetida no bloco do milho é sinal de que o bloco do grão seguinte não foi reconhecido.
-    if (datasDoMilho.has(mes)) throw new Error(`a data "${linha.celulas[0]}" aparece duas vezes no bloco do milho (o grão seguinte não foi reconhecido).`);
-    datasDoMilho.add(mes);
+    // Trava: uma data repetida no bloco do grão é sinal de que o bloco do grão seguinte não foi reconhecido.
+    if (datasDoGrao.has(mes)) throw new Error(`a data "${linha.celulas[0]}" aparece duas vezes no bloco de ${cultura.nome} (o grão seguinte não foi reconhecido).`);
+    datasDoGrao.add(mes);
 
     for (const { indice, ano, posicao } of colunas) {
       const celula = linha.celulas[indice] || "";
@@ -149,14 +155,14 @@ function extrairEstoquesMilho(textoCsv) {
       const revisado = celula.startsWith("*");
       const bruto = revisado ? celula.slice(1) : celula;
       const valor = Number(bruto.replace(/,/g, ""));
-      if (!/^[\d,]+$/.test(bruto) || !Number.isFinite(valor)) throw new Error(`valor do milho em ${linha.celulas[0]} de ${ano} não é um número: "${celula}".`);
+      if (!/^[\d,]+$/.test(bruto) || !Number.isFinite(valor)) throw new Error(`valor de ${cultura.nome} em ${linha.celulas[0]} de ${ano} não é um número: "${celula}".`);
       valores.push({ observedAt: `${ano}-${String(mes).padStart(2, "0")}-01`, posicao, valor, ...(revisado && { revisado: true }) });
     }
   }
-  if (!achouMilho) throw new Error(`tabela "${tituloDe(linhas)}" sem o bloco do milho.`);
-  if (valores.length === 0) throw new Error("bloco do milho sem nenhum valor.");
+  if (!achouGrao) throw new Error(`tabela "${tituloDe(linhas)}" sem o bloco de ${cultura.nome}.`);
+  if (valores.length === 0) throw new Error(`bloco de ${cultura.nome} sem nenhum valor.`);
 
   return { dataLiberacao: dataDeLiberacao([{ titulos: linhas.filter((l) => l.tipo === "t").map((l) => l.celulas[0]) }]), titulo: tituloDe(linhas), valores };
 }
 
-module.exports = { extrairEstoquesMilho, ehOutroRelatorio, linhasPorTabela, mesDaData, colunasDe, POSICOES };
+module.exports = { CULTURAS, extrairEstoques, ehOutroRelatorio, linhasPorTabela, mesDaData, colunasDe, POSICOES };

@@ -2,7 +2,7 @@
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { extrairEstoquesMilho, ehOutroRelatorio, mesDaData } = require("./usda-grain-stocks.parser");
+const { CULTURAS, extrairEstoques, ehOutroRelatorio, mesDaData } = require("./usda-grain-stocks.parser");
 
 // Trechos reais da tabela 1 de três edições (grst_all_tables.csv do ESMIS), nos três layouts. Nenhum teste chama o ESMIS.
 const CSV_2026 = `1,"t","Grain Stocks: Released September 30, 2026, by the National Agricultural Statistics Service (NASS), Agricultural Statistics Board, United States Department of Agriculture (USDA)."
@@ -63,7 +63,7 @@ const CSV_2013 = `1,t,"Grain Stocks: Released January 11, 2013, by the National 
 const achar = (valores, data, posicao) => valores.find((v) => v.observedAt === data && v.posicao === posicao)?.valor;
 
 test("layout atual: o milho por posição e trimestre, dos dois anos; o trimestre vazio não vira valor; outros grãos e a tabela métrica ficam de fora", () => {
-  const r = extrairEstoquesMilho(CSV_2026);
+  const r = extrairEstoques(CSV_2026);
   assert.equal(r.dataLiberacao, "2026-09-30");
   assert.equal(achar(r.valores, "2026-09-01", "TOTAL"), 2095057);
   assert.equal(achar(r.valores, "2025-09-01", "TOTAL"), 1551286);
@@ -75,7 +75,7 @@ test("layout atual: o milho por posição e trimestre, dos dois anos; o trimestr
 });
 
 test('layout até 2012 (grão no cabeçalho, "Mar 1") e o "*" de revisado', () => {
-  const r = extrairEstoquesMilho(CSV_2010);
+  const r = extrairEstoques(CSV_2010);
   assert.equal(r.dataLiberacao, "2010-03-31");
   assert.equal(achar(r.valores, "2010-03-01", "TOTAL"), 7693434);
   const dez = r.valores.find((v) => v.observedAt === "2009-12-01" && v.posicao === "TOTAL");
@@ -84,7 +84,7 @@ test('layout até 2012 (grão no cabeçalho, "Mar 1") e o "*" de revisado', () =
 });
 
 test('layout de 2013-01-11 (sem aspas, "1-Mar")', () => {
-  const r = extrairEstoquesMilho(CSV_2013);
+  const r = extrairEstoques(CSV_2013);
   assert.equal(r.dataLiberacao, "2013-01-11");
   assert.equal(achar(r.valores, "2012-12-01", "OFF_FARM"), 3444474);
   assert.equal(r.valores.length, 12);
@@ -99,8 +99,8 @@ test("datas aceitas: March 1, Mar 1, Sept 1, 1-Mar; outras não", () => {
 });
 
 test("recusa a edição em vez de gravar errado: sem milho, ou unidade diferente de mil bushels", () => {
-  assert.throws(() => extrairEstoquesMilho(CSV_2026.replace(/"Corn"/g, '"Rice"')), /sem o bloco do milho/);
-  assert.throws(() => extrairEstoquesMilho(CSV_2026.replace(/\(1,000 bushels\)/g, "(bushels)")), /unidade inesperada/);
+  assert.throws(() => extrairEstoques(CSV_2026.replace(/"Corn"/g, '"Rice"')), /sem o bloco de milho/);
+  assert.throws(() => extrairEstoques(CSV_2026.replace(/\(1,000 bushels\)/g, "(bushels)")), /unidade inesperada/);
 });
 
 test("o arquivo de outro relatório listado como Grain Stocks é reconhecido (2003-02-27)", () => {
@@ -115,12 +115,44 @@ test('defeito real de 2010-03-31: a linha "Sorghum" veio com valores; mesmo assi
     '1,"h","","Sorghum","Sorghum","Sorghum","Sorghum","Sorghum","Sorghum"',
     '1,"d","Sorghum ",32200,173650,205850,23680,151581,175261'
   );
-  const r = extrairEstoquesMilho(csv);
+  const r = extrairEstoques(csv);
   assert.equal(achar(r.valores, "2010-03-01", "TOTAL"), 7693434);
   assert.ok(!r.valores.some((v) => v.valor === 175261 || v.valor === 158652), "nada do sorgo");
 });
 
 test("trava: uma data repetida no bloco do milho recusa a edição", () => {
   const csv = CSV_2026.replace('1,"d","June 1"', '1,"d","March 1"');
-  assert.throws(() => extrairEstoquesMilho(csv), /duas vezes no bloco do milho/);
+  assert.throws(() => extrairEstoques(csv), /duas vezes no bloco de milho/);
+});
+
+// ---- Soja (ADR 0113): o último bloco da mesma tabela ("Soybeans"), layout REAL de 2026-09-30 (com o fim da tabela).
+const CSV_SOJA_2026 = CSV_2026.replace(
+  '1,"d","Sorghum",,,,,,\n1,"d","March 1",14900,135325,150225,23500,148197,171697',
+  [
+    '1,"d","Sorghum",,,,,,',
+    '1,"d","March 1",14900,135325,150225,23500,148197,171697',
+    '1,"d","",,,,,,',
+    '1,"d","Soybeans",,,,,,',
+    '1,"d","March 1",876500,1034424,1910924,900000,1223249,2123249',
+    '1,"d","June 1",411700,595939,1007639,367000,692442,1059442',
+    '1,"d","September 1",91500,233306,324806,90400,224733,315133',
+    '1,"d","December 1",1576000,1711070,3287070',
+    '1,"c",""',
+    '1,"f","1/ Includes stocks at mills, elevators, warehouses, terminals, and processors."'
+  ].join("\n")
+);
+
+test("soja: o bloco Soybeans da mesma tabela, por posição; o milho continua lendo só o dele", () => {
+  assert.notEqual(CSV_SOJA_2026, CSV_2026, "a fixture da soja foi montada");
+  const r = extrairEstoques(CSV_SOJA_2026, CULTURAS.soja);
+  const total = (data) => r.valores.find((v) => v.observedAt === data && v.posicao === "TOTAL")?.valor;
+  assert.equal(r.valores.length, 21, "7 datas x 3 posições");
+  assert.equal(total("2025-09-01"), 324806);
+  assert.equal(total("2026-09-01"), 315133);
+  assert.equal(total("2025-12-01"), 3287070);
+  assert.equal(r.valores.find((v) => v.observedAt === "2026-03-01" && v.posicao === "ON_FARM").valor, 900000);
+
+  const milho = extrairEstoques(CSV_SOJA_2026);
+  assert.equal(milho.valores.find((v) => v.observedAt === "2026-09-01" && v.posicao === "TOTAL").valor, 2095057);
+  assert.throws(() => extrairEstoques(CSV_2026, CULTURAS.soja), /sem o bloco de soja/);
 });

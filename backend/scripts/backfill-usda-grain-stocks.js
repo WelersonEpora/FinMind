@@ -1,6 +1,7 @@
 "use strict";
 
-// Backfill do Grain Stocks: estoques trimestrais de milho dos EUA (USDA NASS, pelo ESMIS) - roda
+// Backfill do Grain Stocks: estoques trimestrais de milho ou de soja (`--cultura`, padrão milho; a soja é a fase 1,
+// ADR 0113) dos EUA (USDA NASS, pelo ESMIS) - roda
 // fora da rotina diária (scripts/run-coleta.js). Reaproveita o coletor real
 // (collectors/usda/usda-grain-stocks.collector.js), o runner e o log de execução; só troca a fase de
 // download para baixar TODAS as edições com CSV em vez da mais recente. ADR 0035.
@@ -12,13 +13,14 @@
 // foi confirmada): ~3 minutos, UMA execução. Reexecutar é seguro
 // (idempotente por valor, ADR 0008): o serviço só grava o que mudou.
 //
-// Uso:
-//   node scripts/backfill-usda-grain-stocks.js                      (desde 2001-06, o início do CSV)
+// Uso (pelo npm: `backfill:usda-grain-stocks` e `backfill:usda-grain-stocks-soja`):
+//   node scripts/backfill-usda-grain-stocks.js                      (milho, desde 2001-06, o início do CSV)
+//   node scripts/backfill-usda-grain-stocks.js --cultura=soja
 //   node scripts/backfill-usda-grain-stocks.js --dataInicial=2015-01-01
 
 const { sequelize } = require("../src/models");
 const { executarColetor } = require("../src/collectors/base/collector-runner");
-const coletor = require("../src/collectors/usda/usda-grain-stocks.collector");
+const grainStocks = require("../src/collectors/usda/usda-grain-stocks.collector");
 const logger = require("../src/shared/logger");
 
 const TIMEOUT_BACKFILL_MS = 20 * 60 * 1000;
@@ -33,17 +35,20 @@ function parseArgs() {
 }
 
 function resolverDataInicial({ dataInicial }) {
-  const data = dataInicial || coletor.DATA_INICIAL;
+  const data = dataInicial || grainStocks.DATA_INICIAL;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error(`Data inicial inválida: ${data} (use AAAA-MM-DD).`);
-  if (data < coletor.DATA_INICIAL) {
-    throw new Error(`Antes de ${coletor.DATA_INICIAL} o ESMIS só tem TXT/PDF, sem leitor implementado (ADR 0035).`);
+  if (data < grainStocks.DATA_INICIAL) {
+    throw new Error(`Antes de ${grainStocks.DATA_INICIAL} o ESMIS só tem TXT/PDF, sem leitor implementado (ADR 0035).`);
   }
   return data;
 }
 
 async function main() {
-  const dataInicial = resolverDataInicial(parseArgs());
-  logger.info({ dataInicial }, "Iniciando backfill do Grain Stocks do milho (USDA/ESMIS)");
+  const args = parseArgs();
+  const dataInicial = resolverDataInicial(args);
+  const cultura = args.cultura || "milho";
+  const coletor = grainStocks.criarColetorGrainStocks(cultura);
+  logger.info({ cultura, dataInicial }, `Iniciando backfill do Grain Stocks (USDA/ESMIS, ${cultura})`);
 
   const execucao = await executarColetor(
     {

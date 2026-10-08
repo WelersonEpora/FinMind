@@ -877,6 +877,34 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://esmis.nal.usda.gov/publication/grain-stocks"
     }
   },
+  // Soja (fase 1 da soja, só aquisição, ADR 0113): o bloco da soja da mesma tabela.
+  {
+    instrumentCode: "ESTOQUES_SOJA_EUA_TRIMESTRAIS",
+    origem: "observation",
+    nome: "Estoques trimestrais de soja dos EUA (USDA Grain Stocks)",
+    unidade: "mil bushels",
+    casasDecimais: 0,
+    frequencia: "TRIMESTRAL",
+    toleranciaDias: 140,
+    fonte: "USDA NASS - Grain Stocks",
+    fonteCollectorCode: "usda-grain-stocks-soja",
+    series: [
+      { modalidade: "total", seriesCode: "USDA.GRAIN_STOCKS.SOYBEANS.TOTAL" },
+      { modalidade: "na_fazenda", seriesCode: "USDA.GRAIN_STOCKS.SOYBEANS.ON_FARM" },
+      { modalidade: "fora_da_fazenda", seriesCode: "USDA.GRAIN_STOCKS.SOYBEANS.OFF_FARM" }
+    ],
+    modalidadePrincipal: "total",
+    fonteDetalhe: {
+      descricao:
+        "Estoques de soja em grão dos EUA em 1º de março, junho, setembro e dezembro, por posição: na fazenda, fora da fazenda (armazéns, elevadores, esmagadoras) e o total, em mil bushels, como o USDA NASS publica no relatório Grain Stocks. O WASDE só traz o estoque de fim de ano-safra (1º de setembro); os demais trimestres só existem aqui.",
+      metodologia:
+        "Um valor por trimestre (o dia da observação é a data do estoque). Cada relatório traz os trimestres do ano anterior e do corrente, com o número que o USDA tinha naquele dia: a data de publicação é a REAL do release (listagem do ESMIS, conferida com o CSV), e cada revisão vira uma versão nova. A API do QuickStats não serve para isso: guarda só o valor revisado. Edições com CSV desde 2001-06-29 (antes, só TXT/PDF). Licença: dado do governo dos EUA, não verificado juridicamente.",
+      escopo:
+        "só a soja dos EUA, total nacional. Não coletados: os estoques por estado e a tabela em unidades métricas. Fase 1 da soja, só aquisição: nenhum fator lê esta série.",
+      formatoOrigem: "CSV dentro do ZIP de cada edição (arquivo de publicações do USDA, ESMIS)",
+      urlOficial: "https://esmis.nal.usda.gov/publication/grain-stocks"
+    }
+  },
 
   // --- EIA - etanol combustível dos EUA, semanal (fator do milho "Demanda de etanol", ADR 0024) ---
   // Séries `EIA.ETANOL.<CAMPO>`: produção e estoques têm unidades diferentes, uma por vez no seletor de métrica.
