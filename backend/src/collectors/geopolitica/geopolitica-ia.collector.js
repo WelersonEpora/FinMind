@@ -8,7 +8,7 @@ const geopoliticaRepository = require("../../repositories/geopolitica.repository
 const { parsearBoletim } = require("./geopolitica-boletim.parser");
 const { resolverLinks, paginasDoTrecho } = require("./paginas-da-pesquisa");
 const { FONTES, fonteDaUrl, paginaEspecifica, classificarFonte, fontesDaPesquisa, listaParaPrompt, sugestoesDeBusca } = require("./fontes-autorizadas");
-const { ATIVOS, NOME_ATIVO, ROTULO_ATIVO, TIPOS, FRENTES } = require("../../shared/eventos-mercado");
+const { ATIVOS, NOME_ATIVO, ROTULO_ATIVO, TIPOS, LEITURAS, TODAS_AS_FRENTES } = require("../../shared/eventos-mercado");
 const { FATORES } = require("../../shared/fatores-fel1");
 
 // Leitura diária de EVENTOS DE MERCADO do ouro, do petróleo, do milho e do café. Nasceu como a leitura de geopolítica
@@ -39,7 +39,18 @@ const { FATORES } = require("../../shared/fatores-fel1");
 // A data de referência é o dia em São Paulo (a análise é feita no Brasil). A busca ao vivo não é reproduzível: a
 // leitura só vale da primeira coleta em diante e não serve para backtest (ADR 0047).
 
+// Uma configuração por LEITURA (ADR 0115): a principal (os quatro ativos validados, duas frentes, o prompt de sempre) e
+// a da soja (fase 1 da soja, só aquisição: uma frente, prompt próprio, outra linha por dia). Cada uma é um coletor com
+// execução, falha e "refazer" próprios: a da soja nunca toca na leitura principal.
 const ARQUIVO_PROMPT = "geopolitica-diaria.md";
+const CONFIGURACOES = {
+  PRINCIPAL: { codigo: "geopolitica-ia-diario", leitura: LEITURAS.PRINCIPAL.codigo, frentes: LEITURAS.PRINCIPAL.frentes, arquivoPrompt: ARQUIVO_PROMPT },
+  SOJA: { codigo: "geopolitica-ia-soja", leitura: LEITURAS.SOJA.codigo, frentes: LEITURAS.SOJA.frentes, arquivoPrompt: "eventos-soja-diaria.md" }
+};
+
+function frentePorCodigo(codigo) {
+  return TODAS_AS_FRENTES.find((f) => f.codigo === codigo);
+}
 
 function hojeEmSaoPaulo(agora = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
@@ -80,11 +91,18 @@ const MAR_NEGRO = {
   instrucao: "uma busca na AP News sobre o Mar Negro (a guerra Rússia-Ucrânia e os portos de grãos, como Odessa): a Ucrânia é grande exportadora de milho",
   vale: (fonte) => fonte === FONTES.AP
 };
+// Soja (ADR 0115): uma fonte de política comercial ou regulação PARA A SOJA (o bloco `soja` da fonte).
+const COMERCIO_DA_SOJA = {
+  descricao: "fonte de política comercial ou regulação da soja",
+  instrucao: "ao menos uma busca numa fonte de política comercial ou regulação da soja (a lista diz os tipos de cada fonte); as de logística sozinhas não bastam",
+  vale: (fonte) => Boolean(fonte.soja) && fonte.soja.tipos.some((t) => TIPOS_DO_PISO_AGRO.includes(t))
+};
 const PISO = {
   OURO: [ESCALADA_OU_SANCAO],
   PETROLEO: [GEOPOLITICA_OU_OFERTA],
   MILHO: [COMERCIO_DO_ATIVO("MILHO"), MAR_NEGRO],
-  CAFE: [COMERCIO_DO_ATIVO("CAFE")]
+  CAFE: [COMERCIO_DO_ATIVO("CAFE")],
+  SOJA: [COMERCIO_DA_SOJA]
 };
 
 // As exigências do piso que nenhuma fonte lida cumpriu ([] = piso cumprido).
@@ -161,8 +179,8 @@ function eventosRecentesParaPrompt(recentes, ativos) {
 
 // O prompt de uma frente: a mesma instrução do sistema, com os ativos, o piso, as fontes, os fatores, as sugestões e os
 // eventos recentes dela.
-function montarPrompt(dataReferencia, frente, recentes = []) {
-  return carregarPrompt(ARQUIVO_PROMPT, {
+function montarPrompt(dataReferencia, frente, recentes = [], arquivo = ARQUIVO_PROMPT) {
+  return carregarPrompt(arquivo, {
     eventos_recentes: eventosRecentesParaPrompt(recentes, frente.ativos),
     data_referencia: dataReferencia,
     ativos: frente.ativos.map((ativo) => ROTULO_ATIVO[ativo]).join(" e "),
@@ -215,8 +233,8 @@ function faltasDaResposta(frente, resposta) {
 // Uma frente. Se a resposta declarou um ativo NORMAL sem cumprir o piso (ADR 0049, item 14), a chamada desta frente é
 // repetida UMA vez e fica a resposta com menos faltas (no empate, a primeira). Só esta frente repete; os tokens da
 // resposta descartada entram na conta da execução. Se a repetição falhar, fica a primeira resposta.
-async function chamarFrente(frente, { dataReferencia, recentes, provedor, signal, fetchFn }) {
-  const { versao, instrucaoDoSistema, prompt } = montarPrompt(dataReferencia, frente, recentes);
+async function chamarFrente(frente, { dataReferencia, recentes, provedor, signal, fetchFn, arquivoPrompt }) {
+  const { versao, instrucaoDoSistema, prompt } = montarPrompt(dataReferencia, frente, recentes, arquivoPrompt);
   const contexto = { instrucaoDoSistema, prompt, provedor, signal, fetchFn };
   let resposta = await responderPesquisando(frente, contexto);
   let tokensDescartados = 0;
@@ -240,7 +258,7 @@ async function chamarFrente(frente, { dataReferencia, recentes, provedor, signal
   return { frente: frente.codigo, ...resposta, tokensDescartados, repetidaPeloPiso, prompt, instrucaoDoSistema, versaoPrompt: versao };
 }
 
-async function download({ signal }, deps = {}) {
+async function download(config, { signal }, deps = {}) {
   const provedor = deps.geminiSearch || geminiSearch;
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
   const dataReferencia = deps.dataReferencia || hojeEmSaoPaulo();
@@ -249,7 +267,7 @@ async function download({ signal }, deps = {}) {
   // Uma leitura por dia, a primeira que der certo: o cron roda 3 vezes (01h, 03h e 05h em Brasília) e as execuções
   // seguintes só servem de nova tentativa quando a anterior falhou. Pular não gasta chamada; fica como "ignorado" na
   // execução. GEOPOLITICA_REFAZER=1 força uma nova leitura, que substitui a do dia.
-  if (!refazer && (await repo.existeLeituraDoDia(dataReferencia))) {
+  if (!refazer && (await repo.existeLeituraDoDia(dataReferencia, config.leitura))) {
     return { pular: true, dataReferencia };
   }
 
@@ -258,9 +276,11 @@ async function download({ signal }, deps = {}) {
     await repo.listarEventosAceitosRecentes({ dataInicio: diasAntes(dataReferencia, JANELA_REPETICAO_DIAS), dataFim: diasAntes(dataReferencia, 1) })
   );
 
-  // As duas frentes em paralelo; se uma falhar, nada é gravado (a leitura do dia é uma só).
+  // As frentes da leitura em paralelo; se uma falhar, nada é gravado (a leitura do dia é uma só).
   const chamadas = await Promise.all(
-    FRENTES.map((frente) => chamarFrente(frente, { dataReferencia, recentes, provedor, signal, fetchFn: deps.fetch || fetch }))
+    config.frentes.map((frente) =>
+      chamarFrente(frente, { dataReferencia, recentes, provedor, signal, fetchFn: deps.fetch || fetch, arquivoPrompt: config.arquivoPrompt })
+    )
   );
   return { dataReferencia, versaoPrompt: chamadas[0].versaoPrompt, instrucaoDoSistema: chamadas[0].instrucaoDoSistema, chamadas, eventosRecentes: recentes };
 }
@@ -359,7 +379,7 @@ function juntarGroundings(chamadas) {
 
 // Os textos das chamadas num só, cada um com o nome da frente (a resposta bruta e o prompt gravados na leitura).
 function juntarTextos(chamadas, campo) {
-  return chamadas.map((chamada) => `=== ${FRENTES.find((f) => f.codigo === chamada.frente).nome.toUpperCase()} ===\n${chamada[campo]}`).join("\n\n");
+  return chamadas.map((chamada) => `=== ${frentePorCodigo(chamada.frente).nome.toUpperCase()} ===\n${chamada[campo]}`).join("\n\n");
 }
 
 // Dados das chamadas de IA para o detalhe da execução (tela Execuções): qual chave respondeu, o modelo, os tokens, quanto
@@ -411,7 +431,7 @@ function repeticao(linha, paginasVistas, dataReferencia) {
   return null;
 }
 
-function normalize([resposta]) {
+function normalize(config, [resposta]) {
   // Já havia leitura de hoje: nada a validar; o persist conta como "ignorado".
   if (resposta.pular) return { validos: [{ pular: true }], invalidos: [], avisos: [] };
 
@@ -422,7 +442,7 @@ function normalize([resposta]) {
   const paginasVistas = paginasVistasDe(resposta.eventosRecentes || []);
 
   for (const chamada of resposta.chamadas) {
-    const frente = FRENTES.find((f) => f.codigo === chamada.frente);
+    const frente = frentePorCodigo(chamada.frente);
     const boletim = parsearBoletim(chamada.texto);
     for (const ativo of frente.ativos) {
       const secao = boletim.ativos[ativo];
@@ -480,8 +500,10 @@ function normalize([resposta]) {
   const detalhes = detalhesDaIa(resposta);
   const leitura = {
     data_referencia: resposta.dataReferencia,
+    frente: config.leitura,
+    // Só as colunas dos ativos desta leitura (a principal não tem a soja; a da soja não tem os outros).
     ...Object.fromEntries(
-      ATIVOS.flatMap((ativo) => {
+      config.frentes.flatMap((f) => f.ativos).flatMap((ativo) => {
         const coluna = ativo.toLowerCase();
         return [
           [`nivel_${coluna}`, secoes[ativo].nivel],
@@ -516,20 +538,30 @@ async function persist(validos, { execucaoId }, deps = {}) {
   return resultado;
 }
 
-module.exports = {
-  codigo: "geopolitica-ia-diario",
-  // O provedor já controla o tempo de cada chamada e as repetições (5xx na mesma chave, depois a chave paga). Este é
-  // o teto da execução inteira: as duas frentes rodam em paralelo; no pior caso, uma frente faz quatro chamadas longas
-  // em sequência (nova tentativa quando a IA não pesquisa, e a repetição pelo piso), mais as esperas entre tentativas.
-  get timeoutMs() {
-    return 4 * env.gemini.timeoutMs + 60000;
-  },
-  // Sem repetição no runner: repetir aqui refaria também a chamada com a chave paga.
-  tentativasRetry: 1,
-  download,
-  parse,
-  normalize,
-  persist,
+// Coletor de uma leitura de CONFIGURACOES ("PRINCIPAL", "SOJA").
+function criarColetorEventos(chave) {
+  const config = CONFIGURACOES[chave];
+  return {
+    codigo: config.codigo,
+    // O provedor já controla o tempo de cada chamada e as repetições (5xx na mesma chave, depois a chave paga). Este é
+    // o teto da execução inteira: as frentes rodam em paralelo; no pior caso, uma frente faz quatro chamadas longas
+    // em sequência (nova tentativa quando a IA não pesquisa, e a repetição pelo piso), mais as esperas entre tentativas.
+    get timeoutMs() {
+      return 4 * env.gemini.timeoutMs + 60000;
+    },
+    // Sem repetição no runner: repetir aqui refaria também a chamada com a chave paga.
+    tentativasRetry: 1,
+    download: (opcoes, deps) => download(config, opcoes, deps),
+    parse,
+    normalize: (itens) => normalize(config, itens),
+    persist
+  };
+}
+
+// O módulo continua sendo o coletor da leitura principal (o de antes), com o da soja ao lado.
+// (Object.assign sobre o próprio coletor preserva o getter do timeout.)
+module.exports = Object.assign(criarColetorEventos("PRINCIPAL"), {
+  coletorSoja: criarColetorEventos("SOJA"),
   hojeEmSaoPaulo,
   montarPrompt
-};
+});

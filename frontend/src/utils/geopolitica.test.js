@@ -12,7 +12,7 @@ test('nível: rótulo e classe de cada um da escala; código desconhecido aparec
 test('ativo e grau', () => {
   assert.equal(rotuloAtivo('PETROLEO'), 'Petróleo')
   assert.equal(rotuloAtivo('CAFE'), 'Café')
-  assert.deepEqual(Object.keys(ATIVOS), ['OURO', 'PETROLEO', 'MILHO', 'CAFE'])
+  assert.deepEqual(Object.keys(ATIVOS), ['OURO', 'PETROLEO', 'MILHO', 'CAFE', 'SOJA'])
   assert.equal(rotuloGrau('MEDIA'), 'Média')
   assert.equal(rotuloGrau(null), '—')
 })

@@ -146,6 +146,9 @@ function bootstrapCollectors() {
     // Geopolítica do ouro e do petróleo: uma chamada diária ao Gemini com busca na web (ADR 0047).
     if (env.gemini.apiKeyFree || env.gemini.apiKey) {
       registerCollector(geopoliticaIaCollector);
+      // Eventos da soja (fase 1 da soja, só aquisição, ADR 0115): leitura PRÓPRIA, outra chamada e outra linha por dia;
+      // uma falha dela não toca na leitura principal e ela não vai ao Motor nem à leitura de tendência.
+      registerCollector(geopoliticaIaCollector.coletorSoja);
       // Leitura diária de tendência dos quatro ativos (ADRs 0052, 0054, 0058 e 0062): por ÚLTIMO, para usar a base do
       // dia já coletada (os fatores e a leitura de eventos acima). Uma por ativo, independentes.
       for (const coletor of COLETORES_ANALISE_DIARIA) registerCollector(coletor);

@@ -218,6 +218,80 @@ const FONTES = {
   }
 };
 
+// SOJA (fase 1 da soja, só aquisição, ADR 0115): a leitura própria da soja usa fontes que JÁ estão autorizadas, com o
+// papel, os tipos e as buscas da soja num bloco à parte. O `ativos` e o `papel` de cada fonte não mudam: a lista e as
+// sugestões das chamadas dos quatro ativos validados ficam exatamente como eram. O clima não é evento da soja (é F1 e F2
+// na proposta, `docs/proposta-ativo-soja.md`, §2.9): o INMET e o CPC ficam de fora. O nível do rio Mississippi, citado
+// na proposta, não tem fonte autorizada.
+const COBERTURA_DA_SOJA = {
+  USTR: {
+    papel: "tarifas, acordos e compromissos de compra entre os EUA e a China (e outros parceiros) que atingem a soja dos EUA",
+    tipos: ["POLITICA_COMERCIAL"],
+    buscas: ["site:ustr.gov China soybeans", "site:ustr.gov China agricultural purchases agreement"]
+  },
+  CASA_BRANCA: {
+    papel: "ordens executivas de tarifa e acordos com a China; regras de biocombustível que mudam a demanda de óleo de soja",
+    tipos: ["POLITICA_COMERCIAL", "REGULACAO"],
+    buscas: ["site:whitehouse.gov China trade agreement soybeans", "site:whitehouse.gov presidential-actions biofuel"]
+  },
+  MOFCOM: {
+    papel: "tarifas, contramedidas e suspensões da China sobre a soja dos EUA",
+    tipos: ["POLITICA_COMERCIAL"],
+    buscas: ["site:english.mofcom.gov.cn soybeans tariff", "site:english.mofcom.gov.cn countermeasures United States agricultural products"]
+  },
+  COMISSAO_EUROPEIA: {
+    papel: "regulação de importação da UE que atinge a soja (EUDR, a lei antidesmatamento) e o acordo UE-Mercosul",
+    tipos: ["REGULACAO", "POLITICA_COMERCIAL"],
+    buscas: ["site:ec.europa.eu EUDR soy", "site:ec.europa.eu Mercosur trade agreement"]
+  },
+  MAPA: {
+    papel: "abertura e fechamento de mercados e acordos sanitários da soja brasileira (China em especial)",
+    tipos: ["POLITICA_COMERCIAL", "SANIDADE", "REGULACAO"],
+    buscas: ["site:gov.br/agricultura soja China mercado"]
+  },
+  USDA_FAS: {
+    papel: "medidas de outros governos sobre a soja (China, UE, Argentina e outros), relatadas pelos adidos agrícolas dos EUA",
+    tipos: ["POLITICA_COMERCIAL", "SANIDADE", "REGULACAO"],
+    buscas: ["site:fas.usda.gov GAIN soybean policy", "site:fas.usda.gov GAIN China oilseeds"]
+  },
+  BCR: {
+    papel: "greves nos portos de Rosário e o nível do rio Paraná: o polo de esmagamento e exportação da soja da Argentina",
+    tipos: ["CHOQUE_LOGISTICO"],
+    buscas: ["site:bcr.com.ar paro portuario Rosario", "site:bcr.com.ar bajante río Paraná"]
+  },
+  ARGENTINA: {
+    papel: "imposto de exportação (retenciones) e câmbio especial da soja e dos derivados na Argentina",
+    tipos: ["POLITICA_COMERCIAL"],
+    buscas: ["site:boletinoficial.gob.ar derechos de exportación soja", "site:argentina.gob.ar retenciones soja"]
+  },
+  EPA: {
+    papel: "volumes do RFS para o biodiesel e o diesel renovável (biomass-based diesel): a demanda de óleo de soja nos EUA",
+    tipos: ["REGULACAO"],
+    buscas: ["site:epa.gov Renewable Fuel Standard biomass-based diesel volumes"]
+  },
+  MME: {
+    papel: "mistura obrigatória de biodiesel no diesel (CNPE): a demanda de óleo de soja no Brasil",
+    tipos: ["REGULACAO"],
+    buscas: ["site:gov.br/mme CNPE mistura biodiesel"]
+  },
+  PANAMA: {
+    papel: "restrições de calado e de trânsito no Canal do Panamá (a rota da soja dos EUA para a Ásia)",
+    tipos: ["CHOQUE_LOGISTICO"],
+    buscas: ["site:pancanal.com advisory to shipping draft restriction"]
+  }
+};
+for (const [codigo, cobertura] of Object.entries(COBERTURA_DA_SOJA)) FONTES[codigo].soja = cobertura;
+
+// Os ativos que a fonte cobre: os da lista e, com o bloco `soja`, a soja.
+function ativosDaFonte(fonte) {
+  return fonte.soja ? [...fonte.ativos, "SOJA"] : fonte.ativos;
+}
+
+// A chamada é só da soja (a leitura própria, ADR 0115): vale o bloco `soja` de cada fonte.
+function soDaSoja(ativos) {
+  return Array.isArray(ativos) && ativos.length === 1 && ativos[0] === "SOJA";
+}
+
 const CODIGOS = Object.keys(FONTES);
 
 // Hosts de redirecionamento do grounding do Google: a URL não diz o site de origem.
@@ -323,16 +397,18 @@ function rotulosDe(codigos, rotulos) {
 
 // Fontes que cobrem algum dos ativos (os de uma chamada: ADR 0049, item 12). Sem `ativos`, todas.
 function fontesDosAtivos(ativos) {
-  return CODIGOS.filter((codigo) => !ativos || FONTES[codigo].ativos.some((a) => ativos.includes(a)));
+  return CODIGOS.filter((codigo) => !ativos || ativosDaFonte(FONTES[codigo]).some((a) => ativos.includes(a)));
 }
 
 // Texto da lista para o prompt de uma chamada: "- USTR (...) (ustr.gov) - tipos: Política comercial - ativos: milho,
 // café: tarifas ...". Só as fontes que cobrem os ativos da chamada, e só esses ativos em cada uma.
 function listaParaPrompt({ rotuloTipo, nomeAtivo, ativos }) {
+  const soja = soDaSoja(ativos);
   return fontesDosAtivos(ativos)
     .map((codigo) => {
       const fonte = FONTES[codigo];
       const enderecos = fonte.escopos.map((e) => `${e.host}${e.caminho || ""}`).join(", ");
+      if (soja) return `- ${fonte.nome} (${enderecos}) - tipos: ${rotulosDe(fonte.soja.tipos, rotuloTipo)} - ativos: ${nomeAtivo.SOJA}: ${fonte.soja.papel}`;
       const ativosDaFonte = ativos ? fonte.ativos.filter((a) => ativos.includes(a)) : fonte.ativos;
       return `- ${fonte.nome} (${enderecos}) - tipos: ${rotulosDe(fonte.tipos, rotuloTipo)} - ativos: ${rotulosDe(ativosDaFonte, nomeAtivo)}: ${fonte.papel}`;
     })
@@ -341,6 +417,7 @@ function listaParaPrompt({ rotuloTipo, nomeAtivo, ativos }) {
 
 // Uma sugestão é um texto (vale para os ativos da fonte) ou { busca, ativos } (só para esses ativos).
 function sugestoesDeBusca({ ativos } = {}) {
+  if (soDaSoja(ativos)) return fontesDosAtivos(ativos).flatMap((codigo) => FONTES[codigo].soja.buscas.map((busca) => `- ${busca}`)).join("\n");
   return fontesDosAtivos(ativos)
     .flatMap((codigo) =>
       FONTES[codigo].buscas
@@ -351,4 +428,4 @@ function sugestoesDeBusca({ ativos } = {}) {
     .join("\n");
 }
 
-module.exports = { FONTES, CODIGOS, fonteDaUrl, paginaEspecifica, classificarFonte, fontesDaPesquisa, fontesDosAtivos, listaParaPrompt, sugestoesDeBusca };
+module.exports = { FONTES, CODIGOS, ativosDaFonte, fonteDaUrl, paginaEspecifica, classificarFonte, fontesDaPesquisa, fontesDosAtivos, listaParaPrompt, sugestoesDeBusca };

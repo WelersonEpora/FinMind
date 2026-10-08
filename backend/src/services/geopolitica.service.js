@@ -3,8 +3,8 @@
 const geopoliticaRepository = require("../repositories/geopolitica.repository");
 const { NotFoundError, ValidationError } = require("../shared/errors");
 const { validarPaginacao } = require("../shared/utils/pagination");
-const { FONTES, CODIGOS, fontesDaPesquisa } = require("../collectors/geopolitica/fontes-autorizadas");
-const { ATIVOS, ROTULO_ATIVO, TIPOS, CODIGOS_TIPO, frenteDoAtivo } = require("../shared/eventos-mercado");
+const { FONTES, CODIGOS, ativosDaFonte, fontesDaPesquisa } = require("../collectors/geopolitica/fontes-autorizadas");
+const { ATIVOS, ROTULO_ATIVO, TIPOS, CODIGOS_TIPO, frenteDoAtivo, leituraDoAtivo } = require("../shared/eventos-mercado");
 const { nomeDoFator, NAO_SE_APLICA } = require("../shared/fatores-fel1");
 
 // Entrega a leitura diária de eventos de mercado (ADRs 0047 e 0049) ao Motor e às telas. Para o Motor, o bloco
@@ -408,7 +408,8 @@ function fontesConfiaveis() {
     enderecos: FONTES[codigo].escopos.map((e) => `${e.host}${e.caminho || ""}`),
     papel: FONTES[codigo].papel,
     tipos: FONTES[codigo].tipos,
-    ativos: FONTES[codigo].ativos
+    // Com a soja quando a fonte tem o bloco dela (ADR 0115).
+    ativos: ativosDaFonte(FONTES[codigo])
   }));
 }
 
@@ -423,7 +424,8 @@ async function obterUltimaLeitura(deps = {}) {
     leitura: {
       data: leitura.data_referencia,
       ...Object.fromEntries(
-        ATIVOS.map((ativo) => {
+        // Só os ativos da leitura principal: a da soja é outra linha (ADR 0115).
+        ATIVOS.filter((ativo) => leituraDoAtivo(ativo) === "PRINCIPAL").map((ativo) => {
           const coluna = ativo.toLowerCase();
           return [coluna, { nivel: leitura[`nivel_${coluna}`] ?? null, resumo: leitura[`resumo_${coluna}`] ?? null }];
         })

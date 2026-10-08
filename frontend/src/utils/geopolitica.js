@@ -8,7 +8,7 @@ const NIVEIS = {
   EXCEPCIONAL: { rotulo: 'Excepcional', classe: 'excepcional' }
 }
 
-export const ATIVOS = { OURO: 'Ouro', PETROLEO: 'Petróleo', MILHO: 'Milho', CAFE: 'Café' }
+export const ATIVOS = { OURO: 'Ouro', PETROLEO: 'Petróleo', MILHO: 'Milho', CAFE: 'Café', SOJA: 'Soja' }
 const GRAUS = { BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta' }
 
 // Pressão do fato sobre o preço (prompt v2): para que lado o fato, sozinho, empurra o preço. Não é previsão.

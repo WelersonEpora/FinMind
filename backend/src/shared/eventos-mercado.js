@@ -3,10 +3,11 @@
 // Vocabulário dos eventos de mercado (ADR 0049): os ativos e os tipos de evento. Usado pelo model, pelo parser, pelo
 // coletor e pelo serviço; a migration repete os mesmos valores nos CHECKs (mudou aqui, mude lá numa migration nova).
 
-const ATIVOS = ["OURO", "PETROLEO", "MILHO", "CAFE"];
-const NOME_ATIVO = { OURO: "ouro", PETROLEO: "petróleo", MILHO: "milho", CAFE: "café" };
+// SOJA desde 2026-10-08 (fase 1 da soja, só aquisição, ADR 0115): leitura própria, que não vai ao Motor.
+const ATIVOS = ["OURO", "PETROLEO", "MILHO", "CAFE", "SOJA"];
+const NOME_ATIVO = { OURO: "ouro", PETROLEO: "petróleo", MILHO: "milho", CAFE: "café", SOJA: "soja" };
 // Como o ativo aparece no texto da IA (seções e listas): com acento e em maiúsculas.
-const ROTULO_ATIVO = { OURO: "OURO", PETROLEO: "PETRÓLEO", MILHO: "MILHO", CAFE: "CAFÉ" };
+const ROTULO_ATIVO = { OURO: "OURO", PETROLEO: "PETRÓLEO", MILHO: "MILHO", CAFE: "CAFÉ", SOJA: "SOJA" };
 
 // Tipo = classificação do evento. A geopolítica é um tipo entre outros.
 const TIPOS = [
@@ -28,8 +29,23 @@ const FRENTES = [
   { codigo: "MILHO_CAFE", nome: "Milho e café", ativos: ["MILHO", "CAFE"] }
 ];
 
+// A soja tem leitura PRÓPRIA (ADR 0115): outra linha por dia (`frente` = SOJA), outra chamada e outro prompt, para que
+// uma falha ou uma nova leitura da soja nunca toque na leitura dos quatro ativos validados (ADR 0108). LEITURAS: a
+// frente gravada na leitura (coluna `frente`) e as frentes de chamada de cada uma.
+const FRENTE_SOJA = { codigo: "SOJA", nome: "Soja", ativos: ["SOJA"] };
+const LEITURAS = {
+  PRINCIPAL: { codigo: "PRINCIPAL", frentes: FRENTES },
+  SOJA: { codigo: "SOJA", frentes: [FRENTE_SOJA] }
+};
+const TODAS_AS_FRENTES = [...FRENTES, FRENTE_SOJA];
+
 function frenteDoAtivo(ativo) {
-  return FRENTES.find((frente) => frente.ativos.includes(ativo)) || null;
+  return TODAS_AS_FRENTES.find((frente) => frente.ativos.includes(ativo)) || null;
 }
 
-module.exports = { ATIVOS, NOME_ATIVO, ROTULO_ATIVO, TIPOS, CODIGOS_TIPO, FRENTES, frenteDoAtivo };
+// A leitura (coluna `frente`) em que o ativo é lido.
+function leituraDoAtivo(ativo) {
+  return ativo === "SOJA" ? "SOJA" : "PRINCIPAL";
+}
+
+module.exports = { ATIVOS, NOME_ATIVO, ROTULO_ATIVO, TIPOS, CODIGOS_TIPO, FRENTES, FRENTE_SOJA, LEITURAS, TODAS_AS_FRENTES, frenteDoAtivo, leituraDoAtivo };

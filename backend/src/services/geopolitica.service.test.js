@@ -124,7 +124,7 @@ test("obterGeopoliticaDoDia: milho e café (ADR 0049); leitura anterior sem o at
 });
 
 test("obterGeopoliticaDoDia: ativo ou data inválidos", async () => {
-  await assert.rejects(obterGeopoliticaDoDia("SOJA", "2026-10-01", { geopoliticaRepository: repoCom(null) }), /Ativo inválido/);
+  await assert.rejects(obterGeopoliticaDoDia("TRIGO", "2026-10-01", { geopoliticaRepository: repoCom(null) }), /Ativo inválido/);
   await assert.rejects(obterGeopoliticaDoDia("OURO", "01/10/2026", { geopoliticaRepository: repoCom(null) }), /Data de referência inválida/);
 });
 
@@ -192,7 +192,7 @@ test("listarEventos: por padrão só os aceitos; filtros e paginação passam ao
 
 test("listarEventos: filtros inválidos", async () => {
   const repo = { listarEventos: async () => ({ registros: [], total: 0 }) };
-  await assert.rejects(listarEventos({ ativo: "SOJA" }, { geopoliticaRepository: repo }), /"ativo"/);
+  await assert.rejects(listarEventos({ ativo: "TRIGO" }, { geopoliticaRepository: repo }), /"ativo"/);
   await assert.rejects(listarEventos({ situacao: "x" }, { geopoliticaRepository: repo }), /"situacao"/);
   await assert.rejects(listarEventos({ dataFim: "01/10/2026" }, { geopoliticaRepository: repo }), /"dataFim"/);
   await assert.rejects(listarEventos({ tipo: "SANCAO" }, { geopoliticaRepository: repo }), /"tipo"/);

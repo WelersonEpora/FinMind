@@ -213,7 +213,8 @@ test("parser: o fator precisa ser do próprio ativo; NAO_SE_APLICA vale", () => 
 
 test("parser: ativos e valores por ativo, com e sem acento", () => {
   assert.deepEqual(listaDeAtivos("Petróleo, OURO e café"), ["PETROLEO", "OURO", "CAFE"]);
-  assert.deepEqual(listaDeAtivos("SOJA"), []);
+  assert.deepEqual(listaDeAtivos("TRIGO"), []);
+  assert.deepEqual(listaDeAtivos("SOJA"), ["SOJA"], "a soja tem leitura própria desde o ADR 0115");
   assert.deepEqual(valoresPorAtivo("PETRÓLEO: alta; Café = baixa"), { PETROLEO: "alta", CAFE: "baixa" });
   assert.deepEqual(valoresPorAtivo("ambígua"), { "*": "ambígua" });
 });
@@ -847,4 +848,101 @@ test("download: com GEOPOLITICA_REFAZER, chama a IA mesmo com leitura de hoje (e
   const resposta = await coletor.download({ signal: undefined }, deps);
   assert.equal(provedor.recebidos.length, 2);
   assert.equal(resposta.pular, undefined);
+});
+
+// --- leitura da soja (fase 1 da soja, só aquisição, ADR 0115) ---
+
+const TEXTO_SOJA = `SOJA
+Nível: ATENÇÃO
+Resumo: A China ameaçou retaliar a soja dos EUA.
+
+EVENTOS
+
+EVENTO 1
+Título: China ameaça tarifa adicional sobre a soja dos EUA
+Tipo: POLITICA_COMERCIAL
+Ativos: SOJA
+Fator: SOJA=NAO_SE_APLICA
+Resumo: O MOFCOM anunciou consulta sobre tarifa adicional.
+Canal de transmissão: SOJA=direto: menos demanda chinesa pela soja dos EUA
+Pressão sobre o preço: SOJA=baixa
+Intensidade: SOJA=média
+Confiança: alta
+Fontes:
+MOFCOM - https://english.mofcom.gov.cn/News/x/art_1.html
+`;
+const GROUNDING_SOJA = {
+  webSearchQueries: ["site:english.mofcom.gov.cn soybeans tariff"],
+  groundingChunks: [{ web: { title: "mofcom.gov.cn", urlFinal: "https://english.mofcom.gov.cn/News/x/art_1.html" } }],
+  groundingSupports: [{ segment: { text: "China ameaça tarifa adicional sobre a soja dos EUA" }, groundingChunkIndices: [0] }]
+};
+
+test("soja: o prompt usa o arquivo próprio, só as fontes com bloco da soja (papel da soja) e o piso da soja", () => {
+  const { versao, prompt, instrucaoDoSistema } = coletor.montarPrompt("2026-10-08", { codigo: "SOJA", nome: "Soja", ativos: ["SOJA"] }, [], "eventos-soja-diaria.md");
+  assert.equal(versao, "eventos-soja-diaria@1");
+  assert.match(instrucaoDoSistema, /acompanhamento diário da SOJA/);
+  assert.match(prompt, /- MOFCOM \(Ministério do Comércio da China\) \(mofcom\.gov\.cn\) - tipos: Política comercial - ativos: soja: tarifas, contramedidas e suspensões da China sobre a soja dos EUA/);
+  assert.match(prompt, /site:english\.mofcom\.gov\.cn soybeans tariff/);
+  assert.match(prompt, /- SOJA: ao menos uma busca numa fonte de política comercial ou regulação da soja/);
+  // Fontes sem bloco da soja (clima, petróleo, ouro) e as buscas do milho ficam de fora.
+  assert.doesNotMatch(prompt, /INMET|UKMTO|opec.org|NOAA CPC|E15|maíz/);
+});
+
+test("soja: as chamadas dos quatro ativos validados não veem a soja (lista, sugestões, piso e fatores)", () => {
+  const { FRENTES } = require("../../shared/eventos-mercado");
+  for (const frente of FRENTES) {
+    const { prompt, versao } = coletor.montarPrompt("2026-10-08", frente, [{ data: "2026-10-07", ativo: "SOJA", titulo: "evento da soja", paginas: [] }]);
+    assert.equal(versao, "geopolitica-diaria@14", "o prompt principal não muda de versão");
+    assert.doesNotMatch(prompt, /soja|SOJA|soybean/i, `frente ${frente.codigo}`);
+  }
+  assert.equal(fontesDosAtivos(["MILHO", "CAFE"]).includes("BCR"), true);
+  assert.equal(fontesDosAtivos(["SOJA"]).includes("INMET"), false);
+});
+
+test("soja: coletor próprio; a leitura grava a frente SOJA e só as colunas da soja; o evento fica sem fator", () => {
+  const soja = coletor.coletorSoja;
+  assert.equal(soja.codigo, "geopolitica-ia-soja");
+  assert.equal(coletor.codigo, "geopolitica-ia-diario", "o módulo continua sendo o coletor da leitura principal");
+
+  const resposta = { dataReferencia: "2026-10-08", versaoPrompt: "eventos-soja-diaria@1", instrucaoDoSistema: "i", chamadas: [chamada("SOJA", TEXTO_SOJA, GROUNDING_SOJA)] };
+  const { validos, invalidos } = soja.normalize(soja.parse(resposta));
+  assert.equal(invalidos.length, 0);
+  const { leitura, eventos } = validos[0];
+  assert.equal(leitura.frente, "SOJA");
+  assert.equal(leitura.nivel_soja, "ATENCAO");
+  assert.equal("nivel_ouro" in leitura, false);
+  assert.match(leitura.texto_bruto, /^=== SOJA ===\nSOJA\n/);
+  assert.deepEqual(
+    eventos.map((e) => [e.ativo, e.tipo, e.fator, e.pressao, e.aceito]),
+    [["SOJA", "POLITICA_COMERCIAL", "NAO_SE_APLICA", "BAIXA", true]]
+  );
+
+  // A leitura principal continua gravando a frente PRINCIPAL e sem a coluna da soja.
+  const principal = coletor.normalize(coletor.parse(RESPOSTA)).validos[0].leitura;
+  assert.equal(principal.frente, "PRINCIPAL");
+  assert.equal("nivel_soja" in principal, false);
+});
+
+test("soja: o download confere a leitura do dia DA SOJA e faz uma chamada só, com o prompt da soja", async () => {
+  const perguntas = [];
+  const repo = {
+    existeLeituraDoDia: async (data, frente) => {
+      perguntas.push(frente);
+      return false;
+    },
+    listarEventosAceitosRecentes: async () => []
+  };
+  const recebidos = [];
+  const provedor = {
+    async pesquisarNaWeb(entrada) {
+      recebidos.push(entrada);
+      return { texto: TEXTO_SOJA, grounding: { ...GROUNDING_SOJA, groundingChunks: GROUNDING_SOJA.groundingChunks.map((c) => ({ web: { ...c.web, uri: c.web.urlFinal } })) }, modelo: "m", tokens: 10, chave: "gratuita" };
+    }
+  };
+  const fetchFn = async (url) => ({ ok: true, url, status: 200 });
+  const resposta = await coletor.coletorSoja.download({}, { geminiSearch: provedor, geopoliticaRepository: repo, dataReferencia: "2026-10-08", refazer: false, fetch: fetchFn });
+  assert.deepEqual(perguntas, ["SOJA"]);
+  assert.equal(recebidos.length, 1);
+  assert.match(recebidos[0].prompt, /leitura de eventos de mercado da soja/);
+  assert.equal(resposta.versaoPrompt, "eventos-soja-diaria@1");
 });

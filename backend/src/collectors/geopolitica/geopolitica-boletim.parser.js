@@ -35,7 +35,7 @@ const ROTULOS_EVENTO = [
 
 // Linha só com o nome da seção, aceitando "# OURO", "**PETRÓLEO**", "GEOPOLÍTICA — OURO" e dois-pontos no fim.
 const REGEX_SECAO =
-  /^[ \t]*#{0,6}[ \t]*\**[ \t]*(?:GEOPOL[IÍ]TICA[ \t]*[—–-][ \t]*)?(OURO|PETR[OÓ]LEO|MILHO|CAF[EÉ]|EVENTOS)[ \t]*\**[ \t]*:?[ \t]*\**[ \t]*$/gim;
+  /^[ \t]*#{0,6}[ \t]*\**[ \t]*(?:GEOPOL[IÍ]TICA[ \t]*[—–-][ \t]*)?(OURO|PETR[OÓ]LEO|MILHO|CAF[EÉ]|SOJA|EVENTOS)[ \t]*\**[ \t]*:?[ \t]*\**[ \t]*$/gim;
 const REGEX_EVENTO = /^[ \t]*#{0,6}[ \t]*\**[ \t]*EVENTO[ \t]+\d+[ \t]*\**[ \t]*:?[ \t]*\**[ \t]*$/gim;
 
 function semAcentoMaiusculo(texto) {
@@ -116,7 +116,7 @@ function valoresPorAtivo(valor) {
 // Texto livre por ativo (o canal de transmissão, prompt v9): "PETROLEO=frete e seguro sobem; o risco de...; OURO=..."
 // -> { PETROLEO: "...", OURO: "..." }. Corta só no "ATIVO=" (o texto pode ter ";" e ":"). Sem nenhum "ATIVO=", o texto
 // inteiro vale para todos: { "*": texto } (formato da v7/v8).
-const REGEX_ROTULO_ATIVO = /(?:^|[;\n]\s*|\s)[-*]?\s*(OURO|PETR[OÓ]LEO|MILHO|CAF[EÉ])\s*=\s*/gi;
+const REGEX_ROTULO_ATIVO = /(?:^|[;\n]\s*|\s)[-*]?\s*(OURO|PETR[OÓ]LEO|MILHO|CAF[EÉ]|SOJA)\s*=\s*/gi;
 
 function textoPorAtivo(valor) {
   if (!valor) return {};

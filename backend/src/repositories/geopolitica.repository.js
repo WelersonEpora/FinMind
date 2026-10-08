@@ -2,13 +2,16 @@
 
 const { Op } = require("sequelize");
 const { GeopoliticaLeitura, GeopoliticaEvento, sequelize } = require("../models");
+const { leituraDoAtivo } = require("../shared/eventos-mercado");
 
 // Grava a leitura do dia (ADR 0047): numa transação, apaga a leitura que já existir na mesma data (os eventos saem
 // em cascata) e insere a nova com os seus eventos. Reexecutar o dia termina sempre com exatamente o resultado da
 // última execução, sem duplicata nem evento órfão (mesmo critério do AgroMind, ADR 0027 de lá).
 async function substituirLeituraDoDia(leitura, eventos) {
   return sequelize.transaction(async (transaction) => {
-    const apagadas = await GeopoliticaLeitura.destroy({ where: { data_referencia: leitura.data_referencia }, transaction });
+    // Só a leitura da MESMA frente (ADR 0115): refazer a da soja não apaga a principal, e vice-versa.
+    const frente = leitura.frente || "PRINCIPAL";
+    const apagadas = await GeopoliticaLeitura.destroy({ where: { data_referencia: leitura.data_referencia, frente }, transaction });
     const criada = await GeopoliticaLeitura.create(leitura, { transaction });
     if (eventos.length > 0) {
       await GeopoliticaEvento.bulkCreate(
@@ -21,22 +24,22 @@ async function substituirLeituraDoDia(leitura, eventos) {
 }
 
 // Já existe leitura gravada nesta data? (o coletor pula a chamada à IA quando sim: uma leitura por dia.)
-async function existeLeituraDoDia(dataReferencia) {
-  return (await GeopoliticaLeitura.count({ where: { data_referencia: dataReferencia } })) > 0;
+async function existeLeituraDoDia(dataReferencia, frente = "PRINCIPAL") {
+  return (await GeopoliticaLeitura.count({ where: { data_referencia: dataReferencia, frente } })) > 0;
 }
 
 // A leitura de uma data, com os eventos de um ativo em ordem de relevância (ou null).
 async function buscarLeituraComEventos(dataReferencia, ativo) {
   return GeopoliticaLeitura.findOne({
-    where: { data_referencia: dataReferencia },
+    where: { data_referencia: dataReferencia, frente: leituraDoAtivo(ativo) },
     include: [{ model: GeopoliticaEvento, as: "eventos", where: { ativo }, required: false }],
     order: [[{ model: GeopoliticaEvento, as: "eventos" }, "ordem", "ASC"]]
   });
 }
 
 // A leitura mais recente (ou null), sem os eventos: a metodologia da tela Eventos (modelo e versão do prompt).
-async function buscarUltimaLeitura() {
-  return GeopoliticaLeitura.findOne({ order: [["data_referencia", "DESC"]] });
+async function buscarUltimaLeitura(frente = "PRINCIPAL") {
+  return GeopoliticaLeitura.findOne({ where: { frente }, order: [["data_referencia", "DESC"]] });
 }
 
 // Eventos para a tela, do mais recente para o mais antigo, com a data da leitura de cada um.
