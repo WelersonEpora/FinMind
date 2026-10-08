@@ -31,7 +31,7 @@ const usdaCropProgressCollector = require("./usda/usda-crop-progress.collector")
 const { criarColetorFuturoB3 } = require("./b3/b3-futuro.collector");
 const b3MilhoEsalqCollector = require("./b3/b3-milho-esalq.collector");
 const { criarColetorComexExportacao } = require("./comex/comex-exportacao.collector");
-const wasdeMilhoCollector = require("./wasde/wasde-milho.collector");
+const wasdeCollector = require("./wasde/wasde.collector");
 const usdaAreaPlantadaCollector = require("./usda/usda-area-plantada.collector");
 const usdaGrainStocksCollector = require("./usda/usda-grain-stocks.collector");
 const usdaPsdCafeCollector = require("./usda/usda-psd-cafe.collector");
@@ -96,7 +96,9 @@ function bootstrapCollectors() {
     registerCollector(anpProducaoPetroleoCollector);
     registerCollector(jodiProducaoPetroleoCollector);
     registerCollector(jodiDemandaPetroleoCollector);
-    registerCollector(wasdeMilhoCollector);
+    registerCollector(wasdeCollector);
+    // Soja, fase 1 (só aquisição, ADR 0111): o mesmo WASDE, outra tabela.
+    registerCollector(wasdeCollector.criarColetorWasde("soja"));
     registerCollector(usdaAreaPlantadaCollector);
     registerCollector(usdaGrainStocksCollector);
     registerCollector(usdaPsdCafeCollector);

@@ -111,6 +111,15 @@ const FONTE_DETALHE_WASDE_MILHO = {
   urlOficial: "https://esmis.nal.usda.gov/publication/world-agricultural-supply-and-demand-estimates"
 };
 
+// Soja (ADR 0111): as mesmas edições, outra tabela; só o grão (óleo e farelo, na mesma edição, não são coletados).
+const BASE_WASDE_SOJA = { ...BASE_WASDE_MILHO, fonteCollectorCode: "wasde-soja" };
+const FIM_ESCOPO_WASDE_SOJA =
+  "Óleo e farelo de soja, que a mesma edição traz, não são coletados. Histórico do WASDE: de 2011 em diante. Fase 1 da soja, só aquisição: nenhum fator lê esta série.";
+const FONTE_DETALHE_WASDE_SOJA = {
+  ...FONTE_DETALHE_WASDE_MILHO,
+  metodologia: FONTE_DETALHE_WASDE_MILHO.metodologia.replace('(card "Milho EUA")', '(card "Soja EUA")').replace('(card "Milho por país")', '(card "Soja por país")')
+};
+
 // Catálogo estático dos observáveis conhecidos pelo FinMind - sem tabela
 // própria de propósito (ver docs/decisoes-tecnicas.md, "não criar tabela
 // sem necessidade real"). Um novo ativo = uma entrada nova aqui + um novo
@@ -1405,6 +1414,67 @@ const CATALOGO_OBSERVAVEIS = [
       escopo: `a seleção de países que o WASDE publica: Argentina, Brasil, Canadá, China, Egito, Estados Unidos, Japão, México, Rússia, África do Sul, Coreia do Sul, Ucrânia, União Europeia e Sudeste Asiático, mais os agregados Mundo, Mundo sem China, Total estrangeiro e Grandes exportadores/importadores. Todas essas linhas são coletadas; escolha as que quer ver. A Rússia só aparece a partir de 2017 (antes o WASDE agregava a ex-URSS) e a União Europeia tem séries por período. Países fora dessa seleção (Índia, Indonésia, Vietnã e outros) não são cobertos. ${FIM_ESCOPO_WASDE_MILHO}`,
       descricao:
         "Balanço de milho por país e por métrica (estoque final e inicial, produção, importações, exportações, consumo), por safra, em milhões de toneladas, conforme a tabela mundial do WASDE do USDA (estimativa do USDA, não da Conab). Uma linha por região; os agregados (mundo, mundo sem China etc.) ficam desmarcados por padrão por terem escala muito maior."
+    }
+  },
+
+  // --- USDA WASDE - balanço da soja (fase 1 da soja, só aquisição, ADR 0111): as mesmas edições e os mesmos dois cards do milho ---
+  {
+    instrumentCode: "WASDE_SOJA_EUA",
+    nome: "Soja EUA (WASDE)",
+    unidade: "milhões de bushels",
+    casasDecimais: 0,
+    ...BASE_WASDE_SOJA,
+    porCampo: { prefixoSerie: "WASDE.SOJA.EUA" },
+    campoPrincipal: "ENDING_STOCKS",
+    campos: [
+      { codigo: "ENDING_STOCKS", nome: "Estoque final", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "PRODUCTION", nome: "Produção", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "AREA_PLANTED", nome: "Área plantada", unidade: "milhões de acres", casasDecimais: 1 },
+      { codigo: "AREA_HARVESTED", nome: "Área colhida", unidade: "milhões de acres", casasDecimais: 1 },
+      { codigo: "YIELD", nome: "Produtividade", unidade: "bushels/acre", casasDecimais: 1 },
+      { codigo: "BEGINNING_STOCKS", nome: "Estoque inicial", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "IMPORTS", nome: "Importações", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "SUPPLY_TOTAL", nome: "Oferta total", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "CRUSHINGS", nome: "Esmagamento", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "EXPORTS", nome: "Exportações", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "SEED", nome: "Sementes", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "RESIDUAL", nome: "Resíduo", unidade: "milhões de bushels", casasDecimais: 0 },
+      { codigo: "USE_TOTAL", nome: "Uso total", unidade: "milhões de bushels", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      ...FONTE_DETALHE_WASDE_SOJA,
+      escopo: `só os Estados Unidos, com as 13 métricas que o WASDE traz para a soja em grão no país. Os demais países estão no card "Soja por país", em toneladas. ${FIM_ESCOPO_WASDE_SOJA}`,
+      descricao:
+        "Balanço de soja dos Estados Unidos por safra (ano comercial set-ago), conforme o WASDE do USDA: estoques, produção, área, produtividade, oferta e uso (esmagamento, exportação, sementes e resíduo). Cada métrica na unidade do USDA (bushels, acres, bushels/acre), sem conversão."
+    }
+  },
+  {
+    instrumentCode: "WASDE_SOJA_PAISES",
+    nome: "Soja por país (WASDE)",
+    unidade: "milhões de t",
+    casasDecimais: 1,
+    ...BASE_WASDE_SOJA,
+    porRegiao: {
+      prefixoSerie: "WASDE.SOJA.MUNDO",
+      campoReferencia: "ENDING_STOCKS",
+      itemPrincipal: "WORLD",
+      itensPadrao: ["BRAZIL", "UNITED_STATES", "ARGENTINA", "CHINA"]
+    },
+    campoPrincipal: "ENDING_STOCKS",
+    campos: [
+      { codigo: "ENDING_STOCKS", nome: "Estoque final", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "PRODUCTION", nome: "Produção", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "BEGINNING_STOCKS", nome: "Estoque inicial", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "IMPORTS", nome: "Importações", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "EXPORTS", nome: "Exportações", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "DOMESTIC_TOTAL", nome: "Consumo interno total", unidade: "milhões de t", casasDecimais: 1 },
+      { codigo: "DOMESTIC_CRUSH", nome: "Esmagamento", unidade: "milhões de t", casasDecimais: 1 }
+    ],
+    fonteDetalhe: {
+      ...FONTE_DETALHE_WASDE_SOJA,
+      escopo: `a seleção de países que o WASDE publica para a soja: Argentina, Brasil, China, Estados Unidos e México em todas as edições; o Paraguai desde mai/2013; o Japão até abr/2019; o Sudeste Asiático e o agregado Mundo sem China desde mai/2019; e a União Europeia, com séries por período. Mais os agregados Mundo, Total estrangeiro e Grandes exportadores/importadores. Todas essas linhas são coletadas; escolha as que quer ver. ${FIM_ESCOPO_WASDE_SOJA}`,
+      descricao:
+        "Balanço de soja por país e por métrica (estoque final e inicial, produção, importações, exportações, consumo e esmagamento), por safra, em milhões de toneladas, conforme a tabela mundial do WASDE do USDA. Argentina e Brasil em ano comercial ajustado para out-set, como o USDA publica. Uma linha por região; os agregados ficam desmarcados por padrão por terem escala muito maior."
     }
   },
 

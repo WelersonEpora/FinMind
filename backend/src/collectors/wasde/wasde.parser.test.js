@@ -5,7 +5,7 @@ const path = require("node:path");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const XLSX = require("xlsx");
-const parser = require("./wasde-milho.parser");
+const parser = require("./wasde.parser");
 
 // Fixtures compactas que reproduzem o layout REAL das planilhas (jan/2011, jan/2015, mai/2025),
 // inclusive os desvios que já apareceram: colunas deslocadas, "NA", linha "filler", asterisco de
@@ -249,4 +249,96 @@ test('EUA: "Ethanol & by-products 3/" (abr/2011 em diante) vira ETHANOL_BYPRODUC
   const codigos = new Set(parser.extrairEua(linhas).observacoes.map((o) => o.atributo));
   assert.ok(codigos.has("ETHANOL_BYPRODUCTS"));
   assert.equal(codigos.has("ETHANOL_FUEL"), false);
+});
+
+// ---- Soja (ADR 0111): mesmo layout, outra tabela. Fixtures do layout REAL de set/2026 (aba 15 e aba 28).
+const EUA_SOJA_2026 = [
+  ["September 2026"],
+  [],
+  ["WASDE - 675 - 15"],
+  [],
+  ["U.S. Soybeans and Products Supply and Use (Domestic Measure)  1/"],
+  ["SOYBEANS", "2024/25", "2025/26 Est.", "2026/27 Proj.", "2026/27 Proj."],
+  [null, null, null, "Aug", "Sep"],
+  ["Filler", "Filler", "Filler", "Filler", "Filler"],
+  ["Area Planted", "87.3", "81.2", "86.8", "86.9"],
+  ["Production", "4374", "4262", "4519", "4535"],
+  ["Supply, Total", "4746", "4612", "4869", "4885"],
+  ["Crushings", "2445", "2655", "2780", "2780"],
+  ["Seed", "70", "75", "73", "73"],
+  ["Residual", "14", "37", "37", "38"],
+  ["Ending Stocks", "325", "325", "320", "310"],
+  ["Avg. Farm Price ($/bu)  2/", "10", "10.5", "11.4", "12"],
+  ["Total"],
+  // O bloco seguinte repete os rótulos: não pode virar soja em grão.
+  ["SOYBEAN OIL", "2024/25", "2025/26 Est.", "2026/27 Proj.", "2026/27 Proj."],
+  [null, null, null, "August", "September"],
+  ["Beginning Stocks", "1551", "1747", "1837", "1837"],
+  ["Production 4/", "29218", "30970", "32945", "32945"],
+  ["Ending stocks", "1747", "1837", "1877", "1877"],
+  ["Note:  Totals may not add due to rounding."]
+];
+
+const MUNDO_SOJA_2026 = [
+  ["September 2026"],
+  [],
+  ["WASDE - 675 - 28"],
+  [],
+  ["World Soybean Supply and Use  1/"],
+  [],
+  ["(Million Metric Tons)"],
+  [],
+  ["2024/25", null, "Beginning\nStocks", "Production", "Imports", "Domestic\nCrush", "Domestic\nTotal", "Exports", "Ending\nStocks"],
+  ["World  2/", null, "115.1", "428.11", "179.15", "359.16", "412.08", "184.33", "125.95"],
+  ["Paraguay", null, "0.29", "10.2", "0", "3.7", "3.8", "6.41", "0.29"],
+  ["2026/27 Proj.", null, "Beginning\nStocks", "Production", "Imports", "Domestic\nCrush", "Domestic\nTotal", "Exports", "Ending\nStocks"],
+  ["Brazil", "Aug", "37.69", "186", "0.8", "65", "69.6", "118", "36.89"],
+  [null, "Sep", "37.69", "186", "0.8", "65", "69.6", "118", "36.89"],
+  ["United States", "Aug", "8.85", "122.99", "0.68", "75.66", "78.63", "45.18", "8.71"],
+  [null, "Sep", "8.85", "123.42", "0.68", "75.66", "78.66", "45.86", "8.43"],
+  ["1/ Data based on local marketing years except Argentina and Brazil which are adjusted to an October-September year."]
+];
+
+const SOJA = parser.PRODUTOS.soja;
+
+test("soja, EUA: só o bloco SOYBEANS (o óleo, que repete os rótulos, fica de fora), com esmagamento, semente e resíduo", () => {
+  const { observacoes, invalidos } = parser.extrairEua(EUA_SOJA_2026, SOJA);
+
+  assert.equal(invalidos.length, 0);
+  assert.equal(achar(observacoes, "WASDE.SOJA.EUA.PRODUCTION", "2026/27").valor, 4535, "setembro, não agosto");
+  assert.equal(achar(observacoes, "WASDE.SOJA.EUA.ENDING_STOCKS", "2026/27").valor, 310, "estoque do grão, não do óleo (1877)");
+  assert.equal(achar(observacoes, "WASDE.SOJA.EUA.CRUSHINGS", "2024/25").valor, 2445);
+  assert.equal(achar(observacoes, "WASDE.SOJA.EUA.SEED", "2025/26").valor, 75);
+  assert.equal(achar(observacoes, "WASDE.SOJA.EUA.RESIDUAL", "2026/27").valor, 38);
+  assert.equal(observacoes.some((o) => o.atributo === "BEGINNING_STOCKS"), false, "o estoque inicial da fixture só existe no bloco do óleo");
+  assert.equal(observacoes.some((o) => /PRICE/.test(o.atributo)), false);
+});
+
+test("soja, mundo: esmagamento no lugar da ração, rodapé próprio e o Paraguai; vale a linha do mês atual", () => {
+  const { observacoes, invalidos } = parser.extrairMundo(MUNDO_SOJA_2026, SOJA);
+
+  assert.equal(invalidos.length, 0);
+  assert.equal(achar(observacoes, "WASDE.SOJA.MUNDO.WORLD.DOMESTIC_CRUSH", "2024/25").valor, 359.16);
+  assert.equal(achar(observacoes, "WASDE.SOJA.MUNDO.PARAGUAY.EXPORTS", "2024/25").valor, 6.41);
+  assert.equal(achar(observacoes, "WASDE.SOJA.MUNDO.UNITED_STATES.ENDING_STOCKS", "2026/27").valor, 8.43);
+  assert.equal(achar(observacoes, "WASDE.SOJA.MUNDO.BRAZIL.PRODUCTION", "2026/27").valor, 186);
+  assert.equal(observacoes.some((o) => o.atributo === "DOMESTIC_FEED"), false);
+});
+
+test("soja, edição: acha as abas pelo título e não confunde com as do farelo e do óleo; o milho não lê a soja", () => {
+  const farelo = [["September 2026"], ["World Soybean Meal Supply and Use  1/"], ...MUNDO_SOJA_2026.slice(8)];
+  const abas = [
+    { nome: "Page 15", linhas: EUA_SOJA_2026 },
+    { nome: "Page 28", linhas: MUNDO_SOJA_2026 },
+    { nome: "Page 29", linhas: farelo }
+  ];
+  const soja = parser.extrairEdicao(abas, SOJA);
+  assert.equal(soja.invalidos.length, 0);
+  assert.equal(soja.edicao, "675");
+  assert.deepEqual(soja.mes, { nome: "September", ano: 2026 });
+  assert.equal(soja.observacoes.filter((o) => o.seriesCode === "WASDE.SOJA.MUNDO.WORLD.PRODUCTION").length, 1, "uma aba do mundo só");
+
+  const milho = parser.extrairEdicao(abas);
+  assert.equal(milho.observacoes.length, 0);
+  assert.equal(milho.invalidos.length, 2);
 });

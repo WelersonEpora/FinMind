@@ -6,9 +6,10 @@ const { UpstreamServiceError } = require("../../shared/errors");
 const { fimDoDiaUtc } = require("../../shared/utils/date-utils");
 const { persistirObservacoes } = require("../base/persist-observations");
 const observationRepository = require("../../repositories/observation.repository");
-const { lerPlanilha, extrairEdicao } = require("./wasde-milho.parser");
+const { lerPlanilha, extrairEdicao, PRODUTOS } = require("./wasde.parser");
 
-// WASDE (USDA) - balanço de oferta e demanda do MILHO (EUA e mundo), uma edição por mês, lido
+// WASDE (USDA) - balanço de oferta e demanda do MILHO (ADR 0015) e da SOJA (ADR 0111; fase 1, só aquisição), EUA e
+// mundo, uma edição por mês, lido
 // da planilha XLS de cada edição publicada no ESMIS. ADR 0015.
 //
 // POR QUE ESTA FONTE E NÃO SÓ A PSD (ADR 0014): a API da PSD só devolve a edição mais recente de
@@ -31,7 +32,13 @@ const { lerPlanilha, extrairEdicao } = require("./wasde-milho.parser");
 
 const BASE_URL = "https://esmis.nal.usda.gov";
 const URL_LISTAGEM = `${BASE_URL}/concern/publications/3t945q76s`;
-const SOURCE_CODE = "USDA_WASDE";
+// Um coletor por produto, com a MESMA listagem e as mesmas planilhas. Cada produto tem a sua fonte (source_code): o
+// descarte de edições já ingeridas (persistirEdicoes) olha os instantes de publicação da fonte, e com uma fonte só a
+// carga da soja em blocos veria as edições já gravadas para o milho e pararia no 1º bloco (o caso do etanol, ADR 0035).
+const COLETORES = {
+  milho: { codigo: "wasde-milho", sourceCode: "USDA_WASDE", produto: PRODUTOS.milho, scriptBackfill: "backfill:wasde-milho" },
+  soja: { codigo: "wasde-soja", sourceCode: "USDA_WASDE_SOJA", produto: PRODUTOS.soja, scriptBackfill: "backfill:wasde-soja" }
+};
 const DATA_INICIAL = "2011-01-01";
 // A coleta diária relê as 3 últimas edições: pega a nova e uma correção republicada de uma recente.
 const EDICOES_NA_COLETA_DIARIA = 3;
@@ -176,9 +183,9 @@ async function downloadIntervalo({ dataInicial = DATA_INICIAL, dataFinal, signal
 // carregadas, as edições já ingeridas (mesmo instante de publicação já presente na fonte) são descartadas.
 // Uma série NOVA recebe todas as edições, em ordem. Uma lacuna que ficou para trás numa série já carregada
 // segue para o serviço e, se o valor difere do atual, é reportada como falha.
-async function persistirEdicoes(validos, contexto, deps, { exigirCargaInicial }) {
+async function persistirEdicoes(config, validos, contexto, deps, { exigirCargaInicial }) {
   const repo = deps.observationRepository || observationRepository;
-  const publicacoes = await repo.listarSeriesEInstantes(SOURCE_CODE, { transaction: deps.transaction });
+  const publicacoes = await repo.listarSeriesEInstantes(config.sourceCode, { transaction: deps.transaction });
   const seriesCarregadas = new Set(publicacoes.map((p) => p.series_code));
   const jaIngeridos = new Set(publicacoes.map((p) => new Date(p.published_at).getTime()));
 
@@ -190,7 +197,7 @@ async function persistirEdicoes(validos, contexto, deps, { exigirCargaInicial })
       const series = new Set(semCarga.map((v) => v.series_code)).size;
       falhas.push({
         item: null,
-        motivo: `Carga histórica do WASDE ainda não feita para ${series} série(s) (${semCarga.length} valores não gravados): rode "npm run backfill:wasde-milho" antes da coleta diária.`
+        motivo: `Carga histórica do WASDE ainda não feita para ${series} série(s) (${semCarga.length} valores não gravados): rode "npm run ${config.scriptBackfill}" antes da coleta diária.`
       });
       candidatos = validos.filter((v) => seriesCarregadas.has(v.series_code));
     }
@@ -205,8 +212,6 @@ async function persistirEdicoes(validos, contexto, deps, { exigirCargaInicial })
   };
 }
 
-const persist = (validos, contexto, deps = {}) => persistirEdicoes(validos, contexto, deps, { exigirCargaInicial: true });
-const persistirBackfill = (validos, contexto, deps = {}) => persistirEdicoes(validos, contexto, deps, { exigirCargaInicial: false });
 
 // ---------------------------------------------------------------- parse / normalize
 
@@ -214,7 +219,7 @@ const MESES_EN = ["January", "February", "March", "April", "May", "June", "July"
 
 // Cada edição vira { data, slug, arquivo, edicao, mes, observacoes, invalidos, erro }. Falha ao
 // ler UMA planilha não aborta as demais.
-function parse(rawData) {
+function parse(config, rawData) {
   if (!Array.isArray(rawData)) {
     throw new UpstreamServiceError("Resposta do ESMIS em formato inesperado (esperava uma lista de edições).");
   }
@@ -222,7 +227,7 @@ function parse(rawData) {
     const base = { data: item.data, slug: item.slug, arquivo: item.arquivo || null };
     if (item.semPlanilha) return { ...base, erro: "A edição não tem planilha XLS no ESMIS." };
     try {
-      return { ...base, ...extrairEdicao(lerPlanilha(item.buffer)) };
+      return { ...base, ...extrairEdicao(lerPlanilha(item.buffer), config.produto) };
     } catch (err) {
       return { ...base, erro: `Falha ao ler a planilha: ${err.message}` };
     }
@@ -236,7 +241,7 @@ function cabecalhoConfere(edicao) {
   return edicao.mes.ano === ano && edicao.mes.nome === MESES_EN[mes - 1];
 }
 
-function normalize(edicoes) {
+function normalize(config, edicoes) {
   const validos = [];
   const invalidos = [];
 
@@ -262,13 +267,13 @@ function normalize(edicoes) {
         observed_at: o.observedAt,
         value: o.valor,
         unit: o.unidade,
-        source_code: SOURCE_CODE,
+        source_code: config.sourceCode,
         published_at: publishedAt,
         published_at_is_estimated: false,
         published_at_basis: "source",
         metadata: {
           fonte: "USDA WASDE (ESMIS)",
-          produto: "milho",
+          produto: config.produto.nome,
           escopo: o.escopo,
           regiao: o.regiao,
           atributo: o.atributo,
@@ -288,25 +293,37 @@ function normalize(edicoes) {
   return { validos, invalidos };
 }
 
-module.exports = {
-  codigo: "wasde-milho",
-  timeoutMs: TIMEOUT_MS,
-  get tentativasRetry() {
-    return env.collectors.retryTentativas;
-  },
-  download,
-  downloadIntervalo,
-  parse,
-  normalize,
-  persist,
-  persistirBackfill,
+// Coletor de um produto de COLETORES ("milho", "soja").
+function criarColetorWasde(chave) {
+  const config = COLETORES[chave];
+  if (!config) throw new Error(`Produto do WASDE desconhecido: ${chave} (conhecidos: ${Object.keys(COLETORES).join(", ")}).`);
+  return {
+    codigo: config.codigo,
+    timeoutMs: TIMEOUT_MS,
+    get tentativasRetry() {
+      return env.collectors.retryTentativas;
+    },
+    download,
+    downloadIntervalo,
+    parse: (rawData) => parse(config, rawData),
+    normalize: (edicoes) => normalize(config, edicoes),
+    persist: (validos, contexto, deps = {}) => persistirEdicoes(config, validos, contexto, deps, { exigirCargaInicial: true }),
+    persistirBackfill: (validos, contexto, deps = {}) => persistirEdicoes(config, validos, contexto, deps, { exigirCargaInicial: false }),
+    SOURCE_CODE: config.sourceCode
+  };
+}
+
+// O módulo continua sendo o coletor do milho (o de antes), com a fábrica e as funções da listagem ao lado.
+// (Object.assign sobre o próprio coletor preserva o getter de retentativas.)
+module.exports = Object.assign(criarColetorWasde("milho"), {
+  criarColetorWasde,
+  COLETORES,
   extrairEdicoesDaPagina,
   escolherUmaPorData,
   listarEdicoes,
   baixarEdicoes,
   cabecalhoConfere,
-  SOURCE_CODE,
   DATA_INICIAL,
   EDICOES_NA_COLETA_DIARIA,
   PAUSA_MS
-};
+});

@@ -1,6 +1,8 @@
 "use strict";
 
-// Extrai o MILHO de uma edição do WASDE (planilha XLS do ESMIS). ADR 0015.
+// Extrai um produto (o MILHO, ADR 0015, e a SOJA, ADR 0111) de uma edição do WASDE (planilha XLS do ESMIS). As
+// duas tabelas de cada produto têm o mesmo layout; o que muda (títulos, rótulo do bloco, linhas e colunas) está em
+// PRODUTOS. Os comentários abaixo descrevem o milho; a soja foi conferida nas 188 edições de 2011 a 2026 (ADR 0111).
 //
 // Funciona sobre matrizes de células (array de linhas), não sobre o arquivo: a leitura do
 // XLS fica em `lerPlanilha`, e o resto é função pura, testável sem arquivo.
@@ -28,13 +30,14 @@
 
 const XLSX = require("xlsx");
 
-const TITULO_EUA = /U\.S\. Feed Grain and Corn Supply and Use/i;
-const TITULO_MUNDO = /World Corn Supply and Use/i;
 const RE_ANO = /^(\d{4})\/(\d{2})\s*(Est\.|Proj\.)?$/;
 const RE_MES_ANO = /^(January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})$/;
 const RE_NUMERO_EDICAO = /^WASDE\s*-\s*(\d+)/;
 const RE_MES_ABREVIADO = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)$/i;
 const LINHAS_DO_CABECALHO = 14;
+// Rodapé da tabela do mundo, que encerra o último bloco: "1/ Aggregate of local marketing years..." no milho e
+// "1/ Data based on local marketing years..." na soja.
+const RE_RODAPE_MUNDO = /^1\/ (Aggregate|Data based)/i;
 
 // Atributos dos EUA (rótulo normalizado -> código e unidade). Rótulo normalizado = minúsculas,
 // sem nota de rodapé ("2/") e sem pontuação.
@@ -65,6 +68,58 @@ const ATRIBUTOS_MUNDO = {
   "domestic total": "DOMESTIC_TOTAL",
   exports: "EXPORTS",
   "ending stocks": "ENDING_STOCKS"
+};
+
+// Soja (ADR 0111): no bloco "SOYBEANS" da tabela dos EUA, o uso é esmagamento, exportação, semente e resíduo; na do
+// mundo, o consumo para ração do milho dá lugar ao esmagamento. Óleo e farelo (os blocos seguintes da mesma aba e as
+// abas próprias do mundo) ficam de fora: a proposta da soja só lê o grão.
+const ATRIBUTOS_EUA_SOJA = {
+  "area planted": { codigo: "AREA_PLANTED", unidade: "M acres" },
+  "area harvested": { codigo: "AREA_HARVESTED", unidade: "M acres" },
+  "yield per harvested acre": { codigo: "YIELD", unidade: "bu/acre" },
+  "beginning stocks": { codigo: "BEGINNING_STOCKS", unidade: "M bu" },
+  production: { codigo: "PRODUCTION", unidade: "M bu" },
+  imports: { codigo: "IMPORTS", unidade: "M bu" },
+  "supply total": { codigo: "SUPPLY_TOTAL", unidade: "M bu" },
+  crushings: { codigo: "CRUSHINGS", unidade: "M bu" },
+  exports: { codigo: "EXPORTS", unidade: "M bu" },
+  seed: { codigo: "SEED", unidade: "M bu" },
+  residual: { codigo: "RESIDUAL", unidade: "M bu" },
+  "use total": { codigo: "USE_TOTAL", unidade: "M bu" },
+  "ending stocks": { codigo: "ENDING_STOCKS", unidade: "M bu" }
+};
+
+const ATRIBUTOS_MUNDO_SOJA = {
+  "beginning stocks": "BEGINNING_STOCKS",
+  production: "PRODUCTION",
+  imports: "IMPORTS",
+  "domestic crush": "DOMESTIC_CRUSH",
+  "domestic total": "DOMESTIC_TOTAL",
+  exports: "EXPORTS",
+  "ending stocks": "ENDING_STOCKS"
+};
+
+// Um produto por entrada: os títulos das abas, o rótulo do bloco na tabela dos EUA e o segmento do código da série
+// (`WASDE.<serie>.EUA.<ATRIBUTO>`, `WASDE.<serie>.MUNDO.<REGIAO>.<ATRIBUTO>`).
+const PRODUTOS = {
+  milho: {
+    nome: "milho",
+    serie: "MILHO",
+    tituloEua: /U\.S\. Feed Grain and Corn Supply and Use/i,
+    tituloMundo: /World Corn Supply and Use/i,
+    rotuloBloco: "CORN",
+    atributosEua: ATRIBUTOS_EUA,
+    atributosMundo: ATRIBUTOS_MUNDO
+  },
+  soja: {
+    nome: "soja",
+    serie: "SOJA",
+    tituloEua: /U\.S\. Soybeans and Products Supply and Use/i,
+    tituloMundo: /World Soybean Supply and Use/i,
+    rotuloBloco: "SOYBEANS",
+    atributosEua: ATRIBUTOS_EUA_SOJA,
+    atributosMundo: ATRIBUTOS_MUNDO_SOJA
+  }
 };
 
 // Linhas da tabela do mundo que são títulos de seção (rótulo normalizado), sem dado próprio.
@@ -123,11 +178,12 @@ function cabecalhoDaAba(linhas) {
   };
 }
 
-function observacao({ escopo, regiao, atributo, unidade, ano, valor }) {
-  const codigo = escopo === "EUA" ? `WASDE.MILHO.EUA.${atributo}` : `WASDE.MILHO.MUNDO.${regiao}.${atributo}`;
+function observacao({ produto, escopo, regiao, atributo, unidade, ano, valor }) {
+  const prefixo = `WASDE.${produto.serie}`;
+  const codigo = escopo === "EUA" ? `${prefixo}.EUA.${atributo}` : `${prefixo}.MUNDO.${regiao}.${atributo}`;
   return {
     seriesCode: codigo,
-    // Safra 2024/25 -> 1º de setembro de 2024 (início do ano comercial do milho nos EUA; o
+    // Safra 2024/25 -> 1º de setembro de 2024 (início do ano comercial do milho e da soja nos EUA; o
     // WASDE agrega "anos comerciais locais", então isto é uma CONVENÇÃO - ADR 0015).
     observedAt: `${ano.anoInicial}-09-01`,
     safra: ano.safra,
@@ -142,19 +198,20 @@ function observacao({ escopo, regiao, atributo, unidade, ano, valor }) {
 
 // ---------------------------------------------------------------- EUA
 
-function extrairEua(linhas) {
+function extrairEua(linhas, produto = PRODUTOS.milho) {
   const observacoes = [];
   const invalidos = [];
+  const bloco = produto.rotuloBloco;
 
-  const linhaMilho = linhas.findIndex((l) => l.some((c) => texto(c).toUpperCase() === "CORN"));
-  if (linhaMilho < 0) return { observacoes, invalidos: [{ motivo: 'Bloco "CORN" não encontrado na tabela dos EUA.' }] };
+  const linhaBloco = linhas.findIndex((l) => l.some((c) => texto(c).toUpperCase() === bloco));
+  if (linhaBloco < 0) return { observacoes, invalidos: [{ motivo: `Bloco "${bloco}" não encontrado na tabela dos EUA.` }] };
 
-  const colRotulo = linhas[linhaMilho].findIndex((c) => texto(c).toUpperCase() === "CORN");
+  const colRotulo = linhas[linhaBloco].findIndex((c) => texto(c).toUpperCase() === bloco);
 
   // Coluna -> ano. A safra em projeção repete o ano (mês anterior, mês atual): vale a última.
   const anoPorColuna = new Map();
   const colunaDoAno = new Map();
-  linhas[linhaMilho].forEach((c, i) => {
+  linhas[linhaBloco].forEach((c, i) => {
     if (i <= colRotulo) return;
     const ano = lerAno(c);
     if (ano) {
@@ -163,12 +220,14 @@ function extrairEua(linhas) {
     }
   });
   const colunas = [...colunaDoAno.values()].sort((a, b) => a - b);
-  if (colunas.length === 0) return { observacoes, invalidos: [{ motivo: "Nenhum ano (ex.: 2024/25) no cabeçalho do milho dos EUA." }] };
+  if (colunas.length === 0) return { observacoes, invalidos: [{ motivo: `Nenhum ano (ex.: 2024/25) no cabeçalho do bloco "${bloco}" dos EUA.` }] };
 
-  for (let i = linhaMilho + 1; i < linhas.length; i += 1) {
+  for (let i = linhaBloco + 1; i < linhas.length; i += 1) {
     const rotulo = texto(linhas[i][colRotulo]);
     if (/^Note/i.test(rotulo)) break;
-    const atributo = ATRIBUTOS_EUA[normalizarRotulo(rotulo)];
+    // O bloco seguinte da aba (na soja, "SOYBEAN OIL") repete os rótulos (Beginning Stocks...): é onde este acaba.
+    if (linhas[i].some((c, col) => col > colRotulo && lerAno(c))) break;
+    const atributo = produto.atributosEua[normalizarRotulo(rotulo)];
     if (!atributo) continue;
 
     for (const col of colunas) {
@@ -179,7 +238,7 @@ function extrairEua(linhas) {
         continue;
       }
       observacoes.push(
-        observacao({ escopo: "EUA", atributo: atributo.codigo, unidade: atributo.unidade, ano: anoPorColuna.get(col), valor })
+        observacao({ produto, escopo: "EUA", atributo: atributo.codigo, unidade: atributo.unidade, ano: anoPorColuna.get(col), valor })
       );
     }
   }
@@ -188,7 +247,7 @@ function extrairEua(linhas) {
 
 // ---------------------------------------------------------------- Mundo
 
-function extrairMundo(linhas) {
+function extrairMundo(linhas, produto = PRODUTOS.milho) {
   const observacoes = [];
   const invalidos = [];
 
@@ -198,7 +257,7 @@ function extrairMundo(linhas) {
   for (const linha of linhas) {
     const colunas = new Map();
     linha.forEach((c, i) => {
-      const atributo = ATRIBUTOS_MUNDO[normalizarRotulo(c)];
+      const atributo = produto.atributosMundo[normalizarRotulo(c)];
       if (atributo) colunas.set(i, atributo);
     });
 
@@ -212,7 +271,7 @@ function extrairMundo(linhas) {
       continue;
     }
     if (!bloco) continue;
-    if (/^1\/ Aggregate/i.test(texto(linha[0])) || linha.some((c) => /^1\/ Aggregate/i.test(texto(c)))) {
+    if (linha.some((c) => RE_RODAPE_MUNDO.test(texto(c)))) {
       bloco = null;
       continue;
     }
@@ -248,7 +307,7 @@ function extrairMundo(linhas) {
           invalidos.push({ motivo: `${entrada.rotulo} (${b.ano.safra}) ${atributo}: valor não numérico "${texto(linha[col])}".` });
           continue;
         }
-        observacoes.push(observacao({ escopo: "MUNDO", regiao, atributo, unidade: "Mt", ano: b.ano, valor }));
+        observacoes.push(observacao({ produto, escopo: "MUNDO", regiao, atributo, unidade: "Mt", ano: b.ano, valor }));
       }
     }
   }
@@ -259,34 +318,34 @@ function extrairMundo(linhas) {
 
 // `abas`: [{ nome, linhas }]. Devolve as observações da edição inteira (EUA + mundo) e os
 // itens inválidos. Uma edição sem a tabela dos EUA OU sem a do mundo é reportada como inválida.
-function extrairEdicao(abas) {
+function extrairEdicao(abas, produto = PRODUTOS.milho) {
   const observacoes = [];
   const invalidos = [];
   let edicao = null;
   let mesAno = null;
 
-  const abaEua = abas.find((a) => TITULO_EUA.test(cabecalhoDaAba(a.linhas).titulo));
-  const abasMundo = abas.filter((a) => TITULO_MUNDO.test(cabecalhoDaAba(a.linhas).titulo));
+  const abaEua = abas.find((a) => produto.tituloEua.test(cabecalhoDaAba(a.linhas).titulo));
+  const abasMundo = abas.filter((a) => produto.tituloMundo.test(cabecalhoDaAba(a.linhas).titulo));
 
   if (!abaEua) {
-    invalidos.push({ motivo: "Aba do milho dos EUA (U.S. Feed Grain and Corn Supply and Use) não encontrada." });
+    invalidos.push({ motivo: `Aba dos EUA (${produto.tituloEua.source.replace(/\\/g, "")}) não encontrada.` });
   } else {
     const cab = cabecalhoDaAba(abaEua.linhas);
     edicao = cab.edicao;
     mesAno = cab.mesAno;
-    const eua = extrairEua(abaEua.linhas);
+    const eua = extrairEua(abaEua.linhas, produto);
     observacoes.push(...eua.observacoes);
     invalidos.push(...eua.invalidos);
   }
 
   if (abasMundo.length === 0) {
-    invalidos.push({ motivo: "Abas do milho do mundo (World Corn Supply and Use) não encontradas." });
+    invalidos.push({ motivo: `Abas do mundo (${produto.tituloMundo.source}) não encontradas.` });
   } else {
     for (const aba of abasMundo) {
       const cab = cabecalhoDaAba(aba.linhas);
       edicao = edicao || cab.edicao;
       mesAno = mesAno || cab.mesAno;
-      const mundo = extrairMundo(aba.linhas);
+      const mundo = extrairMundo(aba.linhas, produto);
       observacoes.push(...mundo.observacoes);
       invalidos.push(...mundo.invalidos);
     }
@@ -319,5 +378,6 @@ module.exports = {
   slugRegiao,
   lerAno,
   ATRIBUTOS_EUA,
-  ATRIBUTOS_MUNDO
+  ATRIBUTOS_MUNDO,
+  PRODUTOS
 };

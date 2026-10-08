@@ -1,9 +1,9 @@
 "use strict";
 
-// Backfill do balanço do milho do WASDE (USDA/ESMIS) - roda fora da rotina diária
-// (scripts/run-coleta.js). Reaproveita o coletor real (collectors/wasde/wasde-milho.collector.js),
+// Backfill do balanço do milho e da soja do WASDE (USDA/ESMIS) - roda fora da rotina diária
+// (scripts/run-coleta.js). Reaproveita o coletor real (collectors/wasde/wasde.collector.js, um por produto: `--produto`),
 // o runner e o log de execução; só troca a fase de download para baixar as edições de um
-// intervalo de datas em vez das 3 últimas. ADR 0015.
+// intervalo de datas em vez das 3 últimas. ADRs 0015 (milho) e 0111 (soja).
 //
 // Início padrão: 2011-01-01. É onde o layout do XLS foi validado (2011 a 2026, todas as edições
 // lidas sem erro); antes disso o ESMIS só tem PDF/TXT, que exigem outro leitor (não feito).
@@ -13,11 +13,11 @@
 // de rede só perde o bloco, e ele pode ser repetido isoladamente. Reexecutar é seguro
 // (idempotente por valor, ADR 0008): o serviço só grava o que mudou.
 //
-// Uso:
-//   node scripts/backfill-wasde-milho.js                                   (2011 até hoje)
-//   node scripts/backfill-wasde-milho.js --anoInicial=2020
-//   node scripts/backfill-wasde-milho.js --anoInicial=2020 --anoFinal=2022
-//   node scripts/backfill-wasde-milho.js --anosPorBloco=99                 (tudo numa execução só)
+// Uso (`--produto` é obrigatório: milho ou soja; pelo npm, `backfill:wasde-milho` e `backfill:wasde-soja`):
+//   node scripts/backfill-wasde.js --produto=milho                                   (2011 até hoje)
+//   node scripts/backfill-wasde.js --produto=milho --anoInicial=2020
+//   node scripts/backfill-wasde.js --produto=milho --anoInicial=2020 --anoFinal=2022
+//   node scripts/backfill-wasde.js --produto=milho --anosPorBloco=99                 (tudo numa execução só)
 //
 // SÉRIE NOVA NUMA FONTE JÁ CARREGADA (ex.: o etanol, ADR 0035): use `--anosPorBloco=99`. Em blocos, o 1º bloco grava
 // a série nova e os seguintes já a veem como carregada: as edições deles, já ingeridas para as outras séries, seriam
@@ -25,12 +25,12 @@
 
 const { sequelize } = require("../src/models");
 const { executarColetor } = require("../src/collectors/base/collector-runner");
-const wasdeCollector = require("../src/collectors/wasde/wasde-milho.collector");
+const wasde = require("../src/collectors/wasde/wasde.collector");
 const logger = require("../src/shared/logger");
 
 const TIMEOUT_BACKFILL_MS = 60 * 60 * 1000;
 const ANOS_POR_BLOCO = 5;
-const ANO_MINIMO = Number(wasdeCollector.DATA_INICIAL.slice(0, 4));
+const ANO_MINIMO = Number(wasde.DATA_INICIAL.slice(0, 4));
 
 function parseArgs() {
   const args = {};
@@ -65,11 +65,13 @@ function dividirEmBlocos(anoInicial, anoFinal, anosPorBloco = ANOS_POR_BLOCO) {
 
 async function main() {
   const args = parseArgs();
+  if (!args.produto) throw new Error(`Informe --produto (${Object.keys(wasde.COLETORES).join(" ou ")}).`);
+  const wasdeCollector = wasde.criarColetorWasde(args.produto);
   const { anoInicial, anoFinal } = resolverAnos(args);
   const blocos = dividirEmBlocos(anoInicial, anoFinal, args.anosPorBloco ? Number(args.anosPorBloco) : undefined);
   const falhas = [];
 
-  logger.info({ anoInicial, anoFinal, blocos: blocos.length }, "Iniciando backfill do balanço do milho (WASDE/ESMIS)");
+  logger.info({ produto: args.produto, anoInicial, anoFinal, blocos: blocos.length }, `Iniciando backfill do balanço do WASDE (${args.produto}, ESMIS)`);
 
   for (const bloco of blocos) {
     const coletorBackfill = {
@@ -105,7 +107,7 @@ async function main() {
   if (falhas.length > 0) {
     logger.error(
       { falhas },
-      "Blocos com falha - repita só eles: npm run backfill:wasde-milho -- --anoInicial=<ano> --anoFinal=<ano>"
+      `Blocos com falha - repita só eles: npm run ${wasde.COLETORES[args.produto].scriptBackfill} -- --anoInicial=<ano> --anoFinal=<ano>`
     );
   }
   return falhas.length === 0;

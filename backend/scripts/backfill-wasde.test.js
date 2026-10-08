@@ -9,7 +9,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { resolverAnos, dividirEmBlocos } = require("./backfill-wasde-milho");
+const { resolverAnos, dividirEmBlocos } = require("./backfill-wasde");
 
 test("resolverAnos usa 2011 até o ano corrente por padrão", () => {
   assert.deepEqual(resolverAnos({}, 2026), { anoInicial: 2011, anoFinal: 2026 });

@@ -1,7 +1,7 @@
 "use strict";
 
 // Rótulos de exibição das regiões do WASDE (código = rótulo da fonte
-// normalizado pelo parser, ver collectors/wasde/wasde-milho.parser.js).
+// normalizado pelo parser, ver collectors/wasde/wasde.parser.js).
 // `agregado` = soma/grupo de países (não um país): fica em outra ordem e
 // marcado na tela, porque a escala é bem maior que a de um país.
 //
@@ -20,6 +20,7 @@ const REGIOES_WASDE = {
   EU_27_UK: { rotulo: "União Europeia (UE-27 + Reino Unido, 2018-2020)" },
   JAPAN: { rotulo: "Japão" },
   MEXICO: { rotulo: "México" },
+  PARAGUAY: { rotulo: "Paraguai" },
   RUSSIA: { rotulo: "Rússia" },
   SOUTH_AFRICA: { rotulo: "África do Sul" },
   SOUTH_KOREA: { rotulo: "Coreia do Sul" },

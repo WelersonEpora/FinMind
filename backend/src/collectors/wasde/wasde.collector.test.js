@@ -9,7 +9,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const coletor = require("./wasde-milho.collector");
+const coletor = require("./wasde.collector");
 const pointInTime = require("../../services/point-in-time.service");
 
 // Trecho REAL da listagem do ESMIS (2026-09-21), reduzido: uma linha por edição, com a data em
@@ -330,4 +330,43 @@ test("persistirBackfill: uma série NOVA recebe TODAS as edições, mesmo as que
   assert.deepEqual([r.criados, r.atualizados, r.falhas.length], [1, 2, 0]);
   const brasil = repo.linhas.filter((l) => l.series_code.includes("BRAZIL")).map((l) => l.value);
   assert.deepEqual(brasil, [50, 51, 52]);
+});
+
+test("soja (ADR 0111): coletor próprio, fonte própria e o backfill da soja na mensagem; produto desconhecido falha cedo", async () => {
+  const soja = coletor.criarColetorWasde("soja");
+  assert.equal(soja.codigo, "wasde-soja");
+  assert.equal(coletor.codigo, "wasde-milho", "o módulo continua sendo o coletor do milho");
+  assert.throws(() => coletor.criarColetorWasde("trigo"), /desconhecido/);
+
+  const edicao = (data, mes, valor) => ({
+    ...edicaoParseada(data, mes, valor),
+    observacoes: [obs("WASDE.SOJA.EUA.ENDING_STOCKS", "2026/27", valor)]
+  });
+  const { validos } = soja.normalize([edicao("2026-09-11", { nome: "September", ano: 2026 }, 310)]);
+  assert.equal(validos[0].source_code, "USDA_WASDE_SOJA");
+  assert.equal(validos[0].metadata.produto, "soja");
+
+  const repo = repositorioEmMemoria();
+  const recusada = await soja.persist(validos, { execucaoId: "x" }, { observationRepository: repo });
+  assert.match(recusada.falhas[0].motivo, /backfill:wasde-soja/);
+});
+
+test("soja: a carga em blocos não descarta as edições que o milho já gravou (cada produto tem a sua fonte)", async () => {
+  const repo = repositorioEmMemoria();
+  const soja = coletor.criarColetorWasde("soja");
+  const ago = { nome: "August", ano: 2026 };
+  const set = { nome: "September", ano: 2026 };
+  // O milho já tem agosto e setembro.
+  await coletor.persistirBackfill(
+    coletor.normalize([edicaoParseada("2026-08-12", ago, 1500), edicaoParseada("2026-09-11", set, 1567)]).validos,
+    { execucaoId: "m" },
+    { observationRepository: repo }
+  );
+  const edicaoSoja = (data, mes, valor) => ({ ...edicaoParseada(data, mes, valor), observacoes: [obs("WASDE.SOJA.EUA.ENDING_STOCKS", "2026/27", valor)] });
+  // 1º bloco da soja: agosto; 2º bloco: setembro (a série já existe, mas setembro é inédito NA FONTE da soja).
+  await soja.persistirBackfill(soja.normalize([edicaoSoja("2026-08-12", ago, 320)]).validos, { execucaoId: "s1" }, { observationRepository: repo });
+  const bloco2 = await soja.persistirBackfill(soja.normalize([edicaoSoja("2026-09-11", set, 310)]).validos, { execucaoId: "s2" }, { observationRepository: repo });
+
+  assert.equal(bloco2.ignorados, 0);
+  assert.deepEqual(repo.linhas.filter((l) => l.series_code.startsWith("WASDE.SOJA")).map((l) => l.value), [320, 310]);
 });
