@@ -27,7 +27,11 @@ const { persistirObservacoes, baixar } = require("../base/persist-observations")
 //   ou é implausível, usa o cronograma oficial (sexta 15:30 ET) marcado como
 //   ESTIMADO; caso contrário usa o `:updated_at` REAL (não estimado).
 
-const URL_BASE = "https://publicreporting.cftc.gov/resource/72hh-3qpy.json";
+// Dois relatórios, o mesmo formato (Socrata) e a mesma regra de publicação: o Disaggregated (commodities, categoria
+// "managed money") e, desde 2026-10-09, o Traders in Financial Futures (TFF, moedas e juros, categorias "dealer",
+// "asset manager" e "leveraged funds"), onde está o real brasileiro (fase 1 do dólar, ADR 0120).
+const URL_DISAGGREGATED = "https://publicreporting.cftc.gov/resource/72hh-3qpy.json";
+const URL_TFF = "https://publicreporting.cftc.gov/resource/gpe5-46if.json";
 const SOURCE_CODE = "CFTC";
 
 // Acima disto, um mesmo `:updated_at` em várias linhas = carga em lote, não
@@ -41,7 +45,10 @@ const CONTRATOS = {
   // Petróleo WTI da NYMEX (CL), desde 2026-10-01 (ADR 0040). O WTI da ICE Europe (067411) é outro contrato.
   crude: { codigoCftc: "067651", prefixo: "CFTC.CRUDE_WTI", nome: "Petróleo WTI (NYMEX)" },
   // Soja da CBOT (ZS), fase 1 da soja, só aquisição (ADR 0110). Farelo (026603) e óleo (007601) ficam de fora.
-  soybeans: { codigoCftc: "005602", prefixo: "CFTC.SOYBEANS", nome: "Soja (CBOT)" }
+  soybeans: { codigoCftc: "005602", prefixo: "CFTC.SOYBEANS", nome: "Soja (CBOT)" },
+  // Real brasileiro da CME (6L, cotado em US$ por real: comprado em real = vendido em dólar), no TFF (ADR 0120). O
+  // relatório do Comitê (fator 7) lê os fundos alavancados; as outras duas categorias vêm junto, pelo mesmo custo.
+  brl: { codigoCftc: "102741", prefixo: "CFTC.BRL", nome: "Real brasileiro (CME)", relatorio: "tff" }
 };
 
 const CAMPOS = [
@@ -49,6 +56,23 @@ const CAMPOS = [
   { campo: "m_money_positions_long_all", sufixo: "MM_LONG" },
   { campo: "m_money_positions_short_all", sufixo: "MM_SHORT" }
 ];
+
+const CAMPOS_TFF = [
+  { campo: "open_interest_all", sufixo: "OPEN_INTEREST" },
+  { campo: "lev_money_positions_long", sufixo: "LEV_MONEY_LONG" },
+  { campo: "lev_money_positions_short", sufixo: "LEV_MONEY_SHORT" },
+  { campo: "asset_mgr_positions_long", sufixo: "ASSET_MGR_LONG" },
+  { campo: "asset_mgr_positions_short", sufixo: "ASSET_MGR_SHORT" },
+  { campo: "dealer_positions_long_all", sufixo: "DEALER_LONG" },
+  { campo: "dealer_positions_short_all", sufixo: "DEALER_SHORT" }
+];
+
+const RELATORIOS = {
+  disaggregated: { url: URL_DISAGGREGATED, campos: CAMPOS, fonte: "CFTC COT Disaggregated Futures Only" },
+  tff: { url: URL_TFF, campos: CAMPOS_TFF, fonte: "CFTC COT Traders in Financial Futures - Futures Only" }
+};
+
+const relatorioDe = (contrato) => RELATORIOS[contrato.relatorio || "disaggregated"];
 
 // Sexta-feira da semana do relatório, 15:30 America/New_York, em UTC.
 function liberacaoPrevista(dataRelatorio) {
@@ -81,6 +105,7 @@ function parse(rawData) {
 }
 
 function criarNormalize(contrato) {
+  const { campos, fonte } = relatorioDe(contrato);
   return function normalize(rawItems) {
     const validos = [];
     const invalidos = [];
@@ -98,7 +123,7 @@ function criarNormalize(contrato) {
       }
       const pub = decidirPublicacao(item, contagemPorInstante);
 
-      for (const { campo, sufixo } of CAMPOS) {
+      for (const { campo, sufixo } of campos) {
         const valor = Number(item[campo]);
         if (item[campo] === undefined || item[campo] === "" || !Number.isFinite(valor)) {
           invalidos.push({ item, motivo: `Campo ${campo} ausente ou inválido: "${item[campo]}".` });
@@ -113,7 +138,7 @@ function criarNormalize(contrato) {
           published_at: pub.publishedAt,
           published_at_is_estimated: pub.estimado,
           published_at_basis: pub.basis,
-          metadata: { fonte: "CFTC COT Disaggregated Futures Only", contrato: item.market_and_exchange_names, ...pub.extra }
+          metadata: { fonte, contrato: item.market_and_exchange_names, ...pub.extra }
         });
       }
     }
@@ -126,7 +151,8 @@ function criarColetorCot(chave) {
   const contrato = CONTRATOS[chave];
   if (!contrato) throw new Error(`Contrato COT desconhecido: ${chave}`);
 
-  const campos = [":updated_at", "report_date_as_yyyy_mm_dd", "market_and_exchange_names", ...CAMPOS.map((c) => c.campo)];
+  const relatorio = relatorioDe(contrato);
+  const campos = [":updated_at", "report_date_as_yyyy_mm_dd", "market_and_exchange_names", ...relatorio.campos.map((c) => c.campo)];
   const params = new URLSearchParams({
     $select: campos.join(","),
     $where: `cftc_contract_market_code='${contrato.codigoCftc}'`,
@@ -136,14 +162,14 @@ function criarColetorCot(chave) {
 
   return {
     codigo: `cftc-cot-${chave}`,
-    seriesCodes: CAMPOS.map((c) => `${contrato.prefixo}.${c.sufixo}`),
+    seriesCodes: relatorio.campos.map((c) => `${contrato.prefixo}.${c.sufixo}`),
     get timeoutMs() {
       return env.collectors.sourceTimeoutMs;
     },
     get tentativasRetry() {
       return env.collectors.retryTentativas;
     },
-    download: ({ signal }) => baixar(`${URL_BASE}?${params}`, { signal, as: "json" }),
+    download: ({ signal }) => baixar(`${relatorio.url}?${params}`, { signal, as: "json" }),
     parse,
     normalize: criarNormalize(contrato),
     persist: persistirObservacoes

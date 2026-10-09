@@ -43,9 +43,10 @@ A aquisição de dados está encerrada desde 2026-10-01: fonte nova só com uma 
    | Fonte | Fatores do relatório | Situação |
    |---|---|---|
    | B3: futuros DOL, WDO e DI1 (Up2Data) | 1 e 2 (na versão diária), 5 (o gap, sem o NDF) e 15 | ADR 0118. Urgente: a janela do Up2Data é rolante (~15 meses) |
-   | FRED: Treasury de 2 anos (DGS2), VIX (VIXCLS), dólar contra emergentes (DTWEXEMEGS) e S&P 500 (SP500) | 10, 12, 14 (o 2s10s sai de DGS10 − DGS2, sem série nova), 16 e 18 | A fazer |
-   | CFTC: o futuro do real brasileiro (CME) | 7 | A fazer: o mesmo coletor, um mercado novo |
-   | BCB: o resultado primário no Focus; o fluxo cambial contratado e a balança (SGS) | 24, 3 (em parte) e 26 | A fazer |
+   | FRED: Treasury de 2 anos (DGS2), VIX (VIXCLS), dólar contra emergentes (DTWEXEMEGS) e S&P 500 (SP500) | 10, 12, 14 (o 2s10s sai de DGS10 − DGS2, sem série nova), 16 e 18 | ADR 0119 |
+   | CFTC: o futuro do real brasileiro (CME) | 7 | ADR 0120: o mesmo coletor, mas outro relatório da CFTC (o TFF, das moedas) |
+   | BCB: o resultado primário no Focus | 24 | ADR 0121 |
+   | BCB: o fluxo cambial contratado e a balança (SGS) | 3 (em parte) e 26 | A fazer |
    | BCB: os leilões e as intervenções no câmbio | 27 | A reconhecer |
    | IPEA: o EMBI+ Brasil | 17 (sem o CDS) | A reconhecer |
    | Leitura diária de eventos do dólar por IA (o padrão do ADR 0115) | 25 e 28 (sem a janela intradiária da PTAX) | A fazer |

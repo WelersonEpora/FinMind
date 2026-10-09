@@ -100,7 +100,43 @@ const SERIES = {
       ["DFEDTARL", "Meta do Fed (FOMC) - limite inferior da faixa"],
       ["DFEDTAR", "Meta do Fed (FOMC) - alvo único (até 2008-12-15)"]
     ].map(([id, nome]) => [id, { seriesCode: `FRED.${id}`, nome, unit: "% a.a.", regra: "mesmo_dia_fomc", publicadoEm: (data) => data }])
-  )
+  ),
+  // Dólar, fase 1 (só aquisição, ADRs 0117 e 0119): os fatores 12 (Treasury de 2 anos), 10 (dólar contra emergentes), 16
+  // (VIX) e 18 (S&P 500) do relatório do Comitê. Defasagens medidas pelo ALFRED em 2026-10-09 (de 2026-09-14 a 2026-10-07):
+  //   DGS2: 1 dia útil, como o DGS10 (H.15).
+  //   DTWEXEMEGS: lote semanal às segundas, como o DTWEXBGS (H.10).
+  //   VIXCLS: o fechamento da CBOE entra no FRED na manhã seguinte; em uma semana atrasou até 3 dias úteis. Regra: 1 dia
+  //     útil (o atraso eventual só adia a disponibilidade real; a regra nunca antecipa o que a fonte publica no prazo).
+  //   SP500: o fechamento entra no fim da noite do mesmo dia (19:01 CT = 00:01 UTC do dia seguinte). Regra: 1 dia útil.
+  //     Sem vintages no ALFRED. O FRED só guarda 10 anos (acordo com a S&P Dow Jones Indices): a janela anda.
+  DGS2: {
+    seriesCode: "FRED.DGS2",
+    nome: "Treasury 2 anos - constant maturity (nominal)",
+    unit: "% a.a.",
+    regra: "proximo_dia_util",
+    publicadoEm: proximoDiaUtil
+  },
+  DTWEXEMEGS: {
+    seriesCode: "FRED.DTWEXEMEGS",
+    nome: "Índice do dólar contra as economias emergentes (Fed)",
+    unit: "INDEX",
+    regra: "proxima_segunda_h10_semanal",
+    publicadoEm: proximaSegunda
+  },
+  VIXCLS: {
+    seriesCode: "FRED.VIXCLS",
+    nome: "VIX - volatilidade implícita do S&P 500 (CBOE), fechamento",
+    unit: "INDEX",
+    regra: "proximo_dia_util",
+    publicadoEm: proximoDiaUtil
+  },
+  SP500: {
+    seriesCode: "FRED.SP500",
+    nome: "S&P 500, fechamento",
+    unit: "INDEX",
+    regra: "proximo_dia_util",
+    publicadoEm: proximoDiaUtil
+  }
 };
 
 // Séries da coleta diária (registradas em collectors/index.js), uma execução por série.

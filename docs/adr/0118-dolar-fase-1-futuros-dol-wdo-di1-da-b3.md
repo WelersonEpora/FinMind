@@ -66,6 +66,7 @@ de histórico (o caso do GLD, ADR 0044, e do SJC, ADR 0109).
 - Testes com as linhas reais de 2026-10-08 (DOL, WDO, o ETF DOLX11 e o DI1F27).
 - Carga em dev (2026-10-09): os três de 2025-06-10 a 2026-10-08, 335 pregões cada, 0 falhas. DOL: 39 vencimentos, 13.365
   valores; WDO: 38 vencimentos, 18.666 valores; DI1: 60 vencimentos, 134.996 valores.
+- Carga no servidor (2026-10-09), os três backfills: os mesmos números de dev (13.365, 18.666 e 134.996 valores), 0 falhas.
 
 ## Consequências
 

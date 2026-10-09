@@ -97,3 +97,54 @@ test("campo numérico ausente vira inválido, sem descartar os outros campos da 
 test("contrato desconhecido falha cedo", () => {
   assert.throws(() => criarColetorCot("trigo"), /desconhecido/);
 });
+
+test("real brasileiro (ADR 0120): relatório TFF, fundos alavancados, gestores e dealers; mesma regra de publicação", async () => {
+  const coletor = criarColetorCot("brl");
+  // Linha real de 2026-09-29 (publicada em 2026-10-02 às 15:30 ET).
+  const real = {
+    ":updated_at": "2026-10-02T19:30:08.574Z",
+    report_date_as_yyyy_mm_dd: "2026-09-29T00:00:00.000",
+    market_and_exchange_names: "BRAZILIAN REAL - CHICAGO MERCANTILE EXCHANGE",
+    open_interest_all: "146704",
+    lev_money_positions_long: "37418",
+    lev_money_positions_short: "27865",
+    asset_mgr_positions_long: "68465",
+    asset_mgr_positions_short: "1450",
+    dealer_positions_long_all: "7611",
+    dealer_positions_short_all: "67366"
+  };
+  const { validos, invalidos } = coletor.normalize([real]);
+  assert.equal(invalidos.length, 0);
+  assert.deepEqual(validos.map((v) => [v.series_code, v.value]), [
+    ["CFTC.BRL.OPEN_INTEREST", 146704],
+    ["CFTC.BRL.LEV_MONEY_LONG", 37418],
+    ["CFTC.BRL.LEV_MONEY_SHORT", 27865],
+    ["CFTC.BRL.ASSET_MGR_LONG", 68465],
+    ["CFTC.BRL.ASSET_MGR_SHORT", 1450],
+    ["CFTC.BRL.DEALER_LONG", 7611],
+    ["CFTC.BRL.DEALER_SHORT", 67366]
+  ]);
+  assert.equal(validos[0].published_at.toISOString(), "2026-10-02T19:30:08.574Z");
+  assert.equal(validos[0].published_at_is_estimated, false);
+  assert.match(validos[0].metadata.fonte, /Traders in Financial Futures/);
+  assert.deepEqual(coletor.seriesCodes.slice(0, 2), ["CFTC.BRL.OPEN_INTEREST", "CFTC.BRL.LEV_MONEY_LONG"]);
+
+  // O download vai ao dataset do TFF, filtrado pelo código do contrato; os outros contratos seguem no Disaggregated.
+  const urls = [];
+  const fetchOriginal = global.fetch;
+  global.fetch = async (url) => {
+    urls.push(String(url));
+    return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => [], text: async () => "[]" };
+  };
+  try {
+    await coletor.download({});
+    await criarColetorCot("gold").download({});
+  } catch {
+    // o formato da resposta não importa aqui, só a URL pedida
+  } finally {
+    global.fetch = fetchOriginal;
+  }
+  assert.match(urls[0], /gpe5-46if\.json/);
+  assert.match(decodeURIComponent(urls[0]), /cftc_contract_market_code='102741'/);
+  assert.match(urls[1], /72hh-3qpy\.json/);
+});

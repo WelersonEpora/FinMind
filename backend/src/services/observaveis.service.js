@@ -191,15 +191,16 @@ const CATALOGO_OBSERVAVEIS = [
     campos: [
       { codigo: "IPCA", nome: "IPCA (variação no ano)", unidade: "%", casasDecimais: 2 },
       { codigo: "SELIC", nome: "Selic (fim de ano)", unidade: "% a.a.", casasDecimais: 2 },
-      { codigo: "CAMBIO", nome: "Câmbio (fim de ano)", unidade: "R$/US$", casasDecimais: 2 }
+      { codigo: "CAMBIO", nome: "Câmbio (fim de ano)", unidade: "R$/US$", casasDecimais: 2 },
+      { codigo: "PRIMARIO", nome: "Resultado primário (% do PIB no ano)", unidade: "% do PIB", casasDecimais: 2 }
     ],
     fonteDetalhe: {
       descricao:
-        "Mediana das expectativas do mercado (Focus - Relatório de Mercado do Banco Central) para o IPCA do ano, a Selic de fim de ano e o câmbio (R$/US$) de fim de ano, para o ano corrente e os seguintes. É a opinião dos participantes da pesquisa, não um dado realizado nem uma projeção do FinMind.",
+        "Mediana das expectativas do mercado (Focus - Relatório de Mercado do Banco Central) para o IPCA do ano, a Selic de fim de ano, o câmbio (R$/US$) de fim de ano e, desde 2026-10-09, o resultado primário do setor público (% do PIB; negativo é déficit; fase 1 do dólar, ADR 0121), para o ano corrente e os seguintes. É a opinião dos participantes da pesquisa, não um dado realizado nem uma projeção do FinMind.",
       metodologia:
         "Um ponto por boletim semanal: a pesquisa do último dia útil da semana (normalmente sexta), que é o número do boletim, na base dos últimos 30 dias. O BCB calcula a estatística todo dia útil, mas publica a semana inteira de uma vez, no primeiro dia útil da semana seguinte: a data de disponibilidade é ESTIMADA como o fim desse dia, tirado das próprias datas de pesquisa da fonte (feriado desloca para terça ou quarta). Na semana mais recente, antes de a fonte ter o dia seguinte, vale o momento da coleta. O dia da observação é a data da pesquisa; o ano esperado é o item. Conferido contra o PDF do boletim (2015 e 2026): iguais. Licença: ODbL (Portal de Dados Abertos do BCB).",
       escopo:
-        "só IPCA, Selic e câmbio do endpoint anual, mediana, base de 30 dias, desde 2000. Não coletados, por estarem fora do que o relatório FEL 1 pede: PIB e os demais indicadores, expectativas mensais e trimestrais, Selic por reunião do Copom, inflação 12/24 meses, ranking Top 5, média, desvio e base de 5 dias úteis. Os dias de pesquisa entre um boletim e outro também não (nunca foram o valor vigente).",
+        "só IPCA, Selic, câmbio e resultado primário do endpoint anual, mediana, base de 30 dias, desde 2000. Não coletados, por estarem fora do que o relatório FEL 1 e o relatório do Comitê sobre o dólar pedem: PIB e os demais indicadores, expectativas mensais e trimestrais, Selic por reunião do Copom, inflação 12/24 meses, ranking Top 5, média, desvio e base de 5 dias úteis. Os dias de pesquisa entre um boletim e outro também não (nunca foram o valor vigente).",
       formatoOrigem: "JSON (API OData Olinda do BCB, ExpectativasMercadoAnuais)",
       urlOficial: "https://dadosabertos.bcb.gov.br/dataset/expectativas-mercado"
     }
@@ -291,19 +292,83 @@ const CATALOGO_OBSERVAVEIS = [
     // semana) chega a ~10,5.
     toleranciaDias: 12,
     fonte: "FRED - Federal Reserve (H.10)",
-    fonteCollectorCode: ["fred-dtwexbgs", "fred-dtwexafegs"],
+    fonteCollectorCode: ["fred-dtwexbgs", "fred-dtwexafegs", "fred-dtwexemegs"],
     series: [
       { modalidade: "amplo", seriesCode: "FRED.DTWEXBGS" },
-      { modalidade: "economias_avancadas", seriesCode: "FRED.DTWEXAFEGS" }
+      { modalidade: "economias_avancadas", seriesCode: "FRED.DTWEXAFEGS" },
+      { modalidade: "economias_emergentes", seriesCode: "FRED.DTWEXEMEGS" }
     ],
     modalidadePrincipal: "amplo",
     fonteDetalhe: {
       descricao:
-        "Dois índices do dólar do Fed, base jan/2006 = 100: contra uma cesta ampla de 26 moedas (DTWEXBGS) e contra as economias avançadas (DTWEXAFEGS: euro, iene, libra, dólar canadense, franco suíço, dólar australiano e coroa sueca), mais próximo da cesta do DXY. Nenhum dos dois é o DXY (índice da ICE, licenciado): as moedas da cesta do DXY estão no card \"Câmbio - moedas da cesta do DXY (Fed)\".",
+        "Três índices do dólar do Fed, base jan/2006 = 100: contra uma cesta ampla de 26 moedas (DTWEXBGS), contra as economias avançadas (DTWEXAFEGS: euro, iene, libra, dólar canadense, franco suíço, dólar australiano e coroa sueca), mais próximo da cesta do DXY, e contra as economias emergentes (DTWEXEMEGS, desde 2006; o real brasileiro, o peso mexicano, o yuan e outras; fase 1 do dólar, ADR 0119). Nenhum deles é o DXY (índice da ICE, licenciado): as moedas da cesta do DXY estão no card \"Câmbio - moedas da cesta do DXY (Fed)\".",
       metodologia:
-        "Os valores são diários, mas o Fed os divulga em lote semanal (segundas-feiras). A disponibilidade é ESTIMADA como a segunda-feira seguinte à data observada. Os dois índices são revisados depois da primeira divulgação (ALFRED): a coleta guarda o valor atual, e uma revisão vista depois entra como versão nova. Licença: séries do Board of Governors do Fed (domínio público, citação pedida). Uso atual: pesquisa interna, sem exibir a terceiros (ADRs 0009 e 0033).",
+        "Os valores são diários, mas o Fed os divulga em lote semanal (segundas-feiras). A disponibilidade é ESTIMADA como a segunda-feira seguinte à data observada. Os índices são revisados depois da primeira divulgação (ALFRED): a coleta guarda o valor atual, e uma revisão vista depois entra como versão nova. Licença: séries do Board of Governors do Fed (domínio público, citação pedida). Uso atual: pesquisa interna, sem exibir a terceiros (ADRs 0009 e 0033).",
       formatoOrigem: "API REST do FRED (reserva: CSV público)",
       urlOficial: "https://fred.stlouisfed.org/series/DTWEXAFEGS"
+    }
+  },
+  // --- Dólar, fase 1 (só aquisição, ADR 0119): Treasury de 2 anos, VIX e S&P 500 do FRED ---
+  {
+    instrumentCode: "TREASURY_2A",
+    origem: "observation",
+    nome: "Treasury 2 anos (EUA)",
+    unidade: "% a.a.",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    // Como o de 10 anos: o valor de sexta só sai na segunda.
+    toleranciaDias: 5,
+    fonte: "FRED - Federal Reserve (H.15)",
+    fonteCollectorCode: "fred-dgs2",
+    series: [{ modalidade: "nominal", seriesCode: "FRED.DGS2" }],
+    fonteDetalhe: {
+      descricao:
+        "Rendimento nominal do título do Tesouro dos EUA de 2 anos (DGS2, constant maturity), desde 1976. É o vértice da curva americana mais sensível à expectativa para os juros do Fed. A inclinação 2s10s é a diferença entre o de 10 anos (card Treasury 10 anos) e este: não é coletada à parte.",
+      metodologia:
+        "Um valor por dia útil. A disponibilidade é ESTIMADA em 1 dia útil após a data observada (medido no ALFRED em 2026-10-09: todas as datas de 2026-09-14 a 2026-10-07 saíram no dia útil seguinte, sem revisão). Não conhece feriados dos EUA. Licença: Board of Governors do Fed (domínio público, citação pedida). Uso atual: pesquisa interna (ADR 0119).",
+      formatoOrigem: "API REST do FRED (reserva: CSV público)",
+      urlOficial: "https://fred.stlouisfed.org/series/DGS2"
+    }
+  },
+  {
+    instrumentCode: "VIX",
+    origem: "observation",
+    nome: "VIX - volatilidade implícita do S&P 500 (CBOE)",
+    unidade: "índice",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    // O FRED às vezes atrasa o VIX alguns dias úteis (3, na semana de 2026-09-23).
+    toleranciaDias: 6,
+    fonte: "FRED - CBOE",
+    fonteCollectorCode: "fred-vixcls",
+    series: [{ modalidade: "fechamento", seriesCode: "FRED.VIXCLS" }],
+    fonteDetalhe: {
+      descricao:
+        "O VIX da CBOE no fechamento de cada dia (VIXCLS), desde 1990: a volatilidade de 30 dias que as opções do S&P 500 embutem, a medida mais usada de aversão a risco global.",
+      metodologia:
+        "Um valor por dia útil. A disponibilidade é ESTIMADA em 1 dia útil após a data observada: o FRED carrega o fechamento na manhã seguinte e, de vez em quando, atrasa alguns dias (de 2026-09-23 a 2026-09-25, só em 2026-09-28). A regra nunca antecipa o que o FRED publica no prazo. Licença: copyright da CBOE, reproduzido no FRED com permissão; uso interno (ADR 0119).",
+      formatoOrigem: "API REST do FRED (reserva: CSV público)",
+      urlOficial: "https://fred.stlouisfed.org/series/VIXCLS"
+    }
+  },
+  {
+    instrumentCode: "SP500",
+    origem: "observation",
+    nome: "S&P 500",
+    unidade: "pontos",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 5,
+    fonte: "FRED - S&P Dow Jones Indices",
+    fonteCollectorCode: "fred-sp500",
+    series: [{ modalidade: "fechamento", seriesCode: "FRED.SP500" }],
+    fonteDetalhe: {
+      descricao:
+        "O índice S&P 500 no fechamento de cada dia (SP500): o termômetro do apetite a risco nos EUA. É o índice à vista, não o futuro (ES) que o relatório do Comitê cita; o futuro é licenciado pela CME.",
+      metodologia:
+        "Um valor por dia útil. O fechamento entra no FRED no fim da noite do mesmo dia (já é o dia seguinte em UTC): a disponibilidade é ESTIMADA em 1 dia útil após a data observada. Sem versões no ALFRED. O FRED só guarda 10 anos (acordo com a S&P Dow Jones Indices): a janela anda, e o que a coleta acumula passa a ser o histórico. Licença: S&P Dow Jones Indices, uso interno (ADR 0119).",
+      formatoOrigem: "API REST do FRED (reserva: CSV público)",
+      urlOficial: "https://fred.stlouisfed.org/series/SP500"
     }
   },
   // --- FMI - ouro nas reservas dos bancos centrais, mensal (fator do ouro "Demanda de bancos centrais", ADR 0036) ---
@@ -621,6 +686,36 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://publicreporting.cftc.gov/resource/72hh-3qpy.json"
     }
   })),
+  // Real brasileiro (CME), fase 1 do dólar (ADR 0120): outro relatório da CFTC (TFF), com outras categorias.
+  {
+    instrumentCode: "COT_REAL",
+    origem: "observation",
+    nome: "CFTC COT - Real brasileiro (CME)",
+    unidade: "contratos",
+    casasDecimais: 0,
+    frequencia: "SEMANAL",
+    toleranciaDias: 15,
+    fonte: "CFTC - Commitments of Traders (Traders in Financial Futures)",
+    fonteCollectorCode: "cftc-cot-brl",
+    series: [
+      ["open_interest", "OPEN_INTEREST"],
+      ["lev_money_long", "LEV_MONEY_LONG"],
+      ["lev_money_short", "LEV_MONEY_SHORT"],
+      ["asset_mgr_long", "ASSET_MGR_LONG"],
+      ["asset_mgr_short", "ASSET_MGR_SHORT"],
+      ["dealer_long", "DEALER_LONG"],
+      ["dealer_short", "DEALER_SHORT"]
+    ].map(([modalidade, sufixo]) => ({ modalidade, seriesCode: `CFTC.BRL.${sufixo}` })),
+    modalidadePrincipal: "open_interest",
+    fonteDetalhe: {
+      descricao:
+        "Posições no futuro de real brasileiro da CME (código 102741, contrato de 100.000 reais cotado em dólares por real): contratos em aberto e posições compradas e vendidas de três categorias, os fundos alavancados (leveraged funds, o que o relatório do Comitê lê), os gestores de ativos (asset managers) e os dealers. Comprado em real é vendido em dólar. A posição líquida não é gravada: é um fator.",
+      metodologia:
+        "Relatório Traders in Financial Futures (TFF), só futuros, o das moedas e juros, com categorias diferentes das commodities (que usam managed money). O dado é de terça-feira e normalmente sai na sexta, 15:30 ET; a data de publicação é a REAL informada pela fonte desde ago/2022 e ESTIMADA (sexta 15:30 ET) antes, como nos outros COT. Histórico desde 2011-04-05, com semanas faltando (753 relatórios até 2026-09-29): a CFTC só publica o contrato nas semanas em que ele passa do limite de divulgação.",
+      formatoOrigem: "JSON (API Socrata da CFTC)",
+      urlOficial: "https://publicreporting.cftc.gov/resource/gpe5-46if.json"
+    }
+  },
 
   // --- USDA NASS Crop Progress do milho (EUA), semanal, abr-nov (ADR 0009) ---
   // Dois cards, todas as séries em % e do mesmo coletor. Fora da temporada

@@ -8,6 +8,8 @@ const { persistirObservacoes, baixar } = require("../base/persist-observations")
 // Focus - Relatório de Mercado (BCB): expectativas de IPCA, Selic e câmbio (R$/US$) para os anos-calendário,
 // a mediana do boletim semanal. Escopo ESTRITO do relatório FEL 1 ("Relatório Focus e Reservas (BCB)", ligado ao
 // ouro em R$: "Focus impacta Selic, IPCA e BRL"). ADR 0022; reconhecimento em docs/reconhecimento-fontes/bcb-focus.md.
+// Desde 2026-10-09, também o resultado primário (% do PIB), o fator 24 do relatório do Comitê sobre o dólar (fase 1 do
+// dólar, só aquisição, ADR 0121): o mesmo endpoint e a mesma regra, desde 2000-01-03, anos-alvo até 10 anos à frente.
 //
 // VERIFICADO POR CHAMADA REAL em 2026-09-23:
 //   - API OData pública do BCB (Olinda), sem chave. Endpoint `ExpectativasMercadoAnuais`: um registro por
@@ -49,19 +51,19 @@ const TIMEOUT_BACKFILL_MS = 5 * 60 * 1000;
 const INDICADORES = [
   { fonte: "IPCA", campo: "IPCA", unit: "%", descricao: "IPCA - variação % no ano" },
   { fonte: "Selic", campo: "SELIC", unit: "% a.a.", descricao: "Selic - fim de ano" },
-  { fonte: "Câmbio", campo: "CAMBIO", unit: "R$/US$", descricao: "Câmbio - fim de ano" }
+  { fonte: "Câmbio", campo: "CAMBIO", unit: "R$/US$", descricao: "Câmbio - fim de ano" },
+  { fonte: "Resultado primário", campo: "PRIMARIO", unit: "% do PIB", descricao: "Resultado primário do setor público consolidado - % do PIB no ano" }
 ];
-
-const CAMPOS_SELECIONADOS = ["Indicador", "IndicadorDetalhe", "Data", "DataReferencia", "Mediana", "numeroRespondentes", "baseCalculo"];
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const REGEX_ANO = /^\d{4}$/;
 
 function montarUrl(indicador, { dataInicial, dataFinal }) {
   const filtros = [`Indicador eq '${indicador.fonte}'`, `baseCalculo eq ${BASE_CALCULO}`, `Data ge '${dataInicial}'`];
   if (dataFinal) filtros.push(`Data le '${dataFinal}'`);
+  // Sem $select: em 2026-10-09 a API respondia com a página de erro do BCB a qualquer $select, até de um campo só; sem
+  // ele, a mesma consulta funciona. Os campos a mais (média, desvio, mínimo, máximo) são ignorados pelo normalize.
   const params = [
     `$filter=${encodeURIComponent(filtros.join(" and "))}`,
-    `$select=${CAMPOS_SELECIONADOS.join(",")}`,
     `$orderby=${encodeURIComponent("Data asc")}`,
     `$top=${LIMITE_LINHAS}`,
     "$format=json"

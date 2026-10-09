@@ -176,5 +176,14 @@ test("todas as séries do FRED são coletadas, cada uma com o seu código de col
   const { SERIES, SERIES_COLETADAS } = require("./fred.collector");
   assert.deepEqual(SERIES_COLETADAS, Object.keys(SERIES));
   assert.equal(criarColetorFred("DEXUSEU").codigo, "fred-dexuseu");
-  assert.equal(SERIES_COLETADAS.length, 14);
+  assert.equal(SERIES_COLETADAS.length, 18);
+});
+
+test("dólar, fase 1 (ADR 0119): DGS2 e VIX valem no dia útil seguinte, o índice dos emergentes na segunda (H.10)", () => {
+  const publicado = (fredId, data) => criarColetorFred(fredId).normalize([[data, "1"]]).validos[0].published_at.toISOString();
+  assert.equal(publicado("DGS2", "2026-10-02"), "2026-10-05T23:59:59.000Z", "sexta -> segunda");
+  assert.equal(publicado("VIXCLS", "2026-10-07"), "2026-10-08T23:59:59.000Z");
+  assert.equal(publicado("SP500", "2026-10-08"), "2026-10-09T23:59:59.000Z", "fecha às 19:01 CT, já o dia seguinte em UTC");
+  assert.equal(publicado("DTWEXEMEGS", "2026-09-30"), "2026-10-05T23:59:59.000Z");
+  assert.equal(criarColetorFred("VIXCLS").seriesCode, "FRED.VIXCLS");
 });

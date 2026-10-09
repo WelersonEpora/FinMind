@@ -206,7 +206,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 |---|---|---|---|---|---|
 | Dólar (USD/BRL) | PTAX de venda | Diária | 1994-07-01 | — (cotação, não revisa) | Dev e servidor |
 | Taxa Selic | Meta e realizada | Diária | Realizada 1994-07-04; meta 1999-03-05 | — (não revisa) | Dev e servidor |
-| Expectativas do Focus | Mediana de IPCA, Selic e câmbio de fim de ano, por ano-calendário (o corrente e até 4 à frente) | Semanal | 2000-01-07 | Estimado (1º dia útil depois da semana do boletim) | Dev e servidor |
+| Expectativas do Focus | Mediana de IPCA, Selic e câmbio de fim de ano, por ano-calendário (o corrente e até 4 à frente); desde 2026-10-09, o resultado primário (% do PIB, até 9 anos à frente; fase 1 do dólar, ADR 0121) | Semanal | 2000-01-07 | Estimado (1º dia útil depois da semana do boletim) | Dev e servidor (primário só em dev) |
 | Reservas internacionais | Total diário (SGS 13621), US$ milhões | Diária | 1998-09-01 | Estimado (dia útil seguinte) | Dev e servidor |
 
 </details>
@@ -268,7 +268,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>B3 — futuros (CCM, ICF, GLD, SJC, DOL, WDO, DI1) · Milho, café, ouro, soja, dólar · CSV e PDF · nível 5 (limitado) · Dev e servidor (dólar só em dev)</summary>
+<summary>B3 — futuros (CCM, ICF, GLD, SJC, DOL, WDO, DI1) · Milho, café, ouro, soja, dólar · CSV e PDF · nível 5 (limitado) · Dev e servidor</summary>
 
 **Acesso:** CSV do Up2Data e PDF do Boletim Diário. **Ressalva principal:** **Histórico curto**: CCM, ICF e SJC desde 2022-03-21, com buraco de ~9 meses em 2023; GLD desde 2025-07-21. Contratos em aberto só até 2025-12-11. O GLD é um futuro, não o fixing: emendá-lo à LBMA é cálculo. O SJC é liquidado pelo preço da soja da CME (Chicago em US$/saca), fase 1 da soja, só aquisição. DOL, WDO e DI1: fase 1 do dólar, só aquisição, só o Up2Data (~15 meses; o histórico longo do câmbio é a PTAX). Decisões: David (se o GLD faz o papel do preço do ouro). **Evidência:** ADRs 0009, 0020, 0028, 0044, 0109, 0118.
 
@@ -282,10 +282,10 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 | Ouro B3 (GLD) - liquidez | Contratos, negócios e volume financeiro (sem contratos em aberto) | Diária | 2025-07-21 | Estimado | Dev e servidor |
 | Soja B3 (SJC) - preços | Os campos do CCM, em US$/saca (liquidação pelo preço da CME) | Diária | 2022-03-21 (o mesmo buraco de 2023) | Estimado | Dev e servidor |
 | Soja B3 (SJC) - liquidez | Os campos do CCM; contratos em aberto só até 2025-12-11 | Diária | 2022-03-21 | Estimado | Dev e servidor |
-| Dólar e minidólar B3 (DOL, WDO) - preços | Ajuste, último, máxima, mínima, médio e oscilação (sem abertura), em R$ por US$ 1.000; o mesmo ajuste nos dois (fase 1 do dólar, ADR 0118) | Diária | A janela do Up2Data (~15 meses) | Estimado | Dev; servidor pendente |
-| Dólar e minidólar B3 (DOL, WDO) - liquidez | Contratos, negócios e volume financeiro (sem contratos em aberto); o WDO concentra os negócios | Diária | A janela do Up2Data | Estimado | Dev; servidor pendente |
-| DI1 B3 - taxas e PU | Taxa de ajuste, última, máxima, mínima e média (% a.a.) e o PU de ajuste, por vencimento: a curva pré | Diária | A janela do Up2Data | Estimado | Dev; servidor pendente |
-| DI1 B3 - liquidez | Contratos, negócios e volume financeiro | Diária | A janela do Up2Data | Estimado | Dev; servidor pendente |
+| Dólar e minidólar B3 (DOL, WDO) - preços | Ajuste, último, máxima, mínima, médio e oscilação (sem abertura), em R$ por US$ 1.000; o mesmo ajuste nos dois (fase 1 do dólar, ADR 0118) | Diária | A janela do Up2Data (~15 meses) | Estimado | Dev e servidor |
+| Dólar e minidólar B3 (DOL, WDO) - liquidez | Contratos, negócios e volume financeiro (sem contratos em aberto); o WDO concentra os negócios | Diária | A janela do Up2Data | Estimado | Dev e servidor |
+| DI1 B3 - taxas e PU | Taxa de ajuste, última, máxima, mínima e média (% a.a.) e o PU de ajuste, por vencimento: a curva pré | Diária | A janela do Up2Data | Estimado | Dev e servidor |
+| DI1 B3 - liquidez | Contratos, negócios e volume financeiro | Diária | A janela do Up2Data | Estimado | Dev e servidor |
 
 </details>
 
@@ -312,14 +312,17 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>FRED · Ouro, petróleo · API · nível 5 · Dev e servidor</summary>
+<summary>FRED · Ouro, petróleo, dólar · API · nível 5 · Dev e servidor (dólar só em dev)</summary>
 
-**Acesso:** API REST (JSON, com chave); CSV de reserva. **Ressalva principal:** Data de publicação **estimada**; **o DXY não é coletado** (licenciado): temos os índices do Fed e as 6 moedas da cesta, e remontá-lo é cálculo do David; licença adiada (uso interno). **Evidência:** ADRs 0009, 0011, 0012, 0033.
+**Acesso:** API REST (JSON, com chave); CSV de reserva. **Ressalva principal:** Data de publicação **estimada**; **o DXY não é coletado** (licenciado): temos os índices do Fed e as 6 moedas da cesta, e remontá-lo é cálculo do David; licença adiada (uso interno). **Evidência:** ADRs 0009, 0011, 0012, 0033, 0119.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | Treasury 10 anos | Nominal (DGS10), real (DFII10) e inflação implícita (T10YIE) | Diária | DGS10 1962; DFII10 e T10YIE 2003 | Estimado (dia útil seguinte) | Dev e servidor |
-| Índices do dólar (Fed) | Amplo (DTWEXBGS) e contra as economias avançadas (DTWEXAFEGS); **não é o DXY** | Diária | 2006 | Estimado (segunda seguinte: divulgação semanal) | Dev e servidor |
+| Índices do dólar (Fed) | Amplo (DTWEXBGS), contra as economias avançadas (DTWEXAFEGS) e, na fase 1 do dólar, contra as emergentes (DTWEXEMEGS, ADR 0119); **não é o DXY** | Diária | 2006 | Estimado (segunda seguinte: divulgação semanal) | Dev e servidor (emergentes só em dev) |
+| Treasury 2 anos | Nominal (DGS2); o 2s10s é a diferença com o de 10 anos (fase 1 do dólar, ADR 0119) | Diária | 1976 | Estimado (dia útil seguinte) | Dev; servidor na 1ª coleta diária |
+| VIX (CBOE) | Fechamento diário; copyright da CBOE (fase 1 do dólar) | Diária | 1990 | Estimado (dia útil seguinte; o FRED às vezes atrasa) | Dev; servidor na 1ª coleta diária |
+| S&P 500 | Fechamento diário do índice à vista (não o futuro ES); **o FRED só guarda 10 anos** (fase 1 do dólar) | Diária | 2016-10-10 | Estimado (dia útil seguinte) | Dev; servidor na 1ª coleta diária |
 | Câmbio - moedas da cesta do DXY | Euro, iene, libra, dólar canadense, coroa sueca e franco suíço | Diária | 1971 (euro 1999) | Estimado (segunda seguinte) | Dev e servidor |
 | Meta de juros do Fed (FOMC) | Limites superior e inferior da faixa (desde 2008-12-16) e alvo único (até 2008-12-15) | Diária | 1982-09-27 | O próprio dia | Dev e servidor |
 
@@ -340,14 +343,15 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>CFTC COT · Os quatro ativos e a soja · API · nível 5 · Dev e servidor (soja só em dev)</summary>
+<summary>CFTC COT · Os quatro ativos, a soja e o real · API · nível 5 · Dev e servidor (soja e real só em dev)</summary>
 
-**Acesso:** API Socrata (JSON). **Ressalva principal:** Data de publicação estimada antes de 2022-08. **Evidência:** ADRs 0009, 0028, 0040, 0110.
+**Acesso:** API Socrata (JSON). **Ressalva principal:** Data de publicação estimada antes de 2022-08. **Evidência:** ADRs 0009, 0028, 0040, 0110, 0120.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | COT - ouro (COMEX), milho (CBOT), café arábica (ICE Coffee C) e petróleo WTI (NYMEX) (4 cards) | Contratos em aberto, managed money comprado e vendido | Semanal | 2006 | Real desde 2022-08; estimado antes | Dev e servidor |
 | COT - soja (CBOT) | Os mesmos campos (fase 1 da soja, ADR 0110) | Semanal | 2006 | Real desde 2022-08; estimado antes | Dev; servidor na 1ª coleta diária |
+| COT - real brasileiro (CME) | Relatório TFF (o das moedas): contratos em aberto e as posições compradas e vendidas dos fundos alavancados, dos gestores de ativos e dos dealers (fase 1 do dólar, ADR 0120) | Semanal, com semanas faltando | 2011-04-05 | Real desde 2022-08; estimado antes | Dev; servidor na 1ª coleta diária |
 
 </details>
 
@@ -563,7 +567,7 @@ no ADR de cada fonte.
 | Série contínua do GLD (ouro) | O horizonte de 90 dias do ouro fica muitas vezes sem a variação de 90 dias, porque cada vencimento do GLD tem pouco histórico e nada é emendado (ADR 0054). Emendar os vencimentos é um cálculo do David (ADR 0044) |
 | Lacunas declaradas das v1 | Milho: o etanol brasileiro no F5 (ADR 0073) e os fatores ausentes (ADR 0080); café: o INMET no clima (ADR 0083). Ficaram para depois da v1 |
 | Soja: o que segue (ADR 0116) | A fase 1 (só aquisição, ADRs 0109 a 0115) está completa e a soja foi aprovada como 5º ativo em 2026-10-08. Segue: conferir no servidor a 1ª coleta diária do COT, dos preços do FMI e do Crop Progress da soja (carregam o histórico inteiro nela); depois do deploy, a 1ª leitura diária da soja no servidor; o teste histórico dos fatores e da margem de esmagamento |
-| Dólar, fase 1 (ADR 0117) | Só aquisição. Feito: os futuros DOL, WDO e DI1 da B3 (ADR 0118). Segue, uma fonte por vez: as 4 séries do FRED (Treasury de 2 anos, VIX, dólar contra emergentes e S&P 500), o COT do real, o resultado primário do Focus, o fluxo cambial e a balança do BCB, os leilões do BCB e o EMBI+ do IPEA (a reconhecer) e a leitura de eventos do dólar por IA. Depois, a proposta dos fatores para o Comitê |
+| Dólar, fase 1 (ADR 0117) | Só aquisição. Feito: os futuros DOL, WDO e DI1 da B3 (ADR 0118) e as 4 séries do FRED: Treasury de 2 anos, VIX, dólar contra emergentes e S&P 500 (ADR 0119) o COT do real, pelo relatório TFF da CFTC (ADR 0120), e o resultado primário no Focus (ADR 0121). Segue, uma fonte por vez: o fluxo cambial e a balança do BCB, os leilões do BCB e o EMBI+ do IPEA (a reconhecer) e a leitura de eventos do dólar por IA. Depois, a proposta dos fatores para o Comitê |
 | Qualidade da IA: medidas para depois | Calibração da confiança, taxa de inversão, índice único e análise estatística (ADR 0064) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): 
@@ -650,7 +654,10 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 | Entrega | Resultado | Onde |
 |---|---|---|
 | Dólar como ativo, fase 1 | Decisão do usuário a partir do relatório do Comitê de 2026-10-08: o dólar (USD/BRL) entra nos moldes dos outros ativos, começando pela aquisição de dados; o day-trade fica para uma fase 2, num módulo próprio. As inconsistências do relatório viraram perguntas ao Comitê (§4) | ADR 0117 |
-| Dólar, fase 1: os futuros DOL, WDO e DI1 da B3 | Três produtos novos no coletor da B3 (Up2Data, segmento financeiro), com unidade por campo no DI1 (taxa nos preços, PU no ajuste) e vencimentos padrão no gráfico (os 3 mais próximos no dólar, os 6 janeiros no DI1). Seis cards novos, 86 no total. Em dev: 335 pregões cada (2025-06-10 a 2026-10-08), 0 falhas. No servidor: `npm run backfill:b3-dol`, `npm run backfill:b3-wdo` e `npm run backfill:b3-di1` | ADR 0118 |
+| Dólar, fase 1: os futuros DOL, WDO e DI1 da B3 | Três produtos novos no coletor da B3 (Up2Data, segmento financeiro), com unidade por campo no DI1 (taxa nos preços, PU no ajuste) e vencimentos padrão no gráfico (os 3 mais próximos no dólar, os 6 janeiros no DI1). Seis cards novos, 86 no total. Em dev e no servidor, os mesmos números: 335 pregões cada (2025-06-10 a 2026-10-08), 0 falhas | ADR 0118 |
+| Dólar, fase 1: Treasury de 2 anos, VIX, S&P 500 e dólar contra emergentes (FRED) | Quatro séries novas no coletor do FRED (fatores 10, 12, 16 e 18 do relatório; o 2s10s é DGS10 − DGS2). O S&P 500 só tem 10 anos no FRED (acordo com a S&P), e a janela anda. Três cards novos e uma modalidade nova no card dos índices do dólar, 89 no total. Em dev: 29.591 valores, 0 falhas. No servidor, carregam o histórico na 1ª coleta diária | ADR 0119 |
+| Dólar, fase 1: o COT do real | O real não está no relatório da CFTC que o FinMind lia (o Disaggregated, das commodities): está no TFF, o das moedas, com as categorias fundos alavancados, gestores de ativos e dealers. O coletor do COT passou a aceitar os dois relatórios, sem mudar os 5 contratos atuais. Um card novo, 90 no total. Em dev: 753 semanas desde 2011-04-05, 0 falhas. No servidor, carrega o histórico na 1ª coleta diária | ADR 0120 |
+| Dólar, fase 1: o resultado primário no Focus | O 4º indicador do coletor do Focus (fator 24 do relatório). Na conferência, a API do BCB passou a recusar qualquer `$select` (responde com a página de erro): o coletor deixou de mandá-lo, sem mudar nenhum valor. Em dev: 9.022 valores desde 2000, 0 falhas. No servidor: `npm run backfill:bcb-focus` | ADR 0121 |
 
 </details>
 

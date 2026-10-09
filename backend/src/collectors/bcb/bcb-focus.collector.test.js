@@ -122,14 +122,16 @@ test("parse: resposta sem lista ou no limite de linhas é falha da fonte", () =>
   assert.throws(() => collector.parse([resposta("IPCA", new Array(100000).fill({}))]), /limite pedido/);
 });
 
-test("montarUrl: só o indicador pedido, base 30 dias, intervalo de datas e campos mínimos", () => {
+test("montarUrl: só o indicador pedido, base 30 dias, intervalo de datas; sem $select (a API do BCB o recusava em 2026-10-09)", () => {
   const url = decodeURIComponent(collector.montarUrl(collector.INDICADORES[2], { dataInicial: "2026-08-19", dataFinal: "2026-09-23" }));
   assert.match(url, /ExpectativasMercadoAnuais\?/);
   assert.match(url, /Indicador eq 'Câmbio' and baseCalculo eq 0 and Data ge '2026-08-19' and Data le '2026-09-23'/);
-  assert.match(url, /\$select=Indicador,IndicadorDetalhe,Data,DataReferencia,Mediana,numeroRespondentes,baseCalculo/);
+  assert.doesNotMatch(url, /\$select/);
+  const primario = decodeURIComponent(collector.montarUrl(collector.INDICADORES[3], { dataInicial: "2026-08-19" }));
+  assert.match(primario, /Indicador eq 'Resultado primário' and baseCalculo eq 0/);
 });
 
-test("download: janela de 35 dias, uma requisição por indicador (IPCA, Selic, Câmbio)", async () => {
+test("download: janela de 35 dias, uma requisição por indicador (IPCA, Selic, Câmbio e resultado primário)", async () => {
   const urls = [];
   const raw = await collector.download({
     hoje: "2026-09-23",
@@ -138,6 +140,6 @@ test("download: janela de 35 dias, uma requisição por indicador (IPCA, Selic, 
       return { value: [] };
     }
   });
-  assert.deepEqual(raw.map((r) => r.indicador), ["IPCA", "Selic", "Câmbio"]);
+  assert.deepEqual(raw.map((r) => r.indicador), ["IPCA", "Selic", "Câmbio", "Resultado primário"]);
   assert.ok(urls.every((u) => u.includes("Data ge '2026-08-19'")));
 });

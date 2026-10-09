@@ -74,6 +74,8 @@ function bootstrapCollectors() {
     registerCollector(criarColetorCot("coffee"));
     registerCollector(criarColetorCot("crude"));
     registerCollector(criarColetorCot("soybeans"));
+    // Real brasileiro (CME), no relatório TFF: fase 1 do dólar, só aquisição (ADR 0120).
+    registerCollector(criarColetorCot("brl"));
     registerCollector(criarColetorFuturoB3("ccm"));
     registerCollector(criarColetorFuturoB3("icf"));
     // Ouro: o futuro em dólar da B3 (GLD, ADR 0044). O LBMA Gold Price saiu da coleta diária: o feed
