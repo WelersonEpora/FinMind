@@ -82,6 +82,10 @@ function bootstrapCollectors() {
     registerCollector(criarColetorFuturoB3("gld"));
     // Soja: o futuro SJC da B3, liquidado pelo preço da CME (ADR 0109). Fase 1 da soja: só aquisição de dados.
     registerCollector(criarColetorFuturoB3("sjc"));
+    // Dólar: os futuros DOL e WDO e o DI1 da B3 (ADR 0118). Fase 1 do dólar: só aquisição de dados (ADR 0117).
+    registerCollector(criarColetorFuturoB3("dol"));
+    registerCollector(criarColetorFuturoB3("wdo"));
+    registerCollector(criarColetorFuturoB3("di1"));
     registerCollector(b3MilhoEsalqCollector);
     registerCollector(criarColetorComexExportacao("milho"));
     registerCollector(criarColetorComexExportacao("cafe"));

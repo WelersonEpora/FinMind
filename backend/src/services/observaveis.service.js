@@ -2206,8 +2206,8 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
-  // --- Futuros da B3 por vencimento: milho (CCM, ADR 0009), café arábica (ICF, ADR 0028), ouro em dólar (GLD, ADR 0044)
-  // e soja (SJC, ADR 0109) ---
+  // --- Futuros da B3 por vencimento: milho (CCM, ADR 0009), café arábica (ICF, ADR 0028), ouro em dólar (GLD, ADR 0044),
+  // soja (SJC, ADR 0109) e, na fase 1 do dólar, o dólar, o minidólar e o DI de um dia (DOL, WDO e DI1, ADR 0118) ---
   // Dois cards por produto sobre as MESMAS séries `B3.<PRODUTO>.<TICKER>.<CAMPO>`: os campos têm
   // unidades diferentes, então a tela mostra UM campo por vez, com uma linha por
   // vencimento (nunca uma série contínua). `porVencimento` faz o serviço descobrir
@@ -2240,7 +2240,9 @@ const CATALOGO_OBSERVAVEIS = [
       unidadePreco: "US$/oz",
       fonteCollectorCode: "b3-gld-futuro",
       semBdi: true,
-      notaLiquidez: " O volume financeiro é em reais, mesmo com o contrato cotado em dólares (1 onça troy)."
+      notaLiquidez: " O volume financeiro é em reais, mesmo com o contrato cotado em dólares (1 onça troy).",
+      metodologiaSemBdi:
+        "Histórico completo desde o 1º pregão do contrato (2025-07-21), pelo arquivo diário do Up2Data (coleta diária, janela de ~15 meses). Liquidação financeira pelo LBMA Gold Price; o contrato é em US$ por onça troy e o volume é em reais. Sem abertura nem contratos em aberto: só o Boletim Diário os traz, e só de 2025-07-21 a 2025-12-11 (depois o boletim deixou de trazer a tabela por vencimento); esse trecho não foi carregado para o GLD (ADR 0044)."
     },
     {
       simbolo: "SJC",
@@ -2252,24 +2254,87 @@ const CATALOGO_OBSERVAVEIS = [
         " O volume financeiro é em reais, mesmo com o contrato cotado em dólares (450 sacas de 60 kg). O preço é o de Chicago convertido de bushel para saca (uma saca tem 2,2046 bushels).",
       historico:
         "de 2022-03-21 a 2025-12-11, o Boletim Diário de Informações (PDF, carga histórica única, ADR 0109); a partir de 2025-06-10, o arquivo diário do Up2Data (coleta diária, janela de ~15 meses)."
+    },
+    // Dólar (ADR 0118): só o Up2Data. O histórico longo do câmbio é a PTAX (desde 1994, card USD_BRL); o BDI do segmento
+    // financeiro não foi avaliado. DOL e WDO têm o mesmo preço de ajuste; o WDO concentra os negócios.
+    ...[
+      { simbolo: "DOL", titulo: "Dólar B3 (DOL)", tamanho: "US$ 50.000" },
+      { simbolo: "WDO", titulo: "Minidólar B3 (WDO)", tamanho: "US$ 10.000" }
+    ].map(({ simbolo, titulo, tamanho }) => ({
+      simbolo,
+      titulo,
+      mercadoria: "dólar comercial",
+      unidadePreco: "R$/US$ 1.000",
+      casasDecimaisPreco: 3,
+      fonteCollectorCode: `b3-${simbolo.toLowerCase()}-futuro`,
+      semBdi: true,
+      vencimentosPadrao: { quantidadePadrao: 3 },
+      notaLiquidez: ` O contrato é de ${tamanho}. O negócio se concentra no 1º vencimento; os demais aparecem todo dia só com o preço de ajuste. DOL e WDO têm o mesmo ajuste, e o WDO concentra os negócios.`,
+      metodologiaSemBdi:
+        "Histórico pelo arquivo diário do Up2Data (coleta diária, janela de ~15 meses), desde o pregão mais antigo que a janela tinha na primeira carga. O histórico longo do câmbio é a PTAX do BCB (card do dólar, desde 1994). Preço em reais por US$ 1.000 (5.040,028 = R$ 5,04 por dólar); o volume financeiro é em reais. Sem abertura nem contratos em aberto: só o Boletim Diário os traz, e ele não foi carregado para o dólar (ADR 0118)."
+    })),
+    {
+      simbolo: "DI1",
+      titulo: "DI1 B3 (DI de um dia)",
+      mercadoria: "DI de um dia",
+      unidadePreco: "% a.a.",
+      fonteCollectorCode: "b3-di1-futuro",
+      semBdi: true,
+      // Os janeiros (F) são os vértices de referência da curva (o relatório do Comitê cita DI1F27, DI1F29 e DI1F31).
+      vencimentosPadrao: { mesesPadrao: [1], quantidadePadrao: 6 },
+      nomePrecos: "Taxas e PU",
+      campoPrincipalPrecos: "ADJ_RATE",
+      camposPrecos: [
+        { codigo: "ADJ_RATE", nome: "Taxa de ajuste", unidade: "% a.a.", casasDecimais: 3 },
+        { codigo: "SETTLE", nome: "PU de ajuste", unidade: "R$", casasDecimais: 2 },
+        { codigo: "LAST", nome: "Última taxa", unidade: "% a.a.", casasDecimais: 3 },
+        { codigo: "HIGH", nome: "Taxa máxima do dia", unidade: "% a.a.", casasDecimais: 3 },
+        { codigo: "LOW", nome: "Taxa mínima do dia", unidade: "% a.a.", casasDecimais: 3 },
+        { codigo: "AVG", nome: "Taxa média", unidade: "% a.a.", casasDecimais: 3 },
+        { codigo: "OSCN_PCT", nome: "Oscilação", unidade: "%", casasDecimais: 2 }
+      ],
+      descricaoPrecos:
+        "Taxas diárias de cada vencimento do futuro de DI de um dia da B3 (DI1): taxa de ajuste, última, máxima, mínima e média, em % ao ano, e o PU de ajuste (preço unitário em reais, que vale 100.000 no vencimento). Cada vencimento é uma linha própria: juntos, formam a curva de juros pré-fixada. Por padrão, o gráfico mostra os vencimentos de janeiro, os vértices de referência.",
+      notaLiquidez: " O volume financeiro é em reais.",
+      metodologiaSemBdi:
+        "Histórico pelo arquivo diário do Up2Data (coleta diária, janela de ~15 meses), desde o pregão mais antigo que a janela tinha na primeira carga. A B3 publica a mínima, a máxima, a média e o último em taxa (% a.a.) e o ajuste em PU, com a taxa de ajuste numa coluna própria. Sem contratos em aberto: só o Boletim Diário os traz, e ele não foi carregado para o DI1 (ADR 0118)."
     }
-  ].flatMap(({ simbolo, titulo, mercadoria, unidadePreco, fonteCollectorCode, notaLiquidez, historico, semBdi }) =>
+  ].flatMap(
+    ({
+      simbolo,
+      titulo,
+      mercadoria,
+      unidadePreco,
+      casasDecimaisPreco = 2,
+      fonteCollectorCode,
+      notaLiquidez,
+      historico,
+      semBdi,
+      metodologiaSemBdi,
+      vencimentosPadrao,
+      nomePrecos = "Preços",
+      campoPrincipalPrecos = "SETTLE",
+      camposPrecos,
+      descricaoPrecos
+    }) =>
     [
       {
         instrumentCode: `${simbolo}_PRECOS`,
-        nome: `${titulo} — Preços`,
+        nome: `${titulo} — ${nomePrecos}`,
         unidade: unidadePreco,
-        campoPrincipal: "SETTLE",
-        campos: [
-          { codigo: "SETTLE", nome: "Preço de ajuste", unidade: unidadePreco, casasDecimais: 2 },
-          { codigo: "LAST", nome: "Último preço", unidade: unidadePreco, casasDecimais: 2 },
-          { codigo: "HIGH", nome: "Máxima do dia", unidade: unidadePreco, casasDecimais: 2 },
-          { codigo: "LOW", nome: "Mínima do dia", unidade: unidadePreco, casasDecimais: 2 },
-          { codigo: "AVG", nome: "Preço médio", unidade: unidadePreco, casasDecimais: 2 },
-          { codigo: "OPEN", nome: "Preço de abertura", unidade: unidadePreco, casasDecimais: 2 },
+        campoPrincipal: campoPrincipalPrecos,
+        campos: camposPrecos ?? [
+          { codigo: "SETTLE", nome: "Preço de ajuste", unidade: unidadePreco, casasDecimais: casasDecimaisPreco },
+          { codigo: "LAST", nome: "Último preço", unidade: unidadePreco, casasDecimais: casasDecimaisPreco },
+          { codigo: "HIGH", nome: "Máxima do dia", unidade: unidadePreco, casasDecimais: casasDecimaisPreco },
+          { codigo: "LOW", nome: "Mínima do dia", unidade: unidadePreco, casasDecimais: casasDecimaisPreco },
+          { codigo: "AVG", nome: "Preço médio", unidade: unidadePreco, casasDecimais: casasDecimaisPreco },
+          { codigo: "OPEN", nome: "Preço de abertura", unidade: unidadePreco, casasDecimais: casasDecimaisPreco },
           { codigo: "OSCN_PCT", nome: "Oscilação", unidade: "%", casasDecimais: 2 }
         ],
-        descricao: `Preços diários de cada vencimento do futuro de ${mercadoria} da B3 (${simbolo}): preço de ajuste, último, máxima, mínima, médio${semBdi ? "" : ", abertura"} e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua.`
+        descricao:
+          descricaoPrecos ??
+          `Preços diários de cada vencimento do futuro de ${mercadoria} da B3 (${simbolo}): preço de ajuste, último, máxima, mínima, médio${semBdi ? "" : ", abertura"} e oscilação. Cada vencimento é uma linha própria - o FinMind não encadeia vencimentos em série contínua.`
       },
       {
         instrumentCode: `${simbolo}_LIQUIDEZ`,
@@ -2291,21 +2356,25 @@ const CATALOGO_OBSERVAVEIS = [
       simbolo,
       fonteCollectorCode,
       historico,
-      semBdi
+      semBdi,
+      metodologiaSemBdi,
+      vencimentosPadrao
     }))
-  ).map(({ simbolo, historico, semBdi, ...cartao }) => ({
+  ).map(({ simbolo, historico, semBdi, metodologiaSemBdi, vencimentosPadrao, ...cartao }) => ({
     ...cartao,
     origem: "observation",
-    porVencimento: { prefixoSerie: `B3.${simbolo}`, campoReferencia: "SETTLE" },
+    porVencimento: { prefixoSerie: `B3.${simbolo}`, campoReferencia: "SETTLE", ...vencimentosPadrao },
     casasDecimais: cartao.campos.find((c) => c.codigo === cartao.campoPrincipal).casasDecimais,
     frequencia: "DIARIA",
     toleranciaDias: 4,
     fonte: semBdi ? "B3 - Up2Data (negócios consolidados)" : "B3 - Up2Data (negócios consolidados) e Boletim Diário (BDI)",
     fonteDetalhe: {
       descricao: cartao.descricao,
-      metodologia: `Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). ${
+      metodologia: `Um valor por vencimento e pregão. O valor em destaque é o do vencimento mais próximo ainda em negociação (sempre identificado ao lado). Por padrão o gráfico mostra os vencimentos que negociaram no último pregão${
+        vencimentosPadrao ? " (só os mais próximos; os demais ficam disponíveis para seleção)" : ""
+      }; os já vencidos ficam disponíveis para seleção. A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). ${
         semBdi
-          ? "Histórico completo desde o 1º pregão do contrato (2025-07-21), pelo arquivo diário do Up2Data (coleta diária, janela de ~15 meses). Liquidação financeira pelo LBMA Gold Price; o contrato é em US$ por onça troy e o volume é em reais. Sem abertura nem contratos em aberto: só o Boletim Diário os traz, e só de 2025-07-21 a 2025-12-11 (depois o boletim deixou de trazer a tabela por vencimento); esse trecho não foi carregado para o GLD (ADR 0044)."
+          ? metodologiaSemBdi
           : `Histórico em duas fontes da própria B3, nas mesmas séries: ${historico} Onde as duas cobrem o mesmo pregão, vale o valor do Up2Data (o BDI arredonda o volume para inteiro). Abertura e contratos em aberto só existem no BDI: vão até 2025-12-11 (o boletim deixou de trazer a tabela por vencimento).`
       }`,
       formatoOrigem: semBdi ? "CSV (TradeInformationConsolidatedFile, B3 Up2Data)" : "CSV (TradeInformationConsolidatedFile, B3 Up2Data) e PDF (BDI, capítulo de derivativos)",

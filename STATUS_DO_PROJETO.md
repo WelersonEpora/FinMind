@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-08.**
+**Última atualização: 2026-10-09.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -58,6 +58,13 @@ ir ao sistema, num ADR. Os pontos da conversa com o David (etapas 1 e 3) seguem 
 **A soja é o 5º ativo desde 2026-10-08:** o Comitê, com o David, aprovou a proposta (fatores, regras e medição) até o
 prompt e o Centro de Decisão (ADR 0116), e, na mesma data, os pesos: fixos por fator, com a relevância por horizonte como
 orientação ao prompt e a agregação pela IA, como no milho e no café.
+
+**O dólar (USD/BRL) entra como ativo, nos moldes dos outros, desde 2026-10-09** (decisão do usuário, ADR 0117), a partir do
+relatório do Comitê de 2026-10-08. Fase 1, só aquisição de dados: as fontes gratuitas e oficiais que servem aos fatores do
+relatório na frequência diária, uma a uma, cada uma com o seu ADR. O day-trade do relatório (ciclos de 5 minutos,
+estratégias, stops e paper trading) fica para uma fase 2, num módulo próprio que poderá atender outros ativos. As
+inconsistências do relatório (pesos que somam 97%, fórmula do score incompleta, estados que não fecham) voltam ao Comitê
+antes da proposta dos fatores (§4).
 
 | Etapa | O quê | Responsável | Situação |
 |---|---|---|---|
@@ -261,9 +268,9 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>B3 — futuros (CCM, ICF, GLD, SJC) · Milho, café, ouro, soja · CSV e PDF · nível 5 (limitado) · Dev e servidor</summary>
+<summary>B3 — futuros (CCM, ICF, GLD, SJC, DOL, WDO, DI1) · Milho, café, ouro, soja, dólar · CSV e PDF · nível 5 (limitado) · Dev e servidor (dólar só em dev)</summary>
 
-**Acesso:** CSV do Up2Data e PDF do Boletim Diário. **Ressalva principal:** **Histórico curto**: CCM, ICF e SJC desde 2022-03-21, com buraco de ~9 meses em 2023; GLD desde 2025-07-21. Contratos em aberto só até 2025-12-11. O GLD é um futuro, não o fixing: emendá-lo à LBMA é cálculo. O SJC é liquidado pelo preço da soja da CME (Chicago em US$/saca), fase 1 da soja, só aquisição. Decisões: David (se o GLD faz o papel do preço do ouro). **Evidência:** ADRs 0009, 0020, 0028, 0044, 0109.
+**Acesso:** CSV do Up2Data e PDF do Boletim Diário. **Ressalva principal:** **Histórico curto**: CCM, ICF e SJC desde 2022-03-21, com buraco de ~9 meses em 2023; GLD desde 2025-07-21. Contratos em aberto só até 2025-12-11. O GLD é um futuro, não o fixing: emendá-lo à LBMA é cálculo. O SJC é liquidado pelo preço da soja da CME (Chicago em US$/saca), fase 1 da soja, só aquisição. DOL, WDO e DI1: fase 1 do dólar, só aquisição, só o Up2Data (~15 meses; o histórico longo do câmbio é a PTAX). Decisões: David (se o GLD faz o papel do preço do ouro). **Evidência:** ADRs 0009, 0020, 0028, 0044, 0109, 0118.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
@@ -275,6 +282,10 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 | Ouro B3 (GLD) - liquidez | Contratos, negócios e volume financeiro (sem contratos em aberto) | Diária | 2025-07-21 | Estimado | Dev e servidor |
 | Soja B3 (SJC) - preços | Os campos do CCM, em US$/saca (liquidação pelo preço da CME) | Diária | 2022-03-21 (o mesmo buraco de 2023) | Estimado | Dev e servidor |
 | Soja B3 (SJC) - liquidez | Os campos do CCM; contratos em aberto só até 2025-12-11 | Diária | 2022-03-21 | Estimado | Dev e servidor |
+| Dólar e minidólar B3 (DOL, WDO) - preços | Ajuste, último, máxima, mínima, médio e oscilação (sem abertura), em R$ por US$ 1.000; o mesmo ajuste nos dois (fase 1 do dólar, ADR 0118) | Diária | A janela do Up2Data (~15 meses) | Estimado | Dev; servidor pendente |
+| Dólar e minidólar B3 (DOL, WDO) - liquidez | Contratos, negócios e volume financeiro (sem contratos em aberto); o WDO concentra os negócios | Diária | A janela do Up2Data | Estimado | Dev; servidor pendente |
+| DI1 B3 - taxas e PU | Taxa de ajuste, última, máxima, mínima e média (% a.a.) e o PU de ajuste, por vencimento: a curva pré | Diária | A janela do Up2Data | Estimado | Dev; servidor pendente |
+| DI1 B3 - liquidez | Contratos, negócios e volume financeiro | Diária | A janela do Up2Data | Estimado | Dev; servidor pendente |
 
 </details>
 
@@ -552,6 +563,7 @@ no ADR de cada fonte.
 | Série contínua do GLD (ouro) | O horizonte de 90 dias do ouro fica muitas vezes sem a variação de 90 dias, porque cada vencimento do GLD tem pouco histórico e nada é emendado (ADR 0054). Emendar os vencimentos é um cálculo do David (ADR 0044) |
 | Lacunas declaradas das v1 | Milho: o etanol brasileiro no F5 (ADR 0073) e os fatores ausentes (ADR 0080); café: o INMET no clima (ADR 0083). Ficaram para depois da v1 |
 | Soja: o que segue (ADR 0116) | A fase 1 (só aquisição, ADRs 0109 a 0115) está completa e a soja foi aprovada como 5º ativo em 2026-10-08. Segue: conferir no servidor a 1ª coleta diária do COT, dos preços do FMI e do Crop Progress da soja (carregam o histórico inteiro nela); depois do deploy, a 1ª leitura diária da soja no servidor; o teste histórico dos fatores e da margem de esmagamento |
+| Dólar, fase 1 (ADR 0117) | Só aquisição. Feito: os futuros DOL, WDO e DI1 da B3 (ADR 0118). Segue, uma fonte por vez: as 4 séries do FRED (Treasury de 2 anos, VIX, dólar contra emergentes e S&P 500), o COT do real, o resultado primário do Focus, o fluxo cambial e a balança do BCB, os leilões do BCB e o EMBI+ do IPEA (a reconhecer) e a leitura de eventos do dólar por IA. Depois, a proposta dos fatores para o Comitê |
 | Qualidade da IA: medidas para depois | Calibração da confiança, taxa de inversão, índice único e análise estatística (ADR 0064) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): 
@@ -598,6 +610,8 @@ Os motores dos quatro ativos foram validados em 2026-10-07 (ADR 0108). O que seg
 | Condições de sinal operacional | Em aberto: nenhum sinal é gerado hoje |
 | Execução automática de ordens | **Não existe nesta fase** (restrição permanente, `CLAUDE.md`): uma pessoa decide e executa (`docs/architecture.md`) |
 | Soja como 5º ativo | **Aprovada pelo Comitê, com o David, em 2026-10-08** (ADR 0116): os fatores, as regras, a medição, os baselines e os limites das regras (`docs/proposta-ativo-soja.md`, itens 1 a 6), até o prompt e o Centro de Decisão |
+| Dólar: as perguntas ao Comitê | Em aberto (ADR 0117): os pesos do relatório somam 97% (e o bloco de juros dá 19%, não 16%); C, N e Ω da fórmula do score sem valor; os estados de sinal (5, 6 ou 7); fatores colineares (o 2s10s, o DXY com euro e iene); regras lineares onde o relatório diz que são condicionais (petróleo, reservas); limiares que faltam; volume e ATR sem direção; fontes vagas ou fechadas (corretoras, notícias, NDF, LBMA); a meta de 80% contra os benchmarks da Qualidade da IA. Depois: a proposta dos fatores e o preço de referência (a PTAX ou o DOL) |
+| Dólar: day-trade (fase 2) | Fora desta fase (ADR 0117): o ciclo intradiário, as estratégias, o controle de risco por operação e o paper trading, num módulo próprio que poderá atender outros ativos. Pede um feed pago em tempo real e uma decisão própria |
 | Soja: pesos e agregação | **Decidido pelo Comitê, com o David, em 2026-10-08** (ADR 0116, adendo): pesos fixos por fator (F1 e F2 Alto, F3 Médio, F4 Baixo), a matriz fator × horizonte como relevância (orientação ao prompt) e a agregação pela IA, como no milho e no café. A sugestão do FinMind (`docs/proposta-pesos-agregacao-soja.md`) não foi adotada |
 | Soja: fontes da fase 2 | Em aberto (item 7 da proposta): as vendas semanais para exportação (Export Sales) e o Chicago diário do Yahoo só como série de pesquisa |
 
@@ -629,6 +643,16 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>6. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-09</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Dólar como ativo, fase 1 | Decisão do usuário a partir do relatório do Comitê de 2026-10-08: o dólar (USD/BRL) entra nos moldes dos outros ativos, começando pela aquisição de dados; o day-trade fica para uma fase 2, num módulo próprio. As inconsistências do relatório viraram perguntas ao Comitê (§4) | ADR 0117 |
+| Dólar, fase 1: os futuros DOL, WDO e DI1 da B3 | Três produtos novos no coletor da B3 (Up2Data, segmento financeiro), com unidade por campo no DI1 (taxa nos preços, PU no ajuste) e vencimentos padrão no gráfico (os 3 mais próximos no dólar, os 6 janeiros no DI1). Seis cards novos, 86 no total. Em dev: 335 pregões cada (2025-06-10 a 2026-10-08), 0 falhas. No servidor: `npm run backfill:b3-dol`, `npm run backfill:b3-wdo` e `npm run backfill:b3-di1` | ADR 0118 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-08</summary>

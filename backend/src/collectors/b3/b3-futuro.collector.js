@@ -228,7 +228,7 @@ function normalizar(produto, rawItems) {
         series_code: `${produto.prefixoSerie}.${ticker}.${sufixo}`,
         observed_at: item.data,
         value: valor,
-        unit: unit === PRECO ? produto.unidadePreco : unit,
+        unit: produto.unidadesCampo?.[sufixo] ?? (unit === PRECO ? produto.unidadePreco : unit),
         source_code: SOURCE_CODE,
         published_at: publicadoEm,
         published_at_is_estimated: true,
@@ -248,7 +248,7 @@ function normalizar(produto, rawItems) {
   return { validos, invalidos };
 }
 
-// Coletor de um produto de b3-produtos.js ("ccm", "icf", "gld", "sjc").
+// Coletor de um produto de b3-produtos.js ("ccm", "icf", "gld", "sjc", "dol", "wdo", "di1").
 function criarColetorFuturoB3(chave) {
   const produto = produtoB3(chave);
   const downloadIntervalo = (opcoes) => baixarIntervalo(produto, opcoes);

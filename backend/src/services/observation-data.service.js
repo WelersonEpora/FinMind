@@ -67,7 +67,13 @@ const DIMENSAO_VENCIMENTO = {
   // Destaque do card: o vencimento ativo mais próximo, identificado pelo ticker.
   escolherPrincipal: (itens) => itens.find((i) => i.ativo),
   destaque: (principal) => principal.codigo,
-  padrao: (itens) => itens.filter((i) => i.ativo).map((i) => i.codigo)
+  // Por padrão, os vencimentos ativos. Produto com muitos vencimentos listados (DOL e WDO têm ~21; o DI1, ~44) limita
+  // pelo `config`: `mesesPadrao` (só esses meses, ex.: os janeiros do DI1) e `quantidadePadrao` (os N mais próximos).
+  padrao: (itens, config = {}) =>
+    itens
+      .filter((i) => i.ativo && (!config.mesesPadrao || config.mesesPadrao.includes(Number(i.vencimento.slice(5, 7)))))
+      .slice(0, config.quantidadePadrao ?? Infinity)
+      .map((i) => i.codigo)
 };
 
 // Dimensão "região" (WASDE por país, Conab por UF, IMEA por região e por município): o que muda é o mapa de rótulos, o texto do rótulo da

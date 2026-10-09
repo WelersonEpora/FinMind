@@ -38,8 +38,8 @@ test("listarObservaveis marca situação EM_DIA quando a última observação é
 
   assert.equal(
     observaveis.length,
-    82,
-    "USD_BRL e SELIC (market_quote) + 80 de observation (2 da Conab da soja, por UF e balanço (ADR 0114) + estoques trimestrais da soja (ADR 0113) + área plantada da soja (ADR 0112) + 2 do WASDE da soja, EUA e por país (ADR 0111) + 5 da fase 1 da soja: COT, preços do FMI, saúde da vegetação e os 2 do Crop Progress (ADR 0110) + 2 do futuro de soja SJC da B3, preços e liquidez (ADR 0109) + 2 do Brent futuro da NYMEX pelo Yahoo, por vencimento e contínuo (ADR 0096) + produção e capacidade ociosa da OPEP do STEO (ADR 0091) + importação de adubo do Comex Stat (ADR 0074) + preço mensal do milho do FMI pelo ALFRED (ADR 0069) + previsão do NOAA CPC no Corn Belt (ADR 0067) + preços e estoques mensais do café da ICO e estoques nos portos europeus da ECF (ADR 0061) + paridade de exportação do milho do IMEA (ADR 0057) + demanda de petróleo por país do JODI (ADR 0046) + preço mensal do café do FMI pelo ALFRED (ADR 0045) + petróleo: COT do WTI e 3 da EIA, estoques, fluxos e preços (ADR 0040), a produção por UF da ANP (ADR 0041) e a produção por país do JODI (ADR 0042) + 2 do custo de produção do café da Conab (ADR 0043) + andamento da semeadura e colheita do IMEA (ADR 0039) + 3 do resumo diário do Cecafé (ADR 0038) + ETFs e oferta e demanda do World Gold Council (ADR 0037) + ouro dos bancos centrais do FMI (ADR 0036) + estoques trimestrais do milho do Grain Stocks (ADR 0035) + exportação de milho por destino (ADR 0034) + câmbio da cesta do DXY, meta do Fed e CPI do FRED (ADR 0033) + estoques certificados do café da ICE + PSD do café do USDA + Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho e do café da NOAA + 6 fixos (ouro, Treasury, índices do dólar e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 3 da Conab (milho por UF e balanço, café por UF) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF + 2 cards do GLD, ouro em dólar (ADR 0044))"
+    88,
+    "USD_BRL e SELIC (market_quote) + 86 de observation (6 da fase 1 do dólar: DOL, WDO e DI1 da B3, preços e liquidez (ADR 0118) + 2 da Conab da soja, por UF e balanço (ADR 0114) + estoques trimestrais da soja (ADR 0113) + área plantada da soja (ADR 0112) + 2 do WASDE da soja, EUA e por país (ADR 0111) + 5 da fase 1 da soja: COT, preços do FMI, saúde da vegetação e os 2 do Crop Progress (ADR 0110) + 2 do futuro de soja SJC da B3, preços e liquidez (ADR 0109) + 2 do Brent futuro da NYMEX pelo Yahoo, por vencimento e contínuo (ADR 0096) + produção e capacidade ociosa da OPEP do STEO (ADR 0091) + importação de adubo do Comex Stat (ADR 0074) + preço mensal do milho do FMI pelo ALFRED (ADR 0069) + previsão do NOAA CPC no Corn Belt (ADR 0067) + preços e estoques mensais do café da ICO e estoques nos portos europeus da ECF (ADR 0061) + paridade de exportação do milho do IMEA (ADR 0057) + demanda de petróleo por país do JODI (ADR 0046) + preço mensal do café do FMI pelo ALFRED (ADR 0045) + petróleo: COT do WTI e 3 da EIA, estoques, fluxos e preços (ADR 0040), a produção por UF da ANP (ADR 0041) e a produção por país do JODI (ADR 0042) + 2 do custo de produção do café da Conab (ADR 0043) + andamento da semeadura e colheita do IMEA (ADR 0039) + 3 do resumo diário do Cecafé (ADR 0038) + ETFs e oferta e demanda do World Gold Council (ADR 0037) + ouro dos bancos centrais do FMI (ADR 0036) + estoques trimestrais do milho do Grain Stocks (ADR 0035) + exportação de milho por destino (ADR 0034) + câmbio da cesta do DXY, meta do Fed e CPI do FRED (ADR 0033) + estoques certificados do café da ICE + PSD do café do USDA + Focus + reservas do BCB + etanol da EIA + saúde da vegetação do milho e do café da NOAA + 6 fixos (ouro, Treasury, índices do dólar e COT de ouro, milho e café) + 2 do USDA Crop Progress + área plantada do USDA + 4 do Comex Stat (milho e café) + 2 do WASDE (EUA e por país) + 3 da Conab (milho por UF e balanço, café por UF) + 4 do IMEA (safra + custo por mês + custo por safra + balanço de oferta e demanda) + indicador CEPEA/ESALQ do milho + 2 cards do CCM + 2 cards do ICF + 2 cards do GLD, ouro em dólar (ADR 0044))"
   );
   assert.equal(observaveis[0].codigo, "USD_BRL");
   assert.equal(observaveis[0].situacao, "EM_DIA");
@@ -155,6 +155,25 @@ test("ouro B3 (GLD): cards de preço em US$/oz e liquidez, sem abertura nem cont
   assert.equal(precos.fonte, "B3 - Up2Data (negócios consolidados)");
   // Os produtos com BDI continuam com os dois campos.
   assert.ok(observaveisService.buscarNoCatalogo("ICF_LIQUIDEZ").campos.some((c) => c.codigo === "OPEN_INTEREST"));
+});
+
+test("dólar B3 (DOL, WDO) e DI1 (ADR 0118): cards sem BDI; o DI1 em taxa, com o PU à parte; vencimentos padrão limitados", () => {
+  const dol = observaveisService.buscarNoCatalogo("DOL_PRECOS");
+  assert.equal(dol.unidade, "R$/US$ 1.000");
+  assert.equal(dol.casasDecimais, 3);
+  assert.deepEqual(dol.porVencimento, { prefixoSerie: "B3.DOL", campoReferencia: "SETTLE", quantidadePadrao: 3 });
+  assert.ok(!dol.campos.some((c) => c.codigo === "OPEN"));
+  assert.match(dol.fonteDetalhe.metodologia, /PTAX/);
+  assert.doesNotMatch(dol.fonteDetalhe.metodologia, /LBMA/, "o texto do GLD não vaza para os outros produtos sem BDI");
+  assert.equal(observaveisService.buscarNoCatalogo("WDO_LIQUIDEZ").fonteCollectorCode, "b3-wdo-futuro");
+
+  const di1 = observaveisService.buscarNoCatalogo("DI1_PRECOS");
+  assert.equal(di1.nome, "DI1 B3 (DI de um dia) — Taxas e PU");
+  assert.equal(di1.campoPrincipal, "ADJ_RATE");
+  assert.equal(di1.unidade, "% a.a.");
+  assert.equal(di1.campos.find((c) => c.codigo === "SETTLE").unidade, "R$");
+  assert.deepEqual(di1.porVencimento, { prefixoSerie: "B3.DI1", campoReferencia: "SETTLE", mesesPadrao: [1], quantidadePadrao: 6 });
+  assert.match(observaveisService.buscarNoCatalogo("GLD_PRECOS").fonteDetalhe.metodologia, /LBMA/);
 });
 
 test("Brent futuro (Yahoo, ADR 0096): card por vencimento como o dos futuros da B3, a contínua à parte, fonte marcada como não oficial", async () => {
@@ -379,6 +398,29 @@ test("CCM: sem escolha, o histórico traz o SETTLE dos vencimentos ATIVOS, uma l
   assert.deepEqual(pedido.seriesCodes, ["B3.CCM.CCMX26.SETTLE", "B3.CCM.CCMF27.SETTLE"], "vencido (CCMU26) fica de fora por padrão");
   assert.equal(r.historico[0].modalidade, "CCMX26", "a modalidade é o vencimento");
   assert.equal(r.historico[0].unidade, "R$/saca");
+});
+
+test("DI1 e DOL: sem escolha, só os vencimentos padrão do catálogo (os janeiros mais próximos no DI1; os 3 mais próximos no DOL)", async () => {
+  const vencimentos = (simbolo, meses) =>
+    meses.map((m) => ({ codigo: `${simbolo}${m}`, primeira_data: "2025-07-01", ultima_data: "2026-10-08", pregoes: "300" }))
+      .concat({ codigo: `${simbolo}V26`, primeira_data: "2025-07-01", ultima_data: "2026-09-30", pregoes: "300" });
+  const pedidoDe = async (codigo, banco) => {
+    let pedido = null;
+    await observaveisService.obterHistoricoObservavel(codigo, {}, {
+      observationRepository: repoCcm({ listarItens: async () => banco, buscarHistoricoAtual: async (p) => { pedido = p; return { registros: [], total: 0 }; } })
+    });
+    return pedido.seriesCodes;
+  };
+
+  assert.deepEqual(
+    await pedidoDe("DI1_PRECOS", vencimentos("DI1", ["X26", "F27", "J27", "F28", "F29", "F30", "F31", "F32", "F33"])),
+    ["DI1F27", "DI1F28", "DI1F29", "DI1F30", "DI1F31", "DI1F32"].map((t) => `B3.DI1.${t}.ADJ_RATE`),
+    "o DI1 abre na taxa de ajuste, nos 6 janeiros ativos mais próximos"
+  );
+  assert.deepEqual(
+    await pedidoDe("DOL_PRECOS", vencimentos("DOL", ["X26", "Z26", "F27", "G27"])),
+    ["DOLX26", "DOLZ26", "DOLF27"].map((t) => `B3.DOL.${t}.SETTLE`)
+  );
 });
 
 test("CCM: vencimentos vencidos e outro campo continuam disponíveis para seleção", async () => {

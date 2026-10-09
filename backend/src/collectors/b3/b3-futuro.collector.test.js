@@ -25,7 +25,8 @@ const COLUNAS = "RptDt;TckrSymb;ISIN;SgmtNm;MinPric;MaxPric;TradAvrgPric;LastPri
 // positivos" que o arquivo de fato contém: CCME11 (segmento CASH), uma opção e
 // outro derivativo. CCMK27 aqui simula um vencimento sem negócios no dia. As linhas do
 // café (ICF e o conilon CNL, sem negócios) são reais do arquivo de 2026-09-25; as do ouro
-// (o futuro GLD, segmento FINANCIAL, e os ETFs de ouro, CASH) do de 2026-09-30.
+// (o futuro GLD, segmento FINANCIAL, e os ETFs de ouro, CASH) do de 2026-09-30; as do dólar (DOL e WDO, com o ETF
+// DOLX11, CASH) e do DI1 do de 2026-10-08.
 const LINHAS = [
   "2026-09-18;03BK11;BR03BKCTF019;FORWARD;51,59;51,7;51,66;51,59;0;;;;3;250;12917,45",
   "2026-09-18;CCME11;BRCCMECTF007;CASH;8,6;8,89;8,7;8,61;-1,71;;;;547;21878;189223,32",
@@ -33,7 +34,11 @@ const LINHAS = [
   "2026-09-18;CCMF27C006800;BRBMEFFM0BV3;AGRIBUSINESS;;;;;;;;11,7;;;",
   "2026-09-18;CCMH27;BRBMEFCCP361;AGRIBUSINESS;81,67;82,39;82,02;81,95;0,07;81,83;;;398;510;18824085",
   "2026-09-18;CCMK27;BRBMEFCCP338;AGRIBUSINESS;;;;;;80,29;;;;;",
-  "2026-09-18;DOLF27;BRBMEFDOL123;FINANCIAL;5000;5100;5050;5075;0,1;5080;;;10;20;1000",
+  "2026-10-08;DI1F27;BRBMEFD1I4Z0;FINANCIAL;13,428;13,453;13,438;13,451;0,13;97186,98;13,445;;13086;953275;92647104162,88",
+  "2026-10-08;DOLF27;BRBMEFDOL7G7;FINANCIAL;;;;;;5095,14;;;;;",
+  "2026-10-08;DOLX11;BRDOLXCTF002;CASH;46,51;47,42;46,66;46,68;0,17;;;;181;62241;2904665,59",
+  "2026-10-08;DOLX26;BRBMEFDOL892;FINANCIAL;5022;5054,5;5033,591;5040;0,24;5040,028;;;17028;277000;69715240750",
+  "2026-10-08;WDOX26;BRBMEFWDO5I4;FINANCIAL;5022;5052;5035,876;5038,5;0,21;5040,028;;;483009;2255158;113566973480",
   "2026-09-25;CNLF27;BRBMEFCNL1I8;AGRIBUSINESS;;;;;;962,6;;;;;",
   "2026-09-25;ICFH28;BRBMEFICF3L3;AGRIBUSINESS;;;;;;316,7;;;;;",
   "2026-09-25;ICFZ26;BRBMEFICF3E8;AGRIBUSINESS;334;343,65;338,94;336,95;1,11;338,6;;;371;539;94824222,11",
@@ -121,6 +126,44 @@ test("ouro (GLD): só o futuro, no segmento FINANCIAL (sem os ETFs GLDI11/GLDX11
   assert.equal(z26.VOLUME_BRL.unit, "BRL");
   assert.equal(z26.SETTLE.metadata.vencimento, "2026-12");
   assert.equal(coletorGld.codigo, "b3-gld-futuro");
+});
+
+test("dólar (DOL e WDO): só os futuros (sem o ETF DOLX11), preço em R$ por US$ 1.000; vencimento sem negócio só com o ajuste", () => {
+  const dol = criarColetorFuturoB3("dol");
+  const { linhas } = extrairFuturos(csv(), PRODUTOS.dol);
+  assert.deepEqual(linhas.map((l) => l.split(";")[1]), ["DOLF27", "DOLX26"]);
+
+  const { validos, invalidos } = dol.normalize(dol.parse([{ data: "2026-10-08", situacao: "final", linhas }]));
+  assert.equal(invalidos.length, 0);
+  const valor = (serie) => validos.find((v) => v.series_code === serie);
+  assert.equal(valor("B3.DOL.DOLX26.SETTLE").value, 5040.028);
+  assert.equal(valor("B3.DOL.DOLX26.SETTLE").unit, "BRL/USD1000");
+  assert.equal(valor("B3.DOL.DOLX26.CONTRACTS").value, 277000);
+  assert.equal(valor("B3.DOL.DOLX26.SETTLE").metadata.vencimento, "2026-11");
+  assert.deepEqual(validos.filter((v) => v.series_code.includes("DOLF27")).map((v) => v.series_code), ["B3.DOL.DOLF27.SETTLE"]);
+
+  const wdo = criarColetorFuturoB3("wdo");
+  const linhasWdo = extrairFuturos(csv(), PRODUTOS.wdo).linhas;
+  assert.deepEqual(linhasWdo.map((l) => l.split(";")[1]), ["WDOX26"]);
+  const wdoValidos = wdo.normalize(wdo.parse([{ data: "2026-10-08", situacao: "final", linhas: linhasWdo }])).validos;
+  assert.equal(wdoValidos.find((v) => v.series_code === "B3.WDO.WDOX26.CONTRACTS").value, 2255158);
+  assert.deepEqual([dol.codigo, wdo.codigo], ["b3-dol-futuro", "b3-wdo-futuro"]);
+});
+
+test("DI1: mínima, máxima, média e último em taxa (% a.a.); o ajuste em PU (R$) e a taxa de ajuste em % a.a.", () => {
+  const di1 = criarColetorFuturoB3("di1");
+  const { linhas } = extrairFuturos(csv(), PRODUTOS.di1);
+  assert.deepEqual(linhas.map((l) => l.split(";")[1]), ["DI1F27"]);
+
+  const { validos, invalidos } = di1.normalize(di1.parse([{ data: "2026-10-08", situacao: "final", linhas }]));
+  assert.equal(invalidos.length, 0);
+  const f27 = Object.fromEntries(validos.map((v) => [v.series_code.split(".")[3], v]));
+  assert.deepEqual([f27.LAST.value, f27.LAST.unit], [13.451, "pct_aa"]);
+  assert.deepEqual([f27.SETTLE.value, f27.SETTLE.unit], [97186.98, "BRL_PU"]);
+  assert.deepEqual([f27.ADJ_RATE.value, f27.ADJ_RATE.unit], [13.445, "pct_aa"]);
+  assert.equal(f27.OSCN_PCT.unit, "pct");
+  assert.equal(f27.VOLUME_BRL.unit, "BRL");
+  assert.equal(f27.SETTLE.metadata.vencimento, "2027-01");
 });
 
 test("o segmento do produto filtra: um GLD fora do FINANCIAL não é o futuro", () => {

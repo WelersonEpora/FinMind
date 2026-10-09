@@ -9,6 +9,8 @@
 //   segmento         coluna SgmtNm do arquivo do Up2Data (AGRIBUSINESS, FINANCIAL)
 //   prefixoSerie     séries `<prefixoSerie>.<TICKER>.<CAMPO>` em `observation`
 //   unidadePreco     unidade dos campos de preço (o volume financeiro é sempre em R$, nos dois arquivos)
+//   unidadesCampo    opcional: unidade de um campo que não segue `unidadePreco`, pelo sufixo da série (o DI1
+//                    negocia em taxa, mas o ajuste é em PU)
 //   codigoColetorBdi coletor do BDI (só nos produtos com BDI)
 //   tituloBdi        título da tabela do produto no BDI (a linha seguinte tem de ser "Mercado Futuro")
 //   resumoBdi        o que o BDI mostra no layout novo (desde 2025-12-12), sem a tabela por vencimento
@@ -17,6 +19,11 @@
 // ADR 0044 - sem BDI, porque estreou em 2025-07-21, dentro da janela do Up2Data, que cobre o histórico inteiro.
 // SJC (soja com liquidação financeira pelo minicontrato de soja da CME, US$/saca): ADR 0109 - o BDI tem a tabela
 // por vencimento de 2022-03-21 a 2025-12-11, no mesmo layout do CCM e do ICF (conferido em 2026-10-08).
+// DOL, WDO (dólar e minidólar, R$ por US$ 1.000) e DI1 (DI de um dia): ADR 0118, fase 1 do dólar - só o Up2Data, sem
+// BDI: o histórico longo do dólar é a PTAX, desde 1994. Conferidos nos arquivos de 2025-07-01 e 2026-10-08: segmento
+// FINANCIAL; o DI1 traz mínima, máxima, média e último em TAXA (% a.a.) e o ajuste em PU (R$), com a taxa de ajuste
+// na coluna AdjstdQtTax.
+const UNIDADE_DOLAR = "BRL/USD1000";
 const PRODUTOS = {
   ccm: {
     simbolo: "CCM",
@@ -58,6 +65,31 @@ const PRODUTOS = {
     codigoColetorBdi: "b3-sjc-bdi",
     tituloBdi: /^SJC: Soja com Liquida/i,
     resumoBdi: /^SJC: SOJA/
+  },
+  dol: {
+    simbolo: "DOL",
+    nome: "dólar",
+    segmento: "FINANCIAL",
+    prefixoSerie: "B3.DOL",
+    unidadePreco: UNIDADE_DOLAR,
+    codigoColetor: "b3-dol-futuro"
+  },
+  wdo: {
+    simbolo: "WDO",
+    nome: "minidólar",
+    segmento: "FINANCIAL",
+    prefixoSerie: "B3.WDO",
+    unidadePreco: UNIDADE_DOLAR,
+    codigoColetor: "b3-wdo-futuro"
+  },
+  di1: {
+    simbolo: "DI1",
+    nome: "DI de um dia",
+    segmento: "FINANCIAL",
+    prefixoSerie: "B3.DI1",
+    unidadePreco: "pct_aa",
+    unidadesCampo: { SETTLE: "BRL_PU", ADJ_RATE: "pct_aa" },
+    codigoColetor: "b3-di1-futuro"
   }
 };
 

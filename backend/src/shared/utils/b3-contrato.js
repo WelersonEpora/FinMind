@@ -7,9 +7,9 @@
 // vencimento - só o mês. O Brent da NYMEX (BZZ26 = dezembro/2026, pelo Yahoo, ADR 0096)
 // segue o mesmo formato e usa o mesmo decodificador.
 
-// Produtos coletados: CCM (milho, ADR 0009), ICF (café arábica, ADR 0028), GLD (ouro, ADR 0044), SJC (soja, ADR 0109)
-// e BZ (Brent, ADR 0096).
-const SIMBOLOS = ["CCM", "ICF", "GLD", "SJC", "BZ"];
+// Produtos coletados: CCM (milho, ADR 0009), ICF (café arábica, ADR 0028), GLD (ouro, ADR 0044), SJC (soja, ADR 0109),
+// DOL, WDO e DI1 (dólar, minidólar e DI de um dia, ADR 0118) e BZ (Brent, ADR 0096).
+const SIMBOLOS = ["CCM", "ICF", "GLD", "SJC", "DOL", "WDO", "DI1", "BZ"];
 const REGEX_FUTURO = new RegExp(`^(${SIMBOLOS.join("|")})([FGHJKMNQUVXZ])(\\d{2})$`);
 const MES_DO_CODIGO = { F: 1, G: 2, H: 3, J: 4, K: 5, M: 6, N: 7, Q: 8, U: 9, V: 10, X: 11, Z: 12 };
 const MESES_ABREVIADOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
