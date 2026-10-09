@@ -36,6 +36,8 @@ A fonte é a API do SGS do BCB (a mesma da PTAX, da Selic e das reservas, ADRs 0
 - `collectors/bcb/bcb-balanco-pagamentos.collector.js`, o card em `observaveis.service.js` e os testes.
 - Carga em dev (2026-10-09), pela coleta diária: 380 meses de cada série, 760 valores, 0 falhas.
 
+- Carga no servidor (2026-10-09), pela coleta manual: 760 valores, 0 falhas.
+
 ## Consequências
 
 - No servidor, o histórico carrega na primeira coleta diária depois do deploy: não há backfill.

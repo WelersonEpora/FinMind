@@ -54,6 +54,8 @@ têm volume ofertado.
   `observation-data.service.js`, o card em `observaveis.service.js` e os testes com linhas reais.
 - Carga em dev (2026-10-09), pela coleta diária: as 10.439 atuações em 13.779 valores, 0 falhas.
 
+- Carga no servidor (2026-10-09), pela coleta manual: 10.439 atuações, 13.779 valores, 0 falhas.
+
 ## Consequências
 
 - No servidor, o histórico carrega na primeira coleta diária depois do deploy: não há backfill.

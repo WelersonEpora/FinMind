@@ -48,6 +48,8 @@ fundos alavancados com 37.418 comprados e 27.865 vendidos; gestores de ativos co
 - Carga em dev (2026-10-09), pela coleta diária (o coletor baixa o histórico inteiro): 753 semanas, de 2011-04-05 a
   2026-09-29, 5.271 valores, 0 falhas; data de publicação real em 212 semanas (desde ago/2022) e estimada em 541.
 
+- Carga no servidor (2026-10-09), pela coleta manual: 753 semanas, 5.271 valores, 0 falhas.
+
 ## Consequências
 
 - No servidor, o histórico carrega na primeira coleta diária depois do deploy: não há backfill.

@@ -206,10 +206,10 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 |---|---|---|---|---|---|
 | Dólar (USD/BRL) | PTAX de venda | Diária | 1994-07-01 | — (cotação, não revisa) | Dev e servidor |
 | Taxa Selic | Meta e realizada | Diária | Realizada 1994-07-04; meta 1999-03-05 | — (não revisa) | Dev e servidor |
-| Expectativas do Focus | Mediana de IPCA, Selic e câmbio de fim de ano, por ano-calendário (o corrente e até 4 à frente); desde 2026-10-09, o resultado primário (% do PIB, até 9 anos à frente; fase 1 do dólar, ADR 0121) | Semanal | 2000-01-07 | Estimado (1º dia útil depois da semana do boletim) | Dev e servidor (primário só em dev) |
+| Expectativas do Focus | Mediana de IPCA, Selic e câmbio de fim de ano, por ano-calendário (o corrente e até 4 à frente); desde 2026-10-09, o resultado primário (% do PIB, até 9 anos à frente; fase 1 do dólar, ADR 0121) | Semanal | 2000-01-07 | Estimado (1º dia útil depois da semana do boletim) | Dev e servidor |
 | Reservas internacionais | Total diário (SGS 13621), US$ milhões | Diária | 1998-09-01 | Estimado (dia útil seguinte) | Dev e servidor |
-| Balança comercial e transações correntes | Saldos mensais do balanço de pagamentos (SGS 22707 e 22701), US$ milhões; revisados (fase 1 do dólar, ADR 0123) | Mensal | 1995-01 | Estimado (fim do mês seguinte); revisão com a data da coleta | Dev; servidor na 1ª coleta diária |
-| Atuações do BCB no câmbio | Por dia e instrumento (swap tradicional e reverso, linhas, vendas à vista...): volume aceito, ofertado e número de atuações; CSV do portal de dados abertos, atualizado no fim do mês seguinte (fase 1 do dólar, ADR 0122) | Por atuação | 1999-01-22 | Estimado (fim do dia da atuação) | Dev; servidor na 1ª coleta diária |
+| Balança comercial e transações correntes | Saldos mensais do balanço de pagamentos (SGS 22707 e 22701), US$ milhões; revisados (fase 1 do dólar, ADR 0123) | Mensal | 1995-01 | Estimado (fim do mês seguinte); revisão com a data da coleta | Dev e servidor |
+| Atuações do BCB no câmbio | Por dia e instrumento (swap tradicional e reverso, linhas, vendas à vista...): volume aceito, ofertado e número de atuações; CSV do portal de dados abertos, atualizado no fim do mês seguinte (fase 1 do dólar, ADR 0122) | Por atuação | 1999-01-22 | Estimado (fim do dia da atuação) | Dev e servidor |
 
 </details>
 
@@ -314,17 +314,17 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>FRED · Ouro, petróleo, dólar · API · nível 5 · Dev e servidor (dólar só em dev)</summary>
+<summary>FRED · Ouro, petróleo, dólar · API · nível 5 · Dev e servidor</summary>
 
 **Acesso:** API REST (JSON, com chave); CSV de reserva. **Ressalva principal:** Data de publicação **estimada**; **o DXY não é coletado** (licenciado): temos os índices do Fed e as 6 moedas da cesta, e remontá-lo é cálculo do David; licença adiada (uso interno). **Evidência:** ADRs 0009, 0011, 0012, 0033, 0119.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | Treasury 10 anos | Nominal (DGS10), real (DFII10) e inflação implícita (T10YIE) | Diária | DGS10 1962; DFII10 e T10YIE 2003 | Estimado (dia útil seguinte) | Dev e servidor |
-| Índices do dólar (Fed) | Amplo (DTWEXBGS), contra as economias avançadas (DTWEXAFEGS) e, na fase 1 do dólar, contra as emergentes (DTWEXEMEGS, ADR 0119); **não é o DXY** | Diária | 2006 | Estimado (segunda seguinte: divulgação semanal) | Dev e servidor (emergentes só em dev) |
-| Treasury 2 anos | Nominal (DGS2); o 2s10s é a diferença com o de 10 anos (fase 1 do dólar, ADR 0119) | Diária | 1976 | Estimado (dia útil seguinte) | Dev; servidor na 1ª coleta diária |
-| VIX (CBOE) | Fechamento diário; copyright da CBOE (fase 1 do dólar) | Diária | 1990 | Estimado (dia útil seguinte; o FRED às vezes atrasa) | Dev; servidor na 1ª coleta diária |
-| S&P 500 | Fechamento diário do índice à vista (não o futuro ES); **o FRED só guarda 10 anos** (fase 1 do dólar) | Diária | 2016-10-10 | Estimado (dia útil seguinte) | Dev; servidor na 1ª coleta diária |
+| Índices do dólar (Fed) | Amplo (DTWEXBGS), contra as economias avançadas (DTWEXAFEGS) e, na fase 1 do dólar, contra as emergentes (DTWEXEMEGS, ADR 0119); **não é o DXY** | Diária | 2006 | Estimado (segunda seguinte: divulgação semanal) | Dev e servidor |
+| Treasury 2 anos | Nominal (DGS2); o 2s10s é a diferença com o de 10 anos (fase 1 do dólar, ADR 0119) | Diária | 1976 | Estimado (dia útil seguinte) | Dev e servidor |
+| VIX (CBOE) | Fechamento diário; copyright da CBOE (fase 1 do dólar) | Diária | 1990 | Estimado (dia útil seguinte; o FRED às vezes atrasa) | Dev e servidor |
+| S&P 500 | Fechamento diário do índice à vista (não o futuro ES); **o FRED só guarda 10 anos** (fase 1 do dólar) | Diária | 2016-10-10 | Estimado (dia útil seguinte) | Dev e servidor |
 | Câmbio - moedas da cesta do DXY | Euro, iene, libra, dólar canadense, coroa sueca e franco suíço | Diária | 1971 (euro 1999) | Estimado (segunda seguinte) | Dev e servidor |
 | Meta de juros do Fed (FOMC) | Limites superior e inferior da faixa (desde 2008-12-16) e alvo único (até 2008-12-15) | Diária | 1982-09-27 | O próprio dia | Dev e servidor |
 
@@ -345,7 +345,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>CFTC COT · Os quatro ativos, a soja e o real · API · nível 5 · Dev e servidor (soja e real só em dev)</summary>
+<summary>CFTC COT · Os quatro ativos, a soja e o real · API · nível 5 · Dev e servidor (soja só em dev)</summary>
 
 **Acesso:** API Socrata (JSON). **Ressalva principal:** Data de publicação estimada antes de 2022-08. **Evidência:** ADRs 0009, 0028, 0040, 0110, 0120.
 
@@ -353,7 +353,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 |---|---|---|---|---|---|
 | COT - ouro (COMEX), milho (CBOT), café arábica (ICE Coffee C) e petróleo WTI (NYMEX) (4 cards) | Contratos em aberto, managed money comprado e vendido | Semanal | 2006 | Real desde 2022-08; estimado antes | Dev e servidor |
 | COT - soja (CBOT) | Os mesmos campos (fase 1 da soja, ADR 0110) | Semanal | 2006 | Real desde 2022-08; estimado antes | Dev; servidor na 1ª coleta diária |
-| COT - real brasileiro (CME) | Relatório TFF (o das moedas): contratos em aberto e as posições compradas e vendidas dos fundos alavancados, dos gestores de ativos e dos dealers (fase 1 do dólar, ADR 0120) | Semanal, com semanas faltando | 2011-04-05 | Real desde 2022-08; estimado antes | Dev; servidor na 1ª coleta diária |
+| COT - real brasileiro (CME) | Relatório TFF (o das moedas): contratos em aberto e as posições compradas e vendidas dos fundos alavancados, dos gestores de ativos e dos dealers (fase 1 do dólar, ADR 0120) | Semanal, com semanas faltando | 2011-04-05 | Real desde 2022-08; estimado antes | Dev e servidor |
 
 </details>
 
@@ -531,14 +531,14 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Eventos de mercado por IA (Gemini com busca na web) · Ouro, petróleo, milho, café, soja, dólar · API · nível 4 · Dev e servidor (dólar só em dev)</summary>
+<summary>Eventos de mercado por IA (Gemini com busca na web) · Ouro, petróleo, milho, café, soja, dólar · API · nível 4 · Dev e servidor</summary>
 
 **Acesso:** uma chamada diária ao Gemini com Google Search (chave gratuita `GEMINI_API_KEY_FREE` primeiro; a paga, `GEMINI_API_KEY`, só no 429 ou 5xx persistente), orientada a uma lista única de 20 fontes autorizadas para os quatro ativos: UKMTO/JMIC, Tesouro dos EUA, OPEP, AP News, USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA (`gov.br/agricultura`), USDA FAS e INMET (desde 2026-10-02, ADR 0049) e CENTCOM, NOAA NHC, BSEE, Bolsa de Comercio de Rosario, governo da Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC (desde 2026-10-06, ADR 0092). Sete tipos de evento (a geopolítica é um deles), cada evento com os ativos afetados e o fator do FEL 1 de cada um. O evento só é aceito com uma página de fonte autorizada, conferida pela URL, que a pesquisa leu e ligou ao texto dele: a citação da IA não basta. **Ressalva principal:** **não é série nem é reproduzível**: uma leitura por dia (nível e resumo de cada ativo e os eventos), que vale da 1ª coleta em diante, sem backtest; a escala de níveis é provisória (a régua é do David); evento sem página de fonte autorizada, ou repetição de um aceito dos 3 dias anteriores, é rejeitado e não vai ao Motor; o número de preço, produção, exportação, estoque e dos relatórios periódicos coletados não vira evento (já é observável), mas o fato que esses números ainda não mostram pode virar (ADR 0092). **Evidência:** ADRs 0047, 0049 e 0092.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | Eventos de mercado - leitura do dia (ouro, petróleo, milho e café) | Nível (NORMAL, ATENÇÃO, RELEVANTE, EXCEPCIONAL) e resumo de cada ativo; eventos com tipo, ativos, fator do FEL 1, canal de transmissão, pressão e fontes; entregue ao Motor por `geopolitica.service.js` | Diária | 2026-10-02 (milho e café também; no servidor, a leitura de 2026-10-02 refeita com duas chamadas: success, 56 s, 0 falhas) | Não se aplica (data de referência = o dia em São Paulo) | Dev e servidor; telas `/dados-mercado/eventos` e Centro de Decisão (ADR 0048) |
-| Eventos de mercado - leitura do dia do dólar | Leitura PRÓPRIA (fase 1 do dólar, ADR 0124), como a da soja: outra chamada, outro prompt e outra linha por dia; 10 fontes novas só dela (Banco Central, Fazenda, Tesouro Nacional, Câmara, Senado, STF, Agência Brasil, IBGE, Fed e BLS) e 5 tipos próprios (política monetária e fiscal, risco institucional, intervenção cambial e dado econômico); eventos sem fator. Só na tela Eventos; não vai ao Motor | Diária | 2026-10-09 (dev) | Não se aplica | Dev; servidor depois do deploy |
+| Eventos de mercado - leitura do dia do dólar | Leitura PRÓPRIA (fase 1 do dólar, ADR 0124), como a da soja: outra chamada, outro prompt e outra linha por dia; 10 fontes novas só dela (Banco Central, Fazenda, Tesouro Nacional, Câmara, Senado, STF, Agência Brasil, IBGE, Fed e BLS) e 5 tipos próprios (política monetária e fiscal, risco institucional, intervenção cambial e dado econômico); eventos sem fator. Só na tela Eventos; não vai ao Motor | Diária | 2026-10-09 | Não se aplica | Dev e servidor |
 | Eventos de mercado - leitura do dia da soja | Leitura PRÓPRIA (fase 1 da soja, ADR 0115): outra chamada, outro prompt e outra linha por dia, nas mesmas tabelas (coluna `frente`); nível e resumo da soja; eventos com tipo, sem fator; 11 das fontes autorizadas com o papel da soja. Só na tela Eventos; não vai ao Motor | Diária | 2026-10-08 (dev e servidor) | Não se aplica | Dev e servidor |
 
 </details>

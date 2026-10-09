@@ -52,6 +52,8 @@ requisições observado. Muda o que é próprio de cada série:
   2026-10-07 (12.585 valores); DTWEXEMEGS de 2006-01-02 a 2026-10-02 (5.203); VIXCLS de 1990-01-02 a 2026-10-07 (9.290);
   SP500 de 2016-10-10 a 2026-10-08 (2.513).
 
+- Carga no servidor (2026-10-09), pela coleta manual: 12.585 (DGS2), 5.203 (DTWEXEMEGS), 9.291 (VIXCLS) e 2.513 (SP500) valores, 0 falhas.
+
 ## Consequências
 
 - No servidor, as quatro séries carregam o histórico inteiro na primeira coleta diária depois do deploy: não há backfill.

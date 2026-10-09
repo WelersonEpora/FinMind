@@ -54,6 +54,9 @@ volta). Sem backfill: a busca ao vivo não é reproduzível (ADR 0047).
 - As fontes ainda não lidas numa leitura real (Câmara, Senado, STF, Agência Brasil, IBGE e BLS) só aparecem quando há
   assunto; a cobertura se acompanha no detalhe da execução, como nas outras leituras.
 
+- 1ª leitura no servidor (2026-10-09, pela coleta manual): nível NORMAL, 4 páginas lidas no Fed, no Banco Central e no
+  IBGE, nenhum aviso; respondeu a chave paga.
+
 ## Consequências
 
 - Mais uma chamada ao Gemini por dia (até quatro, com as novas tentativas), pela mesma chave.
