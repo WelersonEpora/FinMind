@@ -170,7 +170,7 @@ function resumoParametros(parametros) {
         <div class="decisao__quadro">
           <span>Peso</span>
           <strong>{{ calculo.peso }}</strong>
-          <small>{{ calculo.pesoDoComite ? 'fixo, do Comitê' : 'do especialista' }}</small>
+          <small>{{ calculo.pesoDoComite ? `fixo, ${calculo.pesoDecididoPor || 'do Comitê'}` : 'do especialista' }}</small>
         </div>
       </div>
 

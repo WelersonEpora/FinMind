@@ -7,6 +7,7 @@ const { obterMetodologiaOuro } = require("../shared/metodologia-ouro");
 const { obterMetodologiaMilho } = require("../shared/metodologia-milho");
 const { obterMetodologiaCafe } = require("../shared/metodologia-cafe");
 const { obterMetodologiaSoja } = require("../shared/metodologia-soja");
+const { obterMetodologiaDolar } = require("../shared/metodologia-dolar");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
 const { montarTextoPrompt } = require("../factors/base/texto-prompt");
@@ -18,6 +19,7 @@ const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 const METODOLOGIAS = {
   CAFE: obterMetodologiaCafe,
   SOJA: obterMetodologiaSoja,
+  DOLAR: obterMetodologiaDolar,
   MILHO: obterMetodologiaMilho,
   OURO: obterMetodologiaOuro,
   PETROLEO: obterMetodologiaPetroleo
@@ -69,7 +71,16 @@ const CALCULOS = {
   // As regras da soja (ADR 0116): calculadas como os fatores, sem peso nem pressão (metodologia-base.js, `regra`).
   SOJA_R1_CALENDARIO: require("../factors/calendario-soja.regra").METODOLOGIA,
   SOJA_R2_FOLGA_BALANCO: require("../factors/folga-balanco-soja.regra").METODOLOGIA,
-  SOJA_R3_FUNDOS: require("../factors/fundos-soja.regra").METODOLOGIA
+  SOJA_R3_FUNDOS: require("../factors/fundos-soja.regra").METODOLOGIA,
+  // O dólar (ADR 0126): 7 fatores calculados (o F8 é de evento) e a regra dos fundos, sem peso nem pressão.
+  DOLAR_FLUXO: require("../factors/fluxo-dolar.factor").METODOLOGIA,
+  DOLAR_GLOBAL: require("../factors/global-dolar.factor").METODOLOGIA,
+  DOLAR_JUROS_EUA: require("../factors/juros-eua-dolar.factor").METODOLOGIA,
+  DOLAR_JUROS_BRASIL: require("../factors/juros-brasil-dolar.factor").METODOLOGIA,
+  DOLAR_AVERSAO_RISCO: require("../factors/risco-dolar.factor").METODOLOGIA,
+  DOLAR_COMMODITIES: require("../factors/commodities-dolar.factor").METODOLOGIA,
+  DOLAR_EXPECTATIVAS: require("../factors/expectativas-dolar.factor").METODOLOGIA,
+  DOLAR_R1_FUNDOS: require("../factors/fundos-dolar.regra").METODOLOGIA
 };
 
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -145,11 +156,17 @@ function mesmosParametros(a, b) {
   return Object.keys(b).every((chave) => Number(a[chave]) === Number(b[chave]));
 }
 
-// A última linha da explicação: o peso do fator (do especialista, ou do Comitê fora do FEL 1), ou que a regra não tem peso.
+// Quem decidiu o peso de um fator fora do FEL 1, pela origem dele: o Comitê na soja; o usuário no dólar, com o mesmo
+// poder de decisão do David (ADR 0117, adendo).
+const PESO_DECIDIDO_POR = { "ADR 0116": "do Comitê", "ADR 0126": "do usuário" };
+const pesoDecididoPor = (fator) => (fator.origem ? PESO_DECIDIDO_POR[fator.origem] || "do Comitê" : null);
+
+// A última linha da explicação: o peso do fator (do especialista, ou de quem o decidiu fora do FEL 1), ou que a regra não
+// tem peso.
 function linhaDoPeso(fator) {
   if (fator.regra) return `Regra ${fator.regra.sigla}: sem peso e sem direção própria.`;
-  // Fora do FEL 1 (a soja), o peso é do Comitê: fixo, igual em todos os horizontes (a relevância por horizonte é outra coisa).
-  if (fator.origem) return `Peso: ${fator.peso}, fixo, do Comitê (${fator.origem}; não é calculado).`;
+  // Fora do FEL 1 (a soja, o dólar), o peso é fixo, igual em todos os horizontes (a relevância por horizonte é outra coisa).
+  if (fator.origem) return `Peso: ${fator.peso}, fixo, ${pesoDecididoPor(fator)} (${fator.origem}; não é calculado).`;
   return `Peso: ${fator.peso}, do especialista (não é calculado).`;
 }
 
@@ -177,14 +194,15 @@ function construtorDoAtivo(ativo) {
   return construtor;
 }
 
-// Os 4 ativos do FEL 1 e a soja (ADR 0116), na ordem do Centro de Decisão, para o seletor da tela; `disponivel` diz se
+// Os 4 ativos do FEL 1, a soja (ADR 0116) e o dólar (ADR 0126), na ordem do Centro de Decisão, para o seletor da tela; `disponivel` diz se
 // a metodologia dele já foi montada.
 const ATIVOS = [
   { codigo: "OURO", nome: "Ouro" },
   { codigo: "PETROLEO", nome: "Petróleo" },
   { codigo: "MILHO", nome: "Milho" },
   { codigo: "CAFE", nome: "Café" },
-  { codigo: "SOJA", nome: "Soja" }
+  { codigo: "SOJA", nome: "Soja" },
+  { codigo: "DOLAR", nome: "Dólar" }
 ];
 
 // Ativo fora do FEL 1: 404. Ativo do FEL 1 sem metodologia montada: `metodologia` null (a tela avisa).
@@ -225,8 +243,9 @@ async function calcularFator(ativo, codigoFator, { desde, data, ...opcoes } = {}
       factorVersion: calculo.factorVersion,
       situacao: fator.proposta.situacao,
       peso: fator.peso,
-      // Fora do FEL 1 (a soja, ADR 0116), o peso é do Comitê, não do especialista.
+      // Fora do FEL 1 (a soja, ADR 0116; o dólar, ADR 0126), o peso não é do especialista: diz de quem é.
       pesoDoComite: Boolean(fator.origem),
+      pesoDecididoPor: pesoDecididoPor(fator),
       parametros,
       simulacao: !mesmosParametros(parametros, sistema.parametros),
       parametrosSistema: sistema.parametros,
@@ -311,6 +330,10 @@ function resumoCalculado(calculo) {
           rotuloTendencia: d.tendencia ? rotulosDecisao.tendencia[d.tendencia] : null
         }
       : null,
+    // Uma leitura por horizonte (o dólar, ADR 0126): a direção, a intensidade e o texto de cada um.
+    ...(ultimo?.porHorizonte
+      ? { porHorizonte: Object.fromEntries(Object.entries(ultimo.porHorizonte).map(([h, l]) => [h, { aplica: l.aplica, direcao: l.direcao, intensidade: l.intensidade, texto: l.texto }])) }
+      : {}),
     // Uma regra (a soja, ADR 0116): o estado na data, sem decisão.
     estado: ultimo?.estado ? { ...ultimo.estado, texto: ultimo.estadoTexto, efeito: ultimo.efeitoTexto } : null,
     textoPrompt: calculo.textoPrompt,

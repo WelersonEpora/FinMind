@@ -55,7 +55,9 @@ const secoes = computed(() => {
 const siglaDoItem = (fator, index) => (fator.regra ? fator.regra.sigla : `F${index + 1}`)
 const DIMENSAO_REGRA = { APLICABILIDADE: 'Aplicabilidade', INTENSIDADE: 'Intensidade', INFORMACAO: 'Só informação' }
 // A definição de um fator fora do FEL 1 ou de uma regra (a soja) é a da proposta aprovada, não a do especialista.
+// No dólar (ADR 0126), a proposta decidida pelo usuário, com o mesmo poder de decisão do David.
 function origemDaDefinicao(fator) {
+  if (metodologia.value?.ativo === 'DOLAR') return 'o que o usuário decidiu (proposta do dólar, ADR 0126)'
   return fator.regra || fator.origem ? 'o que o Comitê aprovou (proposta da soja, ADR 0116)' : 'o que o especialista escreveu'
 }
 

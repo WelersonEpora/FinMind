@@ -3,6 +3,7 @@
 const observationRepository = require("../repositories/observation.repository");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const { classificarNaFaixa } = require("../shared/analise-diaria-base");
+const precoMarketQuote = require("../shared/preco-market-quote");
 
 // O realizado de uma leitura diária de tendência (ADR 0063 e adendo): para cada horizonte, em que faixa o preço DE FATO
 // caiu, ao lado da faixa que a IA leu. Só mede e classifica, com as faixas gravadas com a leitura; quem compara com a
@@ -42,7 +43,9 @@ const SERIES_DE_REFERENCIA = Object.freeze({
   CCM: { observavel: "CCM_PRECOS", futuro: { prefixo: "B3.CCM", campo: "SETTLE" } },
   ICF: { observavel: "ICF_PRECOS", futuro: { prefixo: "B3.ICF", campo: "SETTLE" } },
   // A soja (ADR 0116): o SJC da B3.
-  SJC: { observavel: "SJC_PRECOS", futuro: { prefixo: "B3.SJC", campo: "SETTLE" } }
+  SJC: { observavel: "SJC_PRECOS", futuro: { prefixo: "B3.SJC", campo: "SETTLE" } },
+  // O dólar (ADR 0126): a PTAX de venda, em market_quote (shared/preco-market-quote.js).
+  PTAX: { observavel: "USD_BRL", seriesCode: "BCB.PTAX.VENDA" }
 });
 
 function diasEntre(inicio, fim) {
@@ -130,7 +133,13 @@ async function apurarRealizadosComPontos(analises, { agora = new Date(), diasDeP
     .map((a) => a.precoReferencia.dataReferencia)
     .reduce((menor, d) => (d < menor ? d : menor), new Date(Date.parse(`${hoje}T00:00:00Z`) - diasDePreco * 86400000).toISOString().slice(0, 10));
   const repo = deps.observationRepository || observationRepository;
-  const linhas = await repo.buscarAsOf({ seriesCodes: codigos, asOf: agora, observadoDesde: desde, observadoAte: hoje });
+  // A PTAX (o dólar) vem de market_quote; o resto, da observation.
+  const daObservation = codigos.filter((c) => !precoMarketQuote.ehMarketQuote(c));
+  const daMarketQuote = codigos.filter((c) => precoMarketQuote.ehMarketQuote(c));
+  const linhas = [
+    ...(daObservation.length ? await repo.buscarAsOf({ seriesCodes: daObservation, asOf: agora, observadoDesde: desde, observadoAte: hoje }) : []),
+    ...(await Promise.all(daMarketQuote.map((c) => precoMarketQuote.buscarLinhas(c, { asOf: agora, observadoDesde: desde, observadoAte: hoje }, deps)))).flat()
+  ];
   const pontosPorSerie = new Map(codigos.map((c) => [c, []]));
   for (const l of linhas) pontosPorSerie.get(l.series_code)?.push({ data: String(l.observed_at).slice(0, 10), valor: Number(l.value) });
   for (const pontos of pontosPorSerie.values()) pontos.sort((a, b) => a.data.localeCompare(b.data));

@@ -7,6 +7,7 @@ const { FATORES_OURO } = require("../shared/metodologia-ouro");
 const { FATORES_MILHO } = require("../shared/metodologia-milho");
 const { FATORES_CAFE } = require("../shared/metodologia-cafe");
 const { FATORES_SOJA } = require("../shared/metodologia-soja");
+const { FATORES_DOLAR } = require("../shared/metodologia-dolar");
 const { NotFoundError, ValidationError } = require("../shared/errors");
 const { dataDeReferenciaDosHorizontes, dataAlvoDoHorizonte } = require("../shared/analise-diaria-base");
 
@@ -14,7 +15,7 @@ const { dataDeReferenciaDosHorizontes, dataAlvoDoHorizonte } = require("../share
 // (nunca a de outro dia no lugar dela) e as evidências que formaram o prompt dela. Tudo sai da leitura GRAVADA (a
 // entrada estruturada, o prompt e a resposta como foram): nada é recalculado agora, então um parâmetro que mude depois
 // não altera o que a tela diz que a IA recebeu naquele dia. Só os ativos com leitura diária têm o bloco.
-const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO, OURO: FATORES_OURO, MILHO: FATORES_MILHO, CAFE: FATORES_CAFE, SOJA: FATORES_SOJA };
+const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO, OURO: FATORES_OURO, MILHO: FATORES_MILHO, CAFE: FATORES_CAFE, SOJA: FATORES_SOJA, DOLAR: FATORES_DOLAR };
 const ATIVOS_COM_ANALISE = ATIVOS_COM_ANALISE_DIARIA;
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;

@@ -276,3 +276,27 @@ test("contrato por horizonte (ADR 0078): o horizonte com contrato próprio é ap
   assert.equal(longo.situacao, "APURADO");
   assert.equal(longo.variacaoPct, 10);
 });
+
+test("dólar (ADR 0126): a PTAX vem de market_quote, não da observation; a base é a PTAX que a IA recebeu", async () => {
+  const observation = repoCom([]);
+  const consultas = [];
+  const marketQuoteRepository = {
+    async buscarSerie(filtros) {
+      consultas.push(filtros);
+      return [
+        ["2026-08-28", 5.4],
+        ["2026-08-31", 5.454],
+        ["2026-09-01", 5.5]
+      ].map(([reference_date, value]) => ({ reference_date, value: String(value) }));
+    }
+  };
+  const leitura = analise({ serie: "PTAX", seriesCode: "BCB.PTAX.VENDA", data: "2026-08-31", recebidoEm: "2026-08-28", valor: 5.4, referencia: "DATA_DO_PRECO_RECEBIDO" });
+  const { seriesCode, base, horizontes } = await apurarRealizado(leitura, { agora: AGORA }, { observationRepository: observation, marketQuoteRepository });
+  assert.equal(observation.chamadas.length, 0, "nada da observation");
+  assert.deepEqual(consultas[0].instrumentCode, "USD_BRL");
+  assert.equal(seriesCode, "BCB.PTAX.VENDA");
+  assert.deepEqual([base.data, base.valor], ["2026-08-28", 5.4]);
+  assert.equal(horizontes[0].situacao, "APURADO");
+  assert.equal(Number(horizontes[0].variacaoPct.toFixed(4)), 1);
+  assert.equal(SERIES_DE_REFERENCIA.PTAX.observavel, "USD_BRL");
+});

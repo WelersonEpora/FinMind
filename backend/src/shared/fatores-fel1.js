@@ -55,7 +55,19 @@ const FATORES = [
   { codigo: "SOJA_OFERTA_EUA", ativo: "SOJA", nome: "Oferta dos EUA (a safra em formação)", peso: "Alto", origem: "ADR 0116" },
   { codigo: "SOJA_OFERTA_AMERICA_SUL", ativo: "SOJA", nome: "Oferta da América do Sul (a safra concorrente)", peso: "Alto", origem: "ADR 0116" },
   { codigo: "SOJA_DEMANDA_EUA", ativo: "SOJA", nome: "Demanda pela soja dos EUA (exportação e esmagamento)", peso: "Médio", origem: "ADR 0116" },
-  { codigo: "SOJA_POLITICA", ativo: "SOJA", nome: "Política (comércio e biocombustíveis)", peso: "Baixo", origem: "ADR 0116" }
+  { codigo: "SOJA_POLITICA", ativo: "SOJA", nome: "Política (comércio e biocombustíveis)", peso: "Baixo", origem: "ADR 0116" },
+
+  // O dólar (USD/BRL) também NÃO está no FEL 1: os oito fatores são os blocos do relatório do Comitê de 2026-10-08, pela
+  // proposta do dólar (docs/proposta-ativo-dolar.md), decidida pelo usuário em 2026-10-09 (ADR 0117, adendo) e aprovada
+  // no ADR 0126. O peso é por categoria, na escala do FEL 1, a partir dos pontos do relatório que sobram em cada bloco.
+  { codigo: "DOLAR_FLUXO", ativo: "DOLAR", nome: "Fluxo cambial (o financeiro, contratado no BCB)", peso: "Baixo", origem: "ADR 0126" },
+  { codigo: "DOLAR_GLOBAL", ativo: "DOLAR", nome: "Dólar global (contra os emergentes)", peso: "Alto", origem: "ADR 0126" },
+  { codigo: "DOLAR_JUROS_EUA", ativo: "DOLAR", nome: "Juros dos EUA (Treasury de 2 anos)", peso: "Alto", origem: "ADR 0126" },
+  { codigo: "DOLAR_JUROS_BRASIL", ativo: "DOLAR", nome: "Juros do Brasil (a curva do DI)", peso: "Baixo", origem: "ADR 0126" },
+  { codigo: "DOLAR_AVERSAO_RISCO", ativo: "DOLAR", nome: "Aversão a risco global (VIX)", peso: "Médio", origem: "ADR 0126" },
+  { codigo: "DOLAR_COMMODITIES", ativo: "DOLAR", nome: "Commodities (Brent, café e soja)", peso: "Médio", origem: "ADR 0126" },
+  { codigo: "DOLAR_EXPECTATIVAS", ativo: "DOLAR", nome: "Expectativas (o IPCA do Focus)", peso: "Baixo", origem: "ADR 0126" },
+  { codigo: "DOLAR_EVENTOS", ativo: "DOLAR", nome: "Eventos domésticos e de política", peso: "Médio", origem: "ADR 0126" }
 ];
 
 function fatoresDoAtivo(ativo) {

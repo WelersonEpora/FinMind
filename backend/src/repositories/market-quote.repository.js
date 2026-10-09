@@ -46,6 +46,18 @@ async function buscarHistorico({ instrumentCode, modality, dataInicio, dataFim, 
   return { registros: rows, total: count };
 }
 
+// A série inteira de um instrumento num intervalo, em ordem de data (o preço de referência do dólar, a PTAX, ADR 0126).
+async function buscarSerie({ instrumentCode, modality, dataInicio, dataFim }) {
+  const where = { instrument_code: instrumentCode };
+  if (modality) where.modality = modality;
+  if (dataInicio || dataFim) {
+    where.reference_date = {};
+    if (dataInicio) where.reference_date[Op.gte] = dataInicio;
+    if (dataFim) where.reference_date[Op.lte] = dataFim;
+  }
+  return MarketQuote.findAll({ where, attributes: ["reference_date", "value"], order: [["reference_date", "ASC"]], raw: true });
+}
+
 async function buscarEstatisticas(instrumentCode) {
   const resultado = await MarketQuote.findOne({
     where: { instrument_code: instrumentCode },
@@ -99,4 +111,4 @@ async function upsertPorChaveNatural(dados) {
   return "atualizado";
 }
 
-module.exports = { buscarMaisRecente, buscarHistorico, buscarEstatisticas, upsertPorChaveNatural };
+module.exports = { buscarMaisRecente, buscarHistorico, buscarSerie, buscarEstatisticas, upsertPorChaveNatural };

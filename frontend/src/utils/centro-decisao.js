@@ -51,7 +51,7 @@ export function formatarVariacao(percentual) {
 
 // Ícone de cada ativo no seletor do Centro de Decisão (emoji, como no AgroMind: o Bootstrap Icons não tem commodities).
 // Ativo sem ícone (um novo no backend antes de entrar aqui) cai num genérico, sem quebrar a tela.
-const ICONES_ATIVO = { OURO: '🪙', PETROLEO: '🛢️', MILHO: '🌽', CAFE: '☕', SOJA: '🫘' }
+const ICONES_ATIVO = { OURO: '🪙', PETROLEO: '🛢️', MILHO: '🌽', CAFE: '☕', SOJA: '🫘', DOLAR: '💵' }
 const ICONE_ATIVO_PADRAO = '📈'
 
 export function iconeAtivo(codigo) {

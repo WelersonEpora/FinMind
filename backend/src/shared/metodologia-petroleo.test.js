@@ -80,7 +80,7 @@ test("todo observável citado existe no catálogo", () => {
   }
 });
 
-test("a API aceita o ativo sem diferenciar maiúsculas; os 4 ativos do FEL 1 e a soja (ADR 0116) têm metodologia (o café desde o ADR 0060); outro ativo, 404", () => {
+test("a API aceita o ativo sem diferenciar maiúsculas; os 4 ativos do FEL 1, a soja (ADR 0116) e o dólar (ADR 0126) têm metodologia (o café desde o ADR 0060); outro ativo, 404", () => {
   assert.equal(obterMetodologiaAtivo("petroleo").metodologia.ativo, "PETROLEO");
   assert.throws(() => obterMetodologiaAtivo("TRIGO"), (err) => err.statusCode === 404);
   const cafe = obterMetodologiaAtivo("cafe");
@@ -88,7 +88,7 @@ test("a API aceita o ativo sem diferenciar maiúsculas; os 4 ativos do FEL 1 e a
   assert.deepEqual(cafe.ativo, { codigo: "CAFE", nome: "Café" });
   assert.deepEqual(
     cafe.ativos.map((a) => `${a.codigo}:${a.disponivel}`),
-    ["OURO:true", "PETROLEO:true", "MILHO:true", "CAFE:true", "SOJA:true"]
+    ["OURO:true", "PETROLEO:true", "MILHO:true", "CAFE:true", "SOJA:true", "DOLAR:true"]
   );
 });
 

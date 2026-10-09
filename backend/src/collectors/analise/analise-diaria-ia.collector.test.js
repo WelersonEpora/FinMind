@@ -141,7 +141,7 @@ test("recusada duas vezes: nada é gravado e os motivos vão para a execução",
   assert.deepEqual(detalhes.ia.textosRecusados, [fatorInventado, fatorInventado]);
 });
 
-test("um coletor por ativo com leitura diária: petróleo, ouro, milho, café e soja (ADR 0116), com o código de cada um", () => {
+test("um coletor por ativo com leitura diária: petróleo, ouro, milho, café, soja (ADR 0116) e dólar (ADR 0126), com o código de cada um", () => {
   assert.deepEqual(
     COLETORES_ANALISE_DIARIA.map((c) => [c.ATIVO, c.codigo]),
     [
@@ -149,7 +149,8 @@ test("um coletor por ativo com leitura diária: petróleo, ouro, milho, café e 
       ["OURO", "ouro-analise-ia-diario"],
       ["MILHO", "milho-analise-ia-diario"],
       ["CAFE", "cafe-analise-ia-diario"],
-      ["SOJA", "soja-analise-ia-diario"]
+      ["SOJA", "soja-analise-ia-diario"],
+      ["DOLAR", "dolar-analise-ia-diario"]
     ]
   );
   assert.throws(() => criarColetorAnaliseDiaria("TRIGO"), /Não há prompt diário/);

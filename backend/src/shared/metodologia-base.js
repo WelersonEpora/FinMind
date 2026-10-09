@@ -95,6 +95,9 @@ const SITUACAO = { PROPOSTA: "PROPOSTA", VALIDADA: "VALIDADA" };
 const VALIDACAO_MOTORES = Object.freeze({ por: "Comitê, com o David", data: "2026-10-07", adr: "ADR 0108" });
 // A aprovação da soja (fatores, regras e medição da proposta v2.2), na reunião de 2026-10-08 (ADR 0116).
 const VALIDACAO_SOJA = Object.freeze({ por: "Comitê, com o David", data: "2026-10-08", adr: "ADR 0116" });
+// A aprovação do dólar (os 8 fatores, a regra e a medição da proposta do dólar), decidida pelo usuário em 2026-10-09, com o
+// mesmo poder de decisão do David (ADR 0117, adendo; ADR 0126).
+const VALIDACAO_DOLAR = Object.freeze({ por: "o usuário (Welerson), com o mesmo poder de decisão do David", data: "2026-10-09", adr: "ADR 0126" });
 const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const PESOS = ["Alto", "Médio", "Baixo"];
 const NIVEIS_RELEVANCIA = ["Alta", "Média", "Baixa"];
@@ -388,4 +391,4 @@ function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, 
   };
 }
 
-module.exports = { SITUACAO, VALIDACAO_MOTORES, VALIDACAO_SOJA, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, PESO_REGRA, montarFatores, montarMetodologia };
+module.exports = { SITUACAO, VALIDACAO_MOTORES, VALIDACAO_SOJA, VALIDACAO_DOLAR, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, PESO_REGRA, montarFatores, montarMetodologia };

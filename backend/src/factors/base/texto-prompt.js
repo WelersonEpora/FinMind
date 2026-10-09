@@ -13,7 +13,7 @@
 //   D — Validação histórica: a relação do fator com o preço no histórico (a avaliação do dado do catálogo). Separada
 //       de propósito: contextualiza a qualidade da relação e não entra na leitura atual.
 
-const ROTULO_ATIVO = { PETROLEO: "PETRÓLEO", OURO: "OURO", MILHO: "MILHO", CAFE: "CAFÉ", SOJA: "SOJA" };
+const ROTULO_ATIVO = { PETROLEO: "PETRÓLEO", OURO: "OURO", MILHO: "MILHO", CAFE: "CAFÉ", SOJA: "SOJA", DOLAR: "DÓLAR" };
 
 function numero(valor, casas, agrupar = true) {
   return valor.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas, useGrouping: agrupar });
@@ -69,6 +69,7 @@ function periodoDoPonto(observedAt, periodicidade) {
   if (periodicidade === "TRIMESTRAL") return `Trimestre de ${trimestre(observedAt)}`;
   if (periodicidade === "LEVANTAMENTO") return `Levantamento de ${dataBr(observedAt)}`;
   if (periodicidade === "PUBLICACAO") return `Publicação de ${dataBr(observedAt)}`;
+  if (periodicidade === "DIARIA") return `Dia de ${dataBr(observedAt)}`;
   return `Semana encerrada em ${dataBr(observedAt)}`;
 }
 
@@ -84,8 +85,8 @@ function comUnidade(valor, unidade) {
 
 // Um texto com os parâmetros entre chaves ("{limiarRevisaoPct}"), preenchidos com os em uso. As janelas em semanas ou
 // levantamentos ("semanas...", "levantamentos...", "meses...") e os estados ("estadosMinimos") são contagens: sem casa
-// decimal.
-const CONTAGEM = /^(semanas|levantamentos|meses|estados)/;
+// decimal. A régua do dólar ("regua...": os percentis e os anos, ADR 0126) também é inteira.
+const CONTAGEM = /^(semanas|levantamentos|meses|estados|regua)/;
 function preencher(texto, parametros) {
   return texto.replace(/\{(\w+)\}/g, (_, chave) => (CONTAGEM.test(chave) ? String(parametros[chave]) : limiar(parametros[chave])));
 }
@@ -115,6 +116,7 @@ function origemDosParametros(origem, simulacao) {
 // `fator`: do catálogo ({ nome, peso, dados.avaliacao }). `calculo`: { apresentacao, periodicidade, parametros,
 // origemParametros, simulacao }. `ponto`: o último ponto do cálculo (ou null). `ativo`: o código do ativo.
 const PRESSAO = { ALTA: "alta", BAIXA: "baixa", NEUTRA: "neutra" };
+const ROTULO_HORIZONTE = { IMEDIATO: "1 dia", CURTO: "7 dias", MEDIO: "30 dias", LONGO: "90 dias" };
 
 // Fecha a frase com um ponto, sem duplicar quando ela já termina em um ("0,25 p.p.").
 function comPonto(frase) {
@@ -184,6 +186,13 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
           ? `- CONTEXTO do fator ${fator.contextoDe}, ${decisao}: sem pressão própria; não conta a favor nem contra.`
           : `- INFORMAÇÃO, ${decisao}: sem pressão própria; não conta a favor nem contra.`,
         `- Tendência: ${d?.tendencia ? apresentacao.rotulosDecisao.tendencia[d.tendencia] : "não calculada"}`
+      );
+    } else if (ponto.porHorizonte) {
+      // Uma leitura POR HORIZONTE (o dólar, ADR 0126: a régua lê cada horizonte na janela dele). A R2 (defasagem) tira o
+      // horizonte que o dado não alcança.
+      linhas.push(
+        "C — Leitura do fator, por horizonte:",
+        ...Object.entries(ponto.porHorizonte).map(([h, leitura]) => `- ${h} (${ROTULO_HORIZONTE[h] || h}): ${leitura.texto}`)
       );
     } else if (!d) {
       linhas.push("C — Leitura do fator: não calculada, o histórico até a data não basta.");

@@ -12,6 +12,7 @@ const assert = require("node:assert/strict");
 const { obterCentroDecisao, calcularVariacoes, limiteDoVencimento, ATIVOS } = require("./centro-decisao.service");
 const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
 const { buscarNoCatalogo } = require("./observaveis.service");
+const { ehMarketQuote } = require("../shared/preco-market-quote");
 
 // 2026-10-02 12:00 em Brasília.
 const AGORA = new Date("2026-10-02T15:00:00Z");
@@ -67,7 +68,8 @@ test("toda série da lista existe no catálogo de observáveis (com a unidade do
     for (const serie of ativo.series) {
       const item = buscarNoCatalogo(serie.observavel);
       assert.ok(item, `${ativo.codigo}/${serie.codigo}: observável ${serie.observavel} não está no catálogo`);
-      assert.equal(item.origem, "observation");
+      // A PTAX (o dólar, ADR 0126) está em market_quote: o card dela não é da observation.
+      assert.equal(item.origem, ehMarketQuote(serie.seriesCode) ? undefined : "observation");
       if (serie.futuro) assert.equal(item.porVencimento?.prefixoSerie, serie.futuro.prefixo);
     }
   }
@@ -294,4 +296,25 @@ test("limite do vencimento: dia 15 do mês na B3; no Brent, o dia útil antes do
   assert.equal(limite("BZF27"), "2026-11-27"); // vence em 30/11 (segunda): a sexta antes
   assert.equal(limite("BZH27"), "2027-01-28"); // vence em 29/01/2027
   assert.equal(limite("BZG27"), "2026-12-30"); // virada de ano: vence em 31/12
+});
+
+test("dólar (ADR 0126): a PTAX de venda vem de market_quote, com 4 casas; a PTAX do dia só conta depois das 13h30", async () => {
+  const { lerPreco } = require("./centro-decisao.service");
+  const marketQuoteRepository = {
+    async buscarSerie() {
+      return [
+        ["2026-10-07", 5.31],
+        ["2026-10-08", 5.3365],
+        ["2026-10-09", 5.35]
+      ].map(([reference_date, value]) => ({ reference_date, value: String(value) }));
+    }
+  };
+  const ptax = ATIVOS.find((a) => a.codigo === "DOLAR").series[0];
+  // 09/10 às 10h em Brasília: a PTAX do dia ainda não saiu.
+  const manha = await lerPreco(ptax, { data: "2026-10-09", agora: new Date("2026-10-09T13:00:00Z") }, { marketQuoteRepository });
+  assert.deepEqual([manha.valor, manha.dataReferencia, manha.casasDecimais, manha.fonte], [5.3365, "2026-10-08", 4, "BCB - SGS 1 (PTAX de venda)"]);
+  assert.equal(manha.seriesCode, "BCB.PTAX.VENDA");
+  // Às 14h, já saiu.
+  const tarde = await lerPreco(ptax, { data: "2026-10-09", agora: new Date("2026-10-09T17:00:00Z") }, { marketQuoteRepository });
+  assert.equal(tarde.valor, 5.35);
 });

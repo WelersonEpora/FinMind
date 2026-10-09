@@ -88,7 +88,9 @@ const PERIODOS_DO_FATOR = {
   // Um ponto por publicação de um levantamento (a safra do café da Conab), com a data exata dela.
   LEVANTAMENTO: { unidade: 'Levantamento', janela: 'levantamentos', referencia: (iso) => `Levantamento de ${dataBrCompleta(iso)}`, data: dataBrCompleta },
   // Um ponto por publicação de um relatório (o balanço do café do USDA), com a data dela.
-  PUBLICACAO: { unidade: 'Publicação', janela: 'publicações', referencia: (iso) => `Publicação de ${dataBrCompleta(iso)}`, data: dataBrCompleta }
+  PUBLICACAO: { unidade: 'Publicação', janela: 'publicações', referencia: (iso) => `Publicação de ${dataBrCompleta(iso)}`, data: dataBrCompleta },
+  // Um ponto por dia útil (os fatores do dólar, ADR 0126).
+  DIARIA: { unidade: 'Dia', janela: 'dias', referencia: (iso) => `Dia de ${dataBrCompleta(iso)}`, data: dataBrCompleta }
 }
 
 // "3º/2026": o trimestre de uma data do 1º dia do trimestre (AAAA-MM-01).
@@ -189,8 +191,9 @@ export function temCalendario(pesos) {
 // O resumo ao lado do título "Pesos e relações": o que vai ao prompt diário (o peso, e as relações e regras do
 // especialista como orientação) e, quando existe, a leitura agregada do motor (a agregação em código do FinMind).
 export function resumoPesos(pesos) {
-  // O peso fixo do Comitê e a relevância por horizonte (a soja, ADR 0116): a IA combina, sem agregação em código.
-  if (pesos.relevancia) return 'No prompt: o peso fixo de cada fator (do Comitê) e a relevância por horizonte, como orientação.'
+  // O peso fixo e a relevância por horizonte (a soja, ADR 0116, do Comitê; o dólar, ADR 0126, do usuário): a IA combina,
+  // sem agregação em código.
+  if (pesos.relevancia) return 'No prompt: o peso fixo de cada fator e a relevância por horizonte, como orientação.'
   const peso = temCalendario(pesos) && pesos.noPrompt ? 'o calendário de pesos' : 'o peso do FEL 1'
   const orientacao = []
   if (pesos.pares?.some((par) => par.noPrompt)) orientacao.push('relações')

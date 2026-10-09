@@ -990,7 +990,9 @@ const GROUNDING_DOLAR = {
 test("dólar: o prompt usa o arquivo próprio, as fontes do dólar, os tipos do dólar e o piso do dólar", () => {
   const { FRENTE_DOLAR } = require("../../shared/eventos-mercado");
   const { versao, prompt, instrucaoDoSistema } = coletor.montarPrompt("2026-10-09", FRENTE_DOLAR, [], "eventos-dolar-diaria.md");
-  assert.equal(versao, "eventos-dolar-diaria@1");
+  assert.equal(versao, "eventos-dolar-diaria@2");
+  // v2 (ADR 0126): os cinco tipos próprios do dólar marcam o F8; a política comercial e a geopolítica, nenhum fator.
+  assert.match(instrucaoDoSistema, /DÓLAR=DOLAR_EVENTOS para POLÍTICA MONETÁRIA, POLÍTICA FISCAL, RISCO INSTITUCIONAL, INTERVENÇÃO CAMBIAL e DADO\s+ECONÔMICO; DÓLAR=NAO_SE_APLICA para POLÍTICA COMERCIAL e GEOPOLÍTICA/);
   assert.match(instrucaoDoSistema, /DÓLAR contra o REAL/);
   assert.match(prompt, /- Banco Central do Brasil \(bcb\.gov\.br\) - tipos: Política monetária, Intervenção cambial - ativos: dólar:/);
   assert.match(prompt, /- POLITICA_MONETARIA \(Política monetária\)/);

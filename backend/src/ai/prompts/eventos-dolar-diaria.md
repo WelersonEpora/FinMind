@@ -1,6 +1,6 @@
 # Prompt — Leitura diária de eventos de mercado do dólar
 
-**Versão:** 1
+**Versão:** 2
 
 Histórico: v1 (2026-10-09) - formato inicial (ADR 0124). O dólar (USD/BRL) tem leitura PRÓPRIA, como a soja na fase 1
 (ADR 0115): outra chamada, outro prompt e outra linha por dia; a leitura dos quatro ativos validados e a da soja não
@@ -9,6 +9,11 @@ doméstico", e 28, "calendário macroeconômico", na leitura diária; ADR 0117):
 institucional, a intervenção extraordinária do Banco Central, a surpresa de um dado econômico de alto impacto, a política
 comercial dos EUA contra o Brasil e a aversão a risco global. Fase 1 do dólar, só aquisição: a leitura não vai ao Motor,
 ao prompt diário nem ao Centro de Decisão, e os eventos não têm fator (NAO_SE_APLICA).
+
+v2 (2026-10-09, ADR 0126) - o dólar foi aprovado como 6º ativo: os eventos de POLÍTICA MONETÁRIA, POLÍTICA FISCAL,
+RISCO INSTITUCIONAL, INTERVENÇÃO CAMBIAL e DADO ECONÔMICO marcam o fator DOLAR_EVENTOS (o F8, fator de evento, que vai ao
+prompt diário do dólar); a política comercial e a geopolítica seguem com NAO_SE_APLICA e vão à seção de eventos da base do
+prompt (a aversão a risco já é o F5). Só muda o campo FATOR; o resto não muda.
 
 Usado pelo coletor `geopolitica-ia-dolar` (ADR 0124), numa chamada diária ao Gemini com busca na web. A resposta tem o
 MESMO formato da leitura principal (`geopolitica-diaria.md`), lido pelo mesmo parser
@@ -109,7 +114,8 @@ Um nível que não seja NORMAL precisa de ao menos um EVENTO.
 CAMPOS DE CADA EVENTO
 - TIPO: exatamente um código da lista de tipos do prompt.
 - ATIVOS: DÓLAR.
-- FATOR: DÓLAR=NAO_SE_APLICA (o dólar ainda não tem fatores aprovados).
+- FATOR: DÓLAR=DOLAR_EVENTOS para POLÍTICA MONETÁRIA, POLÍTICA FISCAL, RISCO INSTITUCIONAL, INTERVENÇÃO CAMBIAL e DADO
+  ECONÔMICO; DÓLAR=NAO_SE_APLICA para POLÍTICA COMERCIAL e GEOPOLÍTICA.
 - PRESSÃO SOBRE O PREÇO: alta, baixa ou ambígua - para que lado ESTE fato, sozinho e com todo o resto constante,
   empurra a cotação do DÓLAR em reais pelo canal descrito: alta = o dólar sobe (o real perde valor); baixa = o dólar
   cai (o real ganha valor). Não é previsão. "Ambígua" é uma resposta válida e esperada.
@@ -135,7 +141,7 @@ EVENTO 1
 Título: frase curta, uma linha.
 Tipo: um código da lista de tipos
 Ativos: DÓLAR
-Fator: DÓLAR=NAO_SE_APLICA
+Fator: DÓLAR=DOLAR_EVENTOS ou DÓLAR=NAO_SE_APLICA
 Resumo: o que aconteceu, quando e onde, em poucas frases densas.
 Canal de transmissão: DÓLAR=direto: como o fato afeta o câmbio
 Pressão sobre o preço: DÓLAR=alta

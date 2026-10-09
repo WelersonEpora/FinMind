@@ -5,7 +5,8 @@
 
 // SOJA desde 2026-10-08 (ADR 0115): leitura própria; com a soja aprovada (ADR 0116), os eventos de política marcam o F4
 // (SOJA_POLITICA) e vão ao prompt diário da soja. DOLAR desde 2026-10-09 (fase 1 do dólar, só aquisição, ADR 0124):
-// leitura própria, como a da soja na fase 1; não vai ao Motor.
+// leitura própria, como a da soja na fase 1; com o dólar aprovado (ADR 0126), os eventos dos cinco tipos próprios marcam o
+// F8 (DOLAR_EVENTOS) e vão ao prompt diário do dólar.
 const ATIVOS = ["OURO", "PETROLEO", "MILHO", "CAFE", "SOJA", "DOLAR"];
 const NOME_ATIVO = { OURO: "ouro", PETROLEO: "petróleo", MILHO: "milho", CAFE: "café", SOJA: "soja", DOLAR: "dólar" };
 // Como o ativo aparece no texto da IA (seções e listas): com acento e em maiúsculas.

@@ -43,7 +43,7 @@ const OPCOES_PERIODO = [
 ]
 const OPCOES_LINHAS_POR_PAGINA = [20, 50, 100]
 // A unidade do eixo de preço do gráfico, por ativo (o preço de referência de cada um).
-const UNIDADE = { PETROLEO: 'US$/bbl', OURO: 'US$/oz', MILHO: 'R$/sc', CAFE: 'US$/sc', SOJA: 'US$/sc' }
+const UNIDADE = { PETROLEO: 'US$/bbl', OURO: 'US$/oz', MILHO: 'R$/sc', CAFE: 'US$/sc', SOJA: 'US$/sc', DOLAR: 'R$/US$' }
 
 const route = useRoute()
 const router = useRouter()

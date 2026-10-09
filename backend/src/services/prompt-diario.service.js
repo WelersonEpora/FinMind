@@ -62,8 +62,10 @@ function linhaEmReais(preco, ptax, config) {
 
 function blocoPreco(preco, dataAnalise, config, ptax = null, referencia = REFERENCIA_HORIZONTES.DATA_DA_ANALISE) {
   if (!preco.disponivel) return `Preço do ${config.PRECO.rotulo}: SEM DADO até a data da análise.`;
-  // A moeda do preço: US$ no petróleo, no ouro e no café (o ICF), R$ no milho (o CCM).
+  // A moeda do preço: US$ no petróleo, no ouro e no café (o ICF), R$ no milho (o CCM) e no dólar (a PTAX). As casas: 2,
+  // ou as da configuração (a PTAX, com 4).
   const moeda = config.PRECO.moeda || "US$";
+  const casas = config.PRECO.casas ?? 2;
   const publicado = diaDaPublicacao(preco.publicadoEm);
   const linhas = [`Série: ${preco.nome}, ${preco.unidade} | Fonte: ${preco.fonte}`];
   // Futuro (o GLD do ouro): o contrato do preço, o vencimento mais próximo negociado (centro-decisao.service.js::lerFuturo).
@@ -71,7 +73,7 @@ function blocoPreco(preco, dataAnalise, config, ptax = null, referencia = REFERE
     linhas.push(`Contrato: ${preco.contrato.rotulo}, o vencimento mais próximo negociado até a data`);
   }
   linhas.push(
-    `Último preço: ${moeda} ${fmtNumero(preco.valor)} em ${fmtData(preco.dataReferencia)} | publicado em ${fmtData(publicado)}` +
+    `Último preço: ${moeda} ${fmtNumero(preco.valor, casas)} em ${fmtData(preco.dataReferencia)} | publicado em ${fmtData(publicado)}` +
       `${preco.publicadoEmEstimado ? " (data estimada)" : ""} | ${preco.diasSemDado} dia(s) antes da data da análise` +
       `${preco.defasada ? " | DEFASADO: passou da tolerância da série" : ""}`
   );
@@ -100,13 +102,13 @@ function blocoPreco(preco, dataAnalise, config, ptax = null, referencia = REFERE
     const minimo = pontos.reduce((a, b) => (b.valor < a.valor ? b : a));
     const maximo = pontos.reduce((a, b) => (b.valor > a.valor ? b : a));
     linhas.push(
-      `Mínimo e máximo dos últimos 90 dias: ${moeda} ${fmtNumero(minimo.valor)} (${fmtData(minimo.data)}) e ` +
-        `${moeda} ${fmtNumero(maximo.valor)} (${fmtData(maximo.data)})`
+      `Mínimo e máximo dos últimos 90 dias: ${moeda} ${fmtNumero(minimo.valor, casas)} (${fmtData(minimo.data)}) e ` +
+        `${moeda} ${fmtNumero(maximo.valor, casas)} (${fmtData(maximo.data)})`
     );
     const ultimos = pontos.slice(-config.PRECO.pregoesNoHistorico).reverse();
     linhas.push(
       `Últimos ${ultimos.length} pregões (data: ${config.PRECO.unidadeHistorico}): ` +
-        ultimos.map((p) => `${fmtData(p.data)}: ${fmtNumero(p.valor)}`).join("; ")
+        ultimos.map((p) => `${fmtData(p.data)}: ${fmtNumero(p.valor, casas)}`).join("; ")
     );
   }
   return linhas.join("\n");
@@ -125,10 +127,12 @@ function blocoCurva(curva, config) {
     v.contratosNegociados === null || v.contratosNegociados === undefined
       ? "contratos negociados: SEM DADO"
       : `${fmtNumero(v.contratosNegociados, 0)} contratos negociados${v.contratosNegociados < config.CURVA.liquidezMinima ? ` (POUCA LIQUIDEZ: menos de ${config.CURVA.liquidezMinima})` : ""}`;
+  // `soComNegocios` (o DOL, ADR 0126): só os vencimentos negociados no dia; os outros têm só o ajuste teórico.
+  const vencimentos = config.CURVA.soComNegocios ? curva.vencimentos.filter((v) => v.contratosNegociados > 0) : curva.vencimentos;
   return [
-    `Ajuste de cada vencimento no pregão de ${fmtData(curva.dataReferencia)}, do mais próximo ao mais distante. Só fatos:`,
+    `Ajuste de cada vencimento no pregão de ${fmtData(curva.dataReferencia)}, do mais próximo ao mais distante${config.CURVA.soComNegocios ? ", só os negociados no dia" : ""}. Só fatos:`,
     "a inclinação da curva não é sinal por si.",
-    ...curva.vencimentos.map((v) => {
+    ...vencimentos.map((v) => {
       if (v.contratosNegociados === undefined) return `${v.vencimento}: ${moeda} ${fmtNumero(v.preco)}`;
       const comLiquidez = config.CURVA.liquidezMinima !== null && config.CURVA.liquidezMinima !== undefined;
       return `${v.rotulo}: ${moeda} ${fmtNumero(v.preco)}${comLiquidez ? ` | ${liquidez(v)}` : ""}`;
@@ -177,6 +181,9 @@ function linhaContratoDoHorizonte(h, porHorizonte, config) {
 
 // --- 2.3 Situação dos dados dos fatores -----------------------------------------------------------------------------
 
+// A periodicidade de um fator no texto: "semanal", "mensal"... e "diária" (os fatores do dólar, ADR 0126), com acento.
+const periodicidadeNoTexto = (p) => (p === "DIARIA" ? "diária" : p.toLowerCase());
+
 // Só fatos: a referência, a publicação (e se é estimada), a idade e SEM DADO / SEM LEITURA. A defasagem de cada fator
 // fica com a IA, pela idade e pela periodicidade: não há tolerância por fator (os fatores misturam séries com
 // tolerâncias diferentes) e criar uma seria regra nova.
@@ -190,13 +197,13 @@ function situacaoDoFator(fator, dataAnalise) {
         : `fator de evento | última leitura em ${fmtData(fator.ultimaLeitura.data)} | ${fator.eventos} evento(s) na janela de ${fator.janelaDias} dias`
     };
   }
-  if (!fator.medida) return { situacao: "SEM_DADO", texto: `${fator.periodicidade.toLowerCase()} | SEM DADO até a data` };
+  if (!fator.medida) return { situacao: "SEM_DADO", texto: `${periodicidadeNoTexto(fator.periodicidade)} | SEM DADO até a data` };
   const publicado = diaDaPublicacao(fator.publicadoEm);
   return {
     situacao: fator.publicadoEmEstimado ? "ESTIMADO" : "PUBLICADO",
     idadeDias: diasEntre(fator.observedAt, dataAnalise),
     texto:
-      `${fator.periodicidade.toLowerCase()} | referência ${fmtData(fator.observedAt)} | publicado em ${fmtData(publicado)}` +
+      `${periodicidadeNoTexto(fator.periodicidade)} | referência ${fmtData(fator.observedAt)} | publicado em ${fmtData(publicado)}` +
       `${fator.publicadoEmEstimado ? " (data estimada)" : ""} | idade: ${diasEntre(fator.observedAt, dataAnalise)} dia(s)`
   };
 }
@@ -355,14 +362,16 @@ function agregacaoParaEntrada(agregacao) {
 function leituraDoFator(f) {
   // Uma regra (a soja, ADR 0116): o estado, sem pressão.
   if (f.regra) return f.estado ? { papel: "REGRA", regra: f.regra.sigla, estado: f.estado.codigo } : null;
-  if (!f.decisao) return null;
+  if (!f.decisao && !f.porHorizonte) return null;
   if (f.contextoDe) return { papel: "CONTEXTO", contextoDe: f.contextoDe, tendencia: f.decisao.tendencia };
   if (f.informativo) return { papel: "INFORMACAO", tendencia: f.decisao.tendencia };
   return {
-    pressao: f.decisao.direcao,
-    intensidade: f.decisao.intensidade,
-    tendencia: f.decisao.tendencia,
-    ...(f.decisao.foraDaJanela ? { foraDaJanela: true } : {})
+    pressao: f.decisao?.direcao ?? null,
+    intensidade: f.decisao?.intensidade ?? null,
+    tendencia: f.decisao?.tendencia ?? null,
+    ...(f.decisao?.foraDaJanela ? { foraDaJanela: true } : {}),
+    // Uma leitura por horizonte (o dólar, ADR 0126): a de cada um, como foi ao prompt.
+    ...(f.porHorizonte ? { porHorizonte: f.porHorizonte } : {})
   };
 }
 
@@ -472,8 +481,10 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
       ? config.REFERENCIA_HORIZONTES
       : REFERENCIA_HORIZONTES.DATA_DA_ANALISE;
   const dataPreco = preco.disponivel ? preco.dataReferencia : null;
-  // A curva e o contrato de cada horizonte (o milho e o café, ADR 0078).
-  const curva = config.CURVA.porHorizonte && serie.futuro ? await centro.lerCurva(serie.futuro, { data: dataAnalise, agora }, deps) : null;
+  // A curva e o contrato de cada horizonte (o milho e o café, ADR 0078). Num ativo cujo preço não é um futuro, a curva de
+  // outro instrumento como contexto (o DOL no dólar, ADR 0126: `CURVA.futuro`), sem contrato por horizonte.
+  const futuroDaCurva = config.CURVA.porHorizonte ? serie.futuro : config.CURVA.aplica ? config.CURVA.futuro : null;
+  const curva = futuroDaCurva ? await centro.lerCurva(futuroDaCurva, { data: dataAnalise, agora }, deps) : null;
   const porHorizonte =
     config.CURVA.porHorizonte && serie.futuro ? await lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config, referencia, dataPreco }, centro, deps) : null;
   // A agregação em código (o café, ADR 0066), sobre os mesmos fatores do prompt.

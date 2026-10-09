@@ -3,7 +3,8 @@
 
 const PERCENTUAL = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const DISTANCIA = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const PRECO = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// Até 4 casas: a PTAX do dólar (ADR 0126) tem 4; os outros preços, 2.
+const PRECO = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
 
 const sinal = (valor, texto) => `${valor > 0 ? '+' : valor < 0 ? '−' : ''}${texto}`
 

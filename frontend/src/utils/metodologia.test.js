@@ -162,7 +162,7 @@ test('resumoPesos: o que vai ao prompt, por ativo', () => {
   const orientacao = [{ noFinMind: { situacao: 'ORIENTACAO' } }]
   assert.equal(resumoPesos({ situacao: null, fatores: semPeso, pares: [], agregacao: [] }), 'No prompt: o peso do FEL 1.')
   // A soja (ADR 0116): o peso fixo do Comitê e a relevância por horizonte.
-  assert.match(resumoPesos({ relevancia: { fatores: [] }, fatores: semPeso, pares: [], agregacao: [] }), /^No prompt: o peso fixo de cada fator \(do Comitê\) e a relevância/)
+  assert.match(resumoPesos({ relevancia: { fatores: [] }, fatores: semPeso, pares: [], agregacao: [] }), /^No prompt: o peso fixo de cada fator e a relevância/)
   assert.equal(
     resumoPesos({ situacao: 'PROPOSTA', fatores: [{ codigo: 'A', meses: [] }], noPrompt: { autorizacao: 'x' }, pares: [], agregacao: orientacao }),
     'No prompt: o calendário de pesos e as regras do especialista, como orientação.'

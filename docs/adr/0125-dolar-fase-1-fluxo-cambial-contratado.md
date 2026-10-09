@@ -60,6 +60,7 @@ depois da 6ª casa. As 146 linhas falsas de dev foram apagadas (só existiam lá
 
 - Carga em dev: 45.350 valores (10 séries de 4.535 dias úteis), 0 falhas, ~8 min. Repetida depois da correção: 45.350
   ignorados. A coleta diária: 490 lidos, 490 ignorados.
+- Carga no servidor (2026-10-09, `npm run backfill:bcb-fluxo-cambial`): os mesmos 45.350 valores, 0 falhas, ~8 min.
 
 ## Consequências
 

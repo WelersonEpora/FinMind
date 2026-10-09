@@ -5,13 +5,14 @@ const geopoliticaService = require("./geopolitica.service");
 const analiseDiariaService = require("./analise-diaria.service");
 const realizadoAnaliseService = require("./realizado-analise.service");
 const { buscarNoCatalogo } = require("./observaveis.service");
+const precoMarketQuote = require("../shared/preco-market-quote");
 const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
 const { somarDias } = require("../shared/utils/date-utils");
 const { ValidationError } = require("../shared/errors");
 
 // Centro de Decisão (ADR 0048): a tela inicial. Para um ATIVO e uma DATA, devolve o preço como era conhecido no fim
 // daquele dia (point-in-time, ADR 0008), a leitura de eventos de mercado daquela data (ADRs 0047 e 0049) e a leitura
-// de tendência da IA feita naquela data (ADRs 0052, 0054, 0058, 0062 e 0116, nos cinco ativos). A variação é aritmética
+// de tendência da IA feita naquela data (ADRs 0052, 0054, 0058, 0062, 0116 e 0126, nos seis ativos). A variação é aritmética
 // sobre a própria série (sem limiar, sem sinal).
 //
 // Cada ativo tem uma lista FIXA de séries de preço; a 1ª é o padrão e o usuário troca na tela. Não há regra que
@@ -68,6 +69,16 @@ const ATIVOS = [
       // série de pesquisa (§3.1 da proposta).
       { codigo: "SJC", nome: "Futuro B3 (SJC)", observavel: "SJC_PRECOS", futuro: { prefixo: "B3.SJC", campo: "SETTLE" } },
       { codigo: "FMI", nome: "FMI mensal (grão)", observavel: "SOJA_PRECOS_FMI", seriesCode: "FRED.PSOYBUSDM" }
+    ]
+  },
+  {
+    codigo: "DOLAR",
+    nome: "Dólar",
+    series: [
+      // A PTAX de venda primeiro: o preço de referência decidido pelo usuário (2026-10-09, ADR 0117, adendo; ADR 0126), em
+      // market_quote (shared/preco-market-quote.js). O DOL da B3, contexto e referência da fase 2 (o day-trade).
+      { codigo: "PTAX", nome: "PTAX de venda (BCB)", observavel: "USD_BRL", seriesCode: "BCB.PTAX.VENDA", casasDecimais: 4, fonte: "BCB - SGS 1 (PTAX de venda)" },
+      { codigo: "DOL", nome: "Futuro B3 (DOL)", observavel: "DOL_PRECOS", futuro: { prefixo: "B3.DOL", campo: "SETTLE" } }
     ]
   }
 ];
@@ -221,17 +232,22 @@ async function lerPreco(serie, { data, agora, vencimentoApos = null }, deps) {
   const asOf = instanteDaData(data, agora);
   const desde = somarDias(data, -janela.busca);
 
+  // A PTAX (o dólar, ADR 0126) está em market_quote: as linhas vêm no formato da observation.
+  const lerSerie = () =>
+    precoMarketQuote.ehMarketQuote(serie.seriesCode)
+      ? precoMarketQuote.buscarLinhas(serie.seriesCode, { asOf, observadoDesde: desde, observadoAte: data }, deps)
+      : repo.buscarAsOf({ seriesCodes: [serie.seriesCode], asOf, observadoDesde: desde, observadoAte: data });
   const lido = serie.futuro
     ? await lerFuturo(serie.futuro, { data, asOf, desde, vencimentoApos }, repo)
-    : { linhas: await repo.buscarAsOf({ seriesCodes: [serie.seriesCode], asOf, observadoDesde: desde, observadoAte: data }), seriesCode: serie.seriesCode, contrato: null };
+    : { linhas: await lerSerie(), seriesCode: serie.seriesCode, contrato: null };
 
   const base = {
     codigo: serie.codigo,
     nome: serie.nome,
     observavel: serie.observavel,
-    fonte: catalogo.fonte,
+    fonte: serie.fonte || catalogo.fonte,
     unidade: campo?.unidade || catalogo.unidade,
-    casasDecimais: campo?.casasDecimais ?? catalogo.casasDecimais,
+    casasDecimais: serie.casasDecimais ?? campo?.casasDecimais ?? catalogo.casasDecimais,
     periodicidade: frequencia.toLowerCase(),
     tempoReal: false,
     encerradaEm: catalogo.encerradaEm || null
