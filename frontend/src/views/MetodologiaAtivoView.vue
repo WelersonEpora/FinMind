@@ -253,7 +253,9 @@ watch(ativo, carregar, { immediate: true })
                 <div class="metodologia-ativo__card-corpo">
                   <div class="metodologia-ativo__card-titulo-grupo">
                     <h2 class="metodologia-ativo__card-titulo">{{ siglaDoItem(fator, index) }} - {{ fator.nome }}</h2>
+                    <!-- A regra não tem peso: a ausência do chip já diz isso. -->
                     <span
+                      v-if="!fator.regra"
                       class="metodologia-ativo__badge"
                       :class="{
                         'metodologia-ativo__badge--alto': fator.peso === 'Alto',
@@ -331,6 +333,7 @@ watch(ativo, carregar, { immediate: true })
           <div class="metodologia-ativo__modal-titulo">
             <h3 id="fator-titulo">{{ fatorSelecionado.nome }}</h3>
             <span
+              v-if="!fatorSelecionado.regra"
               class="metodologia-ativo__badge"
               :class="{
                 'metodologia-ativo__badge--alto': fatorSelecionado.peso === 'Alto',

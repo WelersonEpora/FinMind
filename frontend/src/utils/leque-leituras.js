@@ -101,25 +101,86 @@ function serieDasLeituras(linhas) {
 // A linha do preço: em cada dia de pregão, o preço do contrato que as leituras daquele dia usavam (a leitura mais
 // recente até a data). Na troca de contrato, a linha se parte em outro segmento, sem emendar.
 export function segmentosDoPreco(precos, linhas, { ini, fim }) {
+  return segmentosComSerie(precos, linhas, { ini, fim }).map((s) => s.pontos)
+}
+
+// O contrato de uma série de futuro, pelo código (B3.CCM.CCMX26.SETTLE -> CCMX26); null numa série sem vencimento
+// (BCB.PTAX.VENDA, EIA.PETROLEO_PRECOS.BRENT).
+export function contratoDaSerie(seriesCode) {
+  const partes = String(seriesCode || '').split('.')
+  return partes.length === 4 ? partes[2] : null
+}
+
+// Como segmentosDoPreco, com a série de cada segmento. `pular(data, serie)`: o ponto que outra linha já desenha (a
+// linha se parte no buraco). -> [{ seriesCode, contrato, pontos: [{ data, valor }] }].
+function segmentosComSerie(precos, linhas, { ini, fim }, pular = () => false) {
   const porSerie = new Map(precos.map((p) => [p.seriesCode, new Map(p.pontos.map((pt) => [pt.data, pt.valor]))]))
   const serieNaData = serieDasLeituras(linhas)
   if (!serieNaData) return []
   const datas = [...new Set(precos.flatMap((p) => p.pontos.map((pt) => pt.data)))].filter((d) => d >= ini && d <= fim).sort()
   const segmentos = []
   let atual = null
-  let serieAtual = null
   for (const data of datas) {
     const serie = serieNaData(data)
     const valor = porSerie.get(serie)?.get(data)
     if (valor == null) continue
-    if (serie !== serieAtual) {
-      atual = []
-      segmentos.push(atual)
-      serieAtual = serie
+    if (pular(data, serie)) {
+      atual = null
+      continue
     }
-    atual.push({ data, valor })
+    if (!atual || atual.seriesCode !== serie) {
+      atual = { seriesCode: serie, contrato: contratoDaSerie(serie), pontos: [] }
+      segmentos.push(atual)
+    }
+    atual.pontos.push({ data, valor })
   }
   return segmentos
+}
+
+// As linhas de preço dos OUTROS horizontes visíveis, no modo de vários (com contrato por horizonte, ADR 0078): cada um
+// desenha o contrato dele só onde ele difere do que já está desenhado (a linha principal e as dos horizontes antes dele).
+// No ouro e no dólar, um preço só, não sobra nada. -> [{ horizonte, seriesCode, contrato, pontos }].
+function linhasDosOutrosHorizontes(precos, linhas, { principal, horizontes, janela }) {
+  const desenhado = new Set()
+  const marcar = (segs) => segs.forEach((s) => s.pontos.forEach((p) => desenhado.add(`${p.data}|${s.seriesCode}`)))
+  marcar(principal)
+  const outras = []
+  for (const h of horizontes) {
+    const doHorizonte = linhas.filter((l) => l.horizonte === h)
+    if (!doHorizonte.length) continue
+    const segs = segmentosComSerie(precos, doHorizonte, janela, (data, serie) => desenhado.has(`${data}|${serie}`))
+    marcar(segs)
+    outras.push(...segs.map((s) => ({ horizonte: h, ...s })))
+  }
+  return outras
+}
+
+// O nome curto de uma série de preço, para a legenda: a fonte e o contrato ("Yahoo BZZ26", "B3 CCMX26").
+export function rotuloDaSerie(seriesCode) {
+  const contrato = contratoDaSerie(seriesCode)
+  const fonte = { B3: 'B3', YAHOO: 'Yahoo' }[String(seriesCode || '').split('.')[0]]
+  if (contrato && fonte) return `${fonte} ${contrato}`
+  return { 'BCB.PTAX.VENDA': 'BCB PTAX', 'EIA.PETROLEO_PRECOS.BRENT': 'EIA Brent', 'EIA.PETROLEO_PRECOS.WTI': 'EIA WTI' }[seriesCode] || seriesCode
+}
+
+// A legenda das linhas de preço: a principal (o contrato atual dela) e um item por contrato das outras, cada um com os
+// horizontes que o usam nas leituras da janela. -> [{ seriesCode, rotulo, horizontes, horizonte (a cor; null na
+// principal), principal, ligada }].
+function legendaDasLinhas({ principal, outras, linhas, horizontes, ligadas, janela }) {
+  if (!principal.length) return []
+  const daJanela = linhas.filter((l) => l.seriesCode && horizontes.includes(l.horizonte) && l.dataAnalise >= janela.ini && l.dataAnalise <= janela.fim)
+  const horizontesDe = (serie, soAtual) =>
+    horizontes.filter((h) => {
+      const doHorizonte = daJanela.filter((l) => l.horizonte === h).sort((a, b) => a.dataAnalise.localeCompare(b.dataAnalise))
+      return soAtual ? doHorizonte.at(-1)?.seriesCode === serie : doHorizonte.some((l) => l.seriesCode === serie)
+    })
+  const atual = principal.at(-1).seriesCode
+  const itens = [{ seriesCode: atual, rotulo: rotuloDaSerie(atual), horizontes: horizontesDe(atual, true), horizonte: null, principal: true, ligada: true }]
+  for (const s of outras) {
+    if (itens.some((i) => i.seriesCode === s.seriesCode)) continue
+    itens.push({ seriesCode: s.seriesCode, rotulo: rotuloDaSerie(s.seriesCode), horizontes: horizontesDe(s.seriesCode, false), horizonte: s.horizonte, principal: false, ligada: ligadas.includes(s.seriesCode) })
+  }
+  return itens
 }
 
 // A linha de CONTEXTO (`contexto` de GET /api/v1/qualidade-ia: no petróleo, o Brent à vista da EIA), fora de qualquer
@@ -146,7 +207,8 @@ export function segmentosDoContexto(contexto, linhas, { ini, fim }) {
 // na ordem ([{ horizonte, dias }]). `contexto`: a série de contexto da API (ou null). -> { ini, fim, escala, barras,
 // persistencias, marcadores, segmentos, contexto: { nome, segmentos } | null }.
 // `visiveis`: os horizontes marcados na legenda (null = todos); cada um mantém a sua posição na coluna da data-alvo.
-export function montarLeque({ linhas, precos, horizontes, modo, horizonte, persistencia = false, hoje, contexto = null, visiveis = null }) {
+// `ligadas`: as séries dos outros contratos ligadas na legenda (`legendaDoPreco`); as demais ficam fora do desenho.
+export function montarLeque({ linhas, precos, horizontes, modo, horizonte, persistencia = false, hoje, contexto = null, visiveis = null, ligadas = [] }) {
   const ordem = horizontes.map((h) => h.horizonte)
   const diasHorizonte = horizontes.find((h) => h.horizonte === horizonte)?.dias ?? 7
   const desenhadas = linhasDoGrafico(linhas, { modo, horizonte, visiveis })
@@ -177,13 +239,30 @@ export function montarLeque({ linhas, precos, horizontes, modo, horizonte, persi
   const horizonteDaLinha = modo === 'um' ? horizonte : (ordem.find((h) => !visiveis || visiveis.includes(h)) ?? ordem[0])
   const linhasDaLinha = linhas.filter((l) => l.horizonte === horizonteDaLinha)
   const daLinha = linhasDaLinha.length ? linhasDaLinha : linhas
-  const segmentos = segmentosDoPreco(precos, daLinha, { ini, fim: hoje < fim ? hoje : fim })
-  const segmentosContexto = segmentosDoContexto(contexto, daLinha, { ini, fim: hoje < fim ? hoje : fim })
+  const janelaDoPreco = { ini, fim: hoje < fim ? hoje : fim }
+  const principal = segmentosComSerie(precos, daLinha, janelaDoPreco)
+  const segmentos = principal.map((s) => s.pontos)
+  const segmentosContexto = segmentosDoContexto(contexto, daLinha, janelaDoPreco)
+  // No modo de vários horizontes, a linha do contrato de cada horizonte visível que difere da principal (ADR 0078), na
+  // cor dele. Começam desligadas: `ligadas` são as séries que o usuário ligou na legenda.
+  const horizontesVisiveis = modo === 'quatro' ? ordem.filter((h) => !visiveis || visiveis.includes(h)) : [horizonteDaLinha]
+  const todasAsOutras =
+    modo === 'quatro'
+      ? linhasDosOutrosHorizontes(precos, linhas, {
+          principal,
+          horizontes: horizontesVisiveis.filter((h) => h !== horizonteDaLinha),
+          janela: janelaDoPreco
+        })
+      : []
+  const outrasLinhas = todasAsOutras.filter((s) => ligadas.includes(s.seriesCode))
+  const legendaDoPreco = legendaDasLinhas({ principal, outras: todasAsOutras, linhas, horizontes: horizontesVisiveis, ligadas, janela: janelaDoPreco })
 
   // A escala cobre o preço (a linha e os pontos realizados) e as faixas inteiras, com folga (a seta da FORTE cabe nela):
   // nenhuma faixa fica cortada na borda, nem as largas do longo prazo.
   const valores = [
     ...segmentos.flat().map((p) => p.valor),
+    // Também as desligadas: a escala não pula ao ligar e desligar.
+    ...todasAsOutras.flatMap((s) => s.pontos.map((p) => p.valor)),
     ...segmentosContexto.flat().map((p) => p.valor),
     ...marcadores.map((m) => m.valor),
     ...[...barras, ...persistencias].flatMap((b) => [b.precoDe, b.precoAte])
@@ -193,7 +272,7 @@ export function montarLeque({ linhas, precos, horizontes, modo, horizonte, persi
     ? { min: Math.min(...valores) * (1 - folga), max: Math.max(...valores) * (1 + folga) }
     : { min: 0, max: 1 }
 
-  return { ini, fim, escala, barras, persistencias, marcadores, segmentos, contexto: segmentosContexto.length ? { nome: contexto.nome, segmentos: segmentosContexto } : null }
+  return { ini, fim, escala, barras, persistencias, marcadores, segmentos, outrasLinhas, legendaDoPreco, contexto: segmentosContexto.length ? { nome: contexto.nome, segmentos: segmentosContexto } : null }
 }
 
 // As marcas do eixo de preço: um passo "redondo" que dê no máximo 7 linhas.

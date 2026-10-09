@@ -164,3 +164,36 @@ test('horizontes marcados na legenda: só as barras deles, cada um na sua posiç
   assert.equal(todos.barras.length, 2)
   assert.equal(todos.segmentos[0][0].valor, 100)
 })
+
+test('outros contratos (ADR 0078): um item na legenda cada, desligados por padrão; ligado, a linha dele aparece', () => {
+  // Leitura de 09/10 do milho: CCMX26 nos três primeiros horizontes, CCMF27 no longo.
+  const linhas = ['IMEDIATO', 'CURTO', 'MEDIO', 'LONGO'].map((horizonte) =>
+    linha({ dataAnalise: '2026-10-09', horizonte, dataAlvo: '2026-10-10', seriesCode: horizonte === 'LONGO' ? 'B3.CCM.CCMF27.SETTLE' : 'B3.CCM.CCMX26.SETTLE' })
+  )
+  const precos = [
+    { seriesCode: 'B3.CCM.CCMX26.SETTLE', pontos: [{ data: '2026-10-08', valor: 70 }, { data: '2026-10-09', valor: 71 }] },
+    { seriesCode: 'B3.CCM.CCMF27.SETTLE', pontos: [{ data: '2026-10-08', valor: 74 }, { data: '2026-10-09', valor: 75 }] }
+  ]
+  const horizontes = ['IMEDIATO', 'CURTO', 'MEDIO', 'LONGO'].map((horizonte, i) => ({ horizonte, dias: [1, 7, 30, 90][i] }))
+  const args = { linhas, precos, horizontes, modo: 'quatro', hoje: '2026-10-09' }
+  const desligado = montarLeque(args)
+  assert.deepEqual(
+    desligado.legendaDoPreco.map((i) => [i.rotulo, i.horizontes, i.principal, i.ligada]),
+    [
+      ['B3 CCMX26', ['IMEDIATO', 'CURTO', 'MEDIO'], true, true],
+      ['B3 CCMF27', ['LONGO'], false, false]
+    ]
+  )
+  assert.equal(desligado.outrasLinhas.length, 0)
+  const ligado = montarLeque({ ...args, ligadas: ['B3.CCM.CCMF27.SETTLE'] })
+  assert.deepEqual(ligado.outrasLinhas.map((s) => [s.horizonte, s.contrato, s.pontos.length]), [['LONGO', 'CCMF27', 2]])
+  // A escala é a mesma ligado ou não: não pula ao clicar.
+  assert.deepEqual(ligado.escala, desligado.escala)
+})
+
+test('um preço só (a PTAX): a legenda tem um item, sem outros contratos', () => {
+  const linhas = [linha({ dataAnalise: '2026-10-09', horizonte: 'IMEDIATO', dataAlvo: '2026-10-10', seriesCode: 'BCB.PTAX.VENDA' })]
+  const precos = [{ seriesCode: 'BCB.PTAX.VENDA', pontos: [{ data: '2026-10-09', valor: 5.4 }] }]
+  const leque = montarLeque({ linhas, precos, horizontes: HORIZONTES, modo: 'quatro', hoje: '2026-10-09' })
+  assert.deepEqual(leque.legendaDoPreco.map((i) => i.rotulo), ['BCB PTAX'])
+})

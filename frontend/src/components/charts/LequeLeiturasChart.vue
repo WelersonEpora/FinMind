@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { CORES_HORIZONTE, diasEntre, marcasDoEixo, somarDias } from '../../utils/leque-leituras.js'
+import { CORES_HORIZONTE, diasEntre, marcasDoEixo, rotuloDaSerie, somarDias } from '../../utils/leque-leituras.js'
 import { rotuloFaixa } from '../../utils/analise-diaria.js'
 import { formatarPreco, formatarVariacao, rotuloMotivo } from '../../utils/qualidade-ia.js'
 
@@ -97,21 +97,25 @@ const ligacoes = computed(() => {
     const ponto = { data: b.dataAlvo, px: `${r.x + r.width / 2},${r.y + r.height / 2}` }
     porHorizonte.set(b.horizonte, [...(porHorizonte.get(b.horizonte) || []), ponto])
   }
-  const largura = retangulo({ dataAlvo: props.leque.ini, indice: 0, precoDe: 0, precoAte: 0 }).width
+  // Sempre a largura de uma barra da visão de quatro (fina), também na de um horizonte, onde a barra ocupa a coluna.
+  const espessura = Math.max(1, (largura.value - 4) / 4 - 1)
   return [...porHorizonte]
     .filter(([, pts]) => pts.length > 1)
-    .map(([horizonte, pts]) => ({ horizonte, largura, pontos: pts.sort((a, b) => (a.data < b.data ? -1 : 1)).map((p) => p.px).join(' ') }))
+    .map(([horizonte, pts]) => ({ horizonte, largura: espessura, pontos: pts.sort((a, b) => (a.data < b.data ? -1 : 1)).map((p) => p.px).join(' ') }))
 })
 
-// A seta da ponta aberta de uma faixa FORTE ("ou mais").
+// A seta da ponta aberta de uma faixa FORTE ("ou mais"): haste e ponta em "V", de tamanho fixo (não depende do zoom nem
+// da largura da barra), saindo do centro da ponta aberta.
+const SETA_HASTE = 12
+const SETA_PONTA = 4
 function seta(barra) {
   if (!barra.seta) return null
   const r = retangulo(barra)
   const cx = r.x + r.width / 2
-  const w = Math.max(6, r.width)
-  const base = barra.seta === 'cima' ? r.y - 1.5 : r.y + r.height + 1.5
-  const ponta = barra.seta === 'cima' ? base - 5 : base + 5
-  return `M${cx - w / 2},${base} L${cx + w / 2},${base} L${cx},${ponta} Z`
+  const sentido = barra.seta === 'cima' ? -1 : 1
+  const base = barra.seta === 'cima' ? r.y - 1 : r.y + r.height + 1
+  const ponta = base + sentido * SETA_HASTE
+  return `M${cx},${base} L${cx},${ponta} M${cx - SETA_PONTA},${ponta - sentido * SETA_PONTA} L${cx},${ponta} L${cx + SETA_PONTA},${ponta - sentido * SETA_PONTA}`
 }
 
 function estiloBarra(barra) {
@@ -136,6 +140,23 @@ function precoNaData(data, segmentos = props.leque.segmentos) {
 
 // ---- Tooltip -------------------------------------------------------------------------------------------------------
 const aberto = ref(null)
+
+// Com outros contratos ligados na legenda: o preço de cada linha desenhada na data (a principal primeiro), com o nome
+// da série e a cor da linha (null na principal).
+function contratosNaData(data) {
+  const outras = props.leque.outrasLinhas || []
+  if (!outras.length) return []
+  const principal = (props.leque.legendaDoPreco || []).find((i) => i.principal)
+  const porSerie = new Map()
+  for (const s of outras) {
+    if (!porSerie.has(s.seriesCode)) porSerie.set(s.seriesCode, { horizonte: s.horizonte, segmentos: [] })
+    porSerie.get(s.seriesCode).segmentos.push(s.pontos)
+  }
+  return [
+    { rotulo: principal?.rotulo, horizonte: null, preco: precoNaData(data) },
+    ...[...porSerie].map(([serie, g]) => ({ rotulo: rotuloDaSerie(serie), horizonte: g.horizonte, preco: precoNaData(data, g.segmentos) }))
+  ].filter((c) => c.preco)
+}
 
 // A base de uma leitura, em texto: "06/10 US$ 4.207,75" (provisória só nas leituras da regra antiga, ADR 0106).
 function textoDaBase(linha) {
@@ -190,7 +211,7 @@ function mover(evento) {
   }
   const barras = props.leque.barras.filter((b) => b.dataAlvo === data).sort((a, b) => a.indice - b.indice)
   const contexto = props.leque.contexto && data <= props.hoje ? precoNaData(data, props.leque.contexto.segmentos) : null
-  aberto.value = { data, barras, preco: data <= props.hoje ? precoNaData(data) : null, contexto, clientX: evento.clientX, clientY: evento.clientY }
+  aberto.value = { data, barras, preco: data <= props.hoje ? precoNaData(data) : null, contexto, contratos: data <= props.hoje ? contratosNaData(data) : [], clientX: evento.clientX, clientY: evento.clientY }
   nextTick(posicionar)
 }
 
@@ -332,12 +353,21 @@ onBeforeUnmount(() => observador?.disconnect())
           <polyline v-for="l in ligacoes" :key="`lg${l.horizonte}`" :points="l.pontos" :stroke="cor(l.horizonte)" :stroke-width="l.largura" class="leque__ligacao" />
           <g v-for="(b, i) in leque.barras" :key="`b${i}`" :opacity="b.foraDaMetrica ? 0.4 : 1">
             <rect v-bind="{ ...retangulo(b), ...estiloBarra(b) }" rx="1.5" />
-            <path v-if="b.seta" :d="seta(b)" :fill="cor(b.horizonte)" />
+            <template v-if="b.seta">
+              <path :d="seta(b)" class="leque__seta-fundo" />
+              <path :d="seta(b)" :stroke="cor(b.horizonte)" class="leque__seta" />
+            </template>
           </g>
           <!-- A linha de contexto (o Brent à vista no petróleo): tracejada e clara, fora de qualquer medida. -->
           <template v-for="(seg, i) in leque.contexto?.segmentos || []" :key="`c${i}`">
             <polyline :points="pontosDaLinha(seg)" class="leque__contexto" />
             <circle v-for="p in seg" :key="p.data" :cx="x(p.data)" :cy="y(p.valor)" r="3.5" class="leque__ponto-contexto" />
+          </template>
+          <!-- Teste (opção 2): a linha do contrato de outro horizonte, onde ele difere do da linha principal, na cor dele. -->
+          <template v-for="(seg, i) in leque.outrasLinhas || []" :key="`o${i}`">
+            <polyline :points="pontosDaLinha(seg.pontos)" class="leque__linha-fundo" />
+            <polyline :points="pontosDaLinha(seg.pontos)" :style="{ stroke: cor(seg.horizonte) }" class="leque__linha leque__linha--outra" />
+            <circle v-for="p in seg.pontos" :key="p.data" :cx="x(p.data)" :cy="y(p.valor)" r="3" :style="{ fill: cor(seg.horizonte) }" class="leque__ponto" />
           </template>
           <template v-for="(seg, i) in leque.segmentos" :key="`l${i}`">
             <polyline :points="pontosDaLinha(seg)" class="leque__linha-fundo" />
@@ -372,11 +402,16 @@ onBeforeUnmount(() => observador?.disconnect())
     <div v-if="aberto" ref="tooltip" class="leque__tooltip">
       <strong>Alvo {{ ddmm(aberto.data) }}</strong>
       <span v-if="baseComum" class="leque__sub"> · Base em {{ baseComum }}</span>
-      <span v-else-if="!aberto.barras.length && aberto.preco" class="leque__sub">
+      <span v-else-if="!aberto.barras.length && aberto.preco && !aberto.contratos.length" class="leque__sub">
         · Realizado {{ moeda }} {{ formatarPreco(aberto.preco.valor) }}<template v-if="aberto.preco.data !== aberto.data"> ({{ ddmm(aberto.preco.data) }})</template>
       </span>
       <div v-if="aberto.contexto" class="leque__sub">
         {{ leque.contexto.nome }}: {{ moeda }} {{ formatarPreco(aberto.contexto.valor) }}<template v-if="aberto.contexto.data !== aberto.data"> ({{ ddmm(aberto.contexto.data) }})</template>, só contexto
+      </div>
+      <!-- O preço de cada contrato desenhado (com outros ligados na legenda), na cor da linha. -->
+      <div v-for="c in aberto.contratos" :key="c.rotulo" class="leque__sub">
+        <span class="leque__tt-cor leque__tt-cor--linha" :style="{ background: c.horizonte ? cor(c.horizonte) : 'var(--p-text-color)' }"></span>
+        {{ c.rotulo }}: {{ moeda }} {{ formatarPreco(c.preco.valor) }}<template v-if="c.preco.data !== aberto.data"> ({{ ddmm(c.preco.data) }})</template>
       </div>
       <div v-if="!aberto.barras.length" class="leque__sub">Nenhuma leitura com esta data-alvo.</div>
       <div v-for="b in aberto.barras" :key="`${b.horizonte}-${b.linha.dataAnalise}`" class="leque__tt-linha">
@@ -392,7 +427,15 @@ onBeforeUnmount(() => observador?.disconnect())
               class="leque__sub"
             > ({{ ddmm(b.linha.realizado.data) }})</span>
           </div>
-          <div><span class="leque__sub">Resultado:</span> {{ resultado(b) }}</div>
+          <!-- O resultado com o marcador do gráfico de um horizonte: bolinha (na faixa), losango (vizinha), xis (2+). -->
+          <div>
+            <svg v-if="b.estado === 'dentro' || b.estado === 'fora'" width="12" height="12" viewBox="0 0 12 12" class="leque__tt-icone" aria-hidden="true">
+              <circle v-if="b.distancia === 0" cx="6" cy="6" r="5" class="leque__na-faixa" />
+              <path v-else-if="b.distancia === 1" d="M6,0 L12,6 L6,12 L0,6 Z" class="leque__ao-lado" />
+              <path v-else d="M1.5,1.5 L10.5,10.5 M10.5,1.5 L1.5,10.5" class="leque__longe" />
+            </svg>
+            {{ resultado(b) }}
+          </div>
           <div v-if="b.foraDaMetrica" class="leque__sub">Fora da métrica: {{ rotuloMotivo(b.foraDaMetrica).toLowerCase() }}</div>
         </div>
       </div>
@@ -462,6 +505,20 @@ onBeforeUnmount(() => observador?.disconnect())
   stroke-width: 1;
   stroke-dasharray: 3 2;
 }
+/* A seta da faixa forte: na cor cheia do horizonte (mesmo com a barra clara), com um contorno branco por baixo. */
+.leque__seta,
+.leque__seta-fundo {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.leque__seta {
+  stroke-width: 1.6;
+}
+.leque__seta-fundo {
+  stroke: #ffffff;
+  stroke-width: 3.6;
+}
 /* Bem clara e por baixo das barras: o caminho de cada horizonte (a cor e a largura vêm do horizonte e da barra). */
 .leque__ligacao {
   fill: none;
@@ -507,7 +564,10 @@ onBeforeUnmount(() => observador?.disconnect())
   stroke: #ffffff;
   stroke-width: 1;
 }
-.leque__na-faixa {
+/* A linha de outro contrato (a cor do horizonte vem no style). */
+.leque__linha--outra {
+  stroke-width: 1.2;
+}.leque__na-faixa {
   fill: #0ca30c;
 }
 .leque__ao-lado {
@@ -552,6 +612,14 @@ onBeforeUnmount(() => observador?.disconnect())
   grid-template-columns: 10px 1fr;
   gap: 0.4rem;
   margin-top: 0.4rem;
+}
+.leque__tt-icone {
+  margin-right: 0.3rem;
+  vertical-align: -1px;
+}
+.leque__tt-cor.leque__tt-cor--linha {
+  display: inline-block;
+  margin: 0 0.25rem 0 0;
 }
 .leque__tt-cor {
   width: 9px;

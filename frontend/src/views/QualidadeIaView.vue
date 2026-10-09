@@ -88,6 +88,13 @@ const persistenciaGrafico = ref(false)
 const caminhosGrafico = ref(true)
 // A linha de contexto (no petróleo, o Brent à vista da EIA): ligada por padrão; desligada, a escala volta ao preço avaliado.
 const contextoGrafico = ref(true)
+// As linhas dos outros contratos (ADR 0078: cada horizonte no contrato que ainda negocia na data-alvo), pela série:
+// desligadas por padrão; a legenda liga e desliga cada uma.
+const contratosLigados = ref([])
+function alternarContrato(seriesCode) {
+  const atuais = contratosLigados.value
+  contratosLigados.value = atuais.includes(seriesCode) ? atuais.filter((s) => s !== seriesCode) : [...atuais, seriesCode]
+}
 // A largura dos dias no gráfico (1x, 2x ou 3x), lembrada no navegador; sem armazenamento, abre na padrão.
 const ZOOMS = [1, 2, 3]
 const CHAVE_ZOOM = 'finmind:qualidade-ia:zoom'
@@ -117,18 +124,12 @@ const leque = computed(() =>
     horizonte: horizonteGrafico.value,
     visiveis: horizontesVisiveis.value,
     persistencia: persistenciaGrafico.value,
+    ligadas: contratosLigados.value,
     hoje: qualidade.value?.hoje || new Date().toISOString().slice(0, 10),
     contexto: contextoGrafico.value ? qualidade.value?.contexto || null : null
   })
 )
 
-// A fonte da linha do preço, pela sigla: o prefixo do seriesCode das leituras (B3.ICF.ICFZ26.SETTLE -> B3).
-const SIGLA_DA_FONTE = { B3: 'B3', EIA: 'EIA', YAHOO: 'Yahoo' }
-const fontesDoPreco = computed(() =>
-  [...new Set((qualidade.value?.linhas || []).filter((l) => l.seriesCode).map((l) => l.seriesCode.split('.')[0]))]
-    .map((prefixo) => SIGLA_DA_FONTE[prefixo] || prefixo)
-    .join(', ')
-)
 
 const opcoesAtivo = computed(() => (qualidade.value?.ativos || []).map((a) => ({ ...a, icone: iconeAtivo(a.codigo) })))
 const opcoesVersao = computed(() => [
@@ -365,7 +366,27 @@ watch([periodo, versao], carregar)
 
             <div class="qualidade__legenda qualidade__legenda--topo">
               <div class="qualidade__legenda-linha">
-                <span><svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" /></svg> Preço realizado<template v-if="fontesDoPreco"> ({{ fontesDoPreco }})</template></span>
+                <!-- O preço realizado: a linha principal sempre à vista; os outros contratos (ADR 0078), um item cada,
+                     começam desligados e ligam com um clique, como a linha de contexto. -->
+                <span v-if="leque.legendaDoPreco.length">Preço realizado:</span>
+                <template v-for="item in leque.legendaDoPreco" :key="item.seriesCode">
+                  <span v-if="item.principal">
+                    <svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2" /></svg>
+                    ({{ item.rotulo }})
+                  </span>
+                  <button
+                    v-else
+                    type="button"
+                    class="qualidade__legenda-item"
+                    :class="{ 'qualidade__legenda-item--desligado': !item.ligada }"
+                    :aria-pressed="item.ligada"
+                    :title="item.ligada ? 'Clique para esconder a linha' : 'Clique para mostrar a linha'"
+                    @click="alternarContrato(item.seriesCode)"
+                  >
+                    <svg width="16" height="12" aria-hidden="true"><line x1="0" y1="6" x2="16" y2="6" :stroke="CORES_HORIZONTE[item.horizonte]" stroke-width="2" /></svg>
+                    ({{ item.rotulo }})
+                  </button>
+                </template>
                 <!-- O próprio item da legenda liga e desliga a linha (como na legenda de um gráfico de rosca). -->
                 <button
                   v-if="qualidade.contexto?.pontos?.length"
@@ -444,7 +465,7 @@ watch([periodo, versao], carregar)
                   <input v-model="caminhosGrafico" type="checkbox" class="form-check-input" />
                   <span class="form-check-label"><svg width="16" height="12" aria-hidden="true"><path d="M2,9 L8,4 L14,7" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3" /></svg> Caminho de cada horizonte</span>
                 </label>
-                <span><svg width="12" height="12" aria-hidden="true"><path d="M1,9 L11,9 L6,3 Z" fill="currentColor" /></svg> Faixa forte: "ou mais"</span>
+                <span><svg width="12" height="14" aria-hidden="true"><path d="M6,13 L6,2 M2,6 L6,2 L10,6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg> Faixa forte: "ou mais"</span>
                 <span><span class="qualidade__amostra qualidade__amostra--cheia qualidade__amostra--esmaecida"></span>Esmaecida: fora da métrica (fim de semana, referência antiga)</span>
               </div>
             </div>
