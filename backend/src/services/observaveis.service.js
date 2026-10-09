@@ -256,6 +256,40 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://www.bcb.gov.br/estatisticas/estatisticassetorexterno"
     }
   },
+  // --- Fluxo cambial contratado, diário (fase 1 do dólar, ADR 0125) ---
+  {
+    instrumentCode: "FLUXO_CAMBIAL_BCB",
+    origem: "observation",
+    nome: "Fluxo cambial contratado (BCB)",
+    unidade: "US$ milhões",
+    casasDecimais: 1,
+    frequencia: "DIARIA",
+    // Divulgação semanal, na quarta, até a sexta anterior: o último dia pode ter ~12 dias (mais um feriado).
+    toleranciaDias: 14,
+    fonte: "BCB - Movimento de câmbio contratado (SGS)",
+    fonteCollectorCode: "bcb-fluxo-cambial",
+    series: [
+      { modalidade: "saldo_total", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.SALDO_TOTAL" },
+      { modalidade: "saldo_comercial", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.SALDO_COMERCIAL" },
+      { modalidade: "saldo_financeiro", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.SALDO_FINANCEIRO" },
+      { modalidade: "exportacao", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.EXPORTACAO" },
+      { modalidade: "exportacao_acc", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.EXPORTACAO_ACC" },
+      { modalidade: "exportacao_pa", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.EXPORTACAO_PA" },
+      { modalidade: "exportacao_demais", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.EXPORTACAO_DEMAIS" },
+      { modalidade: "importacao", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.IMPORTACAO" },
+      { modalidade: "financeiro_compras", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.FINANCEIRO_COMPRAS" },
+      { modalidade: "financeiro_vendas", seriesCode: "BCB_SGS.FLUXO_CAMBIAL.FINANCEIRO_VENDAS" }
+    ],
+    modalidadePrincipal: "saldo_total",
+    fonteDetalhe: {
+      descricao:
+        "O câmbio contratado por dia útil, em US$ milhões, desde 2008-09-01 (Tabela 13 dos Indicadores Econômicos Selecionados, SGS 13961 a 13970): o comercial (exportação de bens, com o ACC, o pagamento antecipado e os demais, e a importação), o financeiro (compras e vendas: serviços, rendas, investimento direto e em carteira, derivativos e outros) e os saldos. Saldo positivo é entrada líquida de dólares; o total é o comercial mais o financeiro. Exclui o interbancário e as operações externas do BCB.",
+      metodologia:
+        "Um valor por dia útil. A data de disponibilidade é ESTIMADA na quarta-feira da semana seguinte: o BCB divulga às quartas os dias até a sexta anterior (numa quarta de feriado a divulgação passa para o dia seguinte, e a regra antecipa um dia). Os dados são preliminares: operações de até US$ 50 mil podem ser informadas até o dia 5 do mês seguinte, e o mês anterior é revisado na 3ª semana do mês corrente. A API só traz o valor atual: a coleta diária relê os últimos 75 dias, e a revisão vista entra como versão nova, com a data da coleta. O histórico carregado já vem revisado.",
+      formatoOrigem: "JSON (API do SGS, api.bcb.gov.br)",
+      urlOficial: "https://www.bcb.gov.br/estatisticas/indicadoreseconomicos"
+    }
+  },
   // --- Atuações do BCB no mercado de câmbio, por instrumento e dia (fase 1 do dólar, ADR 0122) ---
   // Séries `BCB.ATUACAO_CAMBIO.<ITEM>.<CAMPO>`: o item é o par instrumento/modalidade (shared/utils/bcb-atuacao-cambio.js).
   {

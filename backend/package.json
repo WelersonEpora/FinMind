@@ -19,6 +19,7 @@
     "backfill:selic": "node scripts/backfill-selic.js",
     "backfill:bcb-focus": "node scripts/backfill-bcb-focus.js",
     "backfill:bcb-reservas": "node scripts/backfill-bcb-reservas.js",
+    "backfill:bcb-fluxo-cambial": "node scripts/backfill-bcb-fluxo-cambial.js",
     "backfill:b3-ccm": "node scripts/backfill-b3-futuro.js --produto=ccm",
     "backfill:b3-ccm-bdi": "node scripts/backfill-b3-futuro-bdi.js --produto=ccm",
     "backfill:b3-icf": "node scripts/backfill-b3-futuro.js --produto=icf",

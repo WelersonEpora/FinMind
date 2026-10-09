@@ -14,6 +14,7 @@ const bcbFocusCollector = require("./bcb/bcb-focus.collector");
 const bcbReservasCollector = require("./bcb/bcb-reservas.collector");
 const bcbAtuacoesCambioCollector = require("./bcb/bcb-atuacoes-cambio.collector");
 const bcbBalancoPagamentosCollector = require("./bcb/bcb-balanco-pagamentos.collector");
+const bcbFluxoCambialCollector = require("./bcb/bcb-fluxo-cambial.collector");
 const fmiIrfclOuroCollector = require("./fmi/fmi-irfcl-ouro.collector");
 const { criarColetorWgc } = require("./wgc/wgc-ouro.collector");
 const eiaEtanolCollector = require("./eia/eia-etanol.collector");
@@ -71,6 +72,8 @@ function bootstrapCollectors() {
     registerCollector(bcbAtuacoesCambioCollector);
     // Balança comercial e transações correntes do balanço de pagamentos: fase 1 do dólar, só aquisição (ADR 0123).
     registerCollector(bcbBalancoPagamentosCollector);
+    // Fluxo cambial contratado (comercial e financeiro, diário): fase 1 do dólar, só aquisição (ADR 0125).
+    registerCollector(bcbFluxoCambialCollector);
     registerCollector(fmiIrfclOuroCollector);
     // World Gold Council: uso interno, licença só pessoal e não comercial, risco aceito pelo usuário (ADR 0037).
     registerCollector(criarColetorWgc("etf"));

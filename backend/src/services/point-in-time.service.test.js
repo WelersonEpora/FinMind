@@ -9,7 +9,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { registrarObservacoes, montarVersao } = require("./point-in-time.service");
+const { registrarObservacoes, montarVersao, mesmoValor } = require("./point-in-time.service");
 const observationRepository = require("../repositories/observation.repository");
 const { Observation } = require("../models");
 
@@ -313,4 +313,11 @@ test("o model bloqueia UPDATE/DELETE em todas as vias do Sequelize (antes de toc
   await assert.rejects(() => Observation.update({ value: 2 }, { where: { series_code: "X" } }), /append-only/);
   await assert.rejects(() => Observation.destroy({ where: { series_code: "X" } }), /append-only/);
   await assert.rejects(() => Observation.upsert({ series_code: "X" }), /append-only/);
+});
+
+test("mesmoValor: o valor gravado (6 casas, arredondado pelo PostgreSQL) é igual ao da fonte com mais casas, inclusive no empate da 7ª", () => {
+  assert.equal(mesmoValor("745.328155", 745.3281545), true);
+  assert.equal(mesmoValor("-232.472919", -232.47291933), true);
+  assert.equal(mesmoValor("745.328155", 745.328157), false);
+  assert.equal(mesmoValor("1.5", 1.51), false);
 });

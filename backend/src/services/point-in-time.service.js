@@ -15,8 +15,12 @@ const { paraDate } = require("../shared/utils/date-utils");
 // levemente à frente do relógio local (desvio de relógio).
 const TOLERANCIA_RELOGIO_MS = 5 * 60 * 1000;
 
+// O valor gravado tem 6 casas (NUMERIC, arredondado pelo PostgreSQL); o que chega da fonte pode ter mais. Comparar
+// por toFixed(6) dos dois lados falhava no empate da 7ª casa (745,3281545: o PostgreSQL arredonda para cima, o JS pelo
+// binário, para baixo) e gerava uma revisão falsa a cada coleta (visto no fluxo cambial do BCB, 8 casas, ADR 0125).
+// Igual = diferença abaixo da precisão da coluna.
 function mesmoValor(a, b) {
-  return Number(a).toFixed(6) === Number(b).toFixed(6);
+  return Math.abs(Number(a) - Number(b)) < 1e-6;
 }
 
 // Normaliza uma observação bruta de um coletor para uma versão a inserir, ou
