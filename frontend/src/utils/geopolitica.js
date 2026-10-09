@@ -8,7 +8,7 @@ const NIVEIS = {
   EXCEPCIONAL: { rotulo: 'Excepcional', classe: 'excepcional' }
 }
 
-export const ATIVOS = { OURO: 'Ouro', PETROLEO: 'Petróleo', MILHO: 'Milho', CAFE: 'Café', SOJA: 'Soja' }
+export const ATIVOS = { OURO: 'Ouro', PETROLEO: 'Petróleo', MILHO: 'Milho', CAFE: 'Café', SOJA: 'Soja', DOLAR: 'Dólar' }
 const GRAUS = { BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta' }
 
 // Pressão do fato sobre o preço (prompt v2): para que lado o fato, sozinho, empurra o preço. Não é previsão.
@@ -51,7 +51,7 @@ export function rotuloFonte(fonte) {
   }
 }
 
-// Tipo do evento (ADR 0049): a geopolítica é um deles.
+// Tipo do evento (ADR 0049): a geopolítica é um deles. Os cinco últimos são só da leitura do dólar (ADR 0124).
 export const TIPOS = {
   GEOPOLITICA: 'Geopolítica',
   POLITICA_COMERCIAL: 'Política comercial',
@@ -59,7 +59,12 @@ export const TIPOS = {
   REGULACAO: 'Regulação',
   CHOQUE_LOGISTICO: 'Choque logístico',
   SANIDADE: 'Sanidade',
-  POLITICA_OFERTA: 'Política de oferta'
+  POLITICA_OFERTA: 'Política de oferta',
+  POLITICA_MONETARIA: 'Política monetária',
+  POLITICA_FISCAL: 'Política fiscal',
+  RISCO_INSTITUCIONAL: 'Risco institucional',
+  INTERVENCAO_CAMBIAL: 'Intervenção cambial',
+  DADO_ECONOMICO: 'Dado econômico'
 }
 
 export function rotuloTipo(codigo) {

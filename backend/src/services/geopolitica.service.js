@@ -84,7 +84,7 @@ function formatarContexto(leitura) {
 function fontesLidasDoAtivo(grounding, ativo) {
   const frente = frenteDoAtivo(ativo)?.codigo;
   const paginas = (grounding?.groundingChunks || []).filter((c) => !c.frente || c.frente === frente);
-  return fontesDaPesquisa({ groundingChunks: paginas });
+  return fontesDaPesquisa({ groundingChunks: paginas }, leituraDoAtivo(ativo));
 }
 
 // { ativo, dataReferencia, disponivel, nivel, resumo, fontesLidas, eventos, contexto } - `contexto` é o bloco pronto para

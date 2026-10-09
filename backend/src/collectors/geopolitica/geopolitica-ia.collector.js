@@ -8,7 +8,7 @@ const geopoliticaRepository = require("../../repositories/geopolitica.repository
 const { parsearBoletim } = require("./geopolitica-boletim.parser");
 const { resolverLinks, paginasDoTrecho } = require("./paginas-da-pesquisa");
 const { FONTES, fonteDaUrl, paginaEspecifica, classificarFonte, fontesDaPesquisa, listaParaPrompt, sugestoesDeBusca } = require("./fontes-autorizadas");
-const { ATIVOS, NOME_ATIVO, ROTULO_ATIVO, TIPOS, LEITURAS, TODAS_AS_FRENTES } = require("../../shared/eventos-mercado");
+const { ATIVOS, NOME_ATIVO, ROTULO_ATIVO, TIPOS, tiposDaLeitura, LEITURAS, TODAS_AS_FRENTES, leituraDoAtivo } = require("../../shared/eventos-mercado");
 const { FATORES } = require("../../shared/fatores-fel1");
 
 // Leitura diária de EVENTOS DE MERCADO do ouro, do petróleo, do milho e do café. Nasceu como a leitura de geopolítica
@@ -39,14 +39,20 @@ const { FATORES } = require("../../shared/fatores-fel1");
 // A data de referência é o dia em São Paulo (a análise é feita no Brasil). A busca ao vivo não é reproduzível: a
 // leitura só vale da primeira coleta em diante e não serve para backtest (ADR 0047).
 
-// Uma configuração por LEITURA (ADR 0115): a principal (os quatro ativos validados, duas frentes, o prompt de sempre) e
-// a da soja (fase 1 da soja, só aquisição: uma frente, prompt próprio, outra linha por dia). Cada uma é um coletor com
-// execução, falha e "refazer" próprios: a da soja nunca toca na leitura principal.
+// Uma configuração por LEITURA (ADR 0115): a principal (os quatro ativos validados, duas frentes, o prompt de sempre), a
+// da soja e, desde 2026-10-09, a do dólar (fase 1 do dólar, só aquisição, ADR 0124): uma frente, prompt próprio, outra
+// linha por dia. Cada uma é um coletor com execução, falha e "refazer" próprios: nenhuma toca na leitura principal.
 const ARQUIVO_PROMPT = "geopolitica-diaria.md";
 const CONFIGURACOES = {
   PRINCIPAL: { codigo: "geopolitica-ia-diario", leitura: LEITURAS.PRINCIPAL.codigo, frentes: LEITURAS.PRINCIPAL.frentes, arquivoPrompt: ARQUIVO_PROMPT },
-  SOJA: { codigo: "geopolitica-ia-soja", leitura: LEITURAS.SOJA.codigo, frentes: LEITURAS.SOJA.frentes, arquivoPrompt: "eventos-soja-diaria.md" }
+  SOJA: { codigo: "geopolitica-ia-soja", leitura: LEITURAS.SOJA.codigo, frentes: LEITURAS.SOJA.frentes, arquivoPrompt: "eventos-soja-diaria.md" },
+  DOLAR: { codigo: "geopolitica-ia-dolar", leitura: LEITURAS.DOLAR.codigo, frentes: LEITURAS.DOLAR.frentes, arquivoPrompt: "eventos-dolar-diaria.md" }
 };
+
+// A leitura de uma frente (a coluna `frente` da leitura gravada): decide quais fontes valem (fontes-autorizadas.js).
+function leituraDaFrente(frente) {
+  return leituraDoAtivo(frente.ativos[0]);
+}
 
 function frentePorCodigo(codigo) {
   return TODAS_AS_FRENTES.find((f) => f.codigo === codigo);
@@ -97,12 +103,24 @@ const COMERCIO_DA_SOJA = {
   instrucao: "ao menos uma busca numa fonte de política comercial ou regulação da soja (a lista diz os tipos de cada fonte); as de logística sozinhas não bastam",
   vale: (fonte) => Boolean(fonte.soja) && fonte.soja.tipos.some((t) => TIPOS_DO_PISO_AGRO.includes(t))
 };
+// Dólar (ADR 0124): o lado brasileiro (juros, fiscal) e o americano (o Fed), as duas pontas do diferencial de juros.
+const BRASIL_MONETARIO_OU_FISCAL = {
+  descricao: "busca no Banco Central do Brasil, no Ministério da Fazenda ou no Tesouro Nacional",
+  instrucao: "ao menos uma busca no Banco Central do Brasil, no Ministério da Fazenda ou no Tesouro Nacional",
+  vale: (fonte) => fonte === FONTES.BCB || fonte === FONTES.FAZENDA || fonte === FONTES.TESOURO_NACIONAL
+};
+const FED_DOS_EUA = {
+  descricao: "busca no Fed",
+  instrucao: "uma busca no Federal Reserve (decisões e falas sobre os juros dos EUA)",
+  vale: (fonte) => fonte === FONTES.FED
+};
 const PISO = {
   OURO: [ESCALADA_OU_SANCAO],
   PETROLEO: [GEOPOLITICA_OU_OFERTA],
   MILHO: [COMERCIO_DO_ATIVO("MILHO"), MAR_NEGRO],
   CAFE: [COMERCIO_DO_ATIVO("CAFE")],
-  SOJA: [COMERCIO_DA_SOJA]
+  SOJA: [COMERCIO_DA_SOJA],
+  DOLAR: [BRASIL_MONETARIO_OU_FISCAL, FED_DOS_EUA]
 };
 
 // As exigências do piso que nenhuma fonte lida cumpriu ([] = piso cumprido).
@@ -115,9 +133,12 @@ function pisoParaPrompt(ativos) {
   return ativos.map((ativo) => `- ${ROTULO_ATIVO[ativo]}: ${PISO[ativo].map((e) => e.instrucao).join("; e ")}.`).join("\n");
 }
 
-// "- POLITICA_COMERCIAL (Política comercial): tarifa, embargo..."
-function tiposParaPrompt() {
-  return TIPOS.map((t) => `- ${t.codigo} (${t.rotulo}): ${t.descricao}`).join("\n");
+// "- POLITICA_COMERCIAL (Política comercial): tarifa, embargo..." - só os tipos da leitura (ADR 0124: os do dólar só
+// no prompt do dólar).
+function tiposParaPrompt(leitura) {
+  return tiposDaLeitura(leitura)
+    .map((t) => `- ${t.codigo} (${t.rotulo}): ${t.descricao}`)
+    .join("\n");
 }
 
 // Os fatores do FEL 1 dos ativos da chamada, agrupados por ativo: "OURO\n- OURO_GEOPOLITICA: Geopolítica e risco sistêmico".
@@ -186,7 +207,7 @@ function montarPrompt(dataReferencia, frente, recentes = [], arquivo = ARQUIVO_P
     ativos: frente.ativos.map((ativo) => ROTULO_ATIVO[ativo]).join(" e "),
     piso: pisoParaPrompt(frente.ativos),
     fontes_confiaveis: listaParaPrompt({ rotuloTipo: ROTULO_TIPO, nomeAtivo: NOME_ATIVO, ativos: frente.ativos }),
-    tipos: tiposParaPrompt(),
+    tipos: tiposParaPrompt(leituraDaFrente(frente)),
     fatores: fatoresParaPrompt(frente.ativos),
     sugestoes_busca: sugestoesDeBusca({ ativos: frente.ativos })
   });
@@ -226,7 +247,7 @@ async function responderPesquisando(frente, { instrucaoDoSistema, prompt, proved
 // ausente ou fora da escala não conta aqui (o normalize a recusa depois).
 function faltasDaResposta(frente, resposta) {
   const boletim = parsearBoletim(resposta.texto);
-  const fontesLidas = fontesDaPesquisa(resposta.grounding);
+  const fontesLidas = fontesDaPesquisa(resposta.grounding, leituraDaFrente(frente));
   return frente.ativos.reduce((total, ativo) => total + (boletim.ativos[ativo]?.nivel === "NORMAL" ? faltasDoPiso(ativo, fontesLidas).length : 0), 0);
 }
 
@@ -300,11 +321,11 @@ function descreverFonte(fonte) {
 // - "citada": o que a IA escreveu em "Fontes:", só para exibir. `fonteAutorizada` = código da fonte (ou null) e
 //   `confirmadaNaPesquisa` = alguma página dessa fonte foi lida nesta pesquisa (não necessariamente sobre este evento).
 //   Uma citação da mesma fonte de uma página "pesquisa" não se repete.
-function montarFontes(evento, fontesLidas, grounding) {
+function montarFontes(evento, fontesLidas, grounding, leitura) {
   const daPesquisa = [];
   for (const pagina of paginasDoTrecho(evento.trecho, grounding)) {
     // Página de autor, de tag ou listagem não sustenta o fato (ADR 0049, item 15).
-    const codigo = paginaEspecifica(pagina.url) ? fonteDaUrl(pagina.url) : null;
+    const codigo = paginaEspecifica(pagina.url) ? fonteDaUrl(pagina.url, leitura) : null;
     // "…/sb0644" e "…/sb0644/" são a mesma página.
     const mesmaPagina = (url) => url.replace(/\/+$/, "") === pagina.url.replace(/\/+$/, "");
     if (codigo && !daPesquisa.some((fonte) => mesmaPagina(fonte.url))) {
@@ -314,7 +335,7 @@ function montarFontes(evento, fontesLidas, grounding) {
   const fontesComPagina = new Set(daPesquisa.map((fonte) => fonte.fonteAutorizada));
   const citadas = evento.fontes
     .map((fonte) => {
-      const fonteAutorizada = classificarFonte(fonte);
+      const fonteAutorizada = classificarFonte(fonte, leitura);
       const confirmadaNaPesquisa = Boolean(fonteAutorizada) && fontesLidas.includes(fonteAutorizada);
       return { ...fonte, fonteAutorizada, confirmadaNaPesquisa, origem: "citada" };
     })
@@ -340,8 +361,8 @@ function motivoDaRejeicao(fontes) {
 
 // Um evento da IA -> uma linha por ativo afetado (só os da frente), todas com as mesmas fontes e o mesmo aceite; o
 // fator, a pressão, a intensidade e o canal são os daquele ativo.
-function normalizarEvento(evento, ativos, fontesLidas, grounding) {
-  const fontes = montarFontes(evento, fontesLidas, grounding);
+function normalizarEvento(evento, ativos, fontesLidas, grounding, leitura) {
+  const fontes = montarFontes(evento, fontesLidas, grounding, leitura);
   const aceito = fontes.some((fonte) => fonte.origem === "pesquisa");
   const motivo = aceito ? null : motivoDaRejeicao(fontes).slice(0, 255);
   return ativos.map((ativo) => ({
@@ -388,7 +409,7 @@ function juntarTextos(chamadas, campo) {
 function detalhesDaIa(resposta) {
   const chamadas = resposta.chamadas || [];
   const soma = (fn) => chamadas.reduce((total, c) => total + fn(c), 0);
-  const fontesLidasPorChamada = Object.fromEntries(chamadas.map((c) => [c.frente, fontesDaPesquisa(c.grounding)]));
+  const fontesLidasPorChamada = Object.fromEntries(chamadas.map((c) => [c.frente, fontesDaPesquisa(c.grounding, leituraDaFrente(frentePorCodigo(c.frente)))]));
   return {
     ia: {
       chave: chamadas.some((c) => c.chave === "paga") ? "paga" : (chamadas[0]?.chave ?? null),
@@ -456,7 +477,8 @@ function normalize(config, [resposta]) {
     }
     if (invalidos.length > 0) continue;
 
-    const fontesLidas = fontesDaPesquisa(chamada.grounding);
+    const leitura = leituraDaFrente(frente);
+    const fontesLidas = fontesDaPesquisa(chamada.grounding, leitura);
     for (const evento of boletim.eventos) {
       // Só os ativos desta frente: um ativo de fora é lido (e decidido) na outra chamada.
       const ativos = evento.ativos.filter((a) => frente.ativos.includes(a));
@@ -471,7 +493,7 @@ function normalize(config, [resposta]) {
       if (!evento.tipo) {
         avisos.push({ item: { frente: frente.codigo, ordem: evento.ordem, tipo: evento.tipoTexto }, motivo: `Tipo fora da lista: "${evento.tipoTexto ?? ""}" (gravado sem tipo).` });
       }
-      const linhas = normalizarEvento(evento, ativos, fontesLidas, chamada.grounding);
+      const linhas = normalizarEvento(evento, ativos, fontesLidas, chamada.grounding, leitura);
       if (!linhas[0].aceito) avisos.push({ item: { ativos, titulo: linhas[0].titulo }, motivo: linhas[0].motivo_rejeicao });
       for (const linha of linhas.filter((l) => l.aceito)) {
         const repetido = repeticao(linha, paginasVistas, resposta.dataReferencia);
@@ -538,7 +560,7 @@ async function persist(validos, { execucaoId }, deps = {}) {
   return resultado;
 }
 
-// Coletor de uma leitura de CONFIGURACOES ("PRINCIPAL", "SOJA").
+// Coletor de uma leitura de CONFIGURACOES ("PRINCIPAL", "SOJA", "DOLAR").
 function criarColetorEventos(chave) {
   const config = CONFIGURACOES[chave];
   return {
@@ -558,10 +580,11 @@ function criarColetorEventos(chave) {
   };
 }
 
-// O módulo continua sendo o coletor da leitura principal (o de antes), com o da soja ao lado.
+// O módulo continua sendo o coletor da leitura principal (o de antes), com os da soja e do dólar ao lado.
 // (Object.assign sobre o próprio coletor preserva o getter do timeout.)
 module.exports = Object.assign(criarColetorEventos("PRINCIPAL"), {
   coletorSoja: criarColetorEventos("SOJA"),
+  coletorDolar: criarColetorEventos("DOLAR"),
   hojeEmSaoPaulo,
   montarPrompt
 });

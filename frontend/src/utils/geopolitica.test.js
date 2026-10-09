@@ -12,7 +12,8 @@ test('nível: rótulo e classe de cada um da escala; código desconhecido aparec
 test('ativo e grau', () => {
   assert.equal(rotuloAtivo('PETROLEO'), 'Petróleo')
   assert.equal(rotuloAtivo('CAFE'), 'Café')
-  assert.deepEqual(Object.keys(ATIVOS), ['OURO', 'PETROLEO', 'MILHO', 'CAFE', 'SOJA'])
+  assert.deepEqual(Object.keys(ATIVOS), ['OURO', 'PETROLEO', 'MILHO', 'CAFE', 'SOJA', 'DOLAR'])
+  assert.equal(rotuloAtivo('DOLAR'), 'Dólar')
   assert.equal(rotuloGrau('MEDIA'), 'Média')
   assert.equal(rotuloGrau(null), '—')
 })
@@ -34,9 +35,10 @@ test('pressão: seta e rótulo; sem o dado (prompt v1), null', () => {
   assert.equal(pressao(null), null)
 })
 
-test('tipo: os 7 tipos do ADR 0049; código desconhecido', () => {
+test('tipo: os 7 tipos do ADR 0049 e os 5 do dólar (ADR 0124); código desconhecido', () => {
   assert.equal(rotuloTipo('POLITICA_OFERTA'), 'Política de oferta')
+  assert.equal(rotuloTipo('INTERVENCAO_CAMBIAL'), 'Intervenção cambial')
   assert.equal(rotuloTipo('ROTA_MARITIMA'), '—')
   assert.equal(rotuloTipo(null), '—')
-  assert.equal(Object.keys(TIPOS).length, 7)
+  assert.equal(Object.keys(TIPOS).length, 12)
 })

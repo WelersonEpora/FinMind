@@ -218,7 +218,7 @@ test("obterUltimaLeitura: nível e resumo de cada ativo; null antes da primeira 
   const vazia = await obterUltimaLeitura({ geopoliticaRepository: { buscarUltimaLeitura: async () => null } });
   assert.equal(vazia.leitura, null);
   // A lista de sites confiáveis vem sempre, do mesmo catálogo do prompt e do parser.
-  assert.equal(vazia.fontesConfiaveis.length, 20);
+  assert.equal(vazia.fontesConfiaveis.length, 30);
   assert.deepEqual(vazia.fontesConfiaveis.find((f) => f.nome.startsWith("MME")).enderecos, ["gov.br/mme"]);
   assert.deepEqual(vazia.fontesConfiaveis.find((f) => f.nome.startsWith("MAPA")).enderecos, ["gov.br/agricultura"]);
   assert.ok(!vazia.fontesConfiaveis.some((f) => f.enderecos.includes("gold.org")));

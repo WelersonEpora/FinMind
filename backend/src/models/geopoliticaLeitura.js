@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
     {
       id: { type: DataTypes.UUID, primaryKey: true, allowNull: false, defaultValue: randomUUID },
       data_referencia: { type: DataTypes.DATEONLY, allowNull: false },
-      frente: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "PRINCIPAL", validate: { isIn: [["PRINCIPAL", "SOJA"]] } },
+      frente: { type: DataTypes.STRING(20), allowNull: false, defaultValue: "PRINCIPAL", validate: { isIn: [["PRINCIPAL", "SOJA", "DOLAR"]] } },
       nivel_ouro: { type: DataTypes.STRING(20), allowNull: true, validate: { isIn: [NIVEIS] } },
       resumo_ouro: { type: DataTypes.TEXT, allowNull: true },
       nivel_petroleo: { type: DataTypes.STRING(20), allowNull: true, validate: { isIn: [NIVEIS] } },
@@ -26,6 +26,8 @@ module.exports = (sequelize) => {
       resumo_cafe: { type: DataTypes.TEXT, allowNull: true },
       nivel_soja: { type: DataTypes.STRING(20), allowNull: true, validate: { isIn: [NIVEIS] } },
       resumo_soja: { type: DataTypes.TEXT, allowNull: true },
+      nivel_dolar: { type: DataTypes.STRING(20), allowNull: true, validate: { isIn: [NIVEIS] } },
+      resumo_dolar: { type: DataTypes.TEXT, allowNull: true },
       texto_bruto: { type: DataTypes.TEXT, allowNull: false },
       instrucao_sistema: { type: DataTypes.TEXT, allowNull: false },
       prompt: { type: DataTypes.TEXT, allowNull: false },

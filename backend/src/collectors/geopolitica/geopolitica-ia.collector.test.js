@@ -240,7 +240,7 @@ test("parser: fontes em 'Nome - URL', '[Nome](URL)' e só o nome", () => {
 
 // --- fontes autorizadas ---
 
-test("fontes: as 11 do ADR 0049 e as 9 do ADR 0092, cada uma com escopo, tipos e ativos válidos", () => {
+test("fontes: as 11 do ADR 0049, as 9 do ADR 0092 e as 10 do dólar (ADR 0124), cada uma com escopo, tipos e ativos válidos", () => {
   assert.deepEqual(Object.keys(FONTES), [
     "UKMTO",
     "TESOURO",
@@ -261,7 +261,17 @@ test("fontes: as 11 do ADR 0049 e as 9 do ADR 0092, cada uma com escopo, tipos e
     "EPA",
     "MME",
     "PANAMA",
-    "CPC_ENSO"
+    "CPC_ENSO",
+    "BCB",
+    "FAZENDA",
+    "TESOURO_NACIONAL",
+    "CAMARA",
+    "SENADO",
+    "STF",
+    "AGENCIA_BRASIL",
+    "IBGE",
+    "FED",
+    "BLS"
   ]);
   for (const fonte of Object.values(FONTES)) {
     assert.ok(fonte.escopos.length > 0);
@@ -945,4 +955,97 @@ test("soja: o download confere a leitura do dia DA SOJA e faz uma chamada só, c
   assert.equal(recebidos.length, 1);
   assert.match(recebidos[0].prompt, /leitura de eventos de mercado da soja/);
   assert.equal(resposta.versaoPrompt, "eventos-soja-diaria@2");
+});
+
+// --- leitura do dólar (fase 1 do dólar, só aquisição, ADR 0124) ---
+
+const TEXTO_DOLAR = `DÓLAR
+Nível: RELEVANTE
+Resumo: O Copom sinalizou o fim do ciclo de cortes.
+
+EVENTOS
+
+EVENTO 1
+Título: Copom sinaliza fim do ciclo de cortes da Selic
+Tipo: POLITICA_MONETARIA
+Ativos: DÓLAR
+Fator: DÓLAR=NAO_SE_APLICA
+Resumo: O comunicado do Copom indicou pausa nos cortes.
+Canal de transmissão: DÓLAR=direto: diferencial de juros maior atrai capital
+Pressão sobre o preço: DÓLAR=baixa
+Intensidade: DÓLAR=média
+Confiança: alta
+Fontes:
+Banco Central do Brasil - https://www.bcb.gov.br/detalhenoticia/123/nota
+`;
+const GROUNDING_DOLAR = {
+  webSearchQueries: ["site:bcb.gov.br Copom comunicado", "site:federalreserve.gov FOMC statement"],
+  groundingChunks: [
+    { web: { title: "bcb.gov.br", urlFinal: "https://www.bcb.gov.br/detalhenoticia/123/nota" } },
+    { web: { title: "federalreserve.gov", urlFinal: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260917a.htm" } }
+  ],
+  groundingSupports: [{ segment: { text: "Copom sinaliza fim do ciclo de cortes da Selic" }, groundingChunkIndices: [0] }]
+};
+
+test("dólar: o prompt usa o arquivo próprio, as fontes do dólar, os tipos do dólar e o piso do dólar", () => {
+  const { FRENTE_DOLAR } = require("../../shared/eventos-mercado");
+  const { versao, prompt, instrucaoDoSistema } = coletor.montarPrompt("2026-10-09", FRENTE_DOLAR, [], "eventos-dolar-diaria.md");
+  assert.equal(versao, "eventos-dolar-diaria@1");
+  assert.match(instrucaoDoSistema, /DÓLAR contra o REAL/);
+  assert.match(prompt, /- Banco Central do Brasil \(bcb\.gov\.br\) - tipos: Política monetária, Intervenção cambial - ativos: dólar:/);
+  assert.match(prompt, /- POLITICA_MONETARIA \(Política monetária\)/);
+  assert.match(prompt, /- DÓLAR: ao menos uma busca no Banco Central do Brasil, no Ministério da Fazenda ou no Tesouro Nacional; e uma busca no Federal Reserve/);
+  // Os tipos e as fontes das outras leituras ficam de fora.
+  assert.doesNotMatch(prompt, /CLIMA_EXTREMO|POLITICA_OFERTA|SANIDADE|INMET|UKMTO|opec\.org|MOFCOM/);
+});
+
+test("dólar: as leituras principal e da soja não veem o dólar (fontes, tipos e sugestões)", () => {
+  const { FRENTES, FRENTE_SOJA } = require("../../shared/eventos-mercado");
+  for (const frente of [...FRENTES, FRENTE_SOJA]) {
+    const arquivo = frente.codigo === "SOJA" ? "eventos-soja-diaria.md" : undefined;
+    const { prompt } = coletor.montarPrompt("2026-10-09", frente, [{ data: "2026-10-08", ativo: "DOLAR", titulo: "evento do dólar", paginas: [] }], arquivo);
+    assert.doesNotMatch(prompt, /bcb\.gov\.br|federalreserve|bls\.gov|POLITICA_MONETARIA|POLITICA_FISCAL|DADO_ECONOMICO|dólar:|evento do dólar/, `frente ${frente.codigo}`);
+  }
+});
+
+test("dólar: uma página do Fed só é fonte autorizada na leitura do dólar (não sustenta evento do ouro)", () => {
+  const fed = "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260917a.htm";
+  assert.equal(fonteDaUrl(fed), null, "na leitura principal, como antes");
+  assert.equal(fonteDaUrl(fed, "PRINCIPAL"), null);
+  assert.equal(fonteDaUrl(fed, "DOLAR"), "FED");
+  assert.equal(classificarFonte({ nome: "Federal Reserve" }), null);
+  assert.equal(classificarFonte({ nome: "Federal Reserve" }, "DOLAR"), "FED");
+  assert.deepEqual(fontesDaPesquisa(GROUNDING_DOLAR), []);
+  assert.deepEqual(fontesDaPesquisa(GROUNDING_DOLAR, "DOLAR"), ["BCB", "FED"]);
+  // As fontes comuns continuam valendo em todas as leituras.
+  assert.equal(fonteDaUrl("https://apnews.com/article/x-1", "DOLAR"), "AP");
+});
+
+test("dólar: coletor próprio; a leitura grava a frente DOLAR e só as colunas do dólar; piso cumprido com BCB e Fed", () => {
+  const dolar = coletor.coletorDolar;
+  assert.equal(dolar.codigo, "geopolitica-ia-dolar");
+
+  const resposta = { dataReferencia: "2026-10-09", versaoPrompt: "eventos-dolar-diaria@1", instrucaoDoSistema: "i", chamadas: [chamada("DOLAR", TEXTO_DOLAR, GROUNDING_DOLAR)] };
+  const { validos, invalidos, avisos, detalhes } = dolar.normalize(dolar.parse(resposta));
+  assert.equal(invalidos.length, 0);
+  const { leitura, eventos } = validos[0];
+  assert.equal(leitura.frente, "DOLAR");
+  assert.equal(leitura.nivel_dolar, "RELEVANTE");
+  assert.equal("nivel_ouro" in leitura || "nivel_soja" in leitura, false);
+  assert.match(leitura.texto_bruto, /^=== DÓLAR ===\nDÓLAR\n/);
+  assert.deepEqual(
+    eventos.map((e) => [e.ativo, e.tipo, e.fator, e.pressao, e.aceito]),
+    [["DOLAR", "POLITICA_MONETARIA", "NAO_SE_APLICA", "BAIXA", true]]
+  );
+  assert.equal(eventos[0].fontes[0].fonteAutorizada, "BCB");
+  assert.deepEqual(detalhes.ia.fontesLidasPorChamada, { DOLAR: ["BCB", "FED"] });
+  assert.equal(avisos.length, 0);
+});
+
+test("dólar: NORMAL sem ler o Fed vira aviso do piso", () => {
+  const texto = "DÓLAR\nNível: NORMAL\nResumo: Nada fora do padrão.\n\nEVENTOS\n";
+  const grounding = { webSearchQueries: ["q"], groundingChunks: [GROUNDING_DOLAR.groundingChunks[0]], groundingSupports: [] };
+  const { avisos } = coletor.coletorDolar.normalize([{ dataReferencia: "2026-10-09", versaoPrompt: "v", instrucaoDoSistema: "i", chamadas: [chamada("DOLAR", texto, grounding)] }]);
+  assert.equal(avisos.length, 1);
+  assert.match(avisos[0].motivo, /Nível NORMAL do dólar sem busca no Fed lida na pesquisa/);
 });

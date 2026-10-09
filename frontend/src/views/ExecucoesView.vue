@@ -351,7 +351,7 @@ onMounted(carregar)
           <!-- Desde a v11, duas chamadas (ouro e petróleo; milho e café): as fontes lidas de cada uma. -->
           <template v-if="execucaoDetalhe.detalhes.ia.fontesLidasPorChamada">
             <template v-for="(fontes, frente) in execucaoDetalhe.detalhes.ia.fontesLidasPorChamada" :key="frente">
-              <dt class="col-5 fw-normal">Fontes lidas ({{ frente === 'OURO_PETROLEO' ? 'ouro e petróleo' : frente === 'MILHO_CAFE' ? 'milho e café' : frente === 'SOJA' ? 'soja' : frente }})</dt>
+              <dt class="col-5 fw-normal">Fontes lidas ({{ frente === 'OURO_PETROLEO' ? 'ouro e petróleo' : frente === 'MILHO_CAFE' ? 'milho e café' : frente === 'SOJA' ? 'soja' : frente === 'DOLAR' ? 'dólar' : frente }})</dt>
               <dd class="col-7">{{ fontes.join(', ') || 'nenhuma' }}</dd>
             </template>
           </template>

@@ -50,7 +50,7 @@ A aquisição de dados está encerrada desde 2026-10-01: fonte nova só com uma 
    | BCB: o fluxo cambial contratado | 3 (em parte) | A reconhecer: a série não foi achada no portal de dados abertos |
    | BCB: os leilões e as intervenções no câmbio | 27 | ADR 0122 |
    | IPEA: o EMBI+ Brasil | 17 (sem o CDS) | **Sem fonte gratuita** (2026-10-09): o IPEA marca a série JPM366_EMBI366 como INATIVA, com o último ponto em 2024-07-30 (o J.P. Morgan deixou de publicar o EMBI+); o EMBI Global e o CDS são pagos. Pergunta ao Comitê (abaixo) |
-   | Leitura diária de eventos do dólar por IA (o padrão do ADR 0115) | 25 e 28 (sem a janela intradiária da PTAX) | A fazer |
+   | Leitura diária de eventos do dólar por IA (o padrão do ADR 0115) | 25 e 28 (sem a janela intradiária da PTAX) | ADR 0124 |
 
    Já coletados, sem fonte nova: a PTAX (desde 1994), a Selic, o Focus (IPCA, Selic e câmbio), as reservas, o índice do
    dólar do Fed (DTWEXBGS e DTWEXAFEGS), o euro e o iene (DEXUSEU e DEXJPUS), o Treasury de 10 anos e o juro real

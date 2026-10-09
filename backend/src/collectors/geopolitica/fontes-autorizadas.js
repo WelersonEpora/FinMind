@@ -2,7 +2,8 @@
 
 const { URL } = require("node:url");
 
-// Fontes autorizadas da leitura diária de eventos de mercado (ADRs 0047 e 0049). UMA lista para os quatro ativos: a IA
+// Fontes autorizadas da leitura diária de eventos de mercado (ADRs 0047 e 0049; as leituras próprias da soja e do dólar
+// usam blocos à parte, ADRs 0115 e 0124). UMA lista para os quatro ativos: a IA
 // decide os ativos de cada evento pelo canal de transmissão, não pela fonte (um ataque no Mar Vermelho, do UKMTO, conta
 // para o petróleo, o ouro e o café). Os `tipos` e os `ativos` de cada fonte orientam a busca no prompt; não limitam o
 // que a fonte pode sustentar.
@@ -215,6 +216,109 @@ const FONTES = {
     buscas: ["site:cpc.ncep.noaa.gov ENSO diagnostic discussion"],
     // A discussão mensal sai sempre na mesma URL (ensodisc.shtml).
     paginaAtualizada: true
+  },
+  // As dez abaixo entraram em 2026-10-09 só para a leitura do dólar (fase 1 do dólar, ADR 0124, pela autorização do ADR
+  // 0117). `ativos` vazio e sem `buscas`: não aparecem na lista nem nas sugestões da leitura principal nem na da soja; o
+  // que vale para o dólar está no bloco `dolar` (COBERTURA_DO_DOLAR, abaixo).
+  BCB: {
+    soLeituras: ["DOLAR"],
+    nome: "Banco Central do Brasil",
+    papel: "decisões e atas do Copom, comunicados de atuação no câmbio e notas oficiais",
+    escopos: [{ host: "bcb.gov.br" }],
+    tipos: ["POLITICA_MONETARIA", "INTERVENCAO_CAMBIAL"],
+    ativos: [],
+    apelidos: ["banco central do brasil", "bcb", "copom", "bacen", "central bank of brazil"],
+    buscas: []
+  },
+  FAZENDA: {
+    soLeituras: ["DOLAR"],
+    nome: "Ministério da Fazenda",
+    papel: "meta e regra fiscal, orçamento, relatórios de receitas e despesas e anúncios de política econômica",
+    escopos: [{ host: "gov.br", caminho: "/fazenda" }],
+    tipos: ["POLITICA_FISCAL"],
+    ativos: [],
+    apelidos: ["ministerio da fazenda", "ministry of finance"],
+    buscas: []
+  },
+  TESOURO_NACIONAL: {
+    soLeituras: ["DOLAR"],
+    nome: "Tesouro Nacional",
+    papel: "resultado do Tesouro, dívida pública e leilões de títulos",
+    escopos: [{ host: "gov.br", caminho: "/tesouronacional" }, { host: "tesourotransparente.gov.br" }],
+    tipos: ["POLITICA_FISCAL"],
+    ativos: [],
+    apelidos: ["tesouro nacional", "secretaria do tesouro nacional", "brazilian treasury"],
+    buscas: []
+  },
+  CAMARA: {
+    soLeituras: ["DOLAR"],
+    nome: "Câmara dos Deputados",
+    papel: "votação de projetos fiscais e econômicos e crises no Congresso",
+    escopos: [{ host: "camara.leg.br" }],
+    tipos: ["POLITICA_FISCAL", "RISCO_INSTITUCIONAL"],
+    ativos: [],
+    apelidos: ["camara dos deputados", "chamber of deputies"],
+    buscas: []
+  },
+  SENADO: {
+    soLeituras: ["DOLAR"],
+    nome: "Senado Federal",
+    papel: "votação de projetos fiscais e econômicos, sabatinas da diretoria do Banco Central e crises no Congresso",
+    escopos: [{ host: "senado.leg.br" }],
+    tipos: ["POLITICA_FISCAL", "RISCO_INSTITUCIONAL"],
+    ativos: [],
+    apelidos: ["senado federal", "brazilian senate"],
+    buscas: []
+  },
+  STF: {
+    soLeituras: ["DOLAR"],
+    nome: "Supremo Tribunal Federal",
+    papel: "decisões de grande impacto fiscal ou institucional",
+    escopos: [{ host: "stf.jus.br" }],
+    tipos: ["RISCO_INSTITUCIONAL"],
+    ativos: [],
+    apelidos: ["supremo tribunal federal", "stf", "supreme federal court"],
+    buscas: []
+  },
+  AGENCIA_BRASIL: {
+    soLeituras: ["DOLAR"],
+    nome: "Agência Brasil (EBC)",
+    papel: "o noticiário público da política e da economia do Brasil: o que as instituições ainda não publicaram",
+    escopos: [{ host: "agenciabrasil.ebc.com.br" }],
+    tipos: ["POLITICA_FISCAL", "RISCO_INSTITUCIONAL"],
+    ativos: [],
+    apelidos: ["agencia brasil", "empresa brasil de comunicacao"],
+    buscas: []
+  },
+  IBGE: {
+    soLeituras: ["DOLAR"],
+    nome: "IBGE (Agência de Notícias)",
+    papel: "divulgação do IPCA, do PIB e do emprego no Brasil",
+    escopos: [{ host: "ibge.gov.br" }],
+    tipos: ["DADO_ECONOMICO"],
+    ativos: [],
+    apelidos: ["ibge", "instituto brasileiro de geografia e estatistica"],
+    buscas: []
+  },
+  FED: {
+    soLeituras: ["DOLAR"],
+    nome: "Federal Reserve (Fed)",
+    papel: "decisões, atas e comunicados do FOMC e falas oficiais da diretoria do Fed",
+    escopos: [{ host: "federalreserve.gov" }],
+    tipos: ["POLITICA_MONETARIA"],
+    ativos: [],
+    apelidos: ["federal reserve", "fomc", "federal open market committee"],
+    buscas: []
+  },
+  BLS: {
+    soLeituras: ["DOLAR"],
+    nome: "BLS (Bureau of Labor Statistics dos EUA)",
+    papel: "divulgação do payroll (emprego) e do CPI (inflação) dos EUA",
+    escopos: [{ host: "bls.gov" }],
+    tipos: ["DADO_ECONOMICO"],
+    ativos: [],
+    apelidos: ["bureau of labor statistics", "bls"],
+    buscas: []
   }
 };
 
@@ -282,17 +386,103 @@ const COBERTURA_DA_SOJA = {
 };
 for (const [codigo, cobertura] of Object.entries(COBERTURA_DA_SOJA)) FONTES[codigo].soja = cobertura;
 
-// Os ativos que a fonte cobre: os da lista e, com o bloco `soja`, a soja.
+// DÓLAR (fase 1 do dólar, só aquisição, ADR 0124): o mesmo desenho da soja. As dez fontes novas (acima) e três que já
+// estavam autorizadas: a Casa Branca e o USTR (tarifas dos EUA sobre o Brasil) e a AP News (aversão a risco global). Os
+// blocos das três não mudam a lista nem as sugestões das outras leituras.
+const COBERTURA_DO_DOLAR = {
+  BCB: {
+    papel: "decisões e atas do Copom; atuação extraordinária no câmbio (leilões de linha, de swap ou à vista fora da rolagem) e mudanças de regra cambial",
+    tipos: ["POLITICA_MONETARIA", "INTERVENCAO_CAMBIAL"],
+    buscas: ["site:bcb.gov.br Copom comunicado", "site:bcb.gov.br leilão câmbio comunicado"]
+  },
+  FAZENDA: {
+    papel: "meta e regra fiscal, contingenciamento, relatório bimestral de receitas e despesas e anúncios de política econômica",
+    tipos: ["POLITICA_FISCAL"],
+    buscas: ["site:gov.br/fazenda meta fiscal", "site:gov.br/fazenda arcabouço fiscal"]
+  },
+  TESOURO_NACIONAL: {
+    papel: "resultado primário do governo central e a gestão da dívida pública (leilões cancelados ou reduzidos)",
+    tipos: ["POLITICA_FISCAL"],
+    buscas: ["site:gov.br/tesouronacional resultado do tesouro"]
+  },
+  CAMARA: {
+    papel: "votação de projetos com efeito fiscal relevante e crises entre o Congresso e o governo",
+    tipos: ["POLITICA_FISCAL", "RISCO_INSTITUCIONAL"],
+    buscas: ["site:camara.leg.br aprova projeto impacto fiscal"]
+  },
+  SENADO: {
+    papel: "votação de projetos com efeito fiscal relevante, sabatinas da diretoria do Banco Central e crises entre o Congresso e o governo",
+    tipos: ["POLITICA_FISCAL", "RISCO_INSTITUCIONAL"],
+    buscas: ["site:senado.leg.br aprova projeto impacto fiscal"]
+  },
+  STF: {
+    papel: "decisões de grande impacto fiscal ou institucional",
+    tipos: ["RISCO_INSTITUCIONAL"],
+    buscas: ["site:stf.jus.br decisão impacto fiscal"]
+  },
+  AGENCIA_BRASIL: {
+    papel: "o noticiário público da política e da economia: crises, trocas no comando da economia e ruído institucional que as instituições ainda não publicaram",
+    tipos: ["POLITICA_FISCAL", "RISCO_INSTITUCIONAL"],
+    buscas: ["site:agenciabrasil.ebc.com.br economia fiscal governo", "site:agenciabrasil.ebc.com.br política crise"]
+  },
+  IBGE: {
+    papel: "divulgação do IPCA, do PIB e do desemprego no Brasil",
+    tipos: ["DADO_ECONOMICO"],
+    buscas: ["site:agenciadenoticias.ibge.gov.br IPCA"]
+  },
+  FED: {
+    papel: "decisões, atas e comunicados do FOMC e falas oficiais da diretoria do Fed sobre os juros dos EUA",
+    tipos: ["POLITICA_MONETARIA"],
+    buscas: ["site:federalreserve.gov FOMC statement", "site:federalreserve.gov newsevents speech"]
+  },
+  BLS: {
+    papel: "divulgação do payroll (emprego) e do CPI (inflação) dos EUA",
+    tipos: ["DADO_ECONOMICO"],
+    buscas: ["site:bls.gov news release employment situation", "site:bls.gov news release CPI"]
+  },
+  CASA_BRANCA: {
+    papel: "tarifas e sanções dos EUA contra o Brasil e ordens executivas que mexem com o dólar no mundo",
+    tipos: ["POLITICA_COMERCIAL", "GEOPOLITICA"],
+    buscas: ["site:whitehouse.gov presidential-actions Brazil"]
+  },
+  USTR: {
+    papel: "tarifas e investigações comerciais dos EUA contra o Brasil",
+    tipos: ["POLITICA_COMERCIAL"],
+    buscas: ["site:ustr.gov Brazil"]
+  },
+  AP: {
+    papel: "escalada militar e choques globais que levam à aversão a risco e à fuga para o dólar",
+    tipos: ["GEOPOLITICA"],
+    buscas: ["site:apnews.com markets selloff risk", "site:apnews.com Brazil economy"]
+  }
+};
+for (const [codigo, cobertura] of Object.entries(COBERTURA_DO_DOLAR)) FONTES[codigo].dolar = cobertura;
+
+// As leituras próprias e o bloco de cada uma em cada fonte.
+const BLOCO_DA_LEITURA = { SOJA: "soja", DOLAR: "dolar" };
+
+// Os ativos que a fonte cobre: os da lista e o de cada bloco próprio que ela tem (soja, dólar).
 function ativosDaFonte(fonte) {
-  return fonte.soja ? [...fonte.ativos, "SOJA"] : fonte.ativos;
+  return [
+    ...fonte.ativos,
+    ...Object.entries(BLOCO_DA_LEITURA)
+      .filter(([, bloco]) => fonte[bloco])
+      .map(([ativo]) => ativo)
+  ];
 }
 
-// A chamada é só da soja (a leitura própria, ADR 0115): vale o bloco `soja` de cada fonte.
-function soDaSoja(ativos) {
-  return Array.isArray(ativos) && ativos.length === 1 && ativos[0] === "SOJA";
+// O bloco próprio que vale numa chamada só da soja ou só do dólar (ADRs 0115 e 0124), ou null (a leitura principal).
+function blocoProprio(ativos) {
+  return Array.isArray(ativos) && ativos.length === 1 ? BLOCO_DA_LEITURA[ativos[0]] || null : null;
 }
 
 const CODIGOS = Object.keys(FONTES);
+
+// Uma fonte com `soLeituras` só é reconhecida nessas leituras (as do dólar, ADR 0124): uma página do Fed lida pela leitura
+// principal não sustenta um evento do ouro, como antes. Sem `leitura`, valem só as fontes comuns.
+function codigosDaLeitura(leitura) {
+  return CODIGOS.filter((codigo) => !FONTES[codigo].soLeituras || FONTES[codigo].soLeituras.includes(leitura));
+}
 
 // Hosts de redirecionamento do grounding do Google: a URL não diz o site de origem.
 const HOSTS_REDIRECIONAMENTO = ["vertexaisearch.cloud.google.com"];
@@ -310,8 +500,9 @@ function caminhoCasa(caminhoUrl, prefixo) {
   return !prefixo || caminhoUrl === prefixo || caminhoUrl.startsWith(`${prefixo}/`);
 }
 
-// Código da fonte autorizada a que a URL pertence (domínio e, se houver, o caminho da instituição), ou null.
-function fonteDaUrl(url) {
+// Código da fonte autorizada a que a URL pertence (domínio e, se houver, o caminho da instituição), ou null. Só as fontes
+// da `leitura` (ver codigosDaLeitura).
+function fonteDaUrl(url, leitura) {
   let partes;
   try {
     partes = new URL(url);
@@ -321,7 +512,7 @@ function fonteDaUrl(url) {
   const host = partes.hostname.toLowerCase();
   if (HOSTS_REDIRECIONAMENTO.some((h) => dominioCasa(host, h))) return null;
   const caminho = decodeURIComponent(partes.pathname).toLowerCase();
-  return CODIGOS.find((codigo) => FONTES[codigo].escopos.some((e) => dominioCasa(host, e.host) && caminhoCasa(caminho, e.caminho))) || null;
+  return codigosDaLeitura(leitura).find((codigo) => FONTES[codigo].escopos.some((e) => dominioCasa(host, e.host) && caminhoCasa(caminho, e.caminho))) || null;
 }
 
 // A URL é de uma publicação específica (a matéria, o aviso, o comunicado)? Página inicial, página de autor, de tag, de
@@ -367,7 +558,7 @@ function paginaEspecifica(url) {
 
 // Fonte autorizada de uma CITAÇÃO da IA ({ nome, url }), só para exibir: com uma URL de verdade, decide a URL; sem URL
 // (ou com o redirecionamento do Google), decide o nome. A citação nunca sustenta o evento sozinha (ver o coletor).
-function classificarFonte({ nome, url }) {
+function classificarFonte({ nome, url }, leitura) {
   if (url) {
     let host = null;
     try {
@@ -375,19 +566,19 @@ function classificarFonte({ nome, url }) {
     } catch {
       host = null;
     }
-    if (host && !HOSTS_REDIRECIONAMENTO.some((h) => dominioCasa(host, h))) return fonteDaUrl(url);
+    if (host && !HOSTS_REDIRECIONAMENTO.some((h) => dominioCasa(host, h))) return fonteDaUrl(url, leitura);
   }
   const texto = semAcento(nome || "");
   return (
-    CODIGOS.find((codigo) =>
+    codigosDaLeitura(leitura).find((codigo) =>
       FONTES[codigo].apelidos.some((apelido) => new RegExp(`(^|[^a-z])${apelido.replace(/\./g, "\\.")}([^a-z]|$)`).test(texto))
     ) || null
   );
 }
 
 // Fontes autorizadas com alguma página lida nesta pesquisa (pela URL final de cada página do grounding).
-function fontesDaPesquisa(grounding) {
-  const codigos = (grounding?.groundingChunks || []).map((c) => (c.web?.urlFinal ? fonteDaUrl(c.web.urlFinal) : null)).filter(Boolean);
+function fontesDaPesquisa(grounding, leitura) {
+  const codigos = (grounding?.groundingChunks || []).map((c) => (c.web?.urlFinal ? fonteDaUrl(c.web.urlFinal, leitura) : null)).filter(Boolean);
   return [...new Set(codigos)];
 }
 
@@ -403,12 +594,14 @@ function fontesDosAtivos(ativos) {
 // Texto da lista para o prompt de uma chamada: "- USTR (...) (ustr.gov) - tipos: Política comercial - ativos: milho,
 // café: tarifas ...". Só as fontes que cobrem os ativos da chamada, e só esses ativos em cada uma.
 function listaParaPrompt({ rotuloTipo, nomeAtivo, ativos }) {
-  const soja = soDaSoja(ativos);
+  const bloco = blocoProprio(ativos);
   return fontesDosAtivos(ativos)
     .map((codigo) => {
       const fonte = FONTES[codigo];
       const enderecos = fonte.escopos.map((e) => `${e.host}${e.caminho || ""}`).join(", ");
-      if (soja) return `- ${fonte.nome} (${enderecos}) - tipos: ${rotulosDe(fonte.soja.tipos, rotuloTipo)} - ativos: ${nomeAtivo.SOJA}: ${fonte.soja.papel}`;
+      if (bloco) {
+        return `- ${fonte.nome} (${enderecos}) - tipos: ${rotulosDe(fonte[bloco].tipos, rotuloTipo)} - ativos: ${nomeAtivo[ativos[0]]}: ${fonte[bloco].papel}`;
+      }
       const ativosDaFonte = ativos ? fonte.ativos.filter((a) => ativos.includes(a)) : fonte.ativos;
       return `- ${fonte.nome} (${enderecos}) - tipos: ${rotulosDe(fonte.tipos, rotuloTipo)} - ativos: ${rotulosDe(ativosDaFonte, nomeAtivo)}: ${fonte.papel}`;
     })
@@ -417,7 +610,8 @@ function listaParaPrompt({ rotuloTipo, nomeAtivo, ativos }) {
 
 // Uma sugestão é um texto (vale para os ativos da fonte) ou { busca, ativos } (só para esses ativos).
 function sugestoesDeBusca({ ativos } = {}) {
-  if (soDaSoja(ativos)) return fontesDosAtivos(ativos).flatMap((codigo) => FONTES[codigo].soja.buscas.map((busca) => `- ${busca}`)).join("\n");
+  const bloco = blocoProprio(ativos);
+  if (bloco) return fontesDosAtivos(ativos).flatMap((codigo) => FONTES[codigo][bloco].buscas.map((busca) => `- ${busca}`)).join("\n");
   return fontesDosAtivos(ativos)
     .flatMap((codigo) =>
       FONTES[codigo].buscas
@@ -428,4 +622,4 @@ function sugestoesDeBusca({ ativos } = {}) {
     .join("\n");
 }
 
-module.exports = { FONTES, CODIGOS, ativosDaFonte, fonteDaUrl, paginaEspecifica, classificarFonte, fontesDaPesquisa, fontesDosAtivos, listaParaPrompt, sugestoesDeBusca };
+module.exports = { FONTES, CODIGOS, codigosDaLeitura, ativosDaFonte, fonteDaUrl, paginaEspecifica, classificarFonte, fontesDaPesquisa, fontesDosAtivos, listaParaPrompt, sugestoesDeBusca };
