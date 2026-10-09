@@ -84,6 +84,8 @@ function alternarHorizonte(horizonte) {
   horizontesMarcados.value = atuais.includes(horizonte) ? atuais.filter((h) => h !== horizonte) : [...atuais, horizonte]
 }
 const persistenciaGrafico = ref(false)
+// O caminho de cada horizonte (a faixa clara pelo centro das barras dele): ligado por padrão.
+const caminhosGrafico = ref(true)
 // A linha de contexto (no petróleo, o Brent à vista da EIA): ligada por padrão; desligada, a escala volta ao preço avaliado.
 const contextoGrafico = ref(true)
 // A largura dos dias no gráfico (1x, 2x ou 3x), lembrada no navegador; sem armazenamento, abre na padrão.
@@ -402,6 +404,7 @@ watch([periodo, versao], carregar)
               :unidade="UNIDADE[qualidade.ativo.codigo] || ''"
               :moeda="qualidade.ativo.codigo === 'MILHO' ? 'R$' : 'US$'"
               :zoom="zoomGrafico"
+              :caminhos="caminhosGrafico"
             />
             <p v-else class="text-muted small mb-0">Nenhuma leitura com faixa neste filtro ainda.</p>
 
@@ -437,6 +440,10 @@ watch([periodo, versao], carregar)
                   <span><span class="qualidade__amostra qualidade__amostra--contorno"></span>Só contorno: fora da faixa</span>
                   <span><span class="qualidade__amostra qualidade__amostra--tracejada"></span>Tracejada: a apurar</span>
                 </template>
+                <label class="form-check qualidade__legenda-check">
+                  <input v-model="caminhosGrafico" type="checkbox" class="form-check-input" />
+                  <span class="form-check-label"><svg width="16" height="12" aria-hidden="true"><path d="M2,9 L8,4 L14,7" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3" /></svg> Caminho de cada horizonte</span>
+                </label>
                 <span><svg width="12" height="12" aria-hidden="true"><path d="M1,9 L11,9 L6,3 Z" fill="currentColor" /></svg> Faixa forte: "ou mais"</span>
                 <span><span class="qualidade__amostra qualidade__amostra--cheia qualidade__amostra--esmaecida"></span>Esmaecida: fora da métrica (fim de semana, referência antiga)</span>
               </div>

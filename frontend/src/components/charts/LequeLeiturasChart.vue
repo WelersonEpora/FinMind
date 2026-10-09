@@ -18,7 +18,9 @@ const props = defineProps({
   // A moeda do preço no tooltip: R$ no milho (o CCM), US$ nos outros.
   moeda: { type: String, default: 'R$' },
   // A largura dos dias: 1 (a padrão), 2 ou 3 vezes, para separar as barras dos quatro horizontes.
-  zoom: { type: Number, default: 1 }
+  zoom: { type: Number, default: 1 },
+  // O caminho de cada horizonte (a faixa clara pelo centro das barras dele), ligado ou não pela legenda.
+  caminhos: { type: Boolean, default: true }
 })
 
 const ALTURA = 374
@@ -84,6 +86,22 @@ function retangulo(barra) {
   const yTopo = y(barra.precoAte)
   return { x: bx, y: yTopo, width: Math.max(1, larg - (props.modo === 'quatro' ? 1 : 0)), height: Math.max(2, y(barra.precoDe) - yTopo) }
 }
+
+// O caminho esperado de cada horizonte: uma faixa clara, na cor dele e da largura da barra, pelo centro das barras dele,
+// na ordem da data-alvo.
+const ligacoes = computed(() => {
+  if (!props.caminhos) return []
+  const porHorizonte = new Map()
+  for (const b of props.leque.barras) {
+    const r = retangulo(b)
+    const ponto = { data: b.dataAlvo, px: `${r.x + r.width / 2},${r.y + r.height / 2}` }
+    porHorizonte.set(b.horizonte, [...(porHorizonte.get(b.horizonte) || []), ponto])
+  }
+  const largura = retangulo({ dataAlvo: props.leque.ini, indice: 0, precoDe: 0, precoAte: 0 }).width
+  return [...porHorizonte]
+    .filter(([, pts]) => pts.length > 1)
+    .map(([horizonte, pts]) => ({ horizonte, largura, pontos: pts.sort((a, b) => (a.data < b.data ? -1 : 1)).map((p) => p.px).join(' ') }))
+})
 
 // A seta da ponta aberta de uma faixa FORTE ("ou mais").
 function seta(barra) {
@@ -311,6 +329,7 @@ onBeforeUnmount(() => observador?.disconnect())
             :height="Math.max(2, y(p.precoDe) - y(p.precoAte))"
             class="leque__persistencia"
           />
+          <polyline v-for="l in ligacoes" :key="`lg${l.horizonte}`" :points="l.pontos" :stroke="cor(l.horizonte)" :stroke-width="l.largura" class="leque__ligacao" />
           <g v-for="(b, i) in leque.barras" :key="`b${i}`" :opacity="b.foraDaMetrica ? 0.4 : 1">
             <rect v-bind="{ ...retangulo(b), ...estiloBarra(b) }" rx="1.5" />
             <path v-if="b.seta" :d="seta(b)" :fill="cor(b.horizonte)" />
@@ -442,6 +461,14 @@ onBeforeUnmount(() => observador?.disconnect())
   stroke: var(--p-text-muted-color);
   stroke-width: 1;
   stroke-dasharray: 3 2;
+}
+/* Bem clara e por baixo das barras: o caminho de cada horizonte (a cor e a largura vêm do horizonte e da barra). */
+.leque__ligacao {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.18;
+  pointer-events: none;
 }
 .leque__linha-fundo {
   fill: none;
