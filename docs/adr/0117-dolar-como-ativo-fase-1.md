@@ -46,9 +46,10 @@ A aquisição de dados está encerrada desde 2026-10-01: fonte nova só com uma 
    | FRED: Treasury de 2 anos (DGS2), VIX (VIXCLS), dólar contra emergentes (DTWEXEMEGS) e S&P 500 (SP500) | 10, 12, 14 (o 2s10s sai de DGS10 − DGS2, sem série nova), 16 e 18 | ADR 0119 |
    | CFTC: o futuro do real brasileiro (CME) | 7 | ADR 0120: o mesmo coletor, mas outro relatório da CFTC (o TFF, das moedas) |
    | BCB: o resultado primário no Focus | 24 | ADR 0121 |
-   | BCB: o fluxo cambial contratado e a balança (SGS) | 3 (em parte) e 26 | A fazer |
-   | BCB: os leilões e as intervenções no câmbio | 27 | A reconhecer |
-   | IPEA: o EMBI+ Brasil | 17 (sem o CDS) | A reconhecer |
+   | BCB: a balança comercial e as transações correntes (SGS) | 26 | ADR 0123 |
+   | BCB: o fluxo cambial contratado | 3 (em parte) | A reconhecer: a série não foi achada no portal de dados abertos |
+   | BCB: os leilões e as intervenções no câmbio | 27 | ADR 0122 |
+   | IPEA: o EMBI+ Brasil | 17 (sem o CDS) | **Sem fonte gratuita** (2026-10-09): o IPEA marca a série JPM366_EMBI366 como INATIVA, com o último ponto em 2024-07-30 (o J.P. Morgan deixou de publicar o EMBI+); o EMBI Global e o CDS são pagos. Pergunta ao Comitê (abaixo) |
    | Leitura diária de eventos do dólar por IA (o padrão do ADR 0115) | 25 e 28 (sem a janela intradiária da PTAX) | A fazer |
 
    Já coletados, sem fonte nova: a PTAX (desde 1994), a Selic, o Focus (IPCA, Selic e câmbio), as reservas, o índice do
@@ -90,6 +91,10 @@ O relatório tem inconsistências que a proposta não pode resolver sozinha:
    (ADR 0044); e o DTWEXBGS, que não é o DXY nem é tempo real (o Fed o publica uma vez por semana).
 10. **A meta de 80%:** em câmbio, acertar 80% da direção do dia está muito acima do que se costuma ver. A sugestão é medir
     a leitura contra os benchmarks da Qualidade da IA (ADR 0064) em vez de uma taxa fixa.
+
+11. **O risco-país (fator 17) não tem fonte gratuita:** o EMBI+ parou em 2024-07 e o CDS de 5 anos e o EMBI Global são
+    pagos. O fator sai, é medido por outra série já coletada (a curva do DI1 longo, por exemplo), ou o Comitê contrata a
+    fonte?
 
 As respostas entram neste ADR (adendo) ou na proposta dos fatores.
 

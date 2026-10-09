@@ -16,6 +16,7 @@ const { descreverRegiaoWgc } = require("../shared/utils/wgc-regiao");
 const { descreverUnidadeCecafe } = require("../shared/utils/cecafe-unidade");
 const { descreverPaisJodi } = require("../shared/utils/jodi-pais");
 const { descreverItemSteo } = require("../shared/utils/steo-item");
+const { descreverAtuacaoCambio } = require("../shared/utils/bcb-atuacao-cambio");
 const { descreverLocalCustoCafe } = require("../shared/utils/conab-custo-cafe-local");
 const { descreverOrigemIce } = require("../shared/utils/ice-origem");
 const { validarDataOpcional, TAMANHO_PAGINA_PADRAO, TAMANHO_PAGINA_MAXIMO } = require("./market-data.service");
@@ -149,6 +150,18 @@ const DIMENSOES_REGIAO = {
       semSelecao: "Selecione ao menos um país.",
       nota:
         "Cada linha é um país, com a produção de petróleo em mil barris por dia como o país reporta ao JODI. Há lacunas da fonte: o Brasil para em 2022, a Rússia em 2023, e a Guiana não reporta. Não há total mundial, e o FinMind não soma países."
+    }
+  }),
+  "bcb-atuacao": criarDimensaoRegiao({
+    rotuloModalidade: "Instrumento",
+    descreverRegiao: descreverAtuacaoCambio,
+    textos: {
+      titulo: "Instrumentos",
+      inativo: "sem uso recente",
+      mostrarInativos: "Mostrar instrumentos sem uso neste ano nem no anterior",
+      semSelecao: "Selecione ao menos um instrumento.",
+      nota:
+        "Cada linha é um instrumento e modalidade de atuação do BCB no câmbio, com a soma do dia (só os dias com atuação têm ponto). A rolagem de swaps não é separada da oferta nova: a fonte não diz qual é qual."
     }
   }),
   "steo-item": criarDimensaoRegiao({

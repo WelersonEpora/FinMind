@@ -37,8 +37,9 @@ mesmas consultas funcionam. O coletor do Focus usava `$select`: a próxima colet
 - Carga em dev (2026-10-09), `npm run backfill:bcb-focus`, 0 falhas: o primário de 2000-01-07 a 2026-10-02, 1.396
   boletins, 37 anos-alvo, 9.022 valores. Nos outros três indicadores, só os 15 valores dos boletins que faltavam em dev, e
   nenhum valor existente mudou: tirar o `$select` não mudou o dado.
+- Carga no servidor (2026-10-09), `npm run backfill:bcb-focus`: os mesmos números de dev (9.022 criados, 0 atualizados,
+  20.288 ignorados), 0 falhas.
 
 ## Consequências
 
-- No servidor: `npm run backfill:bcb-focus` (para o histórico do primário; os outros três indicadores ficam como estão).
 - As demais fontes da fase 1 seguem o ADR 0117.

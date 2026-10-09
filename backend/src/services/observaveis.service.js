@@ -230,6 +230,70 @@ const CATALOGO_OBSERVAVEIS = [
       urlOficial: "https://dadosabertos.bcb.gov.br/dataset/13621-reservas-internacionais---conceito-caixa---total---diaria"
     }
   },
+  // --- Balanço de pagamentos (BCB, SGS 22707 e 22701), mensal (fase 1 do dólar, ADR 0123) ---
+  {
+    instrumentCode: "BALANCO_PAGAMENTOS_BCB",
+    origem: "observation",
+    nome: "Balança comercial e transações correntes (BCB)",
+    unidade: "US$ milhões",
+    casasDecimais: 1,
+    frequencia: "MENSAL",
+    // O mês M sai por volta do dia 25 de M+1: o último ponto fica até ~2 meses sem sucessor.
+    toleranciaDias: 65,
+    fonte: "BCB - Estatísticas do setor externo (SGS)",
+    fonteCollectorCode: "bcb-balanco-pagamentos",
+    series: [
+      { modalidade: "balanca_comercial", seriesCode: "BCB_SGS.BALANCA_COMERCIAL_BP" },
+      { modalidade: "transacoes_correntes", seriesCode: "BCB_SGS.TRANSACOES_CORRENTES" }
+    ],
+    modalidadePrincipal: "balanca_comercial",
+    fonteDetalhe: {
+      descricao:
+        "O saldo mensal da balança comercial (bens, no conceito do balanço de pagamentos: SGS 22707) e o das transações correntes (bens, serviços e rendas: SGS 22701), em US$ milhões, desde jan/1995. Saldo positivo é entrada líquida de dólares; transações correntes negativas são déficit externo.",
+      metodologia:
+        "Um valor por mês (o dia da observação é o 1º do mês). A data de disponibilidade é ESTIMADA no último dia do mês seguinte: o BCB divulga o setor externo por volta do dia 25 (a regra nunca antecipa). O balanço de pagamentos é revisado e a API só traz o valor atual: a revisão vista numa coleta entra como versão nova, com a data da coleta. A balança do balanço de pagamentos não é a do Comex Stat (a semanal do MDIC): os conceitos e as datas diferem.",
+      formatoOrigem: "JSON (API do SGS, api.bcb.gov.br)",
+      urlOficial: "https://www.bcb.gov.br/estatisticas/estatisticassetorexterno"
+    }
+  },
+  // --- Atuações do BCB no mercado de câmbio, por instrumento e dia (fase 1 do dólar, ADR 0122) ---
+  // Séries `BCB.ATUACAO_CAMBIO.<ITEM>.<CAMPO>`: o item é o par instrumento/modalidade (shared/utils/bcb-atuacao-cambio.js).
+  {
+    instrumentCode: "BCB_ATUACOES_CAMBIO",
+    origem: "observation",
+    nome: "Atuações do BCB no câmbio",
+    unidade: "US$",
+    casasDecimais: 0,
+    frequencia: "DIARIA",
+    // O BCB atualiza o arquivo no último dia útil do mês, com o mês anterior: a última atuação pode ter ~2 meses. E há
+    // meses sem nenhuma atuação.
+    toleranciaDias: 100,
+    fonte: "BCB - Histórico de Atuações no Mercado de Câmbio",
+    fonteCollectorCode: "bcb-atuacoes-cambio",
+    porRegiao: {
+      prefixoSerie: "BCB.ATUACAO_CAMBIO",
+      campoReferencia: "LEILOES",
+      itemPrincipal: "SWAP_TRADICIONAL",
+      itensPadrao: ["SWAP_TRADICIONAL", "SWAP_REVERSO", "VENDA_VISTA", "VENDA_VISTA_PTAX", "LINHA_POS_SELIC", "LINHA_PREFIXADA"],
+      descritor: "bcb-atuacao"
+    },
+    campoPrincipal: "ACEITO_USD",
+    campos: [
+      { codigo: "ACEITO_USD", nome: "Volume aceito no dia", unidade: "US$", casasDecimais: 0 },
+      { codigo: "OFERTADO_USD", nome: "Volume ofertado no dia", unidade: "US$", casasDecimais: 0 },
+      { codigo: "LEILOES", nome: "Atuações no dia", unidade: "atuações", casasDecimais: 0 }
+    ],
+    fonteDetalhe: {
+      descricao:
+        "As atuações do Banco Central no mercado de câmbio desde o câmbio flutuante (1999-01-22): swaps cambiais (tradicional, que equivale a vender dólar no futuro, e reverso, a comprar), vendas e compras à vista (a mercado ou pela PTAX), linhas (venda com recompra), compras a termo e empréstimos. Por dia e por instrumento: o volume aceito, o ofertado e o número de atuações. Aceito abaixo do ofertado é leilão com demanda menor que a oferta.",
+      metodologia:
+        "Uma linha do CSV por atuação; o FinMind soma as do mesmo dia e instrumento (a rolagem de swaps sai em vários lotes no mesmo dia). A rolagem não é separada da oferta nova: a fonte não diz qual é qual. Os leilões conjugados (venda à vista + swap reverso) aparecem nos dois instrumentos. A data de publicação é ESTIMADA no fim do dia da atuação: o BCB divulga o resultado de cada leilão no próprio dia, embora o CSV só o traga no fim do mês seguinte. A fonte só registra a atuação como divulgada no dia: cancelamentos e pré-pagamentos posteriores não entram.",
+      escopo:
+        "todas as atuações do CSV, 13 pares de instrumento e modalidade. A taxa de corte e as datas de liquidação e de vencimento não são gravadas (ficam no CSV). O par que aparecer novo na fonte não é gravado até ser incluído no mapa de instrumentos.",
+      formatoOrigem: "CSV (Portal de Dados Abertos do BCB, atualizado mensalmente)",
+      urlOficial: "https://dadosabertos.bcb.gov.br/dataset/historico-de-atuacoes-no-mercado-de-cambio"
+    }
+  },
   {
     instrumentCode: "OURO_LBMA",
     origem: "observation",
