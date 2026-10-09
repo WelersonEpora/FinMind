@@ -46,11 +46,39 @@ const larguraDoZoom = (zoom) => Math.max(LARGURA_DO_DIA * zoom, larguraVisivel.v
 const largura = computed(() => larguraDoZoom(props.zoom))
 const larguraTotal = computed(() => dias.value.length * largura.value)
 const x = (data) => diasEntre(props.leque.ini, data) * largura.value + largura.value / 2
+
+// A escala do eixo de preço muda ao trocar os horizontes visíveis (cada um tem faixas de largura diferente). Em vez de
+// pular, ela desliza até a nova em DURACAO_ESCALA ms: o olho acompanha a curva esticando, como um zoom. Sem animação
+// para quem pediu menos movimento no sistema.
+const DURACAO_ESCALA = 300
+const escala = ref({ ...props.leque.escala })
+let quadro = null
+watch(
+  () => props.leque.escala,
+  (nova) => {
+    if (quadro) cancelAnimationFrame(quadro)
+    const de = { ...escala.value }
+    // Pula direto quando as duas escalas não se cruzam (outro ativo, outro preço): ali não há curva a acompanhar.
+    const semRelacao = nova.max < de.min || nova.min > de.max
+    if (semRelacao || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches || (de.min === nova.min && de.max === nova.max)) {
+      escala.value = { ...nova }
+      return
+    }
+    const inicio = performance.now()
+    const passo = (agora) => {
+      const t = Math.min(1, (agora - inicio) / DURACAO_ESCALA)
+      const e = 1 - (1 - t) ** 3 // desacelera no fim
+      escala.value = { min: de.min + (nova.min - de.min) * e, max: de.max + (nova.max - de.max) * e }
+      quadro = t < 1 ? requestAnimationFrame(passo) : null
+    }
+    quadro = requestAnimationFrame(passo)
+  }
+)
 const y = (valor) => {
-  const { min, max } = props.leque.escala
+  const { min, max } = escala.value
   return TOPO + (1 - (valor - min) / (max - min || 1)) * ALT_PLOT
 }
-const marcas = computed(() => marcasDoEixo(props.leque.escala))
+const marcas = computed(() => marcasDoEixo(escala.value))
 const diaDaSemana = (d) => new Date(`${d}T00:00:00Z`).getUTCDay()
 const segundas = computed(() => dias.value.filter((d) => diaDaSemana(d) === 1))
 // Os dias com a data no eixo: só as segundas na largura padrão; com zoom, cabem todos.
@@ -264,7 +292,10 @@ onMounted(() => {
   })
   if (scroller.value) observador.observe(scroller.value)
 })
-onBeforeUnmount(() => observador?.disconnect())
+onBeforeUnmount(() => {
+  observador?.disconnect()
+  if (quadro) cancelAnimationFrame(quadro)
+})
 </script>
 
 <template>
