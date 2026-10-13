@@ -21,7 +21,9 @@ fixos por fator decididos pelo Comitê na mesma data (a relevância por horizont
 o dólar (USD/BRL) entrou como ativo nos mesmos moldes, a partir do relatório do Comitê de 2026-10-08 (ADR 0117): a fase 1, só aquisição, e,
 no mesmo dia, as 8 decisões da proposta dos fatores, tomadas pelo usuário, o tornaram o 6º ativo até o prompt e o Centro de Decisão (ADR
 0126; a PTAX como preço, os 8 blocos do relatório como fatores, a régua de intensidade por horizonte, pesos por categoria). O
-day-trade do relatório fica para uma fase 2, num módulo próprio. O que roda conta como validado, sem
+day-trade do relatório fica para uma fase 2, num módulo próprio. Em 2026-10-13, o usuário decidiu o módulo de **carteiras
+virtuais** (ADR 0127), em simulação: a Cartilha de Operações v1.0 do Comitê em parâmetros versionados, três trilhas por
+carteira (operador, IA e regra fixa) e a medição pré-registrada; em implementação, por etapas. O que roda conta como validado, sem
 selo na tela; a solução de um problema é validada no Comitê antes de ir ao sistema, num ADR. O que segue com o David e o Comitê está em
 `STATUS_DO_PROJETO.md`, §4.
 
@@ -56,6 +58,11 @@ decidiu e quando. O assistente propõe; não decide por nenhum dos dois.
 - **Nenhuma execução automática de ordens** existe ou deve ser adicionada
   nesta fase. A arquitetura mantém geração de análise e execução de ordens
   como camadas fisicamente separadas (ver `docs/architecture.md`).
+  **Exceção das carteiras virtuais (ADR 0127), só em simulação:** a recomendação diária da IA (entrar, manter, reduzir,
+  zerar; sem preço, stop nem quantidade), a execução *virtual* das trilhas IA e Determinística (lançamentos no razão da
+  carteira, nunca uma ordem real; nenhum adaptador de corretora) e o ATR, o stop, os alvos e as travas da Cartilha como
+  parâmetros versionados por carteira. O motor de risco roda antes e por cima da IA. Fora de `backend/src/carteiras/` e
+  das telas de carteira, a regra acima vale como está.
 - **IA nunca é a fonte de verdade de um dado** quando existe fonte
   estruturada oficial confiável (ver ADR 0001) — e uma resposta de IA nunca
   dispara uma ação sozinha (ver `backend/src/ai/README.md`).

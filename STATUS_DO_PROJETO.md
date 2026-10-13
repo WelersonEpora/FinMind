@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-09.**
+**Última atualização: 2026-10-13.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -574,6 +574,7 @@ no ADR de cada fonte.
 | Lacunas declaradas das v1 | Milho: o etanol brasileiro no F5 (ADR 0073) e os fatores ausentes (ADR 0080); café: o INMET no clima (ADR 0083). Ficaram para depois da v1 |
 | Soja: o que segue (ADR 0116) | A fase 1 (só aquisição, ADRs 0109 a 0115) está completa e a soja foi aprovada como 5º ativo em 2026-10-08. Segue: conferir no servidor a 1ª coleta diária do COT, dos preços do FMI e do Crop Progress da soja (carregam o histórico inteiro nela); depois do deploy, a 1ª leitura diária da soja no servidor; o teste histórico dos fatores e da margem de esmagamento |
 | Dólar, fase 1 (ADR 0117) | Só aquisição. Feito: os futuros DOL, WDO e DI1 da B3 (ADR 0118); as 4 séries do FRED: Treasury de 2 anos, VIX, dólar contra emergentes e S&P 500 (ADR 0119); o COT do real, pelo relatório TFF da CFTC (ADR 0120); o resultado primário no Focus (ADR 0121); as atuações do BCB no câmbio (ADR 0122); a balança comercial e as transações correntes (ADR 0123); a leitura diária de eventos do dólar por IA, com 10 fontes e 5 tipos de evento próprios (ADR 0124); e o fluxo cambial contratado (ADR 0125). A proposta dos fatores (`docs/proposta-ativo-dolar.md`) foi decidida e implementada: o dólar é o 6º ativo (ADR 0126) |
+| Carteiras virtuais (ADR 0127) | Decidido pelo usuário em 2026-10-13: em simulação, a Cartilha de Operações v1.0 do Comitê em parâmetros versionados por carteira e três trilhas (operador, IA e regra fixa), com a medição pré-registrada. Implementação em 8 etapas, começando pela conta B3: feitas a 0 (enquadramento) e a 1 (o motor puro, `backend/src/carteiras/`); a próxima é a 2 (tabelas, repositórios e o teste de isolamento). A 1ª rodada é o início da primeira carteira, depois da etapa 4. Os custos reais por contrato e o tamanho do contrato do café podem vir depois: até lá, custo zero com aviso, e o número real vale desde o início |
 | Qualidade da IA: medidas para depois | Calibração da confiança, taxa de inversão, índice único e análise estatística (ADR 0064) |
 
 **Fontes candidatas** (só com uma demanda específica do David, do Comitê ou do usuário): 
@@ -618,7 +619,8 @@ Os motores dos quatro ativos foram validados em 2026-10-07 (ADR 0108). O que seg
 | Formato de apresentação dos resultados | Em aberto (dashboard, relatório, alerta...) |
 | Avaliação da saída da IA | **Delegada pelo David ao usuário em 2026-10-05.** Metodologia no ADR 0064, tela Qualidade da IA. Fica para depois: calibração da confiança, taxa de inversão, índice único e análise estatística |
 | Condições de sinal operacional | Em aberto: nenhum sinal é gerado hoje |
-| Execução automática de ordens | **Não existe nesta fase** (restrição permanente, `CLAUDE.md`): uma pessoa decide e executa (`docs/architecture.md`) |
+| Execução automática de ordens | **Não existe nesta fase** (restrição permanente, `CLAUDE.md`): uma pessoa decide e executa (`docs/architecture.md`). A exceção é só virtual: as carteiras simuladas (ADR 0127) |
+| Cartilha de Operações v1.0 | Em avaliação no Comitê. O FinMind a simula nas carteiras virtuais (ADR 0127) com os parâmetros como estão; para o Comitê: a regra de overnight (metade do risco vale sempre em swing), o R:R combinado do ouro e do petróleo (2,25, abaixo do mínimo de 2,5), o ATR de 4 horas (sem dado), a soja como ativo de observação e o tamanho do contrato do café |
 | Soja como 5º ativo | **Aprovada pelo Comitê, com o David, em 2026-10-08** (ADR 0116): os fatores, as regras, a medição, os baselines e os limites das regras (`docs/proposta-ativo-soja.md`, itens 1 a 6), até o prompt e o Centro de Decisão |
 | Dólar: o que segue (ADR 0126) | Aprovado como 6º ativo em 2026-10-09. Segue: a 1ª leitura diária no servidor; a validação histórica dos fatores (pela Qualidade da IA e por um teste depois); os limites da régua, que o Comitê pode ajustar (o F7 lê como fraca uma revisão de 0,01 p.p. do Focus). Para a fase 2 (day-trade): a fonte intradiária, a fórmula do score (C, N e Ω), os estados de sinal, o volume e o ATR (`docs/dolar-fora-do-escopo-e-decisoes.md`) |
 | Dólar: day-trade (fase 2) | Fora desta fase (ADR 0117): o ciclo intradiário, as estratégias, o controle de risco por operação e o paper trading, num módulo próprio que poderá atender outros ativos. Pede um feed pago em tempo real e uma decisão própria |
@@ -640,12 +642,12 @@ Não implementar sem autorização explícita registrada em ADR:
 - CEPEA antes de 2018-06-08 (só por exportação manual do site), Conab (séries históricas e preços), PSD do milho, FAO/AMIS. (IMEA andamento, WGC e CPI foram implementados em 2026-10-01: ADRs 0039, 0037 e 0033.)
 - Clima além da NOAA STAR por cultura (milho e café): as fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5), USDA Ag in Drought, FAO ASIS, ONI, previsão do tempo e risco de geada.
 - Focus além das expectativas anuais de IPCA, Selic e câmbio (PIB e demais indicadores, mensais/trimestrais, Selic por reunião, inflação 12/24 meses, Top 5), fatores sobre o Focus (surpresa, variação, dispersão); das reservas do BCB, o conceito liquidez, a série mensal e a composição (ouro).
-- Série contínua de futuros, rolagem e backtest.
-- Qualquer sinal, limiar, indicador técnico ou regra de compra/venda.
+- Série contínua de futuros, rolagem e backtest (as carteiras virtuais encerram a posição antes do vencimento, sem rolar; ADR 0127).
+- Qualquer sinal, limiar, indicador técnico ou regra de compra/venda. Exceção: as carteiras virtuais, só em simulação (ADR 0127).
 - Implementar a IA (o papel dela já está decidido, ADR 0055; o ADR 0010 é o desenho do experimento): só depois das regras e
   dos critérios de avaliação do Comitê. Exceção: a leitura de tendência dos quatro ativos (ADRs 0052, 0054, 0058 e 0062), depois da
   aprovação do David ou do Comitê; a avaliação dela contra o realizado foi delegada ao usuário (ADR 0064).
-- Execução automática de ordens e corretora.
+- Execução automática de ordens e corretora (nas carteiras virtuais, só a execução virtual, sem corretora; ADR 0127).
 
 </details>
 
@@ -653,6 +655,16 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>6. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-13</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Carteiras virtuais: o enquadramento | Decisão do usuário: o módulo de carteiras em simulação, a partir da Cartilha de Operações v1.0 do Comitê, com três trilhas (operador, IA e regra fixa) e as referências (Selic, comprar e segurar, Persistência); a recomendação diária da IA em três ramos por ativo, sem preço; a rodada em duas fases; os parâmetros versionados por carteira; a medição pré-registrada (IA − regra fixa, avaliação em 6 meses). Etapa 0 de 8 | ADR 0127 |
+| Carteiras virtuais: o motor | Etapa 1: o domínio puro em `backend/src/carteiras/` (parâmetros da Cartilha v1.0 com validação estrita, especificações dos contratos, ATR(14) de Wilder, dimensionamento com o indicador de contratos inteiros, travas, a regra da trilha Determinística, o contrato de intenção, o motor de decisão e liquidação e o razão), sem banco nem rede; uma regra de lint isola o domínio e impede os módulos de mercado de depender dele. 48 testes, entre eles os exemplos 1 e 2 da Cartilha | ADR 0127 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-09</summary>

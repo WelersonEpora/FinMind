@@ -231,6 +231,10 @@ Sem cache de propósito, para não reintroduzir o atraso.
 
 ### 6. Orientação para o isolamento futuro (não implementado)
 
+> **Adendo (2026-10-13):** o banco é o PostgreSQL (ADR 0026), não o MariaDB citado abaixo; o teste de isolamento
+> roda contra o Postgres. As primeiras tabelas PRIVADAS são as das carteiras virtuais (ADR 0127), e esta seção passa a
+> valer com elas. O Postgres tem row-level security; por ora, o isolamento fica na aplicação, nas FKs compostas e no teste.
+
 Nada abaixo existe ainda — só passa a valer quando a primeira tabela PRIVADA
 (provavelmente `carteira`) for criada, e deve ser feito **junto** com ela:
 
