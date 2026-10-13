@@ -2,11 +2,11 @@
 
 export { formatarData } from './geopolitica.js'
 
-// As trilhas: as três que decidem e as três referências calculadas. A IA e o operador só rendem o caixa até as etapas
-// 4 (a recomendação) e 6 (o diário).
+// As trilhas: as três que decidem e as três referências calculadas. O operador só rende o caixa até a etapa 6 (o
+// diário).
 export const TRILHAS = [
   { tipo: 'OPERADOR', nome: 'Operador', grupo: 'trilha', descricao: 'Suas decisões, registradas no diário.', aguarda: 'O diário do operador entra na etapa 6: até lá, só rende o caixa.' },
-  { tipo: 'IA', nome: 'IA', grupo: 'trilha', descricao: 'Segue a recomendação diária da IA.', aguarda: 'A recomendação da IA entra na etapa 4: até lá, só rende o caixa.' },
+  { tipo: 'IA', nome: 'IA', grupo: 'trilha', descricao: 'Segue a recomendação diária da IA.' },
   { tipo: 'DETERMINISTICA', nome: 'Determinística', grupo: 'trilha', descricao: 'A regra fixa sobre a leitura de tendência do MÉDIO.' },
   { tipo: 'CAIXA', nome: 'Caixa', grupo: 'referencia', descricao: 'Só rende a Selic.' },
   { tipo: 'COMPRAR_E_SEGURAR', nome: 'Comprar e segurar', grupo: 'referencia', descricao: '1/n do patrimônio comprado em cada ativo, sem stop.' },
@@ -78,7 +78,20 @@ const ROTULOS = {
   QUANTIDADE_ZERO: 'Quantidade zero',
   JA_REDUZIDA: 'Já reduzida nesta operação',
   ATIVO_FORA_DA_CARTEIRA: 'Ativo fora da carteira',
-  INTENCAO_INVALIDA: 'Intenção inválida'
+  INTENCAO_INVALIDA: 'Intenção inválida',
+  // Recomendação da IA.
+  VALIDA: 'Válida',
+  FALHA: 'Falhou',
+  PRINCIPAL: 'Do dia',
+  REPLICA: 'Réplica semanal',
+  RESPOSTA_INVALIDA: 'Duas respostas fora do formato',
+  MODELO_DIFERENTE: 'O modelo devolvido não é o fixado',
+  GEMINI_FORA: 'O Gemini não respondeu',
+  MODELO_NAO_FIXADO: 'Modelo da recomendação não configurado (ou um alias)',
+  SEM_CHAVE_PAGA: 'Sem a chave paga do Gemini',
+  SEM_LEITURAS: 'Nenhum ativo com leitura no dia',
+  SEM_RECOMENDACAO: 'Sem recomendação: mantém',
+  SEM_LEITURA: 'Sem leitura no dia'
 }
 
 export const rotulo = (codigo) => (codigo == null ? '—' : ROTULOS[codigo] || codigo)
@@ -194,6 +207,38 @@ export function doFormulario(formulario, base) {
   }
   return { parametros, erros }
 }
+
+// Os três ramos da recomendação, na ordem da tela.
+export const RAMOS = [
+  { chave: 'semPosicao', nome: 'Sem posição' },
+  { chave: 'comprado', nome: 'Se comprado' },
+  { chave: 'vendido', nome: 'Se vendido' }
+]
+
+// A cor de uma ação: entrar comprado e manter em verde, vendido e zerar em vermelho, o resto neutro.
+export function corDaAcao(acao) {
+  if (acao === 'ENTRAR_COMPRADO') return 'text-bg-success'
+  if (acao === 'ENTRAR_VENDIDO' || acao === 'ZERAR') return 'text-bg-danger'
+  if (acao === 'REDUZIR') return 'text-bg-warning'
+  return 'text-bg-light border'
+}
+
+// Quantos ramos a réplica repetiu da recomendação do dia (a consistência, ADR 0127, §4). -> { iguais, total }.
+export function consistencia(principal, replica) {
+  if (!principal?.recomendacoes || !replica?.recomendacoes) return null
+  let iguais = 0
+  let total = 0
+  for (const p of principal.recomendacoes) {
+    const r = replica.recomendacoes.find((x) => x.ativo === p.ativo)
+    for (const { chave } of RAMOS) {
+      total += 1
+      if (r && r[chave].acao === p[chave].acao) iguais += 1
+    }
+  }
+  return { iguais, total }
+}
+
+export const formatarUsd = (v) => (v == null ? '—' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 }).format(v))
 
 export const TIPOS_VERSAO = {
   INICIAL: 'Inicial',

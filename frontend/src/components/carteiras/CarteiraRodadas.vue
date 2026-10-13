@@ -42,6 +42,9 @@ const corResultado = (r) => (r === 'ORDEM' ? 'text-bg-primary' : r === 'BLOQUEAD
               <td>{{ r.ordens.length }}</td>
               <td class="small text-muted">
                 {{ r.motivo ? rotulo(r.motivo) : '' }}<template v-if="r.detalhes?.erro">: {{ r.detalhes.erro }}</template>
+                <div v-if="r.detalhes?.recomendacao?.situacao === 'FALHA'" class="text-warning-emphasis">
+                  IA no fallback "manter": {{ rotulo(r.detalhes.recomendacao.motivo) }}
+                </div>
               </td>
               <td class="text-end">
                 <i class="bi" :class="aberta === r.id ? 'bi-chevron-up' : 'bi-chevron-down'"></i>

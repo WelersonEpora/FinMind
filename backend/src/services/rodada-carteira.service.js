@@ -4,11 +4,13 @@ const carteiraRepository = require("../repositories/carteira.repository");
 const rodadaRepository = require("../repositories/carteira-rodada.repository");
 const analiseDiariaRepository = require("../repositories/analise-diaria.repository");
 const mercadoCarteiraService = require("./mercado-carteira.service");
+const recomendacaoCarteiraService = require("./recomendacao-carteira.service");
 const { resolverVigenteComVersao, pendencias } = require("../carteiras/parametros");
 const { decidir, liquidar } = require("../carteiras/motor");
 const { avaliarTravas } = require("../carteiras/travas");
 const { intencoesDeterministicas } = require("../carteiras/regras-deterministicas");
 const { intencoesPersistencia, entradasComprarESegurar } = require("../carteiras/referencias");
+const { intencoesDaIa } = require("../carteiras/recomendacao");
 const { ehDiaUtil, somarDias } = require("../carteiras/calendario");
 const logger = require("../shared/logger");
 
@@ -23,9 +25,10 @@ const logger = require("../shared/logger");
 //      cada trilha, passa pelo motor e grava as ordens para o ajuste de hoje. Com uma liquidação pendente, a rodada de
 //      hoje fica SEM_DECISAO (o estado de ontem não é conhecido) e é liquidada assim mesmo.
 //
-// Uma rodada decidida nunca é refeita: rodar de novo no mesmo dia não faz nada. Trilhas desta etapa: a Determinística e
-// as referências (caixa, comprar e segurar, Persistência). A IA entra na etapa 4 e o operador, pelo diário (etapa 6);
-// até lá, as duas só rendem o caixa.
+// Uma rodada decidida nunca é refeita: rodar de novo no mesmo dia não faz nada. Trilhas automáticas: a IA (a
+// recomendação diária, etapa 4: uma chamada por carteira e dia, antes do motor; falhou, fallback "manter"), a
+// Determinística e as referências (caixa, comprar e segurar, Persistência). O operador entra pelo diário (etapa 6); até
+// lá, só rende o caixa.
 
 function hojeEmSaoPaulo(agora = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
@@ -68,8 +71,12 @@ async function congelarLeituras(ativos, data, deps) {
   return { leituras, porAtivo };
 }
 
-// As intenções de uma trilha automática no dia (nenhuma para o caixa, o operador e, até a etapa 4, a IA).
-function intencoesDaTrilha(tipo, { ativos, leiturasPorAtivo, mercado, t1PorAtivo, posicoesPorAtivo }) {
+// As intenções de uma trilha automática no dia (nenhuma para o caixa e, até a etapa 6, o operador).
+function intencoesDaTrilha(tipo, { ativos, leiturasPorAtivo, mercado, t1PorAtivo, posicoesPorAtivo, recomendacao }) {
+  if (tipo === "IA") {
+    const valida = recomendacao?.situacao === "VALIDA";
+    return intencoesDaIa({ ativos, recomendacoes: valida ? recomendacao.recomendacoes : null, posicoes: posicoesPorAtivo, contrarias: valida ? recomendacao.contrarias || {} : {} });
+  }
   if (tipo === "DETERMINISTICA") return intencoesDeterministicas({ ativos, leiturasPorAtivo, posicoes: posicoesPorAtivo });
   if (tipo === "PERSISTENCIA") {
     const variacoes = Object.fromEntries(ativos.map((a) => [a, mercado[a]?.variacao30dPct ?? null]));
@@ -78,7 +85,26 @@ function intencoesDaTrilha(tipo, { ativos, leiturasPorAtivo, mercado, t1PorAtivo
   return [];
 }
 
-const TRILHAS_QUE_DECIDEM = Object.freeze(["DETERMINISTICA", "PERSISTENCIA", "COMPRAR_E_SEGURAR"]);
+const TRILHAS_QUE_DECIDEM = Object.freeze(["IA", "DETERMINISTICA", "PERSISTENCIA", "COMPRAR_E_SEGURAR"]);
+
+// A segunda e o domingo da semana de `data`.
+function semanaDe(data) {
+  const diaDaSemana = new Date(`${data}T00:00:00Z`).getUTCDay();
+  const segunda = somarDias(data, -((diaDaSemana + 6) % 7));
+  return [segunda, somarDias(segunda, 6)];
+}
+
+// A recomendação do dia (ADR 0127, §4) e, na primeira recomendação válida da semana, a réplica (mede a consistência; não
+// decide nada). Nunca lança: uma falha vira o registro FALHA, e a trilha IA fica no fallback.
+async function recomendacoesDoDia({ carteira, data, ativos, leiturasPorAtivo }, rRepo, deps) {
+  const service = deps.recomendacaoCarteiraService || recomendacaoCarteiraService;
+  const principal = await service.recomendar({ data, ativos, leiturasPorAtivo }, deps);
+  const registros = [principal];
+  if (principal.situacao === "VALIDA" && !(await rRepo.existeReplicaEntre(carteira.id, ...semanaDe(data)))) {
+    registros.push(await service.replicar(principal, deps));
+  }
+  return { principal, registros };
+}
 
 async function decidirRodada({ carteira, trilhas, versoes, data, agora }, rRepo, deps) {
   const vigente = resolverVigenteComVersao(versoes, data);
@@ -88,6 +114,10 @@ async function decidirRodada({ carteira, trilhas, versoes, data, agora }, rRepo,
   const { leituras, porAtivo: leiturasPorAtivo } = await congelarLeituras(ativos, data, deps);
   const mercadoService = deps.mercadoCarteiraService || mercadoCarteiraService;
   const { mercado, semMercado, t1PorAtivo } = await mercadoService.lerMercadoParaDecisao({ data, conta: carteira.conta, ativos, parametros, agora }, deps);
+  const temIa = trilhas.some((t) => t.tipo === "IA");
+  const { principal: recomendacao, registros: recomendacoes } = temIa
+    ? await recomendacoesDoDia({ carteira, data, ativos, leiturasPorAtivo }, rRepo, deps)
+    : { principal: null, registros: [] };
 
   const intencoes = [];
   const ordens = [];
@@ -95,7 +125,7 @@ async function decidirRodada({ carteira, trilhas, versoes, data, agora }, rRepo,
     const { estado, serie } = await estadoDaTrilha(rRepo, trilha, data, Number(carteira.capital_inicial));
     const posicoesPorAtivo = Object.fromEntries(estado.posicoes.map((p) => [p.ativo, p]));
     const travas = trilha.tipo === "COMPRAR_E_SEGURAR" ? null : avaliarTravas({ data, serie, encerradas: await rRepo.encerradas(trilha.id), retomadas: [], parametros });
-    const daTrilha = intencoesDaTrilha(trilha.tipo, { ativos, leiturasPorAtivo, mercado, t1PorAtivo, posicoesPorAtivo });
+    const daTrilha = intencoesDaTrilha(trilha.tipo, { ativos, leiturasPorAtivo, mercado, t1PorAtivo, posicoesPorAtivo, recomendacao });
     const decisao = decidir({ data, estado, intencoes: daTrilha, mercado, parametros, travas });
     const ordensDaTrilha = [...decisao.ordens];
     if (trilha.tipo === "COMPRAR_E_SEGURAR") ordensDaTrilha.push(...entradasComprarESegurar({ ativos, estado, mercado }));
@@ -129,8 +159,14 @@ async function decidirRodada({ carteira, trilhas, versoes, data, agora }, rRepo,
     data,
     decisao: "DECIDIDA",
     parametrosVersao: vigente.versao,
-    detalhes: { semMercado, pendencias: pendencias(parametros), leiturasAusentes: leituras.filter((l) => l.situacao === "AUSENTE").map((l) => l.ativo) },
+    detalhes: {
+      semMercado,
+      pendencias: pendencias(parametros),
+      leiturasAusentes: leituras.filter((l) => l.situacao === "AUSENTE").map((l) => l.ativo),
+      recomendacao: recomendacao ? { situacao: recomendacao.situacao, motivo: recomendacao.motivo_falha } : null
+    },
     leituras,
+    recomendacoes,
     intencoes,
     ordens
   });

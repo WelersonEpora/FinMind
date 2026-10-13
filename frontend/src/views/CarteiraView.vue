@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import CarteiraVisaoGeral from '../components/carteiras/CarteiraVisaoGeral.vue'
+import CarteiraRecomendacao from '../components/carteiras/CarteiraRecomendacao.vue'
 import CarteiraRodadas from '../components/carteiras/CarteiraRodadas.vue'
 import CarteiraPosicoes from '../components/carteiras/CarteiraPosicoes.vue'
 import CarteiraOperacoes from '../components/carteiras/CarteiraOperacoes.vue'
@@ -11,7 +12,7 @@ import carteirasService from '../services/carteiras.service.js'
 import { useWorkspaceStore } from '../stores/workspace.js'
 import { formatarData, formatarMoeda, nomeAtivo } from '../utils/carteiras.js'
 
-// Uma carteira virtual (ADR 0127): visão geral, rodadas, posições, operações e configuração. A aba fica na URL
+// Uma carteira virtual (ADR 0127): visão geral, recomendação da IA, rodadas, posições, operações e configuração. A aba fica na URL
 // (?aba=), para voltar a ela ao recarregar.
 const route = useRoute()
 const router = useRouter()
@@ -21,6 +22,7 @@ const souOwner = computed(() => espaco.value?.papel === 'owner')
 
 const ABAS = [
   { codigo: 'visao-geral', nome: 'Visão geral' },
+  { codigo: 'recomendacao', nome: 'Recomendação' },
   { codigo: 'rodadas', nome: 'Rodadas' },
   { codigo: 'posicoes', nome: 'Posições' },
   { codigo: 'operacoes', nome: 'Operações' },
@@ -34,6 +36,7 @@ const painel = ref(null)
 const rodadas = ref([])
 const posicoes = ref([])
 const operacoes = ref([])
+const recomendacoes = ref([])
 const loading = ref(true)
 const errorMessage = ref('')
 const mensagem = ref('')
@@ -42,12 +45,13 @@ async function carregar(workspaceId, carteiraId) {
   loading.value = true
   errorMessage.value = ''
   try {
-    const [c, p, r, pos, ops] = await Promise.all([
+    const [c, p, r, pos, ops, recs] = await Promise.all([
       carteirasService.obterCarteira(workspaceId, carteiraId),
       carteirasService.obterPainel(workspaceId, carteiraId),
       carteirasService.listarRodadas(workspaceId, carteiraId),
       carteirasService.listarPosicoes(workspaceId, carteiraId),
-      carteirasService.listarOperacoes(workspaceId, carteiraId)
+      carteirasService.listarOperacoes(workspaceId, carteiraId),
+      carteirasService.listarRecomendacoes(workspaceId, carteiraId)
     ])
     if (route.params.carteiraId !== carteiraId) return
     carteira.value = c
@@ -55,6 +59,7 @@ async function carregar(workspaceId, carteiraId) {
     rodadas.value = r
     posicoes.value = pos
     operacoes.value = ops
+    recomendacoes.value = recs
   } catch (err) {
     errorMessage.value = err.response?.status === 404 ? 'Carteira não encontrada neste espaço.' : 'Não foi possível carregar a carteira.'
   } finally {
@@ -134,6 +139,12 @@ watch(
       </ul>
 
       <CarteiraVisaoGeral v-if="aba === 'visao-geral'" :carteira="carteira" :painel="painel" />
+      <CarteiraRecomendacao
+        v-else-if="aba === 'recomendacao'"
+        :recomendacoes="recomendacoes"
+        :workspace-id="espaco.id"
+        :carteira-id="carteira.id"
+      />
       <CarteiraRodadas v-else-if="aba === 'rodadas'" :rodadas="rodadas" />
       <CarteiraPosicoes v-else-if="aba === 'posicoes'" :posicoes="posicoes" :moeda="carteira.moeda" />
       <CarteiraOperacoes v-else-if="aba === 'operacoes'" :operacoes="operacoes" />

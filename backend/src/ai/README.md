@@ -16,6 +16,11 @@ ao Gemini **sem busca** e com a resposta em JSON (`gemini-search.provider.js::ge
 (`collectors/analise/`). A resposta é validada por `shared/resposta-analise-diaria.js` (fora do formato, nada é
 gravado) e aparece no Centro de Decisão do ativo: **leitura de tendência em quatro horizontes, não recomendação**.
 
+**E a recomendação diária das carteiras virtuais** (ADR 0127, §4; só em simulação): o prompt
+`prompts/carteira-recomendacao.md`, montado e chamado por `services/recomendacao-carteira.service.js` (sem busca, JSON,
+só a chave paga e o modelo fixado em `GEMINI_MODEL_RECOMENDACAO`) e validado por `carteiras/recomendacao.js`. A
+resposta só vira ação VIRTUAL depois do motor de risco das carteiras, nunca uma ordem real.
+
 Para qualquer outro uso, continuam faltando as definições do especialista David: como avaliar a saída da IA e em que
 condições ela pode influenciar um sinal operacional (ver `STATUS_DO_PROJETO.md`, §4). Uma resposta de IA nunca deve
 gerar ordens automaticamente - essa é uma decisão de arquitetura permanente, não um placeholder temporário.

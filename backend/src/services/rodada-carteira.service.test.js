@@ -15,15 +15,27 @@ const LEITURAS_ALTA = [
 const MERCADO_MILHO = { contrato: { ticker: "CCMH27", limite: "2027-03-15" }, atr: 1.1, ajuste: 74, valorDoPonto: 450, variacao30dPct: 3 };
 
 // Um banco em memória com as funções da rotina, escopado como o real.
-function ambiente({ pendente = null, erroNaDecisao = false } = {}) {
-  const db = { rodadas: [], intencoes: [], ordens: [], liquidacoes: [], patrimonio: [] };
+// A recomendação da IA, falsa: MILHO, entrar vendido sem posição (contra a leitura de alta, de propósito).
+const RECOMENDACAO = {
+  ativo: "MILHO",
+  prioridade: 1,
+  semPosicao: { acao: "ENTRAR_VENDIDO", porque: "x" },
+  comprado: { acao: "MANTER", porque: "x" },
+  vendido: { acao: "MANTER", porque: "x" },
+  evidencias: ["MILHO.MEDIO"],
+  invalidaSe: "x"
+};
+
+function ambiente({ pendente = null, erroNaDecisao = false, recomendacaoFalha = false } = {}) {
+  const db = { rodadas: [], intencoes: [], ordens: [], liquidacoes: [], patrimonio: [], recomendacoes: [], chamadasIa: [] };
   const rodadaRepository = {
     forWorkspace: () => ({
       buscarRodada: async (_c, data) => db.rodadas.find((r) => r.data === data) || null,
       ultimaRodada: async () => [...db.rodadas].sort((a, b) => b.data.localeCompare(a.data))[0] || null,
       listarPendentes: async () => db.rodadas.filter((r) => r.liquidacao === "PENDENTE").sort((a, b) => a.data.localeCompare(b.data)),
-      criarRodada: async ({ data, decisao, detalhes, leituras = [], intencoes = [], ordens = [] }) => {
+      criarRodada: async ({ data, decisao, detalhes, leituras = [], recomendacoes = [], intencoes = [], ordens = [] }) => {
         const rodada = { id: `r-${data}`, data, decisao, detalhes, liquidacao: "PENDENTE", leituras };
+        db.recomendacoes.push(...recomendacoes.map((r) => ({ ...r, data })));
         db.rodadas.push(rodada);
         db.intencoes.push(...intencoes.map((i) => ({ ...i, data })));
         db.ordens.push(...ordens.map((o, k) => ({ ...o, id: `o-${data}-${k}`, rodadaId: rodada.id })));
@@ -32,6 +44,7 @@ function ambiente({ pendente = null, erroNaDecisao = false } = {}) {
       seriePatrimonio: async (trilhaId, { ate }) => db.patrimonio.filter((p) => p.trilhaId === trilhaId && p.data < ate),
       posicoesAbertas: async () => [],
       encerradas: async () => [],
+      existeReplicaEntre: async (_c, inicio, fim) => db.recomendacoes.some((r) => r.tipo === "REPLICA" && r.data >= inicio && r.data <= fim),
       ordensCriadas: async (rodadaId) => db.ordens.filter((o) => o.rodadaId === rodadaId),
       gravarLiquidacao: async ({ rodadaId, data, trilhas }) => {
         db.liquidacoes.push(data);
@@ -53,7 +66,16 @@ function ambiente({ pendente = null, erroNaDecisao = false } = {}) {
       pendente && data >= pendente ? { pendente: "SEM_PTAX_DO_DIA" } : { barras: { CCMH27: { ajuste: 74.5, maxima: 75, minima: 73.8 } }, cambio: 5.38, taxaCaixaDia: 0.0005, diaUtil: true }
   };
   const analiseDiariaRepository = { buscarAnaliseDoDia: async (_a, data) => ({ id: `a-${data}`, data_analise: data, hash_entrada: "h", versao_prompt: "v", modelo: "m", leituras: LEITURAS_ALTA, entrada: {} }) };
-  return { db, deps: { rodadaRepository, carteiraRepository, mercadoCarteiraService, analiseDiariaRepository } };
+  const recomendacaoCarteiraService = {
+    recomendar: async ({ data }) => {
+      db.chamadasIa.push(data);
+      return recomendacaoFalha
+        ? { tipo: "PRINCIPAL", situacao: "FALHA", motivo_falha: "GEMINI_FORA", recomendacoes: null }
+        : { tipo: "PRINCIPAL", situacao: "VALIDA", motivo_falha: null, recomendacoes: [RECOMENDACAO], contrarias: { MILHO: ["semPosicao"] } };
+    },
+    replicar: async (principal) => ({ ...principal, tipo: "REPLICA" })
+  };
+  return { db, deps: { rodadaRepository, carteiraRepository, mercadoCarteiraService, analiseDiariaRepository, recomendacaoCarteiraService } };
 }
 
 const rodar = (hoje, deps) => processarCarteira({ workspace_id: "w1", id: "c1" }, { hoje, agora: new Date() }, deps);
@@ -65,12 +87,37 @@ test("1º dia: decide, congela as leituras e gera as ordens das trilhas automát
   assert.equal(db.rodadas[0].leituras[0].situacao, "OK");
   const det = db.intencoes.find((i) => i.trilha_id === "t-DETERMINISTICA");
   assert.deepEqual([det.acao, det.resultado], ["ENTRAR_COMPRADO", "ORDEM"]);
-  assert.deepEqual(db.ordens.map((o) => o.trilhaId).sort(), ["t-COMPRAR_E_SEGURAR", "t-DETERMINISTICA", "t-PERSISTENCIA"]);
-  assert.ok(!db.intencoes.some((i) => ["t-IA", "t-OPERADOR", "t-CAIXA"].includes(i.trilha_id)));
+  assert.deepEqual(db.ordens.map((o) => o.trilhaId).sort(), ["t-COMPRAR_E_SEGURAR", "t-DETERMINISTICA", "t-IA", "t-PERSISTENCIA"]);
+  assert.ok(!db.intencoes.some((i) => ["t-OPERADOR", "t-CAIXA"].includes(i.trilha_id)));
+  // A trilha IA segue o ramo "sem posição" da recomendação, marcada como contrária à leitura.
+  const ia = db.intencoes.find((i) => i.trilha_id === "t-IA");
+  assert.deepEqual([ia.acao, ia.origem, ia.resultado, ia.referencia.contraria], ["ENTRAR_VENDIDO", "RECOMENDACAO", "ORDEM", true]);
+  assert.equal(db.ordens.find((o) => o.trilhaId === "t-IA").lado, "VENDIDO");
+  // A principal e, por ser a 1ª válida da semana, a réplica; gravadas com a rodada.
+  assert.deepEqual(db.recomendacoes.map((r) => r.tipo), ["PRINCIPAL", "REPLICA"]);
+  assert.deepEqual(db.rodadas[0].detalhes.recomendacao, { situacao: "VALIDA", motivo: null });
 
   const de_novo = await rodar("2026-10-06", deps);
   assert.equal(de_novo.decidida, null);
   assert.equal(db.rodadas.length, 1);
+  assert.equal(db.chamadasIa.length, 1);
+});
+
+test("a réplica é uma por semana; a recomendação que falha deixa a trilha IA no fallback, sem nova entrada", async () => {
+  const { db, deps } = ambiente();
+  await rodar("2026-10-06", deps);
+  await rodar("2026-10-07", deps);
+  assert.deepEqual(db.recomendacoes.map((r) => `${r.data} ${r.tipo}`), ["2026-10-06 PRINCIPAL", "2026-10-06 REPLICA", "2026-10-07 PRINCIPAL"]);
+  await rodar("2026-10-12", deps);
+  assert.ok(db.recomendacoes.some((r) => r.data === "2026-10-12" && r.tipo === "REPLICA"));
+
+  const falha = ambiente({ recomendacaoFalha: true });
+  await rodar("2026-10-06", falha.deps);
+  const ia = falha.db.intencoes.find((i) => i.trilha_id === "t-IA");
+  assert.deepEqual([ia.acao, ia.origem, ia.resultado], ["NAO_ENTRAR", "FALLBACK", "SEM_ORDEM"]);
+  assert.ok(!falha.db.ordens.some((o) => o.trilhaId === "t-IA"));
+  assert.deepEqual(falha.db.recomendacoes.map((r) => r.tipo), ["PRINCIPAL"]);
+  assert.deepEqual(falha.db.rodadas[0].detalhes.recomendacao, { situacao: "FALHA", motivo: "GEMINI_FORA" });
 });
 
 test("dia seguinte: liquida ontem nas seis trilhas e decide hoje", async () => {

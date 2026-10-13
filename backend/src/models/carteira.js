@@ -172,7 +172,31 @@ module.exports = (sequelize) => {
     patrimonio: { type: DECIMAL(18, 2), allowNull: false }
   });
 
+  // Etapa 4: a recomendação diária da IA (migration 20261014090000).
+  const CarteiraRecomendacao = definir("CarteiraRecomendacao", "carteira_recomendacao", {
+    rodada_id: { type: UUID, allowNull: false },
+    data: { type: DATEONLY, allowNull: false },
+    tipo: { type: STRING(10), allowNull: false },
+    situacao: { type: STRING(10), allowNull: false },
+    motivo_falha: { type: STRING(40), allowNull: true },
+    versao_prompt: { type: STRING(60), allowNull: true },
+    modelo_pedido: { type: STRING(80), allowNull: true },
+    modelo_devolvido: { type: STRING(80), allowNull: true },
+    hash_entrada: { type: STRING(64), allowNull: true },
+    entrada: { type: JSONB, allowNull: true },
+    instrucao: { type: TEXT, allowNull: true },
+    prompt: { type: TEXT, allowNull: true },
+    respostas: { type: JSONB, allowNull: false },
+    recomendacoes: { type: JSONB, allowNull: true },
+    contrarias: { type: JSONB, allowNull: true },
+    tokens: { type: JSONB, allowNull: true },
+    custo_usd: { type: DECIMAL(12, 6), allowNull: true },
+    tentativas: { type: JSONB, allowNull: false },
+    detalhes: { type: JSONB, allowNull: true }
+  });
+
   return {
+    CarteiraRecomendacao,
     Carteira,
     CarteiraParametrosVersao,
     CarteiraTrilha,

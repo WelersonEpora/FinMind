@@ -136,7 +136,9 @@ cd backend && ANALISE_DIARIA_REFAZER=1 npm run collect -- --coletor=analise
 ```
 
 A rotina diária das carteiras virtuais (ADR 0127) é outro script, separado da coleta: liquida as rodadas pendentes e
-decide a do dia em cada carteira ativa; rodar de novo no mesmo dia não refaz nada. No servidor, no cron às 06h30:
+decide a do dia em cada carteira ativa, com a recomendação da IA (uma chamada por carteira, só com a chave paga e o
+modelo fixado em `GEMINI_MODEL_RECOMENDACAO`; sem ele, a trilha IA fica no fallback "manter"); rodar de novo no mesmo
+dia não refaz nada. No servidor, no cron às 06h30:
 
 ```bash
 cd backend && npm run carteiras

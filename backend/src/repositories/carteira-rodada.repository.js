@@ -11,6 +11,7 @@ const {
   CarteiraOrdem,
   CarteiraLancamento,
   CarteiraPatrimonioDiario,
+  CarteiraRecomendacao,
   sequelize
 } = require("../models");
 
@@ -120,8 +121,9 @@ function forWorkspace(workspaceId) {
       return CarteiraRodada.findAll({ where: doEspaco({ carteira_id: carteiraId, liquidacao: "PENDENTE" }), order: [["data", "ASC"]], raw: true, transaction });
     },
 
-    // A rodada com tudo o que a decisão produziu, numa transação: a cópia das leituras, as intenções e as ordens.
-    async criarRodada({ carteiraId, data, decisao, parametrosVersao = null, detalhes = null, leituras = [], intencoes = [], ordens = [] }, { transaction } = {}) {
+    // A rodada com tudo o que a decisão produziu, numa transação: a cópia das leituras, as recomendações da IA (a
+    // principal e, uma vez por semana, a réplica), as intenções e as ordens.
+    async criarRodada({ carteiraId, data, decisao, parametrosVersao = null, detalhes = null, leituras = [], recomendacoes = [], intencoes = [], ordens = [] }, { transaction } = {}) {
       return naTransacao(transaction, async (t) => {
         const rodada = await CarteiraRodada.create(
           { id: randomUUID(), workspace_id: workspaceId, carteira_id: carteiraId, data, decisao, parametros_versao: parametrosVersao, decidida_em: new Date(), liquidacao: "PENDENTE", detalhes },
@@ -129,6 +131,7 @@ function forWorkspace(workspaceId) {
         );
         const filho = (linha) => ({ id: randomUUID(), workspace_id: workspaceId, rodada_id: rodada.id, ...linha });
         if (leituras.length) await CarteiraRodadaLeitura.bulkCreate(leituras.map(filho), { transaction: t });
+        if (recomendacoes.length) await CarteiraRecomendacao.bulkCreate(recomendacoes.map((r) => filho({ ...r, data })), { transaction: t });
         if (intencoes.length) await CarteiraIntencao.bulkCreate(intencoes.map(filho), { transaction: t });
         if (ordens.length) {
           await CarteiraOrdem.bulkCreate(
@@ -225,6 +228,36 @@ function forWorkspace(workspaceId) {
     async seriesPatrimonio(trilhaIds, { transaction } = {}) {
       const linhas = await CarteiraPatrimonioDiario.findAll({ where: doEspaco({ trilha_id: trilhaIds }), attributes: ["trilha_id", "data", "patrimonio"], order: [["data", "ASC"]], raw: true, transaction });
       return linhas.map((l) => ({ trilhaId: l.trilha_id, data: l.data, patrimonio: num(l.patrimonio) }));
+    },
+
+    // Já houve réplica da recomendação nesta carteira entre as datas (a semana)?
+    async existeReplicaEntre(carteiraId, inicio, fim, { transaction } = {}) {
+      const rodadas = await CarteiraRodada.findAll({ where: doEspaco({ carteira_id: carteiraId, data: { [Op.between]: [inicio, fim] } }), attributes: ["id"], raw: true, transaction });
+      if (!rodadas.length) return false;
+      const n = await CarteiraRecomendacao.count({ where: doEspaco({ rodada_id: rodadas.map((r) => r.id), tipo: "REPLICA" }), transaction });
+      return n > 0;
+    },
+
+    // As recomendações da carteira, da mais recente, sem os textos longos (instrução, prompt, respostas, entrada).
+    async listarRecomendacoes(carteiraId, { limite = 60, transaction } = {}) {
+      const rodadas = await CarteiraRodada.findAll({ where: doEspaco({ carteira_id: carteiraId }), attributes: ["id"], raw: true, transaction });
+      if (!rodadas.length) return [];
+      return CarteiraRecomendacao.findAll({
+        where: doEspaco({ rodada_id: rodadas.map((r) => r.id) }),
+        attributes: { exclude: ["instrucao", "prompt", "respostas", "entrada"] },
+        order: [["data", "DESC"], ["tipo", "ASC"]],
+        limit: limite,
+        raw: true,
+        transaction
+      });
+    },
+
+    // Uma recomendação inteira, só se for de uma rodada desta carteira.
+    async buscarRecomendacao(carteiraId, recomendacaoId, { transaction } = {}) {
+      const rec = await CarteiraRecomendacao.findOne({ where: doEspaco({ id: recomendacaoId }), raw: true, transaction });
+      if (!rec) return null;
+      const rodada = await CarteiraRodada.findOne({ where: doEspaco({ id: rec.rodada_id, carteira_id: carteiraId }), attributes: ["id"], raw: true, transaction });
+      return rodada ? rec : null;
     },
 
     async ordensCriadas(rodadaId, { transaction } = {}) {

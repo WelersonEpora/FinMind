@@ -173,4 +173,40 @@ async function listarOperacoes(workspaceId, carteiraId, deps = {}) {
   return { operacoes: ordens.map((o) => paraOrdem(o, tipoPorId(trilhas))) };
 }
 
-module.exports = { obterOpcoes, obterPainel, listarRodadas, listarPosicoes, listarOperacoes };
+// A recomendação da IA (ADR 0127, §4). Na lista, o resumo e as recomendações de cada dia; no detalhe, também o que foi à
+// IA e o que voltou (a instrução, o prompt, cada resposta bruta com os erros dela): a transparência do prompt.
+function paraRecomendacao(r, { completa = false } = {}) {
+  return {
+    id: r.id,
+    data: r.data,
+    tipo: r.tipo,
+    situacao: r.situacao,
+    motivoFalha: r.motivo_falha,
+    versaoPrompt: r.versao_prompt,
+    modeloPedido: r.modelo_pedido,
+    modeloDevolvido: r.modelo_devolvido,
+    hashEntrada: r.hash_entrada,
+    recomendacoes: r.recomendacoes,
+    contrarias: r.contrarias || {},
+    tokens: r.tokens,
+    custoUsd: r.custo_usd == null ? null : Number(r.custo_usd),
+    tentativas: r.tentativas,
+    detalhes: r.detalhes,
+    ...(completa ? { entrada: r.entrada, instrucao: r.instrucao, prompt: r.prompt, respostas: r.respostas } : {})
+  };
+}
+
+async function listarRecomendacoes(workspaceId, carteiraId, deps = {}) {
+  const { rRepo } = await carteiraETrilhas(workspaceId, carteiraId, deps);
+  const linhas = await rRepo.listarRecomendacoes(carteiraId);
+  return { recomendacoes: linhas.map((r) => paraRecomendacao(r)) };
+}
+
+async function obterRecomendacao(workspaceId, carteiraId, recomendacaoId, deps = {}) {
+  const { rRepo } = await carteiraETrilhas(workspaceId, carteiraId, deps);
+  const r = await rRepo.buscarRecomendacao(carteiraId, recomendacaoId);
+  if (!r) throw new NotFoundError("Recomendação não encontrada.");
+  return { recomendacao: paraRecomendacao(r, { completa: true }) };
+}
+
+module.exports = { obterOpcoes, obterPainel, listarRodadas, listarPosicoes, listarOperacoes, listarRecomendacoes, obterRecomendacao };

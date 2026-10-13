@@ -113,6 +113,7 @@ Regras adicionais, todas obrigatórias:
 | `carteira_posicao_evento` | PRIVADA | entrada, stop, alvos, redução e saída de cada posição, append-only |
 | `carteira_lancamento` | PRIVADA | o razão de cada trilha (marcação, custos, Selic), append-only |
 | `carteira_patrimonio_diario` | PRIVADA | o patrimônio de cada trilha por dia, projeção recalculável do razão |
+| `carteira_recomendacao` | PRIVADA | a recomendação diária da IA de cada rodada (e a réplica semanal), com o prompt e as respostas como foram, append-only (ADR 0127, §4); FK composta `(workspace_id, rodada_id)` |
 | `user` | USER (identidade) | identidade global, não vínculo com espaço |
 | `workspace` | estrutura de vínculo | não é dado de mercado nem privado |
 | `workspace_member` | estrutura de vínculo | idem |

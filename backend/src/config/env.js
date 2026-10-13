@@ -71,6 +71,14 @@ module.exports = {
     model: process.env.GEMINI_MODEL || "gemini-flash-latest",
     timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS || 240000)
   },
+  // A recomendação diária das carteiras virtuais (ADR 0127, §4): modelo FIXADO (um alias como `*-latest` é recusado) e
+  // só a chave paga (GEMINI_API_KEY). Sem o modelo, a trilha IA fica no fallback "manter". Os preços (US$ por milhão de
+  // tokens, entrada e saída; o raciocínio conta como saída) só servem ao custo registrado; sem eles, o custo fica nulo.
+  recomendacaoCarteira: {
+    model: process.env.GEMINI_MODEL_RECOMENDACAO || "",
+    precoEntrada: process.env.GEMINI_RECOMENDACAO_PRECO_ENTRADA ? Number(process.env.GEMINI_RECOMENDACAO_PRECO_ENTRADA) : null,
+    precoSaida: process.env.GEMINI_RECOMENDACAO_PRECO_SAIDA ? Number(process.env.GEMINI_RECOMENDACAO_PRECO_SAIDA) : null
+  },
   // Leitura diária de geopolítica (ADR 0047): uma por dia, a primeira que der certo; as execuções seguintes do cron pulam
   // a chamada. GEOPOLITICA_REFAZER=1, só no comando (não no .env), força uma nova leitura que substitui a do dia:
   //   GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica

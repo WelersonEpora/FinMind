@@ -89,3 +89,21 @@ test("carteira de outro espaço (ou inexistente): 404", async () => {
   await assert.rejects(() => painel.obterPainel("w2", "c1", d), (e) => e.statusCode === 404);
   await assert.rejects(() => painel.listarPosicoes("w2", "c1", d), (e) => e.statusCode === 404);
 });
+
+test("recomendações: a lista sem os textos; o detalhe com o prompt e as respostas; de outra carteira, 404", async () => {
+  const linha = { id: "rec1", data: "2026-10-14", tipo: "PRINCIPAL", situacao: "VALIDA", custo_usd: "0.001300", recomendacoes: [{ ativo: "MILHO" }], contrarias: null };
+  const { deps: d } = deps();
+  const rRepo = d.carteiraRodadaRepository.forWorkspace;
+  d.carteiraRodadaRepository = {
+    forWorkspace: (w) => ({
+      ...rRepo(w),
+      listarRecomendacoes: async () => [linha],
+      buscarRecomendacao: async (_c, id) => (id === "rec1" ? { ...linha, prompt: "o prompt", instrucao: "a instrução", respostas: [{ texto: "{}" }], entrada: {} } : null)
+    })
+  };
+  const { recomendacoes } = await painel.listarRecomendacoes("w1", "c1", d);
+  assert.deepEqual([recomendacoes[0].custoUsd, recomendacoes[0].contrarias, recomendacoes[0].prompt], [0.0013, {}, undefined]);
+  const { recomendacao } = await painel.obterRecomendacao("w1", "c1", "rec1", d);
+  assert.deepEqual([recomendacao.prompt, recomendacao.respostas.length], ["o prompt", 1]);
+  await assert.rejects(() => painel.obterRecomendacao("w1", "c1", "outra", d), (e) => e.statusCode === 404);
+});

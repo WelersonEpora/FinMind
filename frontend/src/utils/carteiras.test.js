@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { doFormulario, formatarParametro, formatarR, formatarRetorno, nomeTrilha, paraFormulario, pontosDoPatrimonio, rotulo, CAMPOS_ATIVO } from './carteiras.js'
+import { consistencia, corDaAcao, doFormulario, formatarParametro, formatarR, formatarRetorno, nomeTrilha, paraFormulario, pontosDoPatrimonio, rotulo, CAMPOS_ATIVO } from './carteiras.js'
 
 const PARAMETROS = {
   modelo: 'cartilha-1.0',
@@ -51,4 +51,13 @@ test('gráfico do patrimônio: o retorno acumulado, uma série por trilha, com o
   ], 10000)
   assert.deepEqual(pontos, [{ data: '2026-10-14', valor: 0.05, serie: 'CAIXA' }])
   assert.deepEqual(rotulos, { CAIXA: 'Caixa', IA: 'IA' })
+})
+
+test('consistência da réplica: ramos iguais sobre o total; sem uma das duas, nulo', () => {
+  const ramo = (acao) => ({ acao, porque: 'x' })
+  const principal = { recomendacoes: [{ ativo: 'MILHO', semPosicao: ramo('NAO_ENTRAR'), comprado: ramo('MANTER'), vendido: ramo('ZERAR') }] }
+  const replica = { recomendacoes: [{ ativo: 'MILHO', semPosicao: ramo('ENTRAR_VENDIDO'), comprado: ramo('MANTER'), vendido: ramo('ZERAR') }] }
+  assert.deepEqual(consistencia(principal, replica), { iguais: 2, total: 3 })
+  assert.equal(consistencia(principal, { recomendacoes: null }), null)
+  assert.equal(corDaAcao('ZERAR'), 'text-bg-danger')
 })

@@ -52,6 +52,18 @@ async function listarOperacoes(workspaceId, carteiraId) {
   return data.operacoes
 }
 
+// As recomendações da IA da carteira (a mais recente primeiro), sem os textos longos.
+async function listarRecomendacoes(workspaceId, carteiraId) {
+  const { data } = await http.get(`${daCarteira(workspaceId, carteiraId)}/recomendacoes`)
+  return data.recomendacoes
+}
+
+// Uma recomendação inteira, com o que foi à IA (instrução, prompt) e cada resposta bruta.
+async function obterRecomendacao(workspaceId, carteiraId, recomendacaoId) {
+  const { data } = await http.get(`${daCarteira(workspaceId, carteiraId)}/recomendacoes/${encodeURIComponent(recomendacaoId)}`)
+  return data.recomendacao
+}
+
 export default {
   obterOpcoes,
   listarCarteiras,
@@ -61,5 +73,7 @@ export default {
   obterPainel,
   listarRodadas,
   listarPosicoes,
-  listarOperacoes
+  listarOperacoes,
+  listarRecomendacoes,
+  obterRecomendacao
 }

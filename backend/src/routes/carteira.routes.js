@@ -22,5 +22,7 @@ router.get(`${base}/:carteiraId/painel`, ...membro, carteiraController.painel);
 router.get(`${base}/:carteiraId/rodadas`, ...membro, carteiraController.rodadas);
 router.get(`${base}/:carteiraId/posicoes`, ...membro, carteiraController.posicoes);
 router.get(`${base}/:carteiraId/operacoes`, ...membro, carteiraController.operacoes);
+router.get(`${base}/:carteiraId/recomendacoes`, ...membro, carteiraController.recomendacoes);
+router.get(`${base}/:carteiraId/recomendacoes/:recomendacaoId`, ...membro, carteiraController.recomendacao);
 
 module.exports = router;

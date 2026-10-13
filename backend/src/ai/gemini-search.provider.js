@@ -160,6 +160,8 @@ async function chamarComChaves(corpo, { signal }, deps) {
     grounding: candidato.groundingMetadata ?? null,
     modelo: json.modelVersion || config.model,
     tokens: json.usageMetadata?.totalTokenCount ?? null,
+    // Os tokens por tipo, como vieram (a recomendação das carteiras registra o custo, ADR 0127, §4).
+    uso: json.usageMetadata ?? null,
     chave: chaveUsada.chave,
     tentativas
   };

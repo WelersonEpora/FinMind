@@ -168,3 +168,26 @@ test("leitura das telas: o espaço B não enxerga rodadas, posições, ordens ne
   assert.deepEqual(await doB.listarOrdens(trilhas, { transaction }), []);
   assert.deepEqual(await doB.seriesPatrimonio(trilhas, { transaction }), []);
 });
+
+test("recomendação: gravada com a rodada; o espaço B não a enxerga; o banco recusa uma de B na rodada de A", opcoes, async () => {
+  const rodadas = require("./carteira-rodada.repository");
+  const doA = rodadas.forWorkspace(espacoA.id);
+  const doB = rodadas.forWorkspace(espacoB.id);
+  const registro = { tipo: "PRINCIPAL", situacao: "FALHA", motivo_falha: "SEM_LEITURAS", respostas: [], tentativas: [] };
+  const rodada = await doA.criarRodada({ carteiraId: carteiraA.id, data: "2026-10-15", decisao: "DECIDIDA", recomendacoes: [registro] }, { transaction });
+  const [rec] = await doA.listarRecomendacoes(carteiraA.id, { transaction });
+  assert.deepEqual([rec.data, rec.tipo, rec.rodada_id], ["2026-10-15", "PRINCIPAL", rodada.id]);
+  assert.ok(await doA.buscarRecomendacao(carteiraA.id, rec.id, { transaction }));
+  assert.deepEqual(await doB.listarRecomendacoes(carteiraA.id, { transaction }), []);
+  assert.equal(await doB.buscarRecomendacao(carteiraA.id, rec.id, { transaction }), null);
+  assert.equal(await doB.existeReplicaEntre(carteiraA.id, "2026-10-12", "2026-10-18", { transaction }), false);
+  await recusado(
+    (t) => db.CarteiraRecomendacao.create({ ...registro, id: randomUUID(), workspace_id: espacoB.id, rodada_id: rodada.id, data: "2026-10-15", tipo: "REPLICA" }, { transaction: t }),
+    "SequelizeForeignKeyConstraintError"
+  );
+  // VALIDA exige as recomendações.
+  await recusado(
+    (t) => doA.criarRodada({ carteiraId: carteiraA.id, data: "2026-10-16", decisao: "DECIDIDA", recomendacoes: [{ ...registro, situacao: "VALIDA" }] }, { transaction: t }),
+    "SequelizeDatabaseError"
+  );
+});

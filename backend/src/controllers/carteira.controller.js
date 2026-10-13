@@ -25,5 +25,7 @@ module.exports = {
   painel: responder((req) => painelCarteiraService.obterPainel(espaco(req), req.params.carteiraId)),
   rodadas: responder((req) => painelCarteiraService.listarRodadas(espaco(req), req.params.carteiraId)),
   posicoes: responder((req) => painelCarteiraService.listarPosicoes(espaco(req), req.params.carteiraId)),
-  operacoes: responder((req) => painelCarteiraService.listarOperacoes(espaco(req), req.params.carteiraId))
+  operacoes: responder((req) => painelCarteiraService.listarOperacoes(espaco(req), req.params.carteiraId)),
+  recomendacoes: responder((req) => painelCarteiraService.listarRecomendacoes(espaco(req), req.params.carteiraId)),
+  recomendacao: responder((req) => painelCarteiraService.obterRecomendacao(espaco(req), req.params.carteiraId, req.params.recomendacaoId))
 };

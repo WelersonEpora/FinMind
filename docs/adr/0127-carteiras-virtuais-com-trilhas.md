@@ -187,7 +187,22 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
      comprado em cada ativo com 1/n do patrimônio, sem alavancagem, sem stop nem alvo, sai no vencimento e volta no
      pregão seguinte (proposta do FinMind: a Cartilha não define a referência). A IA e o operador só rendem o caixa
      até as etapas 4 e 6.
-4. A recomendação e a trilha IA.
+4. A recomendação e a trilha IA. Tabela: `carteira_recomendacao`. O que esta etapa definiu:
+   - **A chamada** fica na decisão da rodada, depois do mercado e antes do motor: o prompt `ai/prompts/carteira-recomendacao.md`
+     (versão 1), só com a chave paga e o modelo de `GEMINI_MODEL_RECOMENDACAO` (em 2026-10-13, `gemini-3.8-flash`, o
+     que o alias da leitura diária devolvia). Sem o modelo fixado (vazio ou alias), sem a chave paga ou sem nenhuma
+     leitura no dia, nada vai à IA e a trilha IA fica no fallback; a falha nunca derruba a rodada.
+   - **A entrada** são as leituras de CURTO, MEDIO e LONGO (tendência, faixa, confiança, tese e o que a invalida) e até 10
+     eventos aceitos dos últimos 7 dias por ativo, cada um com um id (`MILHO.MEDIO`, `MILHO.EV1`) que as evidências
+     citam. Um ativo sem leitura no dia fica fora da entrada, e a trilha IA não entra nele (ou mantém), como a regra fixa.
+   - **Contrária à leitura** é um ramo contra a tendência do MEDIO: entrar comprado com ele em BAIXA (vendido com ele em
+     ALTA), ou manter comprado com ele em BAIXA (vendido com ele em ALTA). Fica marcada no registro e na intenção.
+   - **A réplica** é a da primeira recomendação válida da semana (segunda a domingo), com o mesmo prompt.
+   - **O custo** soma os tokens de todas as chamadas do dia (o raciocínio conta como saída), pelos preços em
+     `GEMINI_RECOMENDACAO_PRECO_ENTRADA` e `_SAIDA` (US$ por milhão); sem eles, fica nulo e os tokens bastam para
+     calcular depois.
+   - Testado em dev em 2026-10-13 com as leituras de 05/10 a 09/10: as 5 respostas e a réplica válidas na 1ª chamada, de 18
+     a 25 s e de 3 a 7 mil tokens cada.
 5. API e telas (protótipo aprovado: lista, criação, configuração, visão geral, recomendação, posições, operações,
    patrimônio). **Adiantada em parte** (decisão do usuário, 2026-10-13, para ver o módulo antes da IA): a API sob
    `/workspaces/:workspaceId/carteiras` (qualquer membro lê; só o dono cria e registra versão, §8) e as telas do que já
