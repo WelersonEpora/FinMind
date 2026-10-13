@@ -369,6 +369,16 @@ test("excluirEspaco NUNCA exclui o espaço pessoal, mesmo com o nome certo", asy
   assert.equal(repo.chamadas.delete.length, 0);
 });
 
+test("excluirEspaco com carteiras: o banco recusa (FK RESTRICT) e o erro vira 409", async () => {
+  const repo = repoExclusao();
+  repo.deleteSharedWorkspace = async () => {
+    const erro = new Error("viola a FK");
+    erro.name = "SequelizeForeignKeyConstraintError";
+    throw erro;
+  };
+  await assert.rejects(() => workspaceService.excluirEspaco("w1", { confirmacao: "Família Souza" }, { workspaceRepository: repo }), (erro) => erro.statusCode === 409 && /carteiras/.test(erro.message));
+});
+
 test("excluirEspaco com espaço inexistente: 404", async () => {
   await assert.rejects(() => workspaceService.excluirEspaco("w1", { confirmacao: "x" }, { workspaceRepository: repoExclusao({ espaco: null }) }), /não encontrado/);
 });

@@ -151,4 +151,74 @@ function pendencias(p) {
     .map(([ativo]) => ({ codigo: "CUSTO_PENDENTE", ativo, detalhe: `${ativo}: custo por contrato pendente; conta como zero até o número real.` }));
 }
 
-module.exports = { MODELO, PADRAO_POR_ATIVO, PADRAO_CARTEIRA, PADRAO_EXECUCAO, PERDAS_POR_CONTA, parametrosPadrao, validarParametros, pendencias };
+// --- Versões (ADR 0127, §8). Uma versão é { versao, tipo, vigente_desde, parametros }:
+//   INICIAL e AJUSTE  valem a partir de `vigente_desde`; um AJUSTE abre um segmento novo de medição;
+//   CORRECAO_CUSTO    o custo real por contrato: vale desde o início, em TODAS as versões, sem abrir segmento.
+// Os parâmetros de uma data são os da última INICIAL ou AJUSTE vigente nela, com o custo da última correção por cima.
+
+const TIPOS_VERSAO = Object.freeze(["INICIAL", "AJUSTE", "CORRECAO_CUSTO"]);
+
+// JSON com as chaves em ordem: dois objetos iguais dão o mesmo texto.
+function canonico(valor) {
+  if (Array.isArray(valor)) return `[${valor.map(canonico).join(",")}]`;
+  if (valor && typeof valor === "object") {
+    return `{${Object.keys(valor)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${canonico(valor[k])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(valor);
+}
+
+const semCustos = (p) => ({
+  ...p,
+  ativos: Object.fromEntries(Object.entries(p.ativos || {}).map(([ativo, a]) => [ativo, { ...a, custoPorContrato: undefined }]))
+});
+
+// -> { parametros, versao (a base), versaoCusto (a correção aplicada, ou null) }, ou null (nenhuma versão vigente).
+function resolverVigenteComVersao(versoes, data) {
+  const ordenadas = [...versoes].sort((a, b) => b.versao - a.versao);
+  const base = ordenadas.find((v) => v.tipo !== "CORRECAO_CUSTO" && v.vigente_desde <= data);
+  if (!base) return null;
+  const correcao = ordenadas.find((v) => v.tipo === "CORRECAO_CUSTO");
+  const parametros = structuredClone(base.parametros);
+  if (correcao) {
+    for (const [ativo, a] of Object.entries(parametros.ativos)) {
+      const custo = correcao.parametros.ativos?.[ativo]?.custoPorContrato;
+      if (custo != null) a.custoPorContrato = custo;
+    }
+  }
+  return { parametros, versao: base.versao, versaoCusto: correcao?.versao ?? null };
+}
+
+// -> os parâmetros que valem na data, ou null (nenhuma versão vigente ainda).
+function resolverVigente(versoes, data) {
+  return resolverVigenteComVersao(versoes, data)?.parametros ?? null;
+}
+
+// O tipo de uma mudança: `atuais` são os parâmetros em vigor (os da última versão, com o custo corrigido) e `novos`, os
+// propostos. -> { tipo: "AJUSTE" | "CORRECAO_CUSTO" } ou { erro } (nada mudou; custo junto com outra coisa).
+function classificarMudanca(atuais, novos) {
+  const restoMudou = canonico(semCustos(atuais)) !== canonico(semCustos(novos));
+  const custoMudou = Object.entries(novos.ativos || {}).some(([ativo, a]) => a.custoPorContrato !== atuais.ativos?.[ativo]?.custoPorContrato);
+  if (!restoMudou && !custoMudou) return { erro: "Nada mudou: nenhuma versão nova." };
+  if (restoMudou && custoMudou) {
+    return { erro: "Mude o custo por contrato numa versão à parte: ele vale desde o início, e as outras mudanças, a partir da próxima rodada." };
+  }
+  return { tipo: custoMudou ? "CORRECAO_CUSTO" : "AJUSTE" };
+}
+
+module.exports = {
+  MODELO,
+  PADRAO_POR_ATIVO,
+  PADRAO_CARTEIRA,
+  PADRAO_EXECUCAO,
+  PERDAS_POR_CONTA,
+  TIPOS_VERSAO,
+  parametrosPadrao,
+  validarParametros,
+  pendencias,
+  resolverVigente,
+  resolverVigenteComVersao,
+  classificarMudanca
+};

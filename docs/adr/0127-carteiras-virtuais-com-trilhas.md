@@ -124,7 +124,9 @@ Sobre as leituras congeladas do dia:
 - **O custo por contrato é a exceção** (decisão do usuário, 2026-10-13): custo é fato, não escolha de estratégia. Sem o
   número real, a carteira roda com custo zero e o aviso "custo pendente". Quando ele chegar, vale **desde o início**:
   lançamentos de correção com a data de cada execução já feita (o razão segue append-only) e o patrimônio refeito, sem
-  abrir segmento novo.
+  abrir segmento novo. Os parâmetros de uma data são os da última versão INICIAL ou AJUSTE vigente nela, com o custo da
+  última correção por cima: a correção não traz para trás um ajuste feito depois do início. Custo e outra mudança na
+  mesma versão são recusados.
 - **No sistema**, iguais para todas as carteiras e mudados só por ADR: o modelo e a chave da IA, a versão do prompt da
   recomendação, a versão das regras da Determinística, a especificação dos contratos, o calendário e o horário da rotina.
 - **Só o dono do espaço** muda parâmetros; o editor usa o diário; o viewer só lê.
@@ -166,10 +168,32 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
 0. Este ADR; `CLAUDE.md`, `STATUS_DO_PROJETO.md` e ADR 0007.
 1. O domínio puro (`backend/src/carteiras/`): parâmetros, ATR, risco, travas, motor e razão, com testes.
 2. Migrations, models e repositórios `forWorkspace`; a criação da carteira; o teste de isolamento com o Postgres no CI.
-3. A rodada, a trilha Determinística, as referências e o script.
+   As tabelas desta etapa são `carteira`, `carteira_parametros_versao` e `carteira_trilha`; as da rodada, das ordens e
+   do razão entram na 3, com quem as usa, e a `recomendacao`, na 4.
+3. A rodada, a trilha Determinística, as referências e o script. Tabelas: `carteira_rodada`, `carteira_rodada_leitura`
+   (a cópia congelada), `carteira_intencao`, `carteira_ordem`, `carteira_posicao` e `carteira_posicao_evento`,
+   `carteira_lancamento` (o razão) e `carteira_patrimonio_diario`. O que esta etapa definiu:
+   - **A rotina** (`npm run carteiras`, no cron do usuário `deploy` às 06h30 de Brasília): cria SEM_DECISAO os dias
+     úteis sem rodada (a rotina não rodou), liquida as pendentes em ordem e para na primeira sem dado, e decide o dia.
+     Com uma liquidação pendente, a rodada do dia fica SEM_DECISAO; um erro na decisão também (nada é gravado da decisão
+     que falhou). Toda rodada é liquidada, com ou sem decisão: stop, alvos, marcação e Selic.
+   - **O mercado** (só dado global): o contrato é o primeiro vencimento com o limite a mais de 30 dias úteis e com a
+     liquidez mínima no último pregão até D−1; o ATR(14) dele; a PTAX de D−1 para o tamanho. Na liquidação, a barra do
+     dia, a PTAX do dia e a Selic realizada (% a.a.) em taxa diária de 252 dias úteis. Calendário de segunda a sexta:
+     o dia útil do caixa é o da PTAX; até 4 dias corridos a liquidação espera pelo dado do dia, depois o trata como
+     feriado (as ordens expiram e o caixa não rende).
+   - **As referências:** o caixa só rende; a Persistência é a direção da variação de 30 dias do contrato operado, com a
+     faixa LATERAL do MEDIO do ativo, passada pela regra da Determinística e pelo motor; o comprar e segurar fica
+     comprado em cada ativo com 1/n do patrimônio, sem alavancagem, sem stop nem alvo, sai no vencimento e volta no
+     pregão seguinte (proposta do FinMind: a Cartilha não define a referência). A IA e o operador só rendem o caixa
+     até as etapas 4 e 6.
 4. A recomendação e a trilha IA.
 5. API e telas (protótipo aprovado: lista, criação, configuração, visão geral, recomendação, posições, operações,
-   patrimônio).
+   patrimônio). **Adiantada em parte** (decisão do usuário, 2026-10-13, para ver o módulo antes da IA): a API sob
+   `/workspaces/:workspaceId/carteiras` (qualquer membro lê; só o dono cria e registra versão, §8) e as telas do que já
+   roda: a lista e a criação (só a conta B3 até a etapa 8; os parâmetros padrão, mudados depois por versão) e a de uma
+   carteira, com visão geral (o patrimônio no gráfico como retorno acumulado em % do capital, para as trilhas se
+   compararem na mesma escala), rodadas, posições, operações e configuração. A tela da recomendação entra com a etapa 4.
 6. O diário do operador.
 7. A medição.
 8. A conta internacional.

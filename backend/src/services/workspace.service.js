@@ -189,7 +189,16 @@ async function excluirEspaco(workspaceId, { confirmacao } = {}, deps = {}) {
     throw new ValidationError("Confirmação inválida: informe o nome exato do espaço para excluí-lo.");
   }
 
-  await repo.deleteSharedWorkspace(workspaceId);
+  try {
+    await repo.deleteSharedWorkspace(workspaceId);
+  } catch (erro) {
+    // Dado privado do espaço (as carteiras, ADR 0127) tem FK RESTRICT: o banco recusa, nada é apagado em silêncio
+    // (ADR 0007, §6).
+    if (erro?.name === "SequelizeForeignKeyConstraintError") {
+      throw new ConflictError("O espaço tem carteiras e não pode ser excluído: o histórico delas não é apagado.");
+    }
+    throw erro;
+  }
 }
 
 module.exports = {

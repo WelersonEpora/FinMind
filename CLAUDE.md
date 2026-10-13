@@ -135,6 +135,13 @@ cd backend && GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica-ia-
 cd backend && ANALISE_DIARIA_REFAZER=1 npm run collect -- --coletor=analise
 ```
 
+A rotina diária das carteiras virtuais (ADR 0127) é outro script, separado da coleta: liquida as rodadas pendentes e
+decide a do dia em cada carteira ativa; rodar de novo no mesmo dia não refaz nada. No servidor, no cron às 06h30:
+
+```bash
+cd backend && npm run carteiras
+```
+
 Pra preencher histórico retroativo (ex.: banco recém-criado):
 
 ```bash
@@ -388,8 +395,9 @@ Ver também `backend/src/collectors/base/README.md`.
   mercado (`/dados-mercado/...`) são globais e não levam espaço na URL. O
   guard é UX, não segurança: o servidor deve checar o vínculo quando houver
   dado privado (ADR 0007, §6). Na sidebar, o grupo **Espaço** lista o que
-  existe *dentro* do espaço ativo (hoje só "Visão geral", `/e/:workspaceId`;
-  Carteiras/Operações/Posições/Patrimônio são placeholders desabilitados) — o
+  existe *dentro* do espaço ativo ("Visão geral", `/e/:workspaceId`, e "Carteiras",
+  as virtuais do ADR 0127, `/e/:workspaceId/carteiras` e `/e/:workspaceId/carteiras/:carteiraId` com a aba em `?aba=`;
+  Operações/Posições/Patrimônio são placeholders desabilitados) — o
   **seletor de espaço** (`WorkspaceSwitcher.vue`) é o cabeçalho desse grupo e o
   único lugar que mostra o nome do espaço; a topbar não tem seletor. Escolher um
   espaço leva sempre à Visão geral dele, de qualquer página. Cuidado

@@ -8,7 +8,8 @@
 //
 // A ação depende do estado da trilha no ativo: sem posição, entrar ou não; com posição, manter, reduzir ou zerar.
 
-const TRILHAS = Object.freeze(["OPERADOR", "IA", "DETERMINISTICA"]);
+// A Persistência é uma referência calculada, mas decide pelo mesmo contrato (carteiras/referencias.js).
+const TRILHAS = Object.freeze(["OPERADOR", "IA", "DETERMINISTICA", "PERSISTENCIA"]);
 const ACOES_SEM_POSICAO = Object.freeze(["ENTRAR_COMPRADO", "ENTRAR_VENDIDO", "NAO_ENTRAR"]);
 const ACOES_COM_POSICAO = Object.freeze(["MANTER", "REDUZIR", "ZERAR"]);
 const ORIGENS = Object.freeze(["RECOMENDACAO", "REGRA", "FALLBACK", "OPERADOR"]);

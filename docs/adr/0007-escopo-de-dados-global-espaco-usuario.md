@@ -102,6 +102,17 @@ Regras adicionais, todas obrigatórias:
 | `analise_diaria` | GLOBAL | leitura diária de tendência da IA, uma por ativo e dia, com o prompt, a resposta e as versões (ADR 0052; hoje só o petróleo); sem `workspace_id` |
 | `collection_execution` | GLOBAL | visibilidade hoje aberta a autenticados; restringir a admin de plataforma quando houver clientes externos |
 | `system_setting` | GLOBAL | configuração da plataforma |
+| `carteira` | PRIVADA | carteira virtual (ADR 0127): conta, moeda, capital e início fixos; `ON DELETE RESTRICT` no espaço; `UNIQUE (workspace_id, id)` como alvo das FKs compostas |
+| `carteira_parametros_versao` | PRIVADA | parâmetros da carteira, uma versão por mudança, append-only, com autor e motivo (ADR 0127, §8); FK composta `(workspace_id, carteira_id)` |
+| `carteira_trilha` | PRIVADA | as três trilhas e as três referências de cada carteira (ADR 0127, §2); FK composta `(workspace_id, carteira_id)` |
+| `carteira_rodada` | PRIVADA | a rodada diária de uma carteira, uma por dia útil (ADR 0127, §3); decide uma vez e liquida uma vez |
+| `carteira_rodada_leitura` | PRIVADA | a cópia congelada da leitura de tendência que a rodada usou, append-only |
+| `carteira_intencao` | PRIVADA | a intenção de cada trilha por ativo e rodada e o que o motor fez dela, append-only |
+| `carteira_ordem` | PRIVADA | as ordens virtuais; mudam de estado uma vez (executada, expirada, rejeitada) |
+| `carteira_posicao` | PRIVADA | as posições (as operações) de cada trilha; no máximo uma aberta por trilha e ativo |
+| `carteira_posicao_evento` | PRIVADA | entrada, stop, alvos, redução e saída de cada posição, append-only |
+| `carteira_lancamento` | PRIVADA | o razão de cada trilha (marcação, custos, Selic), append-only |
+| `carteira_patrimonio_diario` | PRIVADA | o patrimônio de cada trilha por dia, projeção recalculável do razão |
 | `user` | USER (identidade) | identidade global, não vínculo com espaço |
 | `workspace` | estrutura de vínculo | não é dado de mercado nem privado |
 | `workspace_member` | estrutura de vínculo | idem |

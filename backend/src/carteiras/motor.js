@@ -2,7 +2,7 @@
 
 const crypto = require("node:crypto");
 const { somarDiasUteis, diasUteisEntre } = require("./calendario");
-const { ESPECIFICACOES, valorDoPonto } = require("./especificacoes");
+const { CONTAS, ESPECIFICACOES, valorDoPonto } = require("./especificacoes");
 const { LADO_DA_ENTRADA, validarIntencao } = require("./intencao");
 const { sinal, niveis, planejarEntradaAutomatica, conferirPlanoDoOperador, truncar } = require("./risco");
 
@@ -164,7 +164,9 @@ function liquidar({ data, estado, ordens = [], barras = {}, parametros, cambio =
   const lancar = (pos, tipo, valor, descricao) => {
     const v = arred2(valor);
     if (v === 0) return;
-    lancamentos.push({ data, tipo, ativo: pos?.ativo ?? null, posicaoId: pos?.id ?? null, valor: v, cambio: pos ? cambio : null, descricao });
+    // O câmbio só nos ativos cotados em outra moeda (o café e a soja na B3).
+    const convertido = pos && ESPECIFICACOES[pos.ativo].moedaPreco !== CONTAS[conta].moeda;
+    lancamentos.push({ data, tipo, ativo: pos?.ativo ?? null, posicaoId: pos?.id ?? null, valor: v, cambio: convertido ? cambio : null, descricao });
     if (pos) pos.resultadoMoeda = arred2((pos.resultadoMoeda || 0) + v);
   };
 
@@ -173,7 +175,7 @@ function liquidar({ data, estado, ordens = [], barras = {}, parametros, cambio =
   function executar(pos, preco, quantidade, evento) {
     const s = sinal(pos.lado);
     ajusteDoDia.set(pos.id, (ajusteDoDia.get(pos.id) || 0) + (preco - pos.ultimoAjuste) * s * quantidade * vp(pos.ativo));
-    pos.resultadoR = (pos.resultadoR || 0) + ((preco - pos.entrada) * s * quantidade) / (pos.distancia * pos.quantidadeInicial);
+    if (pos.distancia) pos.resultadoR = (pos.resultadoR || 0) + ((preco - pos.entrada) * s * quantidade) / (pos.distancia * pos.quantidadeInicial);
     pos.quantidadeAberta = arred6(pos.quantidadeAberta - quantidade);
     lancar(pos, "CUSTO", -custoUnitario(pos.ativo) * quantidade, `${evento} ${pos.ativo}: ${quantidade} a ${preco}`);
     eventos.push({ data, posicaoId: pos.id, tipo: evento, preco, quantidade });
@@ -186,7 +188,8 @@ function liquidar({ data, estado, ordens = [], barras = {}, parametros, cambio =
   // 1. Stop e alvos das posições que já existiam, pela faixa do dia. Stop primeiro (ordem pessimista).
   for (const pos of posicoes) {
     const barra = barras[pos.contrato.ticker];
-    if (!barra) continue;
+    // Sem stop (a referência comprar e segurar): nem stop nem alvo.
+    if (!barra || pos.stop == null) continue;
     const s = sinal(pos.lado);
     const { maxima, minima } = faixaDa(barra);
     const contra = s > 0 ? minima : maxima;
@@ -228,8 +231,9 @@ function liquidar({ data, estado, ordens = [], barras = {}, parametros, cambio =
         continue;
       }
       const preco = informado ?? barra.ajuste + s * slip(ordem.ativo);
-      const distancia = ordem.stopInformado != null ? (preco - ordem.stopInformado) * s : ordem.distancia;
-      if (!(distancia > 0)) {
+      const semStop = ordem.semStop === true;
+      const distancia = semStop ? null : ordem.stopInformado != null ? (preco - ordem.stopInformado) * s : ordem.distancia;
+      if (!semStop && !(distancia > 0)) {
         resolver("REJEITADA", "STOP_DO_LADO_ERRADO");
         continue;
       }
@@ -241,14 +245,14 @@ function liquidar({ data, estado, ordens = [], barras = {}, parametros, cambio =
         dataEntrada: data,
         entrada: preco,
         distancia,
-        ...niveis(ordem.lado, preco, distancia, parametros.ativos[ordem.ativo]),
+        ...(semStop ? { stop: null, alvo1: null, alvo2: null } : niveis(ordem.lado, preco, distancia, parametros.ativos[ordem.ativo])),
         quantidadeInicial: ordem.quantidade,
         quantidadeAberta: ordem.quantidade,
-        risco1R: arred2(ordem.quantidade * distancia * vp(ordem.ativo)),
+        risco1R: semStop ? null : arred2(ordem.quantidade * distancia * vp(ordem.ativo)),
         alvo1Atingido: false,
         reduzida: false,
         ultimoAjuste: preco,
-        resultadoR: 0,
+        resultadoR: semStop ? null : 0,
         resultadoMoeda: 0
       };
       pos.stopInicial = pos.stop;
@@ -288,7 +292,7 @@ function liquidar({ data, estado, ordens = [], barras = {}, parametros, cambio =
   const abertas = [];
   for (const pos of posicoes) {
     if (pos.quantidadeAberta > 0) abertas.push(pos);
-    else encerradas.push({ ...pos, dataSaida: data, resultadoR: Math.round(pos.resultadoR * 1e4) / 1e4 });
+    else encerradas.push({ ...pos, dataSaida: data, resultadoR: pos.resultadoR == null ? null : Math.round(pos.resultadoR * 1e4) / 1e4 });
   }
   const patrimonio = arred2(estado.patrimonio + lancamentos.reduce((soma, l) => soma + l.valor, 0));
   return { estado: { patrimonio, posicoes: abertas }, resolucoes, lancamentos, eventos, encerradas };

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/auth.js'
 import { useWorkspaceStore } from '../../stores/workspace.js'
 import { version as appVersion } from '../../../package.json'
@@ -13,6 +14,7 @@ defineProps({
 const emit = defineEmits(['navigate'])
 
 const auth = useAuthStore()
+const route = useRoute()
 const workspaces = useWorkspaceStore()
 
 const links = [
@@ -33,17 +35,21 @@ const dadosMercadoLinks = [
 // Grupo "Espaço": o seletor do espaço ativo (único lugar que mostra o nome
 // do espaço) e, abaixo, o que existe DENTRO dele - trocar de espaço não muda a
 // estrutura do menu, só para onde "Visão geral" aponta. Sem espaço ativo
-// (falha ao carregar a lista) o grupo inteiro some. Só "Visão geral" existe;
-// os demais são entidades privadas ainda não implementadas (ver ADR 0007).
+// (falha ao carregar a lista) o grupo inteiro some. Existem "Visão geral" e
+// "Carteiras" (as virtuais, ADR 0127); os demais são entidades privadas ainda
+// não implementadas (ver ADR 0007).
 const espacoLinks = computed(() => {
   const active = workspaces.active.value
   if (!active) return []
 
-  return [{ to: { name: 'espaco', params: { workspaceId: active.id } }, label: 'Visão geral', icon: 'bi-house-door' }]
+  return [
+    { to: { name: 'espaco', params: { workspaceId: active.id } }, label: 'Visão geral', icon: 'bi-house-door' },
+    // A tela de uma carteira (outra rota) também deixa este item ativo.
+    { to: { name: 'carteiras', params: { workspaceId: active.id } }, label: 'Carteiras', icon: 'bi-wallet2', rotas: ['carteira'] }
+  ]
 })
 
 const espacoFutureLinks = [
-  { label: 'Carteiras', icon: 'bi-wallet2' },
   { label: 'Operações', icon: 'bi-arrow-left-right' },
   { label: 'Posições', icon: 'bi-pie-chart' },
   { label: 'Patrimônio', icon: 'bi-bank' }
@@ -97,6 +103,7 @@ const systemLinks = computed(() => {
           <router-link
             :to="link.to"
             class="nav-link text-white d-flex align-items-center gap-2"
+            :class="{ active: link.rotas?.includes(route.name) }"
             active-class="active"
             :title="link.label"
             @click="emit('navigate')"

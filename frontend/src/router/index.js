@@ -13,6 +13,8 @@ import EventosView from '../views/EventosView.vue'
 import MetodologiaAtivoView from '../views/MetodologiaAtivoView.vue'
 import QualidadeIaView from '../views/QualidadeIaView.vue'
 import EspacoView from '../views/EspacoView.vue'
+import CarteirasView from '../views/CarteirasView.vue'
+import CarteiraView from '../views/CarteiraView.vue'
 import StatusProjetoView from '../views/StatusProjetoView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 import ServidorIndisponivelView from '../views/ServidorIndisponivelView.vue'
@@ -41,6 +43,9 @@ const router = createRouter({
     // valida o :workspaceId de qualquer rota assim. Páginas de mercado
     // (/dados-mercado/...) são globais e não levam espaço na URL.
     { path: '/e/:workspaceId', name: 'espaco', component: EspacoView },
+    // Carteiras virtuais (ADR 0127): a lista e a de uma carteira (a aba vem em ?aba=).
+    { path: '/e/:workspaceId/carteiras', name: 'carteiras', component: CarteirasView },
+    { path: '/e/:workspaceId/carteiras/:carteiraId', name: 'carteira', component: CarteiraView },
     { path: '/configuracao', name: 'configuracao', component: ConfiguracaoView },
     { path: '/status-projeto', name: 'status-projeto', component: StatusProjetoView },
     { path: '/usuarios', name: 'usuarios', component: UsuariosView, meta: { requiresAdmin: true } },
