@@ -262,6 +262,20 @@ function forWorkspace(workspaceId) {
       }));
     },
 
+    // A versão do prompt e o modelo da leitura de tendência de cada ativo, por rodada (a medição registra as mudanças).
+    async leiturasParaMedicao(carteiraId, { transaction } = {}) {
+      const rodadas = await CarteiraRodada.findAll({ where: doEspaco({ carteira_id: carteiraId }), attributes: ["id", "data"], raw: true, transaction });
+      if (!rodadas.length) return [];
+      const dataDe = new Map(rodadas.map((r) => [r.id, r.data]));
+      const linhas = await CarteiraRodadaLeitura.findAll({
+        where: doEspaco({ rodada_id: [...dataDe.keys()], situacao: "OK" }),
+        attributes: ["rodada_id", "ativo", "versao_prompt", "modelo"],
+        raw: true,
+        transaction
+      });
+      return linhas.map((l) => ({ data: dataDe.get(l.rodada_id), ativo: l.ativo, versaoPrompt: l.versao_prompt, modelo: l.modelo }));
+    },
+
     // Os lançamentos do razão das trilhas, só o que a atribuição por ativo precisa.
     async lancamentosParaMedicao(trilhaIds, { transaction } = {}) {
       const linhas = await CarteiraLancamento.findAll({ where: doEspaco({ trilha_id: trilhaIds }), attributes: ["trilha_id", "data", "tipo", "ativo", "valor"], raw: true, transaction });

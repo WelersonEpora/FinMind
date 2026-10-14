@@ -3,12 +3,14 @@ import { computed, ref, watch } from 'vue'
 import LineChart from '../charts/LineChart.vue'
 import CarteiraMedicaoSecundarias from './CarteiraMedicaoSecundarias.vue'
 import carteirasService from '../../services/carteiras.service.js'
-import { formatarData, formatarMoeda, formatarRetorno, formatarUsd, rotulo } from '../../utils/carteiras.js'
+import { formatarData, formatarMoeda, formatarRetorno, nomeAtivo, rotulo } from '../../utils/carteiras.js'
 
-// A medição pré-registrada (ADR 0127, §10; etapa 7): a recomendação da IA agrega valor sobre a regra fixa? A diferença
-// diária de retorno IA − Determinística, em % do capital inicial, no segmento em vigor; o intervalo de 80%; as datas
-// (3 meses, só descritivo; 6, a avaliação; 12, a final). Antes da avaliação, os números são parciais e sem veredito.
-// E o custo da IA, com o ponto de equilíbrio, e as métricas secundárias (etapa 7b), só descritivas.
+// A medição pré-registrada (ADR 0127, §10; etapa 7): a IA agrega valor ao processo, sobre uma regra sem nenhuma IA? A
+// diferença diária de retorno IA − Persistência, em % do capital inicial (a pergunta revista pelo usuário em
+// 2026-10-14), no segmento em vigor; o intervalo de 80%; as datas (3 meses, só descritivo; 6, a avaliação; 12, a final).
+// Antes da avaliação, os números são parciais e sem veredito. Abaixo, as duas partes que somam a principal, com
+// intervalo e sem veredito: a recomendação (IA − Determinística) e as leituras (Determinística − Persistência). E as
+// métricas secundárias (etapa 7b), só descritivas.
 const props = defineProps({
   workspaceId: { type: String, required: true },
   carteira: { type: Object, required: true }
@@ -32,7 +34,20 @@ async function carregar() {
 
 watch(() => props.carteira.id, carregar, { immediate: true })
 
-const pontos = computed(() => (medicao.value?.serie || []).map((p) => ({ data: p.data, valor: Math.round(p.acumulada * 1e4) / 1e4 })))
+const arred = (v) => Math.round(v * 1e4) / 1e4
+const pontos = computed(() => {
+  const m = medicao.value
+  if (!m) return []
+  const linha = (serie, chave) => serie.map((p) => ({ data: p.data, valor: arred(p.acumulada), serie: chave }))
+  return [...linha(m.serie, 'principal'), ...linha(m.partes.recomendacao.serie, 'recomendacao'), ...linha(m.partes.leituras.serie, 'leituras')]
+})
+const ROTULOS_GRAFICO = { principal: 'IA − Persistência (a pergunta)', recomendacao: 'Recomendação (IA − Determinística)', leituras: 'Leituras (Determinística − Persistência)' }
+const PARTES = [
+  { chave: 'recomendacao', nome: 'A recomendação', medida: 'IA − Determinística', texto: 'As duas usam as mesmas leituras; muda só quem decide: a recomendação da IA ou a regra fixa.' },
+  { chave: 'leituras', nome: 'As leituras de tendência', medida: 'Determinística − Persistência', texto: 'A mesma regra fixa, sobre as leituras da IA ou sobre a direção dos últimos 30 dias do preço.' }
+]
+const intervalo = (r) => (r?.intervaloAcumulada ? `${formatarRetorno(r.intervaloAcumulada.inferior)} a ${formatarRetorno(r.intervaloAcumulada.superior)}` : '—')
+const ROTULO_CAMPO = { versaoPrompt: 'prompt', modelo: 'modelo' }
 const diasAte = (data) => Math.round((new Date(`${data}T00:00:00Z`) - new Date(`${medicao.value.hoje}T00:00:00Z`)) / 86400000)
 const DATAS = [
   { chave: 'descritiva', nome: '3 meses', texto: 'Só descritivo: nada se decide' },
@@ -53,11 +68,12 @@ const faltamDias = computed(() => Math.max(0, (medicao.value?.metodo.minimoDias 
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start gap-2">
             <div>
-              <h3 class="h6 mb-1">A recomendação da IA agrega valor sobre a regra fixa?</h3>
+              <h3 class="h6 mb-1">A IA agrega valor ao processo, sobre uma regra sem nenhuma IA?</h3>
               <p class="small text-muted mb-2">
-                A medida é a diferença diária de retorno entre a trilha IA e a trilha Determinística, em % do capital
-                inicial, com um intervalo de {{ Math.round(medicao.metodo.nivel * 100) }}%. Agrega se o intervalo fica todo acima de zero; não agrega
-                se fica todo abaixo; senão, é inconclusivo.
+                A medida é a diferença diária de retorno entre a trilha IA (as leituras e a recomendação da IA) e a referência
+                Persistência (a direção dos últimos 30 dias do preço, sem nenhuma IA), com o mesmo motor, stop e travas, em % do
+                capital inicial, com um intervalo de {{ Math.round(medicao.metodo.nivel * 100) }}%. Agrega se o intervalo fica todo acima de zero; não
+                agrega se fica todo abaixo; senão, é inconclusivo.
               </p>
             </div>
             <button type="button" class="btn btn-outline-secondary btn-sm" :disabled="loading" title="Atualizar" @click="carregar">
@@ -65,13 +81,17 @@ const faltamDias = computed(() => Math.max(0, (medicao.value?.metodo.minimoDias 
             </button>
           </div>
           <div class="small">
-            Segmento desde <strong>{{ formatarData(medicao.segmento.inicio) }}</strong> · parâmetros v{{ medicao.segmento.parametrosVersao ?? '—' }} · modelo
-            {{ medicao.segmento.modelo || '—' }} · prompt {{ medicao.segmento.versaoPrompt || '—' }}
+            Segmento desde <strong>{{ formatarData(medicao.segmento.inicio) }}</strong> · parâmetros v{{ medicao.segmento.parametrosVersao ?? '—' }} · recomendação:
+            modelo {{ medicao.segmento.modelo || '—' }}, prompt {{ medicao.segmento.versaoPrompt || '—' }}
             <template v-if="medicao.mudouEm.length"> · começou quando mudou {{ medicao.mudouEm.map(rotulo).join(' e ') }}</template>
           </div>
           <div v-if="medicao.segmentosAnteriores.length" class="small text-muted mt-1">
             Segmentos anteriores (não contam):
             <span v-for="(s, i) in medicao.segmentosAnteriores" :key="s.inicio">{{ i ? '; ' : '' }}{{ formatarData(s.inicio) }} a {{ formatarData(s.fim) }}</span>.
+          </div>
+          <div v-if="medicao.mudancasDasLeituras.length" class="small text-muted mt-1">
+            Mudanças nas leituras de tendência neste segmento (registradas; não reiniciam a contagem):
+            <span v-for="(m, i) in medicao.mudancasDasLeituras" :key="m.data + m.ativo + m.campo">{{ i ? '; ' : '' }}{{ formatarData(m.data) }}, {{ nomeAtivo(m.ativo) }}, {{ ROTULO_CAMPO[m.campo] }} {{ m.de }} → {{ m.para }}</span>.
           </div>
         </div>
       </div>
@@ -135,48 +155,51 @@ const faltamDias = computed(() => Math.max(0, (medicao.value?.metodo.minimoDias 
               </div>
             </div>
             <p class="small text-muted mt-2 mb-2">
-              Positivo: a trilha IA rendeu mais que a Determinística. Em pontos percentuais do capital inicial de
+              Positivo: a trilha IA rendeu mais que a Persistência. Em pontos percentuais do capital inicial de
               {{ formatarMoeda(medicao.capitalInicial, medicao.moeda) }}.
             </p>
-            <LineChart v-if="pontos.length > 1" :pontos="pontos" :series-labels="{}" unidade="%" :casas-decimais="2" altura="260px" />
           </template>
         </div>
       </div>
 
-      <!-- O custo da IA -->
-      <div class="card mb-3">
+      <!-- As duas partes -->
+      <div v-if="medicao.parcial.dias" class="card mb-3">
         <div class="card-body">
-          <h3 class="h6">O custo da IA no segmento</h3>
-          <div class="row g-2 small">
-            <div class="col-6 col-md-3"><span class="text-muted d-block">Chamadas</span>{{ medicao.custo.chamadas }} ({{ medicao.custo.tokens.toLocaleString('pt-BR') }} tokens)</div>
-            <div class="col-6 col-md-3">
-              <span class="text-muted d-block">Custo</span>
-              <template v-if="medicao.custo.completo">
-                {{ formatarUsd(medicao.custo.custoUsd) }}
-                <template v-if="medicao.custo.cambio"> · {{ formatarMoeda(medicao.custo.custoMoeda, medicao.moeda) }}</template>
-              </template>
-              <template v-else>incompleto ({{ medicao.custo.semPreco }} sem preço)</template>
-            </div>
-            <div class="col-6 col-md-3"><span class="text-muted d-block">Dias em fallback</span>{{ medicao.custo.fallback }} de {{ medicao.custo.dias }}</div>
-            <div class="col-6 col-md-3">
-              <span class="text-muted d-block">Ponto de equilíbrio</span>
-              <template v-if="medicao.custo.pontoDeEquilibrio != null">capital de {{ formatarMoeda(medicao.custo.pontoDeEquilibrio, medicao.moeda) }}</template>
-              <template v-else-if="!medicao.custo.completo">precisa do custo completo</template>
-              <template v-else>sem vantagem da IA até agora</template>
-            </div>
-          </div>
-          <p class="small text-muted mt-2 mb-0">
-            O custo é fixo por carteira e não cresce com o capital; a vantagem da IA, em %, sim. O ponto de equilíbrio é o
-            capital a partir do qual a vantagem acumulada ({{ formatarMoeda(medicao.custo.vantagemMoeda, medicao.moeda) }} com o capital desta carteira)
-            paga o custo.
-            <template v-if="medicao.custo.cambio">Em reais pela PTAX de {{ formatarData(medicao.custo.cambio.data) }}.</template>
-            {{ " " }}<strong>Neste cálculo de custo, estamos levando em conta apenas as chamadas da Recomendação</strong>: as leituras de tendência (os horizontes) e a de eventos de mercado ficam de
-            fora, porque as duas trilhas as usam e elas seriam pagas de qualquer jeito. Não é o custo total da IA.
-            <template v-if="!medicao.custo.completo">
-              {{ medicao.custo.semPreco }} chamada(s) sem preço: o custo sai dos tokens quando os preços do modelo estiverem no .env do servidor
-              (GEMINI_RECOMENDACAO_PRECO_ENTRADA e _SAIDA, em US$ por milhão de tokens).
-            </template>
+          <h3 class="h6 mb-1">De onde vem: as duas partes</h3>
+          <p class="small text-muted mb-2">
+            A diferença IA − Persistência é a soma de duas partes. Elas mostram qual camada da IA traz o resultado; têm intervalo, mas
+            não têm veredito (o veredito é um só, o da pergunta acima).
           </p>
+          <div class="table-responsive">
+            <table class="table table-sm small mb-2">
+              <thead>
+                <tr>
+                  <th>Parte</th>
+                  <th class="text-end">Diferença acumulada</th>
+                  <th class="text-end">Intervalo de {{ Math.round(medicao.metodo.nivel * 100) }}%</th>
+                  <th v-if="medicao.avaliacao" class="text-end">Na avaliação (6 meses)</th>
+                  <th v-if="medicao.final" class="text-end">Na final (12 meses)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in PARTES" :key="p.chave">
+                  <td>
+                    <strong>{{ p.nome }}</strong> <span class="text-muted">({{ p.medida }})</span>
+                    <div class="text-muted">{{ p.texto }}</div>
+                  </td>
+                  <td class="text-end fw-semibold">{{ formatarRetorno(medicao.partes[p.chave].parcial.acumulada) }}</td>
+                  <td class="text-end">{{ intervalo(medicao.partes[p.chave].parcial) }}</td>
+                  <td v-if="medicao.avaliacao" class="text-end">
+                    {{ formatarRetorno(medicao.partes[p.chave].avaliacao?.acumulada) }} ({{ intervalo(medicao.partes[p.chave].avaliacao) }})
+                  </td>
+                  <td v-if="medicao.final" class="text-end">
+                    {{ formatarRetorno(medicao.partes[p.chave].final?.acumulada) }} ({{ intervalo(medicao.partes[p.chave].final) }})
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <LineChart v-if="pontos.length > 3" :pontos="pontos" :series-labels="ROTULOS_GRAFICO" unidade="%" :casas-decimais="2" altura="280px" />
         </div>
       </div>
 
@@ -189,8 +212,8 @@ const faltamDias = computed(() => Math.max(0, (medicao.value?.metodo.minimoDias 
 
       <p class="small text-muted mb-0">
         Método (pré-registrado no ADR 0127): block bootstrap circular da média diária, blocos de {{ medicao.metodo.bloco }} pregões,
-        {{ medicao.metodo.reamostragens.toLocaleString('pt-BR') }} reamostragens, semente {{ medicao.metodo.semente }}. Mudar os parâmetros, o modelo ou o prompt
-        reinicia a contagem.
+        {{ medicao.metodo.reamostragens.toLocaleString('pt-BR') }} reamostragens, semente {{ medicao.metodo.semente }}. Mudar os parâmetros, ou o modelo ou o prompt
+        da recomendação, reinicia a contagem; uma mudança nas leituras de tendência fica registrada.
       </p>
     </template>
   </div>

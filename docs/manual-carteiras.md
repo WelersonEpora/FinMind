@@ -7,7 +7,7 @@ no ADR 0127; este manual só explica o funcionamento.
 
 Uma carteira virtual é uma **simulação**: nenhuma ordem real é enviada, e nenhuma corretora está ligada ao FinMind. Ela
 aplica as regras da Cartilha de Operações v1.0 do Comitê (risco por operação, stop, alvos e travas) para responder uma
-pergunta: **a recomendação da IA agrega valor sobre uma regra fixa?**
+pergunta: **a IA agrega valor ao processo, sobre uma regra sem nenhuma IA?**
 
 Na criação, a carteira recebe a conta (a B3, com milho, café e soja, em reais; ou a internacional, com ouro e
 petróleo, em dólar, seção 9), o capital inicial, a data de início e os ativos. Os parâmetros começam nos padrões da Cartilha e só mudam por uma versão nova, registrada com motivo, na aba
@@ -238,8 +238,8 @@ também nas listas de planejadas e encerradas. Se o diário bloqueasse, as entra
 aderência não mediria nada.
 
 **O limite do checklist:** os cinco itens manuais são uma declaração do operador, que ninguém confere. A aderência mostra
-como o operador trabalha, não se o sistema funciona: a pergunta do experimento (a recomendação da IA agrega valor sobre a
-regra fixa?) é medida só entre as trilhas IA e Determinística, sem o operador e sem o checklist.
+como o operador trabalha, não se o sistema funciona: a pergunta do experimento (a IA agrega valor ao processo?) é medida
+só entre as trilhas IA, Determinística e Persistência, sem o operador e sem o checklist.
 
 **Planejada.** A entrada registrada fica **planejada** até a liquidação do dia. Até lá, você pode **editar** (a antiga
 é cancelada e uma nova entra no lugar) ou **cancelar**. Na liquidação, o sistema confere o seu preço contra a mínima e a
@@ -263,13 +263,31 @@ vencimento do contrato também encerra a posição, 15 dias úteis antes do limi
 
 ## 8. A aba Medição
 
-A aba **Medição** responde a pergunta do experimento: **a recomendação da IA agrega valor sobre a regra fixa?** A regra
-foi fixada antes de começar (no ADR 0127), para que o resultado não dependa de uma escolha feita depois de ver os números.
+A aba **Medição** responde a pergunta do experimento: **a IA agrega valor ao processo, sobre uma regra sem nenhuma IA?** A
+regra foi fixada antes de começar (no ADR 0127), para que o resultado não dependa de uma escolha feita depois de ver os
+números. A pergunta foi revista em 14/10/2026, no dia da 1ª rodada, antes de qualquer resultado: antes ela media só a
+recomendação; hoje mede a IA inteira, e a recomendação virou uma das partes.
 
-**A medida.** Todo dia, o sistema compara quanto a trilha IA e a trilha Determinística renderam, em % do capital inicial,
-e guarda a diferença (IA menos Determinística). Positivo: a IA rendeu mais naquele dia. As duas trilhas têm o mesmo
-capital, as mesmas regras e as mesmas leituras de tendência; a única diferença é quem decide: a recomendação da IA ou a
-regra fixa. Por isso essa diferença mede o valor da recomendação.
+**A medida.** Todo dia, o sistema compara quanto a trilha IA e a referência **Persistência** renderam, em % do capital
+inicial, e guarda a diferença (IA menos Persistência). Positivo: a IA rendeu mais naquele dia. As duas têm o mesmo
+capital, o mesmo motor, o mesmo stop e as mesmas travas. A diferença é quem escolhe a direção: na IA, as leituras de
+tendência e a recomendação da IA; na Persistência, a direção do preço nos últimos 30 dias, sem nenhuma IA. Por isso essa
+diferença mede o valor da IA no processo.
+
+**As duas partes.** A diferença IA − Persistência é a soma de duas partes, que mostram de qual camada da IA vem o
+resultado:
+
+| Parte | Medida | O que mostra |
+|---|---|---|
+| **A recomendação** | IA − Determinística | As duas usam as mesmas leituras; muda só quem decide: a recomendação da IA ou a regra fixa. |
+| **As leituras de tendência** | Determinística − Persistência | A mesma regra fixa, aplicada às leituras da IA ou à direção dos últimos 30 dias. |
+
+As partes têm intervalo, mas **não têm veredito**: o veredito é um só, o da pergunta principal. Com vários vereditos,
+aumentaria a chance de um deles dar "agrega valor" só por acaso. O gráfico mostra as três linhas acumuladas.
+
+**Mais ruído que antes.** A Persistência fica posicionada quase o tempo todo, e a IA não. Por isso a diferença depende
+bastante do tipo de mercado do período: com tendência forte, a Persistência tende a ganhar; com o mercado de lado, a
+perder. O intervalo pode ficar mais largo e o veredito pode demorar a sair do inconclusivo.
 
 **O intervalo de 80%.** Um resultado positivo pode ser só sorte. O intervalo diz até onde a diferença acumulada poderia ir
 só pelo acaso dos dias que aconteceram. O cálculo sorteia trechos de 10 pregões seguidos da própria série, 10.000 vezes, e
@@ -295,24 +313,18 @@ Antes dos 6 meses, a aba mostra o **resultado até agora** (dias medidos, difere
 intervalo), marcado como **parcial**, sem veredito. Ele serve para acompanhar, não para decidir: um resultado parcial muda
 muito de um mês para outro.
 
-**O segmento.** Mudar os parâmetros da carteira, o modelo da IA ou a versão do prompt muda o que está sendo medido, então
-a contagem **recomeça** num segmento novo, com datas novas. Os segmentos anteriores aparecem na aba, mas não contam. A
-correção do custo por contrato não abre segmento.
+**O segmento.** Mudar os parâmetros da carteira, ou o modelo ou a versão do prompt da recomendação, muda o que está
+sendo medido, então a contagem **recomeça** num segmento novo, com datas novas. Os segmentos anteriores aparecem na aba,
+mas não contam. A correção do custo por contrato não abre segmento. Uma mudança no prompt ou no modelo das **leituras de
+tendência** de algum ativo **não** reinicia: a aba registra a data, o ativo e o que mudou (decisão de 14/10/2026). Os
+prompts das leituras ainda estão em fase de ajuste; reiniciar a cada ajuste poderia nunca chegar aos 6 meses.
 
-**O custo da IA.** A aba soma as chamadas à IA do segmento (a do dia e a réplica semanal), os tokens e o custo, em dólar e
-em reais (pela PTAX mais recente), e mostra quantos dias a trilha IA ficou no fallback. O custo é fixo por carteira e não
-cresce com o capital; a vantagem da IA, em %, sim. O **ponto de equilíbrio** é o capital a partir do qual a vantagem
-acumulada paga o custo da IA. Ele só aparece com o custo completo: as chamadas sem preço configurado no servidor deixam o
-custo **incompleto**, até os preços do modelo (em US$ por milhão de tokens) entrarem no `.env`.
+**O custo da IA não entra na medição.** O objetivo do projeto é saber se a IA é viável no processo, e não só a
+recomendação; e o custo das chamadas é de centavos por dia, sem peso em nenhuma conclusão. Por isso a aba não mostra custo
+(decisão de 2026-10-14). O consumo de cada chamada continua no registro da aba Recomendação IA.
 
-**O que o custo não inclui.** Ele conta **só as chamadas da recomendação**. As leituras de tendência de cada ativo (os
-horizontes CURTO, MÉDIO e LONGO) e a leitura de eventos de mercado também usam IA, mas ficam de fora: a trilha
-Determinística decide em cima das mesmas leituras, então elas não fazem parte da diferença medida, e seriam pagas de
-qualquer jeito (alimentam também o Centro de Decisão e a Qualidade da IA). A medição responde se a **recomendação** vale o
-que custa, não se a IA inteira vale. Essa outra pergunta pede comparar com a referência **Persistência**, a única sem
-nenhuma IA: a diferença IA − Persistência aparece nas métricas secundárias, só o número, sem o custo das leituras.
-
-**O gráfico** mostra a diferença acumulada dia a dia: subindo, a IA está rendendo mais que a regra fixa; descendo, menos.
+**O gráfico** mostra a diferença acumulada dia a dia e as duas partes: subindo, a IA está rendendo mais que a Persistência;
+descendo, menos.
 
 ### As métricas secundárias
 
@@ -320,7 +332,7 @@ Abaixo da pergunta principal, a seção **Métricas secundárias (descritivas)**
 entender o resultado, mas **não decidem nada** e não têm veredito. Contam só o segmento em vigor. Com poucas semanas,
 quase tudo ali é ruído.
 
-**1. De onde vem a diferença IA − Determinística.**
+**1. Por dentro da recomendação (IA − Determinística).** Detalha a parte da recomendação:
 
 - **Dias com posições diferentes:** em quantos dias as duas trilhas carregavam posições diferentes (outro ativo ou outro
   lado), e quanto da diferença acumulada saiu desses dias. O resto vem de dias com as mesmas posições, mas com preço de
@@ -334,6 +346,7 @@ quase tudo ali é ruído.
   vencimento, sem ATR...).
 - **Consistência da réplica semanal:** uma vez por semana a IA responde de novo à mesma entrada; aqui aparece quantas
   ações (por ativo e ramo) e quantas prioridades ela repetiu. Uma IA que muda muito com a mesma entrada é menos confiável.
+- **Dias em fallback:** os dias em que a IA não deu uma recomendação válida e a trilha IA ficou no "manter".
 
 **2. As seis trilhas lado a lado:** as três que decidem e as três referências, com:
 
@@ -345,9 +358,6 @@ quase tudo ali é ruído.
 | **Maior recuo** | A maior queda desde um pico, contra o limite de drawdown da Cartilha (10%); fica em vermelho se o limite for atingido. |
 | **Tempo exposto** | A parte dos dias com alguma posição carregada de um ajuste para o outro. |
 | **Custos** | Os custos de operação lançados no razão (zero enquanto o custo por contrato não estiver nos parâmetros). |
-
-Abaixo da tabela, a **diferença IA − Persistência**: a IA inteira (as leituras e a recomendação) rende mais que uma regra
-sem nenhuma IA? É só o número, sem intervalo nem veredito.
 
 **3. Métricas da Cartilha, por trilha e ativo** (Cap. 9.5), das operações que entraram no segmento:
 

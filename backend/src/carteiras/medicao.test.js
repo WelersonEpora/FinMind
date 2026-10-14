@@ -2,7 +2,7 @@
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { METODO, retornosDiarios, diferencasDiarias, intervaloBootstrap, veredito, somarMeses, segmentar, medirSegmento, pontoDeEquilibrio } = require("./medicao");
+const { METODO, retornosDiarios, diferencasDiarias, intervaloBootstrap, veredito, somarMeses, segmentar, medirSegmento, mudancasDasLeituras } = require("./medicao");
 
 const perto = (a, b, tol = 1e-9) => assert.ok(Math.abs(a - b) < tol, `${a} != ${b}`);
 
@@ -82,8 +82,14 @@ test("medir: antes de 6 meses, parcial sem veredito; depois, a avaliação conge
   perto(depois.serie[1].acumulada, dias[0].diferenca + dias[1].diferenca);
 });
 
-test("ponto de equilíbrio: o capital em que a vantagem paga o custo", () => {
-  perto(pontoDeEquilibrio({ custoMoeda: 50, vantagemAcumuladaPct: 0.5 }), 10000);
-  assert.equal(pontoDeEquilibrio({ custoMoeda: 50, vantagemAcumuladaPct: -0.1 }), null);
-  assert.equal(pontoDeEquilibrio({ custoMoeda: null, vantagemAcumuladaPct: 1 }), null);
+test("mudanças das leituras: a referência é a última antes do início; só as do segmento entram", () => {
+  const l = (data, ativo, versaoPrompt, modelo = "g1") => ({ data, ativo, versaoPrompt, modelo });
+  const r = mudancasDasLeituras(
+    [l("2026-10-10", "MILHO", "v1"), l("2026-10-12", "MILHO", "v2"), l("2026-10-15", "MILHO", "v2"), l("2026-10-16", "MILHO", "v3", "g2"), l("2026-10-16", "CAFE", "c1")],
+    "2026-10-14"
+  );
+  assert.deepEqual(r, [
+    { data: "2026-10-16", ativo: "MILHO", campo: "versaoPrompt", de: "v2", para: "v3" },
+    { data: "2026-10-16", ativo: "MILHO", campo: "modelo", de: "g1", para: "g2" }
+  ]);
 });

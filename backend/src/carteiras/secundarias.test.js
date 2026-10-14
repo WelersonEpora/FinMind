@@ -4,7 +4,6 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const {
   painelDaTrilha,
-  diferencaAcumulada,
   diasDivergentes,
   atribuicaoPorAtivo,
   contrariasALeitura,
@@ -50,14 +49,6 @@ test("painel: Sharpe sobre o retorno da trilha CAIXA, e o tempo exposto pelas po
   const p = painelDaTrilha({ tipo: "IA", serie, posicoes, inicio: serie[0].data, capital: 10000, minimoDias: 20, caixa });
   // Carregada de 02 a 05 (entrou no ajuste de 01 e saiu em 05): 4 de 20 dias.
   perto(p.tempoExpostoPct, 20);
-});
-
-test("diferença acumulada A − B em % do capital, nos dias das duas", () => {
-  const a = [{ data: dia(2), patrimonio: 10000 }, { data: dia(3), patrimonio: 10200 }, { data: dia(4), patrimonio: 10100 }];
-  const b = [{ data: dia(2), patrimonio: 10000 }, { data: dia(3), patrimonio: 10000 }, { data: dia(4), patrimonio: 10050 }];
-  const r = diferencaAcumulada(a, b, dia(3), 10000);
-  assert.equal(r.dias, 2);
-  perto(r.acumulada, 0.5);
 });
 
 test("dias divergentes: outra exposição (ativo ou lado) separa a diferença", () => {

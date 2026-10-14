@@ -2,14 +2,17 @@
 
 // A MEDIÇÃO PRÉ-REGISTRADA (ADR 0127, §10; etapa 7). Puro: recebe as séries e as datas; não lê nem grava nada.
 //
-//   pergunta:  a recomendação da IA agrega valor sobre a regra fixa?
-//   medida:    a diferença diária de retorno IA − Determinística, em % do capital inicial
+//   pergunta:  a IA agrega valor ao processo, sobre uma regra sem nenhuma IA? (revista pelo usuário em 2026-10-14; era
+//              "a recomendação agrega valor sobre a regra fixa?", hoje uma das duas partes)
+//   medida:    a diferença diária de retorno IA − Persistência, em % do capital inicial; as partes, IA − Determinística
+//              (a recomendação) e Determinística − Persistência (as leituras), somam a principal
 //   intervalo: 80%, por block bootstrap circular da média (blocos de 10 pregões, semente fixa)
 //   veredito:  AGREGA se o limite inferior > 0; NAO_AGREGA se o superior < 0; senão INCONCLUSIVO
 //   datas:     o início do segmento + 3 meses (só descritivo), + 6 meses (a avaliação) e + 12 meses (a final)
 //
 // Um SEGMENTO é um trecho com os mesmos parâmetros (a versão INICIAL ou de AJUSTE; a correção de custo não conta), o
-// mesmo modelo da recomendação e a mesma versão do prompt: mudar qualquer um deles reinicia a contagem. A avaliação usa
+// mesmo modelo da recomendação e a mesma versão do prompt: mudar qualquer um deles reinicia a contagem. Mudar o prompt
+// ou o modelo das leituras de tendência não reinicia: fica registrado (decisão do usuário, 2026-10-14). A avaliação usa
 // só os dias antes da data dela, congelada; antes dela, os números são parciais e sem veredito (decisão do usuário,
 // 2026-10-14). O tipo de bootstrap (circular), o número de reamostragens e o mínimo de dias para o intervalo são
 // proposta do FinMind (o ADR fixa os blocos de 10 pregões, a semente fixa e os 80%).
@@ -157,11 +160,23 @@ function medirSegmento({ diferencas, inicio, hoje, metodo = METODO }) {
   };
 }
 
-// O ponto de equilíbrio do custo da IA: o capital a partir do qual a vantagem acumulada (em % do capital, que não
-// depende dele) paga o custo (fixo por carteira). -> o capital, ou null (sem vantagem ou sem custo conhecido).
-function pontoDeEquilibrio({ custoMoeda, vantagemAcumuladaPct }) {
-  if (custoMoeda == null || !(vantagemAcumuladaPct > 0)) return null;
-  return custoMoeda / (vantagemAcumuladaPct / 100);
+// As mudanças de prompt ou de modelo das leituras de tendência depois de `inicio`: não abrem segmento, só ficam
+// registradas (decisão do usuário, 2026-10-14). `leituras`: [{ data, ativo, versaoPrompt, modelo }]. A referência de
+// cada ativo é a última leitura antes de `inicio` (ou a primeira do segmento). -> [{ data, ativo, campo, de, para }].
+function mudancasDasLeituras(leituras, inicio) {
+  const ordenadas = [...leituras].sort((a, b) => a.data.localeCompare(b.data) || a.ativo.localeCompare(b.ativo));
+  const ultima = new Map();
+  const mudancas = [];
+  for (const l of ordenadas) {
+    const antes = ultima.get(l.ativo);
+    if (antes && l.data >= inicio) {
+      for (const campo of ["versaoPrompt", "modelo"]) {
+        if (antes[campo] != null && l[campo] != null && antes[campo] !== l[campo]) mudancas.push({ data: l.data, ativo: l.ativo, campo, de: antes[campo], para: l[campo] });
+      }
+    }
+    ultima.set(l.ativo, { versaoPrompt: l.versaoPrompt ?? antes?.versaoPrompt ?? null, modelo: l.modelo ?? antes?.modelo ?? null });
+  }
+  return mudancas;
 }
 
-module.exports = { METODO, retornosDiarios, diferencasDiarias, intervaloBootstrap, veredito, somarMeses, segmentar, medirSegmento, pontoDeEquilibrio };
+module.exports = { METODO, mudancasDasLeituras, retornosDiarios, diferencasDiarias, intervaloBootstrap, veredito, somarMeses, segmentar, medirSegmento };

@@ -30,7 +30,7 @@ const comOperacoes = computed(() => props.secundarias.cartilha.filter((t) => t.t
 
     <!-- 1. A atribuição -->
     <details class="card mb-2">
-      <summary class="card-header small fw-semibold">De onde vem a diferença IA − Determinística</summary>
+      <summary class="card-header small fw-semibold">Por dentro da recomendação (IA − Determinística)</summary>
       <div class="card-body small">
         <h4 class="h6 small fw-semibold">Dias com posições diferentes</h4>
         <p class="mb-3">
@@ -85,8 +85,14 @@ const comOperacoes = computed(() => props.secundarias.cartilha.filter((t) => t.t
           <template v-else>
             {{ a.consistencia.replicas }} réplica(s), {{ a.consistencia.comparaveis }} comparável(is) (a do dia e a réplica válidas). A réplica repetiu
             <strong>{{ a.consistencia.acoesIguais }} de {{ a.consistencia.acoes }}</strong> ações ({{ pctDe(a.consistencia.acoesIguais, a.consistencia.acoes) }}) e
-            {{ a.consistencia.prioridadesIguais }} de {{ a.consistencia.prioridades }} prioridades. Os dias em fallback estão no custo da IA, acima.
+            {{ a.consistencia.prioridadesIguais }} de {{ a.consistencia.prioridades }} prioridades.
           </template>
+        </p>
+
+        <h4 class="h6 small fw-semibold mt-3">Dias em fallback</h4>
+        <p class="mb-0">
+          Em <strong>{{ a.fallback.falhas }}</strong> de {{ a.fallback.dias }} dias a IA não deu uma recomendação válida, e a trilha IA ficou no
+          fallback "manter" (sem novas entradas; as posições, os stops e os alvos seguiram).
         </p>
       </div>
     </details>
@@ -124,12 +130,6 @@ const comOperacoes = computed(() => props.secundarias.cartilha.filter((t) => t.t
             </tbody>
           </table>
         </div>
-        <p v-if="secundarias.iaMenosPersistencia" class="mb-2">
-          <strong>IA − Persistência:</strong>
-          <span :class="classeSinal(secundarias.iaMenosPersistencia.acumulada)">{{ formatarRetorno(secundarias.iaMenosPersistencia.acumulada) }}</span>
-          em {{ secundarias.iaMenosPersistencia.dias }} dias. Responde a outra pergunta: a IA inteira (as leituras e a recomendação) rende mais que
-          uma regra sem nenhuma IA? Só o número, sem intervalo nem veredito.
-        </p>
         <p class="text-muted mb-0">
           Retorno em % do capital inicial, desde o início do segmento. A volatilidade e o Sharpe são anualizados (√252) e aparecem com
           {{ minimoDias }} dias; o Sharpe é sobre o rendimento da trilha Caixa (a Selic, ou a meta do Fed na conta internacional). O maior recuo

@@ -142,14 +142,27 @@ a partir do razão). Cada uma entra no registro do ADR 0007 na migration que a c
 
 ### 10. Medição pré-registrada (D6, D7)
 
-- **Pergunta principal:** a recomendação agrega valor sobre a regra fixa? Medida: a **diferença diária de retorno IA −
-  Determinística**, em % do capital inicial, com intervalo de 80% por block bootstrap (blocos de 10 pregões, semente
-  fixa). Veredito: agrega se o limite inferior > 0; inconclusivo se o intervalo contém 0; não agrega se o limite
-  superior < 0.
+- **Pergunta principal (revista pelo usuário em 2026-10-14, no dia da 1ª rodada, antes de qualquer resultado):** a IA
+  agrega valor ao processo, sobre uma regra sem nenhuma IA? Medida: a **diferença diária de retorno IA − Persistência**,
+  em % do capital inicial, com intervalo de 80% por block bootstrap (blocos de 10 pregões, semente fixa). Veredito:
+  agrega se o limite inferior > 0; inconclusivo se o intervalo contém 0; não agrega se o limite superior < 0. *Era* "a
+  recomendação agrega valor sobre a regra fixa?" (IA − Determinística): o usuário observou que o projeto quer saber se a
+  IA é viável no processo, e não só a recomendação.
+- **As duas partes**, que somam a principal, com intervalo e **sem veredito** (um veredito só, para não multiplicar a
+  chance de um "agrega" por acaso): a **recomendação** (IA − Determinística, as mesmas leituras) e as **leituras de
+  tendência** (Determinística − Persistência, a mesma regra fixa). Custo aceito pelo usuário: a Persistência fica
+  posicionada quase sempre, e a diferença depende mais do tipo de mercado do período; o intervalo tende a ser mais
+  largo.
 - **Datas:** avaliação na **1ª rodada + 6 meses** (FEL 1, §12.1) e final em +12 meses; aos 3 meses, só descritivo, sem
-  parar. Conta só o segmento principal: mudar parâmetros, modelo ou prompt reinicia a contagem.
-- **O custo da IA fica na métrica secundária** (D6): é fixo por carteira e não cresce com o capital; na principal, o
-  veredito dependeria do capital escolhido. A tela mostra o ponto de equilíbrio.
+  parar. Conta só o segmento principal: mudar parâmetros, ou o modelo ou o prompt da recomendação, reinicia a contagem.
+  Mudar o prompt ou o modelo das leituras de tendência **não** reinicia: fica registrado na tela (decisão do usuário,
+  2026-10-14; os prompts das leituras seguem em ajuste, ADR 0108).
+- ~~**O custo da IA fica na métrica secundária** (D6): é fixo por carteira e não cresce com o capital; na principal, o
+  veredito dependeria do capital escolhido. A tela mostra o ponto de equilíbrio.~~ **Revisto pelo usuário em
+  2026-10-14: o custo da IA sai da medição.** O projeto quer saber se a IA é viável no processo, e não só a recomendação;
+  a etapa 7 contava só as chamadas da recomendação (escolha do FinMind, não do usuário), e o valor (centavos por dia)
+  não pesa em nenhuma conclusão. O custo de cada chamada segue no registro da recomendação (§4), com os preços
+  opcionais no `.env`.
 - **Secundárias:** as métricas da Cartilha (Cap. 9.5) por trilha e ativo; Sharpe sobre a Selic, volatilidade, drawdown e
   tempo exposto; atribuição (dias divergentes, operador alinhado × contrário à recomendação, recomendações contrárias à
   leitura, cortes do motor, fallback, consistência e custos).
@@ -265,6 +278,12 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
      acumulada (em %) paga o custo: custo ÷ vantagem.
    - Testado em dev em 2026-10-14 com a carteira de demonstração (desde 15/09): 21 dias, IA − Determinística de −1,93%,
      intervalo de −3,87% a +0,01%; o cálculo leva ~20 ms.
+   - **A pergunta principal mudou em 2026-10-14** (§10): IA − Persistência com veredito; IA − Determinística e
+     Determinística − Persistência como partes, com intervalo, sem veredito; as mudanças das leituras registradas (a
+     versão do prompt e o modelo da cópia congelada de cada rodada, `carteira_rodada_leitura`). Nas secundárias, a linha
+     IA − Persistência saiu (virou a pergunta) e a atribuição passou a se chamar "por dentro da recomendação".
+   - **O custo da IA saiu da aba em 2026-10-14** (D6 revisto, §10): o bloco do custo e o ponto de equilíbrio. Os dias
+     em fallback, que estavam nele, foram para a atribuição das secundárias.
    - **7b, as métricas secundárias** (feita em 2026-10-14; o usuário pediu os três blocos juntos, como propostos).
      Descritivas, sem veredito, no segmento em vigor, na aba Medição abaixo da principal (`carteiras/secundarias.js`):
      - **Atribuição:** os dias em que IA e Determinística carregavam posições diferentes (outro ativo ou lado) e a

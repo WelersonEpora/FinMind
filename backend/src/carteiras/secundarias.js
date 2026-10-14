@@ -7,8 +7,8 @@
 //   atribuição  de onde vem a diferença IA − Determinística: os dias com posições diferentes, a diferença por ativo, as
 //               recomendações contrárias à leitura, os cortes do motor e a consistência da réplica semanal
 //   painel      as seis trilhas lado a lado: retorno, volatilidade, Sharpe sobre o caixa da carteira (a trilha CAIXA:
-//               a Selic, ou a meta do Fed na conta internacional), maior recuo, tempo exposto e custos de operação; e a
-//               diferença IA − Persistência (a IA inteira contra uma regra sem nenhuma IA), só o número
+//               a Selic, ou a meta do Fed na conta internacional), maior recuo, tempo exposto e custos de operação
+//               (IA − Persistência é a pergunta principal desde 2026-10-14)
 //   Cartilha    as métricas do Cap. 9.5 por trilha e ativo: operações, taxa de acerto, resultado médio em R, R:R
 //               realizado contra o planejado e a aderência ao checklist (só o operador)
 //
@@ -91,23 +91,6 @@ function painelDaTrilha({ tipo, serie, posicoes = [], custos = 0, caixa, inicio,
     tempoExpostoPct: dias ? (expostos / dias) * 100 : null,
     custos
   };
-}
-
-// A diferença acumulada A − B no segmento, em % do capital inicial (a mesma medida da principal), nos dias das duas.
-function diferencaAcumulada(serieA, serieB, inicio, capital) {
-  const variacao = (serie) => {
-    const r = new Map();
-    let anterior = baseDoSegmento(serie, inicio, capital);
-    for (const p of serie.filter((x) => x.data >= inicio)) {
-      r.set(p.data, ((p.patrimonio - anterior) / capital) * 100);
-      anterior = p.patrimonio;
-    }
-    return r;
-  };
-  const a = variacao(serieA);
-  const b = variacao(serieB);
-  const dias = [...a.keys()].filter((d) => b.has(d));
-  return { dias: dias.length, acumulada: dias.reduce((s, d) => s + a.get(d) - b.get(d), 0) };
 }
 
 // Os dias em que IA e Determinística carregavam posições diferentes (outro ativo ou outro lado) e quanto da diferença
@@ -250,7 +233,6 @@ function cartilhaPorTrilha({ trilhas, posicoes, ordensOperador = [], ativos, ini
 module.exports = {
   ORDEM_DAS_TRILHAS,
   painelDaTrilha,
-  diferencaAcumulada,
   diasDivergentes,
   atribuicaoPorAtivo,
   contrariasALeitura,
