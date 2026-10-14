@@ -36,8 +36,8 @@ const dadosMercadoLinks = [
 // do espaço) e, abaixo, o que existe DENTRO dele - trocar de espaço não muda a
 // estrutura do menu, só para onde "Visão geral" aponta. Sem espaço ativo
 // (falha ao carregar a lista) o grupo inteiro some. Existem "Visão geral" e
-// "Carteiras" (as virtuais, ADR 0127); os demais são entidades privadas ainda
-// não implementadas (ver ADR 0007).
+// "Carteiras" (as virtuais, ADR 0127). Os marcadores desativados (Operações,
+// Posições, Patrimônio) saíram em 2026-10-14, por decisão do usuário (ADR 0007).
 const espacoLinks = computed(() => {
   const active = workspaces.active.value
   if (!active) return []
@@ -48,12 +48,6 @@ const espacoLinks = computed(() => {
     { to: { name: 'carteiras', params: { workspaceId: active.id } }, label: 'Carteiras', icon: 'bi-wallet2', rotas: ['carteira'] }
   ]
 })
-
-const espacoFutureLinks = [
-  { label: 'Operações', icon: 'bi-arrow-left-right' },
-  { label: 'Posições', icon: 'bi-pie-chart' },
-  { label: 'Patrimônio', icon: 'bi-bank' }
-]
 
 // Grupo "Sistema" - sempre por último no menu. Usuários só aparece pra
 // admin de plataforma (só admin inclui/ajusta outros usuários - ver
@@ -93,10 +87,8 @@ const systemLinks = computed(() => {
     </ul>
 
     <template v-if="espacoLinks.length">
-      <!-- Sem rótulo de texto: o seletor já é o cabeçalho do grupo (mostra o
-           nome, o tipo e o papel do espaço) e um "ESPAÇO" acima de "Espaço
-           pessoal" só repetiria. Fica a linha divisória. -->
-      <div class="finmind-group-divider"></div>
+      <!-- O seletor é o título do grupo: o nome do espaço no estilo de
+           "Dados de Mercado", com a linha divisória acima. -->
       <WorkspaceSwitcher @navigate="emit('navigate')" />
       <ul class="nav nav-pills flex-column py-1 px-2">
         <li v-for="link in espacoLinks" :key="link.label" class="nav-item">
@@ -111,15 +103,6 @@ const systemLinks = computed(() => {
             <i class="bi flex-shrink-0 finmind-nav-icon" :class="link.icon"></i>
             <span class="finmind-nav-label">{{ link.label }}</span>
           </router-link>
-        </li>
-        <li v-for="item in espacoFutureLinks" :key="item.label" class="nav-item">
-          <span
-            class="nav-link text-secondary disabled d-flex align-items-center gap-2 finmind-future-link"
-            :title="`${item.label} — em breve`"
-          >
-            <i class="bi flex-shrink-0 finmind-nav-icon" :class="item.icon"></i>
-            <span class="finmind-nav-label">{{ item.label }}</span>
-          </span>
         </li>
       </ul>
     </template>
@@ -205,31 +188,12 @@ const systemLinks = computed(() => {
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Mesma linha divisória do rótulo, para o grupo cujo cabeçalho é o seletor. */
-.finmind-group-divider {
-  margin-top: 0.35rem;
-  margin-bottom: 0.4rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
 .finmind-nav-icon {
   font-size: 1rem;
   width: 18px;
   text-align: center;
 }
 
-/* Placeholders do grupo Espaço (Carteiras/Operações/Posições/Patrimônio):
-   continuam 4 itens separados (ADR 0007), só mais discretos e baixos, já que
-   ainda não fazem nada. */
-.finmind-future-link {
-  padding-top: 0.18rem !important;
-  padding-bottom: 0.18rem !important;
-  font-size: 0.74rem;
-  opacity: 0.75;
-}
-.finmind-future-link .finmind-nav-icon {
-  font-size: 0.85rem;
-}
 
 .finmind-sidebar .nav-pills .nav-link.active {
   background-color: #2C4A75;
@@ -239,8 +203,7 @@ const systemLinks = computed(() => {
   width: 72px;
 }
 .finmind-sidebar-collapsed .finmind-nav-label,
-.finmind-sidebar-collapsed .finmind-group-label,
-.finmind-sidebar-collapsed .finmind-group-divider {
+.finmind-sidebar-collapsed .finmind-group-label {
   display: none;
 }
 .finmind-sidebar-collapsed .nav-link {
@@ -274,8 +237,7 @@ const systemLinks = computed(() => {
     max-width: 300px;
   }
   .finmind-sidebar-collapsed .finmind-nav-label,
-  .finmind-sidebar-collapsed .finmind-group-label,
-  .finmind-sidebar-collapsed .finmind-group-divider {
+  .finmind-sidebar-collapsed .finmind-group-label {
     display: block;
   }
   .finmind-sidebar-collapsed .nav-link {

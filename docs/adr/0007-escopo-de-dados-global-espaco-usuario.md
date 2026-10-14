@@ -356,18 +356,23 @@ existe agora: nada usa `workspace` para autorizar, e isso é intencional.
   membros (§4), com o papel de plataforma separado do papel no espaço (§5) e
   `requireAuth` revalidando o usuário no banco. A UI: seletor sempre em forma de dropdown
   (com "Criar espaço"), e gestão de membros na página do espaço.
-- **Navegação:** o menu lateral tem um grupo "Espaço" cujo cabeçalho é o
-  **seletor do espaço ativo** (nome + tipo e papel — ex.: "Compartilhado ·
-  Proprietário" —, com destaque visual; sem rótulo de texto "ESPAÇO", que
-  repetiria o nome do espaço pessoal, só a linha divisória), seguido do
-  que existe dentro do espaço ("Visão geral" funcional; Carteiras, Operações,
-  Posições e Patrimônio desabilitados). O seletor é o único lugar que mostra o
+- **Navegação:** o menu lateral tem um grupo "Espaço" cujo título é o
+  **seletor do espaço ativo**, seguido do que existe dentro do espaço ("Visão
+  geral" e "Carteiras", as virtuais do ADR 0127). Revisão de 2026-10-14, decidida
+  pelo usuário: (1) o seletor deixou de ser um botão em bloco com destaque (nome,
+  tipo e papel, fundo e borda azul) e passou a ser o próprio título do grupo, no
+  estilo de "Dados de Mercado" e "Sistema" (o nome em caixa alta, com a linha
+  divisória acima e uma seta); o tipo e o papel ("Pessoal · Proprietário") ficam na
+  lista e na dica; (2) os marcadores desativados Operações, Posições e Patrimônio
+  saíram do menu: as carteiras virtuais já têm posições, operações e patrimônio por
+  carteira, e um patrimônio real não está decidido; se vier, entra como decisão
+  própria, num ADR. O seletor é o único lugar que mostra o
   nome do espaço; trocar de espaço não muda a estrutura do menu, só o destino, e
   **leva sempre à Visão geral do espaço escolhido**, de qualquer página (inclusive
   de uma página global de Dados de Mercado).
   A topbar ficou só com o que é global (marca, perfil, sair) — um seletor lá
   sugeria que tudo dependia do espaço, o que não vale para Dados de Mercado. No
-  menu recolhido o seletor vira só o ícone (nome na dica); no celular vive na
+  menu recolhido o seletor vira a sigla do espaço, ex.: "EP" (nome na dica); no celular vive na
   gaveta, então o nome do espaço só aparece com a gaveta aberta. O dropdown usa
   posicionamento fixo (a sidebar rola e cortaria um menu absoluto) e largura
   limitada (no celular, à da gaveta, que por ter `transform` também corta filhos

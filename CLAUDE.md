@@ -400,9 +400,9 @@ Ver também `backend/src/collectors/base/README.md`.
   guard é UX, não segurança: o servidor deve checar o vínculo quando houver
   dado privado (ADR 0007, §6). Na sidebar, o grupo **Espaço** lista o que
   existe *dentro* do espaço ativo ("Visão geral", `/e/:workspaceId`, e "Carteiras",
-  as virtuais do ADR 0127, `/e/:workspaceId/carteiras` e `/e/:workspaceId/carteiras/:carteiraId` com a aba em `?aba=`;
-  Operações/Posições/Patrimônio são placeholders desabilitados) — o
-  **seletor de espaço** (`WorkspaceSwitcher.vue`) é o cabeçalho desse grupo e o
+  as virtuais do ADR 0127, `/e/:workspaceId/carteiras` e `/e/:workspaceId/carteiras/:carteiraId` com a aba em `?aba=`)
+  — o **seletor de espaço** (`WorkspaceSwitcher.vue`) é o título desse grupo, no estilo
+  dos outros títulos (o nome do espaço em caixa alta, com a sigla no menu recolhido), e o
   único lugar que mostra o nome do espaço; a topbar não tem seletor. Escolher um
   espaço leva sempre à Visão geral dele, de qualquer página. Cuidado
   em CSS scoped: use `:global(.a .b)` com o seletor INTEIRO dentro — com
@@ -411,9 +411,9 @@ Ver também `backend/src/collectors/base/README.md`.
   array `links`; um grupo de rotas relacionadas (ex.: "Dados de Mercado")
   ganha seu próprio array + bloco `.finmind-group-label` no template, mesmo
   padrão de "Espaço"/"Sistema" já existentes. Não adicione links desabilitados
-  de módulos que ainda não existem (o menu só mostra o que funciona); a
-  exceção são os placeholders do grupo Espaço (`espacoFutureLinks`), que já
-  têm estrutura decidida (ADR 0007).
+  de módulos que ainda não existem (o menu só mostra o que funciona, sem exceção:
+  os marcadores Operações/Posições/Patrimônio do grupo Espaço saíram em 2026-10-14,
+  ADR 0007).
 
 ## CI/CD
 

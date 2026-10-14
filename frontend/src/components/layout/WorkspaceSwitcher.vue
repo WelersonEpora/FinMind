@@ -2,12 +2,14 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkspaceStore } from '../../stores/workspace.js'
-import { legendaDoEspaco, rotuloPapel } from '../../utils/workspace.js'
+import { legendaDoEspaco, siglaDoEspaco } from '../../utils/workspace.js'
 import WorkspaceCreateModal from './WorkspaceCreateModal.vue'
 
-// Seletor do espaço ativo. Vive no grupo "Espaço" da sidebar, como cabeçalho
-// dele: é o único lugar que mostra o NOME do espaço; os itens abaixo são o que
-// existe dentro dele.
+// Seletor do espaço ativo. É o TÍTULO do grupo "Espaço" da sidebar, no mesmo
+// estilo de "Dados de Mercado" e "Sistema" (caixa alta, cinza, linha acima): é o
+// único lugar que mostra o NOME do espaço; os itens abaixo são o que existe
+// dentro dele. Tipo e papel ("Pessoal · Proprietário") ficam na lista e na dica,
+// que é onde interessam: na hora de trocar.
 const emit = defineEmits(['navigate'])
 
 const router = useRouter()
@@ -35,27 +37,22 @@ function onCreated(espaco) {
 </script>
 
 <template>
-  <div v-if="workspaces.active.value" class="finmind-workspace px-2 pb-1">
+  <div v-if="workspaces.active.value" class="finmind-workspace">
     <div class="dropdown">
       <!-- strategy "fixed": o menu lateral rola e corta (overflow) qualquer
            filho posicionado de forma absoluta; fixo, o dropdown escapa dele. -->
       <button
         type="button"
-        class="finmind-workspace-btn w-100 d-flex align-items-center gap-2"
+        class="finmind-workspace-btn w-100 d-flex align-items-center gap-1"
         data-bs-toggle="dropdown"
         data-bs-popper-config='{"strategy":"fixed"}'
         aria-expanded="false"
         :aria-label="`Espaço: ${workspaces.active.value.nome}. ${legendaDoEspaco(workspaces.active.value)}. Trocar ou criar espaço`"
-        :title="`Espaço: ${workspaces.active.value.nome} (trocar ou criar)`"
+        :title="`${workspaces.active.value.nome} · ${legendaDoEspaco(workspaces.active.value)} (trocar ou criar espaço)`"
       >
-        <i class="bi bi-collection flex-shrink-0 finmind-workspace-icon"></i>
-        <span class="finmind-workspace-text flex-grow-1 text-start">
-          <span class="d-block text-truncate finmind-workspace-name">{{ workspaces.active.value.nome }}</span>
-          <small class="d-block text-truncate finmind-workspace-papel">
-            {{ legendaDoEspaco(workspaces.active.value) }}
-          </small>
-        </span>
-        <i class="bi bi-chevron-expand flex-shrink-0 finmind-workspace-caret"></i>
+        <span class="finmind-workspace-sigla">{{ siglaDoEspaco(workspaces.active.value.nome) }}</span>
+        <span class="finmind-workspace-name flex-grow-1 text-start text-truncate">{{ workspaces.active.value.nome }}</span>
+        <i class="bi bi-chevron-down flex-shrink-0 finmind-workspace-caret"></i>
       </button>
 
       <ul class="dropdown-menu">
@@ -68,8 +65,11 @@ function onCreated(espaco) {
             :aria-current="espaco.id === workspaces.active.value.id ? 'true' : undefined"
             @click="selectWorkspace(espaco.id)"
           >
-            <span class="flex-grow-1 text-truncate">{{ espaco.nome }}</span>
-            <small class="finmind-workspace-role">{{ rotuloPapel(espaco.papel) }}</small>
+            <span class="flex-grow-1 text-truncate">
+              {{ espaco.nome }}
+              <small class="d-block finmind-workspace-legenda">{{ legendaDoEspaco(espaco) }}</small>
+            </span>
+            <i v-if="espaco.id === workspaces.active.value.id" class="bi bi-check-lg flex-shrink-0"></i>
           </button>
         </li>
         <li><hr class="dropdown-divider" /></li>
@@ -86,46 +86,50 @@ function onCreated(espaco) {
 </template>
 
 <style scoped>
-/* Destaque do contexto ativo: fundo mais claro + acento na borda esquerda
-   (mesmo azul do logo), para se distinguir dos itens de navegação abaixo. */
+/* Título de grupo clicável: mesma linha divisória, cor, tamanho e caixa alta do
+   `.finmind-group-label` da sidebar; o realce ao passar o mouse e a seta mostram
+   que ele abre a lista. */
+.finmind-workspace {
+  margin-top: 0.35rem;
+  padding: 0.2rem 0.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .finmind-workspace-btn {
-  padding: 0.5rem 0.6rem;
+  padding: 0.3rem 0.5rem;
   border: none;
-  border-left: 3px solid #3b82f6;
   border-radius: 0.375rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: transparent;
+  color: #6c757d;
+  font-size: 0.875em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 .finmind-workspace-btn:hover,
 .finmind-workspace-btn:focus-visible,
 .finmind-workspace-btn.show {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #dee2e6;
 }
 
-.finmind-workspace-icon {
-  font-size: 1.1rem;
-  width: 18px;
-  text-align: center;
-}
-
-.finmind-workspace-text {
-  min-width: 0;
-  line-height: 1.2;
-}
 .finmind-workspace-name {
-  font-weight: 600;
-}
-/* Legenda (tipo · papel): tamanho de legenda de propósito - em 14px,
-   "Compartilhado · Proprietário" (~175px) não cabe nos ~155px do bloco e o
-   papel seria cortado; em 0.72rem cabe com folga. */
-.finmind-workspace-papel {
-  color: #adb5bd;
-  font-size: 0.72rem;
+  min-width: 0;
 }
 .finmind-workspace-caret {
-  font-size: 0.8rem;
-  opacity: 0.8;
+  font-size: 0.7rem;
+}
+
+/* Só no menu recolhido, no lugar do nome. */
+.finmind-workspace-sigla {
+  display: none;
+  min-width: 1.7rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.3rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #dee2e6;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 /* Largura limitada: sem isso, um nome de espaço comprido alarga o menu (que é
@@ -134,22 +138,25 @@ function onCreated(espaco) {
   min-width: 15rem;
   max-width: min(22rem, calc(100vw - 1rem));
 }
-.finmind-workspace-role {
-  opacity: 0.85;
+.finmind-workspace-legenda {
+  font-size: 0.72rem;
+  opacity: 0.75;
 }
 
-/* Menu recolhido: só o ícone (o nome fica na dica) - mesmo critério dos
-   rótulos da sidebar (ver AppSidebar.vue). ATENÇÃO: o seletor INTEIRO precisa
-   ficar dentro de :global(...) - com `:global(.a) .b` o compilador do Vue
-   descarta o `.b` e gera uma regra só com `.a` (que esconderia a sidebar). */
-:global(.finmind-sidebar-collapsed .finmind-workspace-text),
+/* Menu recolhido: a sigla no lugar do nome (o nome fica na dica) - mesmo
+   critério dos rótulos da sidebar (ver AppSidebar.vue). ATENÇÃO: o seletor
+   INTEIRO precisa ficar dentro de :global(...) - com `:global(.a) .b` o
+   compilador do Vue descarta o `.b` e gera uma regra só com `.a` (que
+   esconderia a sidebar). */
+:global(.finmind-sidebar-collapsed .finmind-workspace-name),
 :global(.finmind-sidebar-collapsed .finmind-workspace-caret) {
   display: none;
 }
+:global(.finmind-sidebar-collapsed .finmind-workspace-sigla) {
+  display: inline-block;
+}
 :global(.finmind-sidebar-collapsed .finmind-workspace-btn) {
   justify-content: center;
-  padding-left: 0.4rem;
-  padding-right: 0.4rem;
 }
 
 /* No mobile o drawer sempre mostra o rótulo, mesmo com `collapsed` true. Além
@@ -161,16 +168,17 @@ function onCreated(espaco) {
     max-width: min(284px, calc(82vw - 1rem));
   }
 
-  :global(.finmind-sidebar-collapsed .finmind-workspace-text) {
+  :global(.finmind-sidebar-collapsed .finmind-workspace-name) {
     display: block;
   }
   :global(.finmind-sidebar-collapsed .finmind-workspace-caret) {
     display: inline;
   }
+  :global(.finmind-sidebar-collapsed .finmind-workspace-sigla) {
+    display: none;
+  }
   :global(.finmind-sidebar-collapsed .finmind-workspace-btn) {
     justify-content: flex-start;
-    padding-left: 0.6rem;
-    padding-right: 0.6rem;
   }
 }
 </style>
