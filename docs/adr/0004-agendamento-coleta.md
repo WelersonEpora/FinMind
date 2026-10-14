@@ -109,6 +109,13 @@ registrado em `collection_execution` como antes. Enquanto uma coleta manual roda
 A tela `/dados-mercado/execucoes` se atualiza sozinha a cada 5 s enquanto houver execução em andamento. Continua
 sem `node-cron`, fila ou worker: é a mesma execução sequencial, só que sem prender a requisição.
 
+## Atualização (2026-10-14) — a rotina das carteiras virtuais
+
+A rotina diária das carteiras virtuais (ADR 0127, §3) é um script separado da coleta, com uma linha própria no mesmo
+crontab do usuário `deploy`, às **09:30 UTC** (06h30 de Brasília, depois da última tentativa das leituras do dia):
+`30 9 * * * cd /opt/apps/finmind/app && docker compose -p finmind ... exec -T backend npm run carteiras >> /opt/apps/finmind/logs/carteiras.log 2>&1`.
+Roda todos os dias: a rotina decide sozinha o que é dia útil, e rodar de novo no mesmo dia não refaz nada.
+
 ## Em aberto
 
 - Definição exata do cron de produção (frequência, horário) — decisão

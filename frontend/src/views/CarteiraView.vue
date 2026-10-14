@@ -8,9 +8,11 @@ import CarteiraRodadas from '../components/carteiras/CarteiraRodadas.vue'
 import CarteiraPosicoes from '../components/carteiras/CarteiraPosicoes.vue'
 import CarteiraOperacoes from '../components/carteiras/CarteiraOperacoes.vue'
 import CarteiraConfiguracao from '../components/carteiras/CarteiraConfiguracao.vue'
+import DocumentoModal from '../components/DocumentoModal.vue'
+import { useDocumentoNaUrl } from '../composables/useDocumentoNaUrl.js'
 import carteirasService from '../services/carteiras.service.js'
 import { useWorkspaceStore } from '../stores/workspace.js'
-import { formatarData, formatarMoeda, nomeAtivo } from '../utils/carteiras.js'
+import { DOCUMENTO_MANUAL, formatarData, formatarMoeda, nomeAtivo } from '../utils/carteiras.js'
 
 // Uma carteira virtual (ADR 0127): visão geral, recomendação da IA, rodadas, posições, operações e configuração. A aba fica na URL
 // (?aba=), para voltar a ela ao recarregar.
@@ -19,6 +21,8 @@ const router = useRouter()
 const workspaces = useWorkspaceStore()
 const espaco = workspaces.active
 const souOwner = computed(() => espaco.value?.papel === 'owner')
+const { documentoAberto, anterior, abrirDocumento, navegarDocumento, voltarDocumento, fecharDocumento } =
+  useDocumentoNaUrl()
 
 const ABAS = [
   { codigo: 'visao-geral', nome: 'Visão geral' },
@@ -110,6 +114,9 @@ watch(
         </div>
         <div class="d-flex gap-2 align-items-center">
           <span class="badge text-bg-info">Simulação</span>
+          <button type="button" class="btn btn-outline-secondary btn-sm" @click="abrirDocumento(DOCUMENTO_MANUAL)">
+            <i class="bi bi-book me-1"></i> Manual
+          </button>
           <button type="button" class="btn btn-outline-secondary btn-sm" :disabled="loading" title="Atualizar" @click="recarregar">
             <i class="bi bi-arrow-clockwise"></i>
           </button>
@@ -156,5 +163,13 @@ watch(
         @salvo="onVersaoSalva"
       />
     </template>
+
+    <DocumentoModal
+      :documento-id="documentoAberto"
+      :anterior-id="anterior"
+      @navegar="navegarDocumento"
+      @voltar="voltarDocumento"
+      @fechar="fecharDocumento"
+    />
   </AppShell>
 </template>

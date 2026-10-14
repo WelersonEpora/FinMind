@@ -2,6 +2,9 @@
 
 export { formatarData } from './geopolitica.js'
 
+// O manual das carteiras (docs/manual-carteiras.md), aberto no DocumentoModal pelo botão "Manual" das telas.
+export const DOCUMENTO_MANUAL = 'manual-carteiras'
+
 // As trilhas: as três que decidem e as três referências calculadas. O operador só rende o caixa até a etapa 6 (o
 // diário).
 export const TRILHAS = [

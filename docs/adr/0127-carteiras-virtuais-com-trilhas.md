@@ -214,7 +214,12 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
 8. A conta internacional.
 
 **A 1ª rodada** é o início da primeira carteira, criada quando as três trilhas puderem começar juntas (depois da etapa
-4); a data é registrada aqui nesse dia e fixa a avaliação (§10). Os custos reais por contrato (corretagem e
+4); a data é registrada aqui nesse dia e fixa a avaliação (§10). **Registrada em 2026-10-14:** a carteira "B3 – Cartilha
+v1.0" (espaço Família Souza) começou em **2026-10-14**, decidido pelo usuário. A tela só aceita início depois de hoje;
+ela foi criada para 15/10 e o usuário mudou o início para 14/10 no banco (a carteira e a versão 1 dos parâmetros, sem
+nenhuma rodada ainda), com a rotina rodada à mão. Exceção só deste 1º dia: a rodada foi decidida depois da abertura da
+B3, e não às 06h30, com os insumos travados até a véspera como em qualquer rodada (a leitura da madrugada e o mercado
+até D−1). Daí em diante, o cron das 06h30 (ADR 0004). Os custos reais por contrato (corretagem e
 emolumentos da B3) e o tamanho do contrato do café (a Cartilha diverge entre 100 e ~458 sacas; com quantidade
 fracionária, não muda o resultado em R nem em %) podem chegar depois (§8).
 
