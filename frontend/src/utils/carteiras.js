@@ -107,7 +107,14 @@ const ROTULOS = {
   SEM_RODADA: 'Ainda não há rodada',
   RODADA_LIQUIDADA: 'O dia já foi liquidado; o próximo abre com a rotina das 06h30',
   LIQUIDACAO_ANTERIOR_PENDENTE: 'Uma liquidação anterior está pendente',
-  ROTINA_ATRASADA: 'A rotina diária está atrasada'
+  ROTINA_ATRASADA: 'A rotina diária está atrasada',
+  // Medição.
+  AGREGA: 'Agrega valor',
+  NAO_AGREGA: 'Não agrega valor',
+  INCONCLUSIVO: 'Inconclusivo',
+  parametrosVersao: 'os parâmetros',
+  modelo: 'o modelo da IA',
+  versaoPrompt: 'a versão do prompt'
 }
 
 // As verificações da entrada do operador (o motor de risco), na conferência do diário.

@@ -260,3 +260,56 @@ alvo, e depois executa a sua saída.
 **As fases de uma operação:** **planejada** (aguarda a liquidação), **aberta**, **em gestão** (depois do alvo 1, de uma
 redução ou de um stop movido), **encerrada**, **cancelada** ou **não executada** (o preço ficou fora da faixa do dia). O
 vencimento do contrato também encerra a posição, 15 dias úteis antes do limite, como nas outras trilhas.
+
+## 8. A aba Medição
+
+A aba **Medição** responde a pergunta do experimento: **a recomendação da IA agrega valor sobre a regra fixa?** A regra
+foi fixada antes de começar (no ADR 0127), para que o resultado não dependa de uma escolha feita depois de ver os números.
+
+**A medida.** Todo dia, o sistema compara quanto a trilha IA e a trilha Determinística renderam, em % do capital inicial,
+e guarda a diferença (IA menos Determinística). Positivo: a IA rendeu mais naquele dia. As duas trilhas têm o mesmo
+capital, as mesmas regras e as mesmas leituras de tendência; a única diferença é quem decide: a recomendação da IA ou a
+regra fixa. Por isso essa diferença mede o valor da recomendação.
+
+**O intervalo de 80%.** Um resultado positivo pode ser só sorte. O intervalo diz até onde a diferença acumulada poderia ir
+só pelo acaso dos dias que aconteceram. O cálculo sorteia trechos de 10 pregões seguidos da própria série, 10.000 vezes, e
+fica com a faixa onde caem 80% dos resultados. Ele só aparece a partir de 20 dias medidos.
+
+**O veredito.**
+
+| Veredito | Quando |
+|---|---|
+| **Agrega valor** | O intervalo inteiro fica acima de zero. |
+| **Não agrega valor** | O intervalo inteiro fica abaixo de zero. |
+| **Inconclusivo** | O intervalo contém o zero: ainda não dá para separar o resultado do acaso. |
+
+**As datas**, contadas do início do segmento:
+
+| Data | O que acontece |
+|---|---|
+| **3 meses** | Só descritivo: nada se decide nem se interrompe. |
+| **6 meses** | **A avaliação:** o veredito, com os dias até essa data, e fica congelado. |
+| **12 meses** | A avaliação final, do mesmo jeito. |
+
+Antes dos 6 meses, a aba mostra o **resultado até agora** (dias medidos, diferença acumulada, média por dia e o
+intervalo), marcado como **parcial**, sem veredito. Ele serve para acompanhar, não para decidir: um resultado parcial muda
+muito de um mês para outro.
+
+**O segmento.** Mudar os parâmetros da carteira, o modelo da IA ou a versão do prompt muda o que está sendo medido, então
+a contagem **recomeça** num segmento novo, com datas novas. Os segmentos anteriores aparecem na aba, mas não contam. A
+correção do custo por contrato não abre segmento.
+
+**O custo da IA.** A aba soma as chamadas à IA do segmento (a do dia e a réplica semanal), os tokens e o custo, em dólar e
+em reais (pela PTAX mais recente), e mostra quantos dias a trilha IA ficou no fallback. O custo é fixo por carteira e não
+cresce com o capital; a vantagem da IA, em %, sim. O **ponto de equilíbrio** é o capital a partir do qual a vantagem
+acumulada paga o custo da IA. Ele só aparece com o custo completo: as chamadas sem preço configurado no servidor deixam o
+custo **incompleto**, até os preços do modelo (em US$ por milhão de tokens) entrarem no `.env`.
+
+**O que o custo não inclui.** Ele conta **só as chamadas da recomendação**. As leituras de tendência de cada ativo (os
+horizontes CURTO, MÉDIO e LONGO) e a leitura de eventos de mercado também usam IA, mas ficam de fora: a trilha
+Determinística decide em cima das mesmas leituras, então elas não fazem parte da diferença medida, e seriam pagas de
+qualquer jeito (alimentam também o Centro de Decisão e a Qualidade da IA). A medição responde se a **recomendação** vale o
+que custa, não se a IA inteira vale. Essa outra pergunta pediria comparar com a referência **Persistência**, a única sem
+nenhuma IA, somando o custo de tudo; ela não está na medição principal.
+
+**O gráfico** mostra a diferença acumulada dia a dia: subindo, a IA está rendendo mais que a regra fixa; descendo, menos.

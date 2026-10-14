@@ -64,6 +64,12 @@ async function obterRecomendacao(workspaceId, carteiraId, recomendacaoId) {
   return data.recomendacao
 }
 
+// A medição (etapa 7): a pergunta principal no segmento em vigor (datas, parcial, avaliação, final) e o custo da IA.
+async function obterMedicao(workspaceId, carteiraId) {
+  const { data } = await http.get(`${daCarteira(workspaceId, carteiraId)}/medicao`)
+  return data.medicao
+}
+
 // O diário do operador (etapa 6): o dia aberto, o checklist e as operações dele.
 async function obterDiario(workspaceId, carteiraId) {
   const { data } = await http.get(`${daCarteira(workspaceId, carteiraId)}/diario`)
@@ -114,6 +120,7 @@ export default {
   listarOperacoes,
   listarRecomendacoes,
   obterRecomendacao,
+  obterMedicao,
   obterDiario,
   conferirEntrada,
   registrarEntrada,

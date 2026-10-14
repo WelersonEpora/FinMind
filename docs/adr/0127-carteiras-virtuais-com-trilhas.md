@@ -243,7 +243,28 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
    - Testado em dev em 2026-10-14 pela API, com uma carteira de teste começando no dia: conferência (piso recusado,
      plano com quantidade, alvos e risco de 2%), registro com o checklist, segunda entrada no mesmo ativo e terceira sem
      vaga recusadas, edição e cancelamento. A saída e o stop movido, só nos testes (sem uma posição aberta em dev).
-7. A medição.
+7. A medição. Decisões do usuário em 2026-10-14: a pergunta principal e o custo da IA agora, as secundárias (Cartilha,
+   Sharpe, atribuição) numa sub-etapa; antes dos 6 meses, os números parciais sem veredito; uma aba própria, "Medição".
+   O que esta etapa definiu:
+   - **A medida:** o retorno de cada dia em % do capital inicial (a variação do patrimônio sobre o dia anterior; no 1º
+     dia, sobre o capital), nos dias liquidados das duas trilhas, e a diferença IA − Determinística.
+   - **O intervalo** da média diária por block bootstrap **circular** (os blocos dão a volta no fim da série), com
+     **10.000 reamostragens**, semente **127** e os quantis de 10% e 90%; o da acumulada é o da média vezes os dias. Só
+     a partir de **20 dias** medidos (dois blocos). O circular, as reamostragens, a semente e o mínimo são proposta do
+     FinMind.
+   - **O segmento:** a versão dos parâmetros da rodada (a correção de custo não conta), o modelo pedido e a versão do
+     prompt da recomendação principal; o dia sem um deles herda o anterior, e um campo que passa de vazio a conhecido
+     não abre segmento. Vale o último; os anteriores aparecem, sem contar. Sem dia liquidado, a contagem começa no
+     início da carteira.
+   - **As datas** são o início do segmento + 3, 6 e 12 meses (o dia que falta no mês vira o último dele). A avaliação e
+     a final usam só os dias **antes** da data delas, congeladas; antes da avaliação, a tela mostra o parcial (dias,
+     acumulada, média e intervalo) sem veredito.
+   - **O custo da IA** no segmento: as chamadas (a principal e a réplica), os tokens e o custo em US$; uma chamada gravada
+     sem custo é calculada pelos tokens com os preços do `.env` de agora. Sem preço, o custo fica incompleto e o ponto de
+     equilíbrio não aparece. Em reais pela PTAX mais recente. O **ponto de equilíbrio** é o capital em que a vantagem
+     acumulada (em %) paga o custo: custo ÷ vantagem.
+   - Testado em dev em 2026-10-14 com a carteira de demonstração (desde 15/09): 21 dias, IA − Determinística de −1,93%,
+     intervalo de −3,87% a +0,01%; o cálculo leva ~20 ms.
 8. A conta internacional.
 
 **A 1ª rodada** é o início da primeira carteira, criada quando as três trilhas puderem começar juntas (depois da etapa

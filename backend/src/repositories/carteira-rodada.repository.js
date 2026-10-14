@@ -228,6 +228,17 @@ function forWorkspace(workspaceId) {
       }));
     },
 
+    // Todas as rodadas da carteira, só o que a medição precisa (a data e a versão dos parâmetros), em ordem.
+    async rodadasParaMedicao(carteiraId, { transaction } = {}) {
+      return CarteiraRodada.findAll({
+        where: doEspaco({ carteira_id: carteiraId }),
+        attributes: ["data", "decisao", "liquidacao", "parametros_versao"],
+        order: [["data", "ASC"]],
+        raw: true,
+        transaction
+      });
+    },
+
     // Todas as posições das trilhas (abertas primeiro, depois as encerradas da mais recente).
     async listarPosicoes(trilhaIds, { transaction } = {}) {
       const linhas = await CarteiraPosicao.findAll({

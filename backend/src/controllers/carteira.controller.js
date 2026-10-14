@@ -3,6 +3,7 @@
 const carteiraService = require("../services/carteira.service");
 const painelCarteiraService = require("../services/painel-carteira.service");
 const diarioCarteiraService = require("../services/diario-carteira.service");
+const medicaoCarteiraService = require("../services/medicao-carteira.service");
 
 // Carteiras virtuais (ADR 0127). O espaço vem de req.workspaceMember (vínculo conferido no banco por
 // requireWorkspaceMember), nunca do corpo da requisição.
@@ -29,6 +30,7 @@ module.exports = {
   operacoes: responder((req) => painelCarteiraService.listarOperacoes(espaco(req), req.params.carteiraId)),
   recomendacoes: responder((req) => painelCarteiraService.listarRecomendacoes(espaco(req), req.params.carteiraId)),
   recomendacao: responder((req) => painelCarteiraService.obterRecomendacao(espaco(req), req.params.carteiraId, req.params.recomendacaoId)),
+  medicao: responder((req) => medicaoCarteiraService.obterMedicao(espaco(req), req.params.carteiraId)),
   diario: responder((req) => diarioCarteiraService.obterDiario(espaco(req), req.params.carteiraId)),
   conferirEntrada: responder((req) => diarioCarteiraService.conferirEntrada(espaco(req), req.params.carteiraId, req.body || {})),
   registrarEntrada: responder((req) => diarioCarteiraService.registrarEntrada(espaco(req), req.params.carteiraId, req.user.sub, req.body || {}), 201),

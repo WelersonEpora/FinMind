@@ -5,6 +5,7 @@ import AppShell from '../components/layout/AppShell.vue'
 import CarteiraVisaoGeral from '../components/carteiras/CarteiraVisaoGeral.vue'
 import CarteiraRecomendacao from '../components/carteiras/CarteiraRecomendacao.vue'
 import CarteiraDiario from '../components/carteiras/CarteiraDiario.vue'
+import CarteiraMedicao from '../components/carteiras/CarteiraMedicao.vue'
 import CarteiraRodadas from '../components/carteiras/CarteiraRodadas.vue'
 import CarteiraPosicoes from '../components/carteiras/CarteiraPosicoes.vue'
 import CarteiraOperacoes from '../components/carteiras/CarteiraOperacoes.vue'
@@ -15,7 +16,7 @@ import carteirasService from '../services/carteiras.service.js'
 import { useWorkspaceStore } from '../stores/workspace.js'
 import { DOCUMENTO_MANUAL, formatarData, formatarMoeda, nomeAtivo } from '../utils/carteiras.js'
 
-// Uma carteira virtual (ADR 0127): visão geral, recomendação da IA, diário do operador, rodadas, posições, operações e configuração. A aba fica na URL
+// Uma carteira virtual (ADR 0127): visão geral, recomendação da IA, diário do operador, medição, rodadas, posições, operações e configuração. A aba fica na URL
 // (?aba=), para voltar a ela ao recarregar.
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +32,7 @@ const ABAS = [
   { codigo: 'visao-geral', nome: 'Visão geral' },
   { codigo: 'recomendacao', nome: 'Recomendação IA' },
   { codigo: 'diario', nome: 'Diário do operador' },
+  { codigo: 'medicao', nome: 'Medição' },
   { codigo: 'rodadas', nome: 'Rodadas' },
   { codigo: 'posicoes', nome: 'Posições' },
   { codigo: 'operacoes', nome: 'Operações' },
@@ -149,7 +151,13 @@ watch(
         </li>
       </ul>
 
-      <CarteiraVisaoGeral v-if="aba === 'visao-geral'" :carteira="carteira" :painel="painel" />
+      <template v-if="aba === 'visao-geral'">
+        <p class="small text-muted mb-2">
+          <i class="bi bi-clipboard-data me-1"></i>A pergunta do experimento (a recomendação da IA agrega valor sobre a regra fixa?) é medida na aba
+          <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @click="trocarAba('medicao')">Medição</button>.
+        </p>
+        <CarteiraVisaoGeral :carteira="carteira" :painel="painel" />
+      </template>
       <CarteiraRecomendacao
         v-else-if="aba === 'recomendacao'"
         :recomendacoes="recomendacoes"
@@ -157,6 +165,7 @@ watch(
         :carteira-id="carteira.id"
       />
       <CarteiraDiario v-else-if="aba === 'diario'" :workspace-id="espaco.id" :carteira="carteira" :pode-operar="podeOperar" @alterado="recarregar" />
+      <CarteiraMedicao v-else-if="aba === 'medicao'" :workspace-id="espaco.id" :carteira="carteira" />
       <CarteiraRodadas v-else-if="aba === 'rodadas'" :rodadas="rodadas" />
       <CarteiraPosicoes v-else-if="aba === 'posicoes'" :posicoes="posicoes" :moeda="carteira.moeda" />
       <CarteiraOperacoes v-else-if="aba === 'operacoes'" :operacoes="operacoes" />

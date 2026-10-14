@@ -25,6 +25,7 @@ router.get(`${base}/:carteiraId/posicoes`, ...membro, carteiraController.posicoe
 router.get(`${base}/:carteiraId/operacoes`, ...membro, carteiraController.operacoes);
 router.get(`${base}/:carteiraId/recomendacoes`, ...membro, carteiraController.recomendacoes);
 router.get(`${base}/:carteiraId/recomendacoes/:recomendacaoId`, ...membro, carteiraController.recomendacao);
+router.get(`${base}/:carteiraId/medicao`, ...membro, carteiraController.medicao);
 // O diário do operador (etapa 6).
 router.get(`${base}/:carteiraId/diario`, ...membro, carteiraController.diario);
 router.post(`${base}/:carteiraId/diario/conferencia`, ...operador, carteiraController.conferirEntrada);
