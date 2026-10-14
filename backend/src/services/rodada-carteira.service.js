@@ -11,6 +11,7 @@ const { avaliarTravas } = require("../carteiras/travas");
 const { intencoesDeterministicas } = require("../carteiras/regras-deterministicas");
 const { intencoesPersistencia, entradasComprarESegurar } = require("../carteiras/referencias");
 const { intencoesDaIa } = require("../carteiras/recomendacao");
+const { aplicarMovimentosDeStop } = require("../carteiras/diario");
 const { ehDiaUtil, somarDias } = require("../carteiras/calendario");
 const logger = require("../shared/logger");
 
@@ -27,8 +28,9 @@ const logger = require("../shared/logger");
 //
 // Uma rodada decidida nunca é refeita: rodar de novo no mesmo dia não faz nada. Trilhas automáticas: a IA (a
 // recomendação diária, etapa 4: uma chamada por carteira e dia, antes do motor; falhou, fallback "manter"), a
-// Determinística e as referências (caixa, comprar e segurar, Persistência). O operador entra pelo diário (etapa 6); até
-// lá, só rende o caixa.
+// Determinística e as referências (caixa, comprar e segurar, Persistência). O operador (etapa 6) decide no diário, ao
+// longo do dia: as ordens dele entram na rodada pendente e a liquidação as executa no preço informado; a decisão só
+// gera, para ele, a saída por vencimento, como nas outras trilhas.
 
 function hojeEmSaoPaulo(agora = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
@@ -71,7 +73,7 @@ async function congelarLeituras(ativos, data, deps) {
   return { leituras, porAtivo };
 }
 
-// As intenções de uma trilha automática no dia (nenhuma para o caixa e, até a etapa 6, o operador).
+// As intenções de uma trilha automática no dia (nenhuma para o caixa e o operador, que registra no diário).
 function intencoesDaTrilha(tipo, { ativos, leiturasPorAtivo, mercado, t1PorAtivo, posicoesPorAtivo, recomendacao }) {
   if (tipo === "IA") {
     const valida = recomendacao?.situacao === "VALIDA";
@@ -85,7 +87,8 @@ function intencoesDaTrilha(tipo, { ativos, leiturasPorAtivo, mercado, t1PorAtivo
   return [];
 }
 
-const TRILHAS_QUE_DECIDEM = Object.freeze(["IA", "DETERMINISTICA", "PERSISTENCIA", "COMPRAR_E_SEGURAR"]);
+// O operador entra sem intenções: o motor só gera a saída por vencimento das posições dele.
+const TRILHAS_QUE_DECIDEM = Object.freeze(["OPERADOR", "IA", "DETERMINISTICA", "PERSISTENCIA", "COMPRAR_E_SEGURAR"]);
 
 // A segunda e o domingo da semana de `data`.
 function semanaDe(data) {
@@ -172,7 +175,7 @@ async function decidirRodada({ carteira, trilhas, versoes, data, agora }, rRepo,
   });
 }
 
-async function liquidarRodada({ carteira, trilhas, versoes, rodada, hoje, agora }, rRepo, deps) {
+async function liquidarUmaVez({ carteira, trilhas, versoes, rodada, hoje, agora }, rRepo, deps) {
   const { parametros } = resolverVigenteComVersao(versoes, rodada.data) || resolverVigenteComVersao(versoes, "9999-12-31");
   const ordensDoDia = await rRepo.ordensCriadas(rodada.id);
   const porTrilha = [];
@@ -183,6 +186,10 @@ async function liquidarRodada({ carteira, trilhas, versoes, rodada, hoje, agora 
   };
   for (const trilha of trilhas) {
     const { estado } = await estadoDaTrilha(rRepo, trilha, rodada.data, Number(carteira.capital_inicial));
+    // Os stops que o operador moveu e que já valem neste dia (um movimento vale a partir do pregão seguinte ao registro).
+    if (trilha.tipo === "OPERADOR" && estado.posicoes.length) {
+      estado.posicoes = aplicarMovimentosDeStop(estado.posicoes, await rRepo.movimentosDeStop(estado.posicoes.map((p) => p.id)), rodada.data);
+    }
     const ordens = ordensDoDia.filter((o) => o.trilhaId === trilha.id);
     for (const p of estado.posicoes) anotar(p.ativo, p.contrato);
     for (const o of ordens) anotar(o.ativo, o.contrato);
@@ -199,8 +206,20 @@ async function liquidarRodada({ carteira, trilhas, versoes, rodada, hoje, agora 
     if (resultado.pendente) return { pendente: resultado.pendente };
     resultados.push({ trilhaId: trilha.id, idsAntes: estado.posicoes.map((p) => p.id), resultado });
   }
-  await rRepo.gravarLiquidacao({ rodadaId: rodada.id, data: rodada.data, trilhas: resultados });
+  await rRepo.gravarLiquidacao({ rodadaId: rodada.id, data: rodada.data, trilhas: resultados, ordensLidas: ordensDoDia.map((o) => o.id) });
   return { liquidada: true };
+}
+
+// O operador registrou ou cancelou uma ordem enquanto a liquidação calculava: nada foi gravado; lê de novo e refaz.
+async function liquidarRodada(contexto, rRepo, deps) {
+  for (let tentativa = 1; ; tentativa += 1) {
+    try {
+      return await liquidarUmaVez(contexto, rRepo, deps);
+    } catch (erro) {
+      if (erro?.code !== "ORDENS_MUDARAM" || tentativa >= 3) throw erro;
+      logger.warn({ rodada: contexto.rodada.data }, "Carteiras: as ordens mudaram durante a liquidação; refazendo.");
+    }
+  }
 }
 
 async function processarCarteira({ workspace_id: workspaceId, id }, { hoje, agora }, deps = {}) {

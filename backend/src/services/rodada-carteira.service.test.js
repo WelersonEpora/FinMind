@@ -26,8 +26,9 @@ const RECOMENDACAO = {
   invalidaSe: "x"
 };
 
-function ambiente({ pendente = null, erroNaDecisao = false, recomendacaoFalha = false } = {}) {
-  const db = { rodadas: [], intencoes: [], ordens: [], liquidacoes: [], patrimonio: [], recomendacoes: [], chamadasIa: [] };
+function ambiente({ pendente = null, erroNaDecisao = false, recomendacaoFalha = false, posicoesOperador = [], movimentos = [], ordensMudamUmaVez = false } = {}) {
+  const db = { rodadas: [], intencoes: [], ordens: [], liquidacoes: [], patrimonio: [], recomendacoes: [], chamadasIa: [], gravacoes: [] };
+  let mudaram = ordensMudamUmaVez;
   const rodadaRepository = {
     forWorkspace: () => ({
       buscarRodada: async (_c, data) => db.rodadas.find((r) => r.data === data) || null,
@@ -42,11 +43,17 @@ function ambiente({ pendente = null, erroNaDecisao = false, recomendacaoFalha = 
         return rodada;
       },
       seriePatrimonio: async (trilhaId, { ate }) => db.patrimonio.filter((p) => p.trilhaId === trilhaId && p.data < ate),
-      posicoesAbertas: async () => [],
+      posicoesAbertas: async (trilhaId) => (trilhaId === "t-OPERADOR" ? posicoesOperador : []),
+      movimentosDeStop: async () => movimentos,
       encerradas: async () => [],
       existeReplicaEntre: async (_c, inicio, fim) => db.recomendacoes.some((r) => r.tipo === "REPLICA" && r.data >= inicio && r.data <= fim),
       ordensCriadas: async (rodadaId) => db.ordens.filter((o) => o.rodadaId === rodadaId),
-      gravarLiquidacao: async ({ rodadaId, data, trilhas }) => {
+      gravarLiquidacao: async ({ rodadaId, data, trilhas, ordensLidas }) => {
+        db.gravacoes.push({ data, trilhas, ordensLidas });
+        if (mudaram) {
+          mudaram = false;
+          throw Object.assign(new Error("mudaram"), { code: "ORDENS_MUDARAM" });
+        }
         db.liquidacoes.push(data);
         for (const t of trilhas) db.patrimonio.push({ trilhaId: t.trilhaId, data, patrimonio: t.resultado.estado.patrimonio });
         db.rodadas.find((r) => r.id === rodadaId).liquidacao = "LIQUIDADA";
@@ -167,4 +174,45 @@ test("antes do início, nada; a rotina isola a falha de uma carteira", async () 
   const quebrado = { ...deps, carteiraRepository: { ...deps.carteiraRepository, forWorkspace: () => ({ buscar: async () => { throw new Error("banco fora"); } }) } };
   const { resumos } = await executarRotina({}, { ...quebrado, hoje: "2026-10-06", logger: { error() {} } });
   assert.deepEqual(resumos, [{ carteiraId: "c1", erro: "banco fora" }]);
+});
+
+test("o operador: o stop movido entra na liquidação a partir do dia de vigência", async () => {
+  const pos = {
+    id: "p-op",
+    ativo: "MILHO",
+    lado: "COMPRADO",
+    contrato: { ticker: "CCMH27", limite: "2027-03-15" },
+    entrada: 74,
+    distancia: 2,
+    stop: 72,
+    alvo1: 76,
+    alvo2: 80,
+    quantidadeInicial: 0.2,
+    quantidadeAberta: 0.2,
+    alvo1Atingido: false,
+    reduzida: false,
+    ultimoAjuste: 74,
+    resultadoR: 0,
+    resultadoMoeda: 0
+  };
+  const movimentos = [{ posicaoId: "p-op", stop: 74, vigenteDesde: "2026-10-07", registradoEm: "2026-10-06T15:00:00Z" }];
+  const { db, deps } = ambiente({ posicoesOperador: [pos], movimentos });
+  await rodar("2026-10-06", deps);
+  await rodar("2026-10-07", deps);
+  // Em 06/10 o movimento ainda não vale: a mínima de 73,8 não toca o stop de 72.
+  const de06 = db.gravacoes.find((g) => g.data === "2026-10-06").trilhas.find((t) => t.trilhaId === "t-OPERADOR");
+  assert.equal(de06.resultado.estado.posicoes[0].stop, 72);
+  await rodar("2026-10-08", deps);
+  // Em 07/10 vale o stop de 74: a mínima de 73,8 o atinge.
+  const de07 = db.gravacoes.find((g) => g.data === "2026-10-07").trilhas.find((t) => t.trilhaId === "t-OPERADOR");
+  assert.deepEqual([de07.resultado.encerradas.length, de07.resultado.encerradas[0]?.motivoSaida], [1, "STOP"]);
+});
+
+test("as ordens mudaram durante a liquidação: nada gravado, a rotina lê de novo e liquida", async () => {
+  const { db, deps } = ambiente({ ordensMudamUmaVez: true });
+  await rodar("2026-10-06", deps);
+  const r = await rodar("2026-10-07", deps);
+  assert.deepEqual(r.liquidadas, ["2026-10-06"]);
+  assert.equal(db.gravacoes.filter((g) => g.data === "2026-10-06").length, 2);
+  assert.ok(Array.isArray(db.gravacoes[0].ordensLidas));
 });

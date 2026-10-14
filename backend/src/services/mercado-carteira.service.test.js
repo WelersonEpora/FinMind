@@ -113,3 +113,24 @@ test("liquidação: sem o dado do dia, espera; passada a espera, é feriado (sem
   const feriado = await lerMercadoParaLiquidacao({ ...pedido, hoje: "2026-10-16" }, deps);
   assert.deepEqual([feriado.barras, feriado.cambio, feriado.taxaCaixaDia, feriado.diaUtil], [{}, 5.38, 0, false]);
 });
+
+test("liquidação: o feriado reconhecido pelo dado de um dia posterior, sem esperar os 4 dias", async () => {
+  const pedido = { data: "2026-10-12", tickers: { CAFE: ["ICFZ26"] }, agora: new Date("2026-10-14T09:30:00Z"), hoje: "2026-10-14" };
+  const posterior = [{ series_code: "B3.ICF.ICFZ26.SETTLE", observed_at: "2026-10-13", value: 350 }];
+  // Feriado do BCB e da B3 (12/10): a PTAX e o ajuste de 13/10 já existem.
+  const ambos = { observationRepository: repoFalso(posterior), marketQuoteRepository: marketQuoteFalso({ ptax: { "2026-10-09": 5.38, "2026-10-13": 5.41 }, selic: { "2026-10-09": 14.9 } }) };
+  const feriado = await lerMercadoParaLiquidacao(pedido, ambos);
+  assert.deepEqual([feriado.barras, feriado.cambio, feriado.taxaCaixaDia, feriado.diaUtil], [{}, 5.38, 0, false]);
+  // Na manhã de 13/10 ainda não há dado de 13/10: espera.
+  assert.deepEqual(await lerMercadoParaLiquidacao({ ...pedido, hoje: "2026-10-13", agora: new Date("2026-10-13T09:30:00Z") }, ambos), { pendente: "SEM_PTAX_DO_DIA" });
+  // Só a B3 fechada (com a PTAX do dia): o ajuste posterior basta; o caixa rende (dia útil do BCB).
+  const soB3 = { observationRepository: repoFalso(posterior), marketQuoteRepository: marketQuoteFalso({ ptax: { "2026-10-12": 5.39 }, selic: { "2026-10-12": 14.9 } }) };
+  const semPregao = await lerMercadoParaLiquidacao(pedido, soB3);
+  assert.deepEqual([semPregao.barras, semPregao.cambio, semPregao.diaUtil], [{}, 5.39, true]);
+  // PTAX posterior, mas sem ajuste posterior do contrato: a barra pode só estar atrasada; espera.
+  const semAjuste = { observationRepository: repoFalso([]), marketQuoteRepository: marketQuoteFalso({ ptax: { "2026-10-13": 5.41 } }) };
+  assert.deepEqual(await lerMercadoParaLiquidacao(pedido, semAjuste), { pendente: "SEM_PTAX_DO_DIA" });
+  // Sem contrato a marcar, a PTAX posterior basta.
+  const semContrato = await lerMercadoParaLiquidacao({ ...pedido, tickers: {} }, semAjuste);
+  assert.equal(semContrato.diaUtil, false);
+});

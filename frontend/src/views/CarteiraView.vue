@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppShell from '../components/layout/AppShell.vue'
 import CarteiraVisaoGeral from '../components/carteiras/CarteiraVisaoGeral.vue'
 import CarteiraRecomendacao from '../components/carteiras/CarteiraRecomendacao.vue'
+import CarteiraDiario from '../components/carteiras/CarteiraDiario.vue'
 import CarteiraRodadas from '../components/carteiras/CarteiraRodadas.vue'
 import CarteiraPosicoes from '../components/carteiras/CarteiraPosicoes.vue'
 import CarteiraOperacoes from '../components/carteiras/CarteiraOperacoes.vue'
@@ -14,19 +15,22 @@ import carteirasService from '../services/carteiras.service.js'
 import { useWorkspaceStore } from '../stores/workspace.js'
 import { DOCUMENTO_MANUAL, formatarData, formatarMoeda, nomeAtivo } from '../utils/carteiras.js'
 
-// Uma carteira virtual (ADR 0127): visão geral, recomendação da IA, rodadas, posições, operações e configuração. A aba fica na URL
+// Uma carteira virtual (ADR 0127): visão geral, recomendação da IA, diário do operador, rodadas, posições, operações e configuração. A aba fica na URL
 // (?aba=), para voltar a ela ao recarregar.
 const route = useRoute()
 const router = useRouter()
 const workspaces = useWorkspaceStore()
 const espaco = workspaces.active
 const souOwner = computed(() => espaco.value?.papel === 'owner')
+// O diário do operador: o dono e o editor registram (ADR 0127, §8).
+const podeOperar = computed(() => ['owner', 'editor'].includes(espaco.value?.papel))
 const { documentoAberto, anterior, abrirDocumento, navegarDocumento, voltarDocumento, fecharDocumento } =
   useDocumentoNaUrl()
 
 const ABAS = [
   { codigo: 'visao-geral', nome: 'Visão geral' },
   { codigo: 'recomendacao', nome: 'Recomendação IA' },
+  { codigo: 'diario', nome: 'Diário do operador' },
   { codigo: 'rodadas', nome: 'Rodadas' },
   { codigo: 'posicoes', nome: 'Posições' },
   { codigo: 'operacoes', nome: 'Operações' },
@@ -152,6 +156,7 @@ watch(
         :workspace-id="espaco.id"
         :carteira-id="carteira.id"
       />
+      <CarteiraDiario v-else-if="aba === 'diario'" :workspace-id="espaco.id" :carteira="carteira" :pode-operar="podeOperar" @alterado="recarregar" />
       <CarteiraRodadas v-else-if="aba === 'rodadas'" :rodadas="rodadas" />
       <CarteiraPosicoes v-else-if="aba === 'posicoes'" :posicoes="posicoes" :moeda="carteira.moeda" />
       <CarteiraOperacoes v-else-if="aba === 'operacoes'" :operacoes="operacoes" />

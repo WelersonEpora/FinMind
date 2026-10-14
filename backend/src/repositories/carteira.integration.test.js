@@ -191,3 +191,49 @@ test("recomendação: gravada com a rodada; o espaço B não a enxerga; o banco 
     "SequelizeDatabaseError"
   );
 });
+
+test("diário do operador: a ordem dele, o cancelamento, o stop movido e a liquidação que confere as ordens lidas", opcoes, async () => {
+  const rodadas = require("./carteira-rodada.repository");
+  const doA = rodadas.forWorkspace(espacoA.id);
+  const doB = rodadas.forWorkspace(espacoB.id);
+  const operador = (await repositorio.forWorkspace(espacoA.id).listarTrilhas(carteiraA.id, { transaction })).find((t) => t.tipo === "OPERADOR");
+  const rodada = await doA.criarRodada({ carteiraId: carteiraA.id, data: "2026-10-20", decisao: "DECIDIDA" }, { transaction });
+  const contrato = { ticker: "CCMF27", limite: "2027-01-14" };
+
+  const ordem = await doA.comRodadaTravada(
+    rodada.id,
+    async ({ rodada: travada, transaction: t }) => {
+      assert.equal(travada.liquidacao, "PENDENTE");
+      return doA.criarOrdem(
+        { rodadaId: rodada.id, trilhaId: operador.id, dataExecucao: "2026-10-20", ativo: "MILHO", tipo: "ENTRADA", motivo: "OPERADOR", lado: "COMPRADO", contrato, quantidade: 0.2, distancia: 2, precoInformado: 70, stopInformado: 68, detalhes: { aderente: true } },
+        { transaction: t }
+      );
+    },
+    { transaction }
+  );
+  assert.deepEqual([ordem.precoInformado, ordem.stopInformado, ordem.detalhes.aderente], [70, 68, true]);
+  assert.equal((await doA.ordensCriadasDaTrilha(operador.id, rodada.id, { transaction })).length, 1);
+  assert.equal(await doB.buscarOrdem(ordem.id, operador.id, { transaction }), null);
+
+  // A liquidação que leu outras ordens não grava nada.
+  await assert.rejects(() => db.sequelize.transaction({ transaction }, (t) => doA.gravarLiquidacao({ rodadaId: rodada.id, data: "2026-10-20", trilhas: [], ordensLidas: [] }, { transaction: t })), (e) => e.code === "ORDENS_MUDARAM");
+
+  // CANCELADA é aceita pelo banco; a cancelada já não é CRIADA.
+  assert.equal(await doA.atualizarOrdemCriada(ordem.id, { situacao: "CANCELADA", motivo_situacao: "CANCELADA_PELO_OPERADOR" }, { transaction }), 1);
+  assert.equal(await doA.atualizarOrdemCriada(ordem.id, { situacao: "CANCELADA" }, { transaction }), 0);
+  assert.equal((await doA.ordensDaTrilha(operador.id, { transaction })).find((o) => o.id === ordem.id).situacao, "CANCELADA");
+
+  // O stop movido como evento da posição, lido pela liquidação.
+  const posicao = await db.CarteiraPosicao.create(
+    {
+      id: randomUUID(), workspace_id: espacoA.id, trilha_id: operador.id, ativo: "MILHO", lado: "COMPRADO", contrato, data_entrada: "2026-10-19", entrada: 70, distancia: 2,
+      stop_inicial: 68, stop: 68, alvo1: 72, alvo2: 76, quantidade_inicial: 0.2, quantidade_aberta: 0.2, alvo1_atingido: false, reduzida: false, ultimo_ajuste: 71, resultado_moeda: 0, situacao: "ABERTA"
+    },
+    { transaction }
+  );
+  assert.equal((await doA.buscarPosicao(posicao.id, operador.id, { transaction })).stop, 68);
+  await doA.registrarEvento({ posicaoId: posicao.id, data: "2026-10-20", tipo: "STOP_MOVIDO", preco: 69, detalhes: { de: 68, vigenteDesde: "2026-10-21" } }, { transaction });
+  assert.deepEqual((await doA.movimentosDeStop([posicao.id], { transaction })).map((m) => [m.stop, m.vigenteDesde]), [[69, "2026-10-21"]]);
+  assert.deepEqual(await doB.movimentosDeStop([posicao.id], { transaction }), []);
+  assert.equal((await doA.eventosDasPosicoes([posicao.id], { transaction })).length, 1);
+});

@@ -94,7 +94,29 @@ const ROTULOS = {
   SEM_CHAVE_PAGA: 'Sem a chave paga do Gemini',
   SEM_LEITURAS: 'Nenhum ativo com leitura no dia',
   SEM_RECOMENDACAO: 'Sem recomendação: mantém',
-  SEM_LEITURA: 'Sem leitura no dia'
+  SEM_LEITURA: 'Sem leitura no dia',
+  // Diário do operador.
+  PLANEJADA: 'Planejada',
+  EM_GESTAO: 'Em gestão',
+  NAO_EXECUTADA: 'Não executada',
+  CANCELADA: 'Cancelada',
+  CANCELADA_PELO_OPERADOR: 'Cancelada pelo operador',
+  EDITADA: 'Substituída por uma edição',
+  STOP_MOVIDO: 'Stop movido',
+  AGUARDANDO_INICIO: 'A carteira ainda não começou',
+  SEM_RODADA: 'Ainda não há rodada',
+  RODADA_LIQUIDADA: 'O dia já foi liquidado; o próximo abre com a rotina das 06h30',
+  LIQUIDACAO_ANTERIOR_PENDENTE: 'Uma liquidação anterior está pendente',
+  ROTINA_ATRASADA: 'A rotina diária está atrasada'
+}
+
+// As verificações da entrada do operador (o motor de risco), na conferência do diário.
+export const VERIFICACOES = {
+  STOP_DO_LADO: 'Stop do lado certo',
+  PISO_ATR: 'Piso de ATR(14)',
+  RR_MINIMO: 'R:R mínimo',
+  QUANTIDADE: 'Tamanho pelo risco',
+  VAGAS_E_TRAVAS: 'Vaga e travas'
 }
 
 export const rotulo = (codigo) => (codigo == null ? '—' : ROTULOS[codigo] || codigo)
@@ -140,6 +162,13 @@ export function diasFora(datasIso) {
     if (!tem.has(isoDeData(d))) fora.push(isoDeData(d))
   }
   return fora
+}
+
+// Um número digitado: com vírgula, o ponto é de milhar ("1.234,5"); sem vírgula, o ponto é o decimal ("70.5").
+export function lerNumero(texto) {
+  const t = String(texto ?? '').trim()
+  if (!t) return NaN
+  return Number(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t)
 }
 
 // A classe de cor de um número com sinal.

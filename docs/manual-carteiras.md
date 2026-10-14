@@ -58,7 +58,7 @@ regras. Muda só **quem decide**:
 |---|---|
 | **IA** | A recomendação diária da IA, aplicada automaticamente. |
 | **Determinística** | Uma regra fixa sobre as leituras de tendência do dia, sem chamar a IA. |
-| **Operador** | Você, pelo diário (ainda em construção). |
+| **Operador** | Você, pelo diário (aba **Diário do operador**, seção 7). |
 
 Ao lado delas, três **referências**, calculadas pelo mesmo motor e sem nenhuma decisão:
 
@@ -77,7 +77,16 @@ A carteira roda sozinha todo dia, às **06h30**, em duas fases:
 2. **Liquida o dia (D)** na manhã seguinte (D+1), com o ajuste de D: as entradas, os stops, os alvos, a marcação das
    posições e o rendimento do caixa.
 
-Assim, nenhuma decisão usa um dado que ainda não existia na hora de decidir. Fim de semana e feriado não têm rodada.
+Assim, nenhuma decisão usa um dado que ainda não existia na hora de decidir. Fim de semana não tem rodada.
+
+**Feriado.** O sistema não tem uma lista de feriados: ele descobre pelo dado. No feriado (um dia de semana sem pregão),
+a rotina decide como num dia comum, mas na manhã seguinte não há o preço do dia para liquidar. O dia fica **pendente**,
+e as rodadas seguintes ficam **sem decisão**, porque cada dia depende do anterior. Nesse intervalo, a aba Diário do
+operador mostra "Uma liquidação anterior está pendente". Assim que sai o dado do primeiro pregão depois do feriado (no fim
+desse dia), a rotina da manhã seguinte reconhece o feriado: as ordens dele expiram, o caixa não rende, e tudo volta ao
+normal. Na prática, um feriado custa **um dia útil sem decisão**: com Finados numa segunda (02/11), a terça fica sem
+decisão e a quarta já é decidida normalmente. Se o dado só atrasou, sem nenhum dado posterior, o sistema espera até 4
+dias corridos antes de tratar o dia como feriado.
 
 ## 5. Quanto dinheiro vai em cada ativo
 
@@ -173,3 +182,81 @@ e cada resposta, exatamente como foram.
 
 **O rodapé:** a réplica semanal (uma vez por semana, a mesma entrada vai de novo à IA, sem decidir nada, para medir se
 ela responde igual).
+
+## 7. O diário do operador
+
+Na aba **Diário do operador**, você registra as suas operações: é a trilha Operador, que concorre com a IA e com a
+regra fixa nas mesmas condições. Só o proprietário e os editores do espaço registram; os outros membros só veem.
+
+**Quando dá para registrar.** O topo da aba diz se o registro está aberto e para qual dia. Vale o dia da rodada que
+ainda não foi liquidada: normalmente o de hoje, desde a rotina das 06h30 até as 06h30 do dia seguinte, quando o dia é
+liquidado. Depois disso, aquele dia fecha. Registrar um dia já liquidado (o registro tardio) ainda não está disponível.
+
+**Quando o registro aparece fechado**, o topo da aba diz o motivo:
+
+| Mensagem | O que quer dizer | Quando volta |
+|---|---|---|
+| **Uma liquidação anterior está pendente** | Um dia anterior ainda não foi liquidado porque falta o dado dele (o preço da B3 ou a PTAX), quase sempre por um **feriado**. Como cada dia depende do anterior, o sistema não sabe ainda o patrimônio e as posições da véspera, e não tem como conferir uma entrada nova. | Na rotina da manhã seguinte ao primeiro pregão depois do feriado: o dado desse pregão prova que o dia vazio foi feriado, e tudo é liquidado em sequência (seção 4). Se o dado só atrasou, sem nenhum dado posterior, até 4 dias corridos. |
+| **O dia já foi liquidado** | A rotina das 06h30 já liquidou o último dia, e o dia de hoje ainda não tem rodada (por exemplo, no fim de semana). | Na rotina das 06h30 do próximo dia útil. |
+| **A rotina diária está atrasada** | A última rodada é de mais de um dia útil atrás: a rotina não rodou. | Quando a rotina rodar de novo. |
+| **A carteira ainda não começou** / **Ainda não há rodada** | Hoje é antes da data de início, ou é o dia do início e a rotina das 06h30 ainda não rodou. | No dia do início, depois da rotina das 06h30. |
+
+Exemplo de feriado: com Finados numa segunda (02/11), o registro fica fechado com "Uma liquidação anterior está
+pendente" na terça, e esse dia não recebe registro; na quarta, depois da rotina das 06h30, ele abre normalmente.
+
+**Registrar uma entrada.** Clique em **Nova entrada** e preencha:
+
+- o **ativo** e o **lado** (comprado ou vendido);
+- o **preço de entrada**, o preço em que você entrou;
+- o **stop**. A janela mostra o contrato, o último ajuste, o ATR(14) e a distância mínima do stop (o piso), e sugere o
+  stop no piso a partir do preço digitado. O stop pode ficar mais longe que o piso, nunca mais perto.
+
+A **conferência** roda sozinha enquanto você digita: o stop do lado certo, o piso de ATR, o R:R mínimo, o tamanho pelo
+risco, as vagas e as travas. Com tudo certo, ela mostra a quantidade, os dois alvos da Tabela 2 e o risco (1R). A
+quantidade e os alvos são calculados pelo sistema, como nas outras trilhas (seção 5); você não os digita.
+
+**O checklist da Cartilha** é o checklist de entrada da Cartilha de Operações do Comitê (Cap. 7.1): oito condições
+que a Cartilha diz serem obrigatórias antes de entrar numa operação. No diário, ele serve para a disciplina (você passa
+pelos oito pontos a cada entrada) e para a **aderência**, que a Cartilha manda reportar ao Comitê todo mês (Cap. 9.5): o
+percentual de operações que cumpriram todos os itens.
+
+| Item | Quem marca | O que quer dizer |
+|---|---|---|
+| 1. Viés claro do FINMIND | Você | A leitura de tendência do ativo (Centro de Decisão) e a recomendação da IA apontam na direção da sua entrada. |
+| 2. Estrutura SMC alinhada | Você | No gráfico, a estrutura confirma a entrada: quebra de estrutura (BOS) ou mudança de caráter (CHoCH), zona de interesse, FVG ou varredura de liquidez (sweep). |
+| 3. Dentro da kill zone | Você | A entrada foi feita na janela de maior liquidez (as janelas por ativo da B3 seguem pendentes do Comitê). |
+| 4. Stop no piso de ATR(14) | O sistema | O stop está do lado certo e a pelo menos 1,5× o ATR da entrada. |
+| 5. Alvos e R:R mínimo | O sistema | Os alvos saem da Tabela 2, e o R:R do alvo 2 fica acima do mínimo. |
+| 6. Dimensionamento pelo risco | O sistema | A quantidade arrisca o percentual do ativo (2%). |
+| 7. Janela da B3 | Você | Dentro do pregão do agro (09h00 às 15h55, pausa das 12h às 13h) e fora dos 30 minutos antes e depois de um evento. |
+| 8. Sem evento de alto impacto | Você | Nenhum relatório (USDA, Conab) ou dado macro relevante nos 30 minutos antes e depois da entrada. |
+
+Os itens 4, 5 e 6 vêm da conferência: se algum falhar, a entrada é bloqueada, por isso eles aparecem marcados e
+travados. Os outros cinco dependem do seu julgamento e o sistema não tem como conferir. Um item desmarcado **não impede o
+registro**: a entrada fica com o selo **fora da Cartilha** (amarelo) em vez de **aderente** (verde), e o selo aparece
+também nas listas de planejadas e encerradas. Se o diário bloqueasse, as entradas fora da Cartilha não apareceriam, e a
+aderência não mediria nada.
+
+**O limite do checklist:** os cinco itens manuais são uma declaração do operador, que ninguém confere. A aderência mostra
+como o operador trabalha, não se o sistema funciona: a pergunta do experimento (a recomendação da IA agrega valor sobre a
+regra fixa?) é medida só entre as trilhas IA e Determinística, sem o operador e sem o checklist.
+
+**Planejada.** A entrada registrada fica **planejada** até a liquidação do dia. Até lá, você pode **editar** (a antiga
+é cancelada e uma nova entra no lugar) ou **cancelar**. Na liquidação, o sistema confere o seu preço contra a mínima e a
+máxima do contrato no dia: dentro da faixa, a posição abre a esse preço; fora dela, a ordem é rejeitada.
+
+**Com a posição aberta**, três ações:
+
+- **Zerar:** sai da posição inteira, no preço que você informar.
+- **Reduzir:** sai de metade da posição (o padrão da carteira), uma vez por operação.
+- **Mover stop:** só a favor da posição (para cima, se comprado; para baixo, se vendido) e ainda do lado da perda em
+  relação ao último ajuste. O novo stop vale **a partir do pregão seguinte**: no mesmo dia, ele poderia ser escolhido já
+  sabendo até onde o preço foi.
+
+Uma saída por posição e por dia; ela também pode ser cancelada antes da liquidação. O stop e os alvos continuam
+automáticos, como nas outras trilhas: na liquidação, o sistema confere primeiro se o preço do dia tocou o stop ou um
+alvo, e depois executa a sua saída.
+
+**As fases de uma operação:** **planejada** (aguarda a liquidação), **aberta**, **em gestão** (depois do alvo 1, de uma
+redução ou de um stop movido), **encerrada**, **cancelada** ou **não executada** (o preço ficou fora da faixa do dia). O
+vencimento do contrato também encerra a posição, 15 dias úteis antes do limite, como nas outras trilhas.

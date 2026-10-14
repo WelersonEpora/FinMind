@@ -64,6 +64,44 @@ async function obterRecomendacao(workspaceId, carteiraId, recomendacaoId) {
   return data.recomendacao
 }
 
+// O diário do operador (etapa 6): o dia aberto, o checklist e as operações dele.
+async function obterDiario(workspaceId, carteiraId) {
+  const { data } = await http.get(`${daCarteira(workspaceId, carteiraId)}/diario`)
+  return data.diario
+}
+
+// A conferência de uma entrada sem gravar (a prévia do formulário): { aprovado, verificacoes, plano, contrato }.
+async function conferirEntrada(workspaceId, carteiraId, dados) {
+  const { data } = await http.post(`${daCarteira(workspaceId, carteiraId)}/diario/conferencia`, dados)
+  return data.conferencia
+}
+
+async function registrarEntrada(workspaceId, carteiraId, dados) {
+  const { data } = await http.post(`${daCarteira(workspaceId, carteiraId)}/diario/entradas`, dados)
+  return data.ordem
+}
+
+async function editarEntrada(workspaceId, carteiraId, ordemId, dados) {
+  const { data } = await http.put(`${daCarteira(workspaceId, carteiraId)}/diario/ordens/${encodeURIComponent(ordemId)}`, dados)
+  return data.ordem
+}
+
+async function cancelarOrdem(workspaceId, carteiraId, ordemId) {
+  const { data } = await http.post(`${daCarteira(workspaceId, carteiraId)}/diario/ordens/${encodeURIComponent(ordemId)}/cancelamento`)
+  return data.ordem
+}
+
+// { acao: 'ZERAR' | 'REDUZIR', preco }
+async function registrarSaida(workspaceId, carteiraId, posicaoId, dados) {
+  const { data } = await http.post(`${daCarteira(workspaceId, carteiraId)}/diario/posicoes/${encodeURIComponent(posicaoId)}/saidas`, dados)
+  return data.ordem
+}
+
+async function moverStop(workspaceId, carteiraId, posicaoId, stop) {
+  const { data } = await http.post(`${daCarteira(workspaceId, carteiraId)}/diario/posicoes/${encodeURIComponent(posicaoId)}/stop`, { stop })
+  return data.evento
+}
+
 export default {
   obterOpcoes,
   listarCarteiras,
@@ -75,5 +113,12 @@ export default {
   listarPosicoes,
   listarOperacoes,
   listarRecomendacoes,
-  obterRecomendacao
+  obterRecomendacao,
+  obterDiario,
+  conferirEntrada,
+  registrarEntrada,
+  editarEntrada,
+  cancelarOrdem,
+  registrarSaida,
+  moverStop
 }

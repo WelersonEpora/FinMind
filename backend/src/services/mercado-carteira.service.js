@@ -19,7 +19,9 @@ const { somarDias, somarDiasUteis } = require("../carteiras/calendario");
 //   para a LIQUIDAÇÃO de D: a barra de D (ajuste, máxima, mínima e médio) de cada contrato pedido, a PTAX de D e a
 //     Selic do dia (a taxa diária da Selic realizada, em 252 dias úteis).
 //
-// Calendário: segunda a sexta. Um feriado aparece como um dia sem barra nem PTAX (o motor expira as ordens dele).
+// Calendário: segunda a sexta. Um feriado aparece como um dia sem barra nem PTAX (o motor expira as ordens dele). O dia
+// sem dado é reconhecido como feriado quando já existe dado de um dia POSTERIOR (a PTAX ou o ajuste de um dos contratos):
+// a liquidação segue sem esperar. Sem essa prova, espera até DIAS_DE_ESPERA (o dado pode só estar atrasado).
 
 // O prefixo das séries do futuro de cada ativo e se ele tem o número de contratos negociados (o Brent do Yahoo não).
 const FUTUROS = Object.freeze({
@@ -33,7 +35,8 @@ const FUTUROS = Object.freeze({
 // Janela de busca da decisão: o ATR(14) pede 15 pregões e a variação, 30 dias corridos.
 const DIAS_DE_HISTORICO = 60;
 const PTAX = "BCB.PTAX.VENDA";
-// Até quantos dias corridos a liquidação de um dia espera pelo dado dele antes de tratá-lo como sem pregão.
+// Até quantos dias corridos a liquidação de um dia espera pelo dado dele, sem dado de um dia posterior, antes de tratá-lo
+// como sem pregão.
 const DIAS_DE_ESPERA = 4;
 
 const linhasPorSerie = (linhas) => {
@@ -138,6 +141,24 @@ async function taxaCaixaDoDia(data, deps) {
   return Math.pow(1 + Number(ultima.value) / 100, 1 / 252) - 1;
 }
 
+// A prova de que D não teve o dado que falta (feriado do BCB ou da B3): já existe o mesmo dado de um dia depois de D,
+// conhecido no instante `agora`. Falta a PTAX: há PTAX posterior? Falta a barra: algum dos contratos tem ajuste posterior?
+async function haDadoPosterior({ data, hoje, agora, ptaxDoDia, temBarra, tickers }, deps) {
+  if (ptaxDoDia == null) {
+    const ultima = await ptaxAte(hoje, agora, deps);
+    if (!(ultima && ultima.data > data)) return false;
+  }
+  if (!temBarra) {
+    const ajustes = Object.entries(tickers).flatMap(([ativo, lista]) => lista.map((ticker) => `${FUTUROS[ativo].prefixo}.${ticker}.SETTLE`));
+    if (ajustes.length) {
+      const repo = deps.observationRepository || observationRepository;
+      const depois = await repo.buscarAsOf({ seriesCodes: ajustes, asOf: agora, observadoDesde: somarDias(data, 1), observadoAte: hoje });
+      if (!depois.length) return false;
+    }
+  }
+  return true;
+}
+
 // A liquidação de D. `tickers`: { ATIVO: [ticker] } dos contratos com posição ou ordem. -> { pendente } (o dado do dia
 // ainda pode chegar) ou { barras, cambio, taxaCaixaDia, diaUtil }.
 async function lerMercadoParaLiquidacao({ data, tickers, agora = new Date(), hoje }, deps = {}) {
@@ -162,7 +183,9 @@ async function lerMercadoParaLiquidacao({ data, tickers, agora = new Date(), hoj
   // último conhecido (nada é marcado sem barra) e o caixa não rende.
   const temBarra = Object.keys(barras).length > 0;
   const completo = ptaxDoDia != null && (seriesCodes.length === 0 || temBarra);
-  if (!completo && somarDias(data, DIAS_DE_ESPERA) > hoje) return { pendente: ptaxDoDia == null ? "SEM_PTAX_DO_DIA" : "SEM_BARRA_DO_DIA" };
+  if (!completo && somarDias(data, DIAS_DE_ESPERA) > hoje && !(await haDadoPosterior({ data, hoje, agora, ptaxDoDia, temBarra, tickers }, deps))) {
+    return { pendente: ptaxDoDia == null ? "SEM_PTAX_DO_DIA" : "SEM_BARRA_DO_DIA" };
+  }
   return { barras, cambio: ptaxDoDia ?? ptax?.valor ?? null, taxaCaixaDia: ptaxDoDia != null ? await taxaCaixaDoDia(data, deps) : 0, diaUtil: ptaxDoDia != null };
 }
 

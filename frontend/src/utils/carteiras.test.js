@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { consistencia, corDaAcao, dataDeIso, diasFora, isoDeData, doFormulario, formatarParametro, formatarR, formatarRetorno, nomeTrilha, paraFormulario, pontosDoPatrimonio, rotulo, CAMPOS_ATIVO } from './carteiras.js'
+import { consistencia, corDaAcao, dataDeIso, diasFora, isoDeData, lerNumero, doFormulario, formatarParametro, formatarR, formatarRetorno, nomeTrilha, paraFormulario, pontosDoPatrimonio, rotulo, CAMPOS_ATIVO } from './carteiras.js'
 
 const PARAMETROS = {
   modelo: 'cartilha-1.0',
@@ -68,4 +68,11 @@ test('datas do calendário: ida e volta no dia local; os dias fora da lista, ent
   assert.deepEqual(diasFora([]), [])
   assert.deepEqual(diasFora(['2026-10-16', '2026-10-14']), ['2026-10-15'])
   assert.deepEqual(diasFora(['2026-10-30', '2026-11-02']), ['2026-10-31', '2026-11-01'])
+})
+
+test('número digitado: vírgula decimal com ponto de milhar, ou ponto decimal', () => {
+  assert.equal(lerNumero('70,5'), 70.5)
+  assert.equal(lerNumero('1.234,5'), 1234.5)
+  assert.equal(lerNumero('70.5'), 70.5)
+  assert.ok(Number.isNaN(lerNumero('')))
 })

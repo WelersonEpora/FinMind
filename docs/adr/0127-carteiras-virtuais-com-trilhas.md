@@ -181,7 +181,12 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
      liquidez mínima no último pregão até D−1; o ATR(14) dele; a PTAX de D−1 para o tamanho. Na liquidação, a barra do
      dia, a PTAX do dia e a Selic realizada (% a.a.) em taxa diária de 252 dias úteis. Calendário de segunda a sexta:
      o dia útil do caixa é o da PTAX; até 4 dias corridos a liquidação espera pelo dado do dia, depois o trata como
-     feriado (as ordens expiram e o caixa não rende).
+     feriado (as ordens expiram e o caixa não rende). **Ajuste de 2026-10-14** (decisão do usuário): o dia sem dado é
+     reconhecido como feriado assim que existir o mesmo dado de um dia posterior (a PTAX posterior, se falta a PTAX; o
+     ajuste posterior de um dos contratos, se falta a barra), sem esperar os 4 dias, que ficam só para o dado atrasado.
+     Como o dado do primeiro pregão depois do feriado só sai no fim desse dia, a carteira retoma na rotina da manhã
+     seguinte: um feriado custa 1 dia útil sem decisão (com a espera de 4 dias, um feriado na segunda custava 3). Um
+     calendário de feriados da B3 no código evitaria esse dia; não foi adotado.
    - **As referências:** o caixa só rende; a Persistência é a direção da variação de 30 dias do contrato operado, com a
      faixa LATERAL do MEDIO do ativo, passada pela regra da Determinística e pelo motor; o comprar e segurar fica
      comprado em cada ativo com 1/n do patrimônio, sem alavancagem, sem stop nem alvo, sai no vencimento e volta no
@@ -209,7 +214,35 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
    roda: a lista e a criação (só a conta B3 até a etapa 8; os parâmetros padrão, mudados depois por versão) e a de uma
    carteira, com visão geral (o patrimônio no gráfico como retorno acumulado em % do capital, para as trilhas se
    compararem na mesma escala), rodadas, posições, operações e configuração. A tela da recomendação entra com a etapa 4.
-6. O diário do operador.
+6. O diário do operador. Sem tabela nova (a `carteira_ordem` ganha a situação CANCELADA). Decisões do usuário em
+   2026-10-14: a saída pelo motor (stop e alvos) e também à mão; os alvos calculados pela Tabela 2; o registro tardio
+   numa sub-etapa depois; do diário da Cartilha (Cap. 9.4), por ora só o checklist dos 8 itens (Cap. 7.1). O que esta
+   etapa definiu:
+   - **O dia de registro** é o da rodada mais recente ainda não liquidada, se for de hoje ou do dia útil anterior (antes
+     das 06h30, a de ontem segue aberta). Fora disso (liquidada, uma anterior pendente, rotina atrasada), nada é
+     registrado. Cada escrita trava a rodada (`SELECT ... FOR UPDATE`); a liquidação trava a mesma linha e confere que as
+     ordens são as que leu (senão, refaz): uma ordem nunca entra num dia já liquidado.
+   - **A entrada:** ativo, lado, preço e stop. A conferência usa o mesmo mercado das trilhas automáticas no dia (até o
+     ajuste de D−1, no instante da decisão da rodada) e o patrimônio da véspera: o stop do lado certo, o piso de ATR, o
+     R:R, o tamanho pelo risco, as vagas e as travas; as entradas já planejadas no dia ocupam vaga e ativo, e uma saída
+     planejada não libera vaga no mesmo dia. A quantidade e os alvos saem do motor; o preço é conferido contra a mínima
+     e a máxima do contrato na liquidação (fora da faixa, a ordem é REJEITADA).
+   - **O checklist:** os itens 4 a 6 (stop no piso, alvos e R:R, dimensionamento) o sistema marca pelas verificações; os
+     outros cinco, o operador. Um item desmarcado não impede o registro: a entrada fica "fora da Cartilha" e conta na
+     aderência (Cap. 9.5).
+   - **Planejada:** a entrada aguarda a liquidação; editar cancela a ordem (motivo EDITADA) e cria outra, e cancelar a
+     marca CANCELADA. A linha nunca é apagada.
+   - **A saída à mão:** zerar ou reduzir (a fração da carteira, uma vez por operação), com o preço, conferido contra a
+     faixa do dia. Uma saída por posição e dia (a do vencimento conta). Na liquidação, o stop e os alvos são avaliados
+     antes, pela faixa do dia, como nas outras trilhas.
+   - **O stop movido** só a favor e ainda do lado da perda em relação ao último ajuste; vale **a partir do pregão
+     seguinte** ao dia aberto (proposta do FinMind: no mesmo dia, o stop seria escolhido já vendo o preço do dia). Fica
+     como evento STOP_MOVIDO da posição; a liquidação aplica o mais recente em vigor.
+   - **O vencimento** encerra as posições do operador como as das outras trilhas (a decisão gera a saída 15 dias úteis
+     antes do limite).
+   - Testado em dev em 2026-10-14 pela API, com uma carteira de teste começando no dia: conferência (piso recusado,
+     plano com quantidade, alvos e risco de 2%), registro com o checklist, segunda entrada no mesmo ativo e terceira sem
+     vaga recusadas, edição e cancelamento. A saída e o stop movido, só nos testes (sem uma posição aberta em dev).
 7. A medição.
 8. A conta internacional.
 

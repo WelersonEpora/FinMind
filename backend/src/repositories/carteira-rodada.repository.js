@@ -98,8 +98,29 @@ function ordemDoBanco(o) {
     precoInformado: num(o.preco_informado),
     stopInformado: num(o.stop_informado),
     posicaoId: o.posicao_id,
-    situacao: o.situacao
+    situacao: o.situacao,
+    detalhes: o.detalhes ?? null
   };
+}
+
+const eventoDoBanco = (e) => ({
+  id: e.id,
+  posicaoId: e.posicao_id,
+  data: e.data,
+  tipo: e.tipo,
+  preco: num(e.preco),
+  quantidade: num(e.quantidade),
+  detalhes: e.detalhes ?? null,
+  registradoEm: e.created_at instanceof Date ? e.created_at.toISOString() : e.created_at
+});
+
+// As ordens que a liquidação leu mudaram antes de ela gravar (o operador registrou ou cancelou no meio): a rotina lê de
+// novo e liquida outra vez.
+class OrdensMudaramError extends Error {
+  constructor() {
+    super("As ordens da rodada mudaram durante a liquidação.");
+    this.code = "ORDENS_MUDARAM";
+  }
 }
 
 function forWorkspace(workspaceId) {
@@ -265,10 +286,101 @@ function forWorkspace(workspaceId) {
       return linhas.map(ordemDoBanco);
     },
 
-    // O resultado da liquidação de um dia, numa transação: por trilha, as posições (novas, atualizadas e encerradas), os
-    // eventos, os lançamentos, a situação de cada ordem e o patrimônio do dia; e a rodada como LIQUIDADA.
-    async gravarLiquidacao({ rodadaId, data, trilhas }, { transaction } = {}) {
+    // --- O diário do operador (etapa 6) ---
+
+    // Uma operação do operador numa transação com a rodada TRAVADA (SELECT ... FOR UPDATE). A liquidação trava a mesma
+    // linha antes de gravar: uma ordem nunca entra numa rodada que acabou de ser liquidada.
+    async comRodadaTravada(rodadaId, fn, { transaction } = {}) {
       return naTransacao(transaction, async (t) => {
+        const rodada = await CarteiraRodada.findOne({ where: doEspaco({ id: rodadaId }), lock: true, raw: true, transaction: t });
+        return fn({ rodada, transaction: t });
+      });
+    },
+
+    async criarOrdem(ordem, { transaction } = {}) {
+      const linha = await CarteiraOrdem.create(
+        {
+          id: randomUUID(),
+          workspace_id: workspaceId,
+          rodada_id: ordem.rodadaId,
+          trilha_id: ordem.trilhaId,
+          data_execucao: ordem.dataExecucao,
+          ativo: ordem.ativo,
+          tipo: ordem.tipo,
+          motivo: ordem.motivo,
+          lado: ordem.lado,
+          contrato: ordem.contrato,
+          quantidade: ordem.quantidade,
+          distancia: ordem.distancia ?? null,
+          sem_stop: false,
+          preco_informado: ordem.precoInformado ?? null,
+          stop_informado: ordem.stopInformado ?? null,
+          posicao_id: ordem.posicaoId ?? null,
+          situacao: "CRIADA",
+          detalhes: ordem.detalhes ?? null
+        },
+        { transaction }
+      );
+      return ordemDoBanco(linha.get({ plain: true }));
+    },
+
+    async buscarOrdem(ordemId, trilhaId, { transaction } = {}) {
+      const linha = await CarteiraOrdem.findOne({ where: doEspaco({ id: ordemId, trilha_id: trilhaId }), raw: true, transaction });
+      return linha ? ordemDoBanco(linha) : null;
+    },
+
+    // Muda uma ordem que ainda aguarda a liquidação (editar ou cancelar). -> quantas mudaram (0: já não estava CRIADA).
+    async atualizarOrdemCriada(ordemId, campos, { transaction } = {}) {
+      const [n] = await CarteiraOrdem.update(campos, { where: doEspaco({ id: ordemId, situacao: "CRIADA" }), transaction });
+      return n;
+    },
+
+    async ordensCriadasDaTrilha(trilhaId, rodadaId, { transaction } = {}) {
+      const linhas = await CarteiraOrdem.findAll({ where: doEspaco({ trilha_id: trilhaId, rodada_id: rodadaId, situacao: "CRIADA" }), order: [["created_at", "ASC"]], raw: true, transaction });
+      return linhas.map(ordemDoBanco);
+    },
+
+    // Todas as ordens de uma trilha, da mais recente, com os detalhes (o checklist do operador).
+    async ordensDaTrilha(trilhaId, { transaction } = {}) {
+      const linhas = await CarteiraOrdem.findAll({ where: doEspaco({ trilha_id: trilhaId }), order: [["data_execucao", "DESC"], ["created_at", "DESC"]], raw: true, transaction });
+      return linhas.map((o) => ({ ...ordemDoBanco(o), motivoSituacao: o.motivo_situacao, precoExecucao: num(o.preco_execucao), quantidadeExecutada: num(o.quantidade_executada), registradaEm: o.created_at }));
+    },
+
+    async buscarPosicao(posicaoId, trilhaId, { transaction } = {}) {
+      const linha = await CarteiraPosicao.findOne({ where: doEspaco({ id: posicaoId, trilha_id: trilhaId }), raw: true, transaction });
+      return linha ? posicaoDoBanco(linha) : null;
+    },
+
+    async registrarEvento({ posicaoId, data, tipo, preco = null, quantidade = null, detalhes = null }, { transaction } = {}) {
+      const linha = await CarteiraPosicaoEvento.create({ id: randomUUID(), workspace_id: workspaceId, posicao_id: posicaoId, data, tipo, preco, quantidade, detalhes }, { transaction });
+      return eventoDoBanco(linha.get({ plain: true }));
+    },
+
+    async eventosDasPosicoes(posicaoIds, { transaction } = {}) {
+      if (!posicaoIds.length) return [];
+      const linhas = await CarteiraPosicaoEvento.findAll({ where: doEspaco({ posicao_id: posicaoIds }), order: [["data", "ASC"], ["created_at", "ASC"]], raw: true, transaction });
+      return linhas.map(eventoDoBanco);
+    },
+
+    // Os stops movidos pelo operador (o evento STOP_MOVIDO: o novo stop em `preco`, a vigência em `detalhes`).
+    async movimentosDeStop(posicaoIds, { transaction } = {}) {
+      if (!posicaoIds.length) return [];
+      const linhas = await CarteiraPosicaoEvento.findAll({ where: doEspaco({ posicao_id: posicaoIds, tipo: "STOP_MOVIDO" }), raw: true, transaction });
+      return linhas.map(eventoDoBanco).map((e) => ({ posicaoId: e.posicaoId, stop: e.preco, vigenteDesde: e.detalhes?.vigenteDesde, registradoEm: e.registradoEm }));
+    },
+
+    // O resultado da liquidação de um dia, numa transação: por trilha, as posições (novas, atualizadas e encerradas), os
+    // eventos, os lançamentos, a situação de cada ordem e o patrimônio do dia; e a rodada como LIQUIDADA. Trava a rodada
+    // antes (o diário do operador trava a mesma linha) e confere que as ordens são as que a liquidação leu (`ordensLidas`,
+    // os ids): se o operador registrou ou cancelou no meio, nada é gravado (OrdensMudaramError) e a rotina refaz.
+    async gravarLiquidacao({ rodadaId, data, trilhas, ordensLidas = null }, { transaction } = {}) {
+      return naTransacao(transaction, async (t) => {
+        await CarteiraRodada.findOne({ where: doEspaco({ id: rodadaId }), attributes: ["id"], lock: true, raw: true, transaction: t });
+        if (ordensLidas) {
+          const agora = await CarteiraOrdem.findAll({ where: doEspaco({ rodada_id: rodadaId, situacao: "CRIADA" }), attributes: ["id"], raw: true, transaction: t });
+          const lidas = new Set(ordensLidas);
+          if (agora.length !== lidas.size || agora.some((o) => !lidas.has(o.id))) throw new OrdensMudaramError();
+        }
         for (const { trilhaId, idsAntes, resultado } of trilhas) {
           const existentes = new Set(idsAntes);
           const posicoes = [
@@ -331,4 +443,4 @@ function forWorkspace(workspaceId) {
   };
 }
 
-module.exports = { forWorkspace, posicaoDoBanco, ordemDoBanco };
+module.exports = { forWorkspace, posicaoDoBanco, ordemDoBanco, OrdensMudaramError };
