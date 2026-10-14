@@ -47,26 +47,73 @@ mudam nada. Para uma carteira só sua, crie no seu espaço pessoal; num espaço 
   decide a 1ª rodada no dia do início e segue sozinha a partir daí (seção 4).
 - **Para mudar um parâmetro**, use a aba **Configuração** (só o proprietário). Cada mudança vira uma versão nova, com
   motivo, e vale a partir da próxima rodada para as três trilhas. A mudança reinicia a contagem da medição; a exceção é
-  o custo por contrato, que vale desde o início e não reinicia nada.
+  o custo por contrato, que não reinicia nada (abaixo).
+
+### O custo por contrato
+
+O custo de operar (corretagem e emolumentos), informado por ativo na aba **Configuração**, num campo próprio.
+
+- **Moeda:** a da conta: reais na conta B3, dólar na internacional. No café e na soja da B3, o preço é em dólar, mas a
+  corretora e a B3 cobram em reais; o custo vai em reais.
+- **Como é cobrado:** por contrato, a cada execução (por lado), igual nas três trilhas e nas referências. A entrada cobra
+  uma vez sobre a quantidade comprada ou vendida; cada saída (alvo 1, alvo 2, stop, zerar, reduzir, vencimento) cobra de
+  novo sobre a quantidade que saiu. Exemplo: custo de R$ 2,00, entrada de 4 contratos, metade sai no alvo 1 e o resto no
+  stop: 4 × 2 + 2 × 2 + 2 × 2 = R$ 16,00. Informe o custo de **um lado**, não o da ida e volta.
+- **Vazio é pendente:** a simulação conta custo zero e a carteira mostra o aviso "custo pendente". Zero é um valor
+  válido (sem custo) e tira o aviso.
+- **A versão:** mude só o custo numa versão (custo e outra mudança juntos são recusados). Ela fica como **Correção de
+  custo** e não abre segmento novo na medição: o custo é fato, não escolha de estratégia.
+- **Sobre o prazo:** hoje o custo novo vale para as execuções **a partir da próxima liquidação**. As execuções já feitas
+  não são corrigidas para trás (os lançamentos de correção previstos no ADR 0127 ainda não existem). Por isso, informe o
+  custo antes da primeira liquidação, ou o quanto antes.
 
 ## 3. As trilhas e as referências
 
-Toda carteira tem **três trilhas**, que operam lado a lado com o mesmo capital, a mesma data de início e as mesmas
-regras. Muda só **quem decide**:
+Toda carteira acompanha **seis linhas**, todas com o mesmo capital e a mesma data de início: três **trilhas**, que
+decidem, e três **referências**, que servem de régua.
 
-| Trilha | Quem decide |
-|---|---|
-| **IA** | A recomendação diária da IA, aplicada automaticamente. |
-| **Determinística** | Uma regra fixa sobre as leituras de tendência do dia, sem chamar a IA. |
-| **Operador** | Você, pelo diário (aba **Diário do operador**, seção 7). |
+### As trilhas: quem decide entrar e sair
 
-Ao lado delas, três **referências**, calculadas pelo mesmo motor e sem nenhuma decisão:
+O tamanho da posição, o stop, os alvos e as travas são do mesmo motor de risco da Cartilha nas três (seção 5). Muda só
+**quem decide se entra e para que lado**:
 
-| Referência | O que faz |
-|---|---|
-| **Só caixa** | O capital parado, rendendo a Selic (na conta internacional, a meta do Fed). |
-| **Comprar e segurar** | Fica comprada em todos os ativos o tempo todo. |
-| **Persistência** | Segue a direção do preço nos últimos 30 dias. É a única sem nenhuma IA. |
+| Trilha | Quem decide | Como |
+|---|---|---|
+| **IA** | A recomendação diária da IA | A cada dia, por ativo, a IA diz o que fazer em cada situação (sem posição, comprado, vendido); a trilha aplica a que bate com a posição dela (seção 6). |
+| **Determinística** | Uma regra fixa, sem chamar a IA | A regra lê as leituras de tendência do dia, que são da IA: entra comprado se o MÉDIO está em ALTA com confiança média ou alta e o CURTO não está em BAIXA (vendido no simétrico); zera se o MÉDIO virar; reduz se ficar lateral ou com confiança baixa. |
+| **Operador** | Você | Pelo diário: entradas, saídas e stop movido, conferidos pelo motor (seção 7). |
+
+### As referências: réguas, sem decisão de ninguém
+
+| Referência | O que faz | Para que serve |
+|---|---|---|
+| **Só caixa** | O capital parado, rendendo a Selic (na conta internacional, a meta do Fed). | Operar valeu mais que não fazer nada? |
+| **Comprar e segurar** | Fica comprada em todos os ativos, em partes iguais, sem stop. | Operar valeu mais que só acompanhar o mercado? |
+| **Persistência** | Segue a direção do preço nos últimos 30 dias, pela mesma regra e pelo mesmo motor da Determinística. | É a única sem nenhuma IA: uma regra simples de tendência. |
+
+### Por que essa montagem
+
+A IA entra no processo em duas camadas, e três das linhas formam uma escada, cada degrau acrescentando uma:
+
+```
+Persistência     → sem nenhuma IA (só o preço)
+      ↓ + as leituras de tendência da IA
+Determinística   → as leituras da IA + uma regra fixa
+      ↓ + a recomendação da IA
+IA               → as leituras + a recomendação
+```
+
+A medição (seção 8) usa essa escada:
+
+- **IA − Persistência** é a pergunta principal, com veredito: a IA inteira agrega valor sobre uma regra sem IA?
+- **Determinística − Persistência** mede quanto valem as leituras.
+- **IA − Determinística** mede quanto vale a recomendação, por cima das mesmas leituras.
+
+As duas partes somam a principal, mas não têm veredito próprio.
+
+O **Operador** fica fora da pergunta principal: mostra como você se sai com as mesmas regras de risco e entra nas
+métricas secundárias, como a aderência à Cartilha. **Só caixa** e **Comprar e segurar** são contexto, para saber se
+alguma delas valeu a pena em termos absolutos.
 
 ## 4. O dia a dia
 

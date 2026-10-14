@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import vTooltip from 'primevue/tooltip'
 import carteirasService from '../../services/carteiras.service.js'
 import {
   CAMPOS_ATIVO,
@@ -99,6 +100,12 @@ async function salvar() {
                   <tr v-for="c in CAMPOS_ATIVO" :key="c.chave">
                     <td>
                       {{ c.rotulo }}
+                      <i
+                        v-if="c.ajuda"
+                        v-tooltip.top="{ value: c.ajuda, class: 'tooltip-ajuda' }"
+                        class="bi bi-question-circle text-muted ms-1 ajuda"
+                        :aria-label="c.ajuda"
+                      ></i>
                       <div class="text-muted">{{ c.unidade }}</div>
                     </td>
                     <td v-for="a in ativos" :key="a" class="text-end">
@@ -212,6 +219,10 @@ async function salvar() {
 </template>
 
 <style scoped>
+.ajuda {
+  cursor: help;
+}
+
 .campo {
   max-width: 7rem;
   display: inline-block;

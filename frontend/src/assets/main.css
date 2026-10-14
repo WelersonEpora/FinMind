@@ -138,3 +138,14 @@ body {
 .tabela-paginada .p-datatable-paginator-bottom .p-paginator-content-end {
   display: none;
 }
+
+/* Tooltip de ajuda do PrimeVue (v-tooltip com class 'tooltip-ajuda'): mais largo e com as quebras de linha do texto. */
+.tooltip-ajuda {
+  max-width: 24rem;
+}
+
+.tooltip-ajuda .p-tooltip-text {
+  white-space: pre-line;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}

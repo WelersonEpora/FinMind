@@ -199,7 +199,17 @@ export const CAMPOS_ATIVO = [
   { chave: 'alvo2R', rotulo: 'Alvo 2', unidade: 'R', tipo: 'numero' },
   { chave: 'rrMinimo', rotulo: 'R:R mínimo', unidade: '1 : x', tipo: 'numero' },
   { chave: 'slippageTicks', rotulo: 'Slippage', unidade: 'ticks', tipo: 'inteiro' },
-  { chave: 'custoPorContrato', rotulo: 'Custo por contrato', unidade: 'moeda da conta', tipo: 'numero', nulo: true }
+  {
+    chave: 'custoPorContrato',
+    rotulo: 'Custo por contrato',
+    unidade: 'moeda da conta',
+    tipo: 'numero',
+    nulo: true,
+    ajuda:
+      'Como é cobrado: por contrato, em cada execução (por lado). A entrada cobra uma vez e cada saída (alvo, stop, zerar) cobra de novo sobre a quantidade que saiu.\n\n' +
+      'Sobre o prazo: vale só para as execuções a partir de agora; as já feitas não são corrigidas para trás.\n\n' +
+      'Detalhes no Manual, seção 2.'
+  }
 ]
 
 export const CAMPOS_CARTEIRA = [

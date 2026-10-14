@@ -390,8 +390,10 @@ Ver também `backend/src/collectors/base/README.md`.
   (client-side, dataset pequeno) e `ExecucoesView.vue` (lazy/server-side)
   como referência. A outra exceção é o `DatePicker` do PrimeVue, só quando a
   data precisa desabilitar ou marcar dias específicos (ex.: o seletor de dia da
-  aba Recomendação IA). Fora desses casos, UI continua sendo Bootstrap — ver ADR
-  0005.
+  aba Recomendação IA). E a diretiva `v-tooltip` do PrimeVue para uma ajuda de mais de uma
+  linha num ícone "?" (`class: 'tooltip-ajuda'`, em `assets/main.css`; ex.: o custo por contrato
+  na Configuração da carteira); dica curta continua no `title`. Fora desses casos, UI continua
+  sendo Bootstrap — ver ADR 0005.
 - **Espaço ativo** (`stores/workspace.js`, carregado junto com a sessão em
   `stores/auth.js`) é só contexto de interface — nunca vai no JWT. Rotas
   privadas a um espaço vivem sob `/e/:workspaceId/...` e o guard do router
