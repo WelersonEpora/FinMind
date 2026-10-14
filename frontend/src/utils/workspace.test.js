@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-import { escolherEspacoAtivo, legendaDoEspaco, rotuloPapel, siglaDoEspaco } from './workspace.js'
+import { escolherEspacoAtivo, legendaDoEspaco, rotuloPapel } from './workspace.js'
 
 const pessoal = { id: 'w1', nome: 'Espaço pessoal', pessoal: true, papel: 'owner' }
 const familia = { id: 'w2', nome: 'Família Souza', pessoal: false, papel: 'editor' }
@@ -47,11 +47,4 @@ test('legendaDoEspaco: tipo + papel do usuário no espaço', () => {
   assert.equal(legendaDoEspaco(pessoal), 'Pessoal · Proprietário')
   assert.equal(legendaDoEspaco(familia), 'Compartilhado · Editor')
   assert.equal(legendaDoEspaco(cliente), 'Compartilhado · Leitor')
-})
-
-test('siglaDoEspaco: iniciais das duas primeiras palavras, ou duas letras de uma palavra só', () => {
-  assert.equal(siglaDoEspaco('Espaço pessoal'), 'EP')
-  assert.equal(siglaDoEspaco('Família Souza Ribeiro'), 'FS')
-  assert.equal(siglaDoEspaco('  cliente  '), 'CL')
-  assert.equal(siglaDoEspaco(''), '?')
 })

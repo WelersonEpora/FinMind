@@ -25,13 +25,3 @@ export function rotuloPapel(papel) {
 export function legendaDoEspaco(espaco) {
   return `${espaco.pessoal ? 'Pessoal' : 'Compartilhado'} · ${rotuloPapel(espaco.papel)}`
 }
-
-// Sigla do espaço no menu recolhido (o nome não cabe): as iniciais das duas
-// primeiras palavras, ou as duas primeiras letras de um nome de uma palavra só.
-// Ex.: "Espaço pessoal" -> "EP", "Família Souza" -> "FS", "Cliente" -> "CL".
-export function siglaDoEspaco(nome) {
-  const palavras = String(nome || '').trim().split(/\s+/).filter(Boolean)
-  if (!palavras.length) return '?'
-  const sigla = palavras.length === 1 ? palavras[0].slice(0, 2) : palavras[0][0] + palavras[1][0]
-  return sigla.toLocaleUpperCase('pt-BR')
-}

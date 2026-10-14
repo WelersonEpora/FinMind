@@ -32,7 +32,7 @@ const dadosMercadoLinks = [
   { to: '/dados-mercado/execucoes', label: 'Execuções', icon: 'bi-arrow-repeat' }
 ]
 
-// Grupo "Espaço": o seletor do espaço ativo (único lugar que mostra o nome
+// Grupo "Espaços": o seletor do espaço ativo (único lugar que mostra o nome
 // do espaço) e, abaixo, o que existe DENTRO dele - trocar de espaço não muda a
 // estrutura do menu, só para onde "Visão geral" aponta. Sem espaço ativo
 // (falha ao carregar a lista) o grupo inteiro some. Existem "Visão geral" e
@@ -87,10 +87,13 @@ const systemLinks = computed(() => {
     </ul>
 
     <template v-if="espacoLinks.length">
-      <!-- O seletor é o título do grupo: o nome do espaço no estilo de
-           "Dados de Mercado", com a linha divisória acima. -->
-      <WorkspaceSwitcher @navigate="emit('navigate')" />
+      <div class="finmind-group-label px-3 py-2 text-uppercase text-secondary small">Espaços</div>
       <ul class="nav nav-pills flex-column py-1 px-2">
+        <!-- O seletor do espaço ativo é o 1º item do grupo, no nível de
+             "Visão geral"; o título acima é fixo, como os dos outros grupos. -->
+        <li class="nav-item">
+          <WorkspaceSwitcher @navigate="emit('navigate')" />
+        </li>
         <li v-for="link in espacoLinks" :key="link.label" class="nav-item">
           <router-link
             :to="link.to"

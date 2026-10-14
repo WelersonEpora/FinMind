@@ -398,21 +398,21 @@ Ver também `backend/src/collectors/base/README.md`.
   já valida o `:workspaceId` contra os espaços do usuário; páginas de
   mercado (`/dados-mercado/...`) são globais e não levam espaço na URL. O
   guard é UX, não segurança: o servidor deve checar o vínculo quando houver
-  dado privado (ADR 0007, §6). Na sidebar, o grupo **Espaço** lista o que
-  existe *dentro* do espaço ativo ("Visão geral", `/e/:workspaceId`, e "Carteiras",
-  as virtuais do ADR 0127, `/e/:workspaceId/carteiras` e `/e/:workspaceId/carteiras/:carteiraId` com a aba em `?aba=`)
-  — o **seletor de espaço** (`WorkspaceSwitcher.vue`) é o título desse grupo, no estilo
-  dos outros títulos (o nome do espaço em caixa alta, com a sigla no menu recolhido), e o
-  único lugar que mostra o nome do espaço; a topbar não tem seletor. Escolher um
+  dado privado (ADR 0007, §6). Na sidebar, o grupo **Espaços** (título fixo, como os
+  outros) tem como 1º item o **seletor de espaço** (`WorkspaceSwitcher.vue`, no nível
+  de "Visão geral", com a seta de abrir à direita), o único lugar que mostra o nome do
+  espaço, e abaixo o que existe *dentro* do espaço ativo ("Visão geral", `/e/:workspaceId`,
+  e "Carteiras", as virtuais do ADR 0127, `/e/:workspaceId/carteiras` e
+  `/e/:workspaceId/carteiras/:carteiraId` com a aba em `?aba=`); a topbar não tem seletor. Escolher um
   espaço leva sempre à Visão geral dele, de qualquer página. Cuidado
   em CSS scoped: use `:global(.a .b)` com o seletor INTEIRO dentro — com
   `:global(.a) .b` o Vue descarta o `.b` e gera uma regra só com `.a`.
 - Novo item de menu: `components/layout/AppSidebar.vue`. Rota avulsa vai no
   array `links`; um grupo de rotas relacionadas (ex.: "Dados de Mercado")
   ganha seu próprio array + bloco `.finmind-group-label` no template, mesmo
-  padrão de "Espaço"/"Sistema" já existentes. Não adicione links desabilitados
+  padrão de "Espaços"/"Sistema" já existentes. Não adicione links desabilitados
   de módulos que ainda não existem (o menu só mostra o que funciona, sem exceção:
-  os marcadores Operações/Posições/Patrimônio do grupo Espaço saíram em 2026-10-14,
+  os marcadores Operações/Posições/Patrimônio do grupo Espaços saíram em 2026-10-14,
   ADR 0007).
 
 ## CI/CD
