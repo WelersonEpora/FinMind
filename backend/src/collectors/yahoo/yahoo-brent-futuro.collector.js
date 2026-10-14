@@ -25,8 +25,13 @@ const { persistirObservacoes } = require("../base/persist-observations");
 //     pregões, 58 sem fechamento): o único histórico dos vencimentos que já saíram. Rola no dia seguinte ao
 //     vencimento (01/10/2026: de 103,53 no X26 para 102,31 no Z26).
 //   - O volume tem dias repetidos (25 e 28/09/2026 com o mesmo número): não é gravado.
+//   - A MÁXIMA e a MÍNIMA do dia (`high`, `low`) vêm na mesma resposta (verificado por chamada real em 2026-10-14:
+//     o BZF27 de 09 a 13/10/2026, com o ajuste dentro da faixa). Gravadas por vencimento desde 2026-10-14, para o ATR(14)
+//     e o stop do petróleo nas carteiras virtuais (adendo do ADR 0127, etapa 8). Um dia com a faixa incoerente (máxima
+//     abaixo da mínima ou o ajuste fora dela) fica sem máxima e mínima, com aviso.
 //
-// Séries: `YAHOO.BZ.<TICKER>.SETTLE` por vencimento (como as da B3) e `YAHOO.BZ_CONTINUO.SETTLE` (a contínua).
+// Séries: `YAHOO.BZ.<TICKER>.SETTLE`, `.HIGH` e `.LOW` por vencimento (como as da B3) e `YAHOO.BZ_CONTINUO.SETTLE` (a
+// contínua, só o ajuste).
 // published_at (ESTIMADO): o fim do dia do pregão em Nova York. Uma correção do Yahoo vira versão nova (ADR 0008): a
 // coleta diária relê o último mês.
 
@@ -102,7 +107,7 @@ const download = ({ signal, ...opcoes } = {}) => baixarTodos("range=1mo", { sign
 // Backfill: o histórico inteiro que o Yahoo tem de cada símbolo.
 const downloadIntervalo = ({ signal, ...opcoes } = {}) => baixarTodos(`period1=0&period2=${Math.floor(Date.now() / 1000)}`, { signal, ...opcoes });
 
-// -> [{ serie, simbolo, ticker, data, valor, parcial }]. Formato inesperado ou símbolo trocado: erro da fonte (layout
+// -> [{ serie, simbolo, ticker, data, valor, maxima, minima, parcial }] (máxima e mínima só nos vencimentos). Formato inesperado ou símbolo trocado: erro da fonte (layout
 // mudou). Nenhum vencimento encontrado: a fonte mudou ou caiu.
 function parse(rawData) {
   if (!rawData || !Array.isArray(rawData.respostas)) {
@@ -122,14 +127,16 @@ function parse(rawData) {
       throw new UpstreamServiceError(`Yahoo (${simbolo}): resposta inesperada (símbolo ${meta?.symbol}, moeda ${meta?.currency}, bolsa ${meta?.exchangeName}).`);
     }
     const instantes = resultado.timestamp || [];
-    const fechamentos = resultado.indicators?.quote?.[0]?.close;
+    const cotacoes = resultado.indicators?.quote?.[0];
+    const fechamentos = cotacoes?.close;
     if (!Array.isArray(fechamentos) || fechamentos.length !== instantes.length) {
       throw new UpstreamServiceError(`Yahoo (${simbolo}): a série de fechamentos não acompanha as datas.`);
     }
     const serie = ticker ? `${PREFIXO_SERIE}.${ticker}.SETTLE` : SERIE_CONTINUA;
     instantes.forEach((instante, i) => {
       const data = dataEmNy(new Date(instante * 1000));
-      itens.push({ serie, simbolo, ticker, data, valor: fechamentos[i], parcial: data >= hojeNy });
+      const faixa = ticker ? { maxima: cotacoes.high?.[i] ?? null, minima: cotacoes.low?.[i] ?? null } : {};
+      itens.push({ serie, simbolo, ticker, data, valor: fechamentos[i], ...faixa, parcial: data >= hojeNy });
     });
   }
   return itens;
@@ -141,6 +148,7 @@ function normalize(itens) {
   const vistos = new Set();
   let semFechamento = 0;
   let emAndamento = 0;
+  let faixaIncoerente = 0;
 
   for (const item of itens) {
     if (item.parcial) {
@@ -163,11 +171,12 @@ function normalize(itens) {
     vistos.add(chave);
 
     const contrato = item.ticker ? decodificarFuturoB3(item.ticker, "BZ") : null;
-    validos.push({
-      series_code: item.serie,
+    // Duas casas, como o preço do contrato (o JSON traz o float: 101.98999786376953).
+    const duasCasas = (v) => Math.round(v * 100) / 100;
+    const observacao = (seriesCode, value) => ({
+      series_code: seriesCode,
       observed_at: item.data,
-      // Duas casas, como o preço do contrato (o JSON traz o float: 101.98999786376953).
-      value: Math.round(item.valor * 100) / 100,
+      value,
       unit: UNIT,
       source_code: SOURCE_CODE,
       published_at: zonedParaUtc(item.data, "23:59:59", FUSO),
@@ -181,12 +190,23 @@ function normalize(itens) {
         regraPublicacao: "fim_do_dia_do_pregao_ny"
       }
     });
+    const ajuste = duasCasas(item.valor);
+    validos.push(observacao(item.serie, ajuste));
+    if (item.ticker && Number.isFinite(item.maxima) && Number.isFinite(item.minima)) {
+      const maxima = duasCasas(item.maxima);
+      const minima = duasCasas(item.minima);
+      if (minima <= ajuste && ajuste <= maxima) {
+        validos.push(observacao(`${PREFIXO_SERIE}.${item.ticker}.HIGH`, maxima), observacao(`${PREFIXO_SERIE}.${item.ticker}.LOW`, minima));
+      } else {
+        faixaIncoerente += 1;
+      }
+    }
   }
 
   // Defeito conhecido da fonte (não é falha): dias sem fechamento na série do Yahoo.
-  const avisos = semFechamento
-    ? [{ item: null, motivo: `${semFechamento} dia(s) sem fechamento na resposta do Yahoo: não gravados.` }]
-    : [];
+  const avisos = [];
+  if (semFechamento) avisos.push({ item: null, motivo: `${semFechamento} dia(s) sem fechamento na resposta do Yahoo: não gravados.` });
+  if (faixaIncoerente) avisos.push({ item: null, motivo: `${faixaIncoerente} dia(s) com a máxima e a mínima incoerentes com o ajuste: gravados sem a faixa.` });
   return { validos, invalidos, avisos, detalhes: { pregaoEmAndamentoIgnorado: emAndamento } };
 }
 

@@ -9,8 +9,8 @@ Uma carteira virtual é uma **simulação**: nenhuma ordem real é enviada, e ne
 aplica as regras da Cartilha de Operações v1.0 do Comitê (risco por operação, stop, alvos e travas) para responder uma
 pergunta: **a recomendação da IA agrega valor sobre uma regra fixa?**
 
-Na criação, a carteira recebe a conta (hoje, só a B3), o capital inicial, a data de início e os ativos (na B3: milho,
-café e soja). Os parâmetros começam nos padrões da Cartilha e só mudam por uma versão nova, registrada com motivo, na aba
+Na criação, a carteira recebe a conta (a B3, com milho, café e soja, em reais; ou a internacional, com ouro e
+petróleo, em dólar, seção 9), o capital inicial, a data de início e os ativos. Os parâmetros começam nos padrões da Cartilha e só mudam por uma versão nova, registrada com motivo, na aba
 Configuração.
 
 ## 2. Como criar uma carteira do zero
@@ -27,10 +27,10 @@ mudam nada. Para uma carteira só sua, crie no seu espaço pessoal; num espaço 
 | Campo | O que colocar |
 |---|---|
 | **Nome** | Um nome que identifique a carteira (ex.: "B3 – Cartilha v1.0"). Não pode repetir outro do mesmo espaço. |
-| **Conta** | **B3** (em reais). A conta internacional (ouro e petróleo, em dólar) aparece como "em breve". |
-| **Capital inicial** | O valor simulado. O padrão é **R$ 10.000**, o da Cartilha. O resultado é medido em % e em R, então o valor não muda a comparação entre as trilhas. |
+| **Conta** | **B3** (milho, café e soja, em reais) ou **Internacional** (ouro e petróleo, em dólar; seção 9). Uma carteira é de uma conta só. |
+| **Capital inicial** | O valor simulado, na moeda da conta. O padrão é o da Cartilha: **R$ 10.000** na B3 e **US$ 2.000** na internacional. O resultado é medido em % e em R, então o valor não muda a comparação entre as trilhas. |
 | **Início (1ª rodada)** | Um dia útil (segunda a sexta) **a partir do próximo dia útil**. A carteira nunca começa no passado nem no próprio dia. |
-| **Ativos** | Milho, café e soja vêm marcados. Desmarque os que não quiser; pelo menos um. A Cartilha trata a soja como ativo de observação até o Comitê decidir. |
+| **Ativos** | Os da conta vêm marcados (milho, café e soja; ou ouro e petróleo). Desmarque os que não quiser; pelo menos um. A Cartilha trata a soja como ativo de observação até o Comitê decidir. |
 
 4. Clique em criar. A carteira abre na hora.
 
@@ -64,7 +64,7 @@ Ao lado delas, três **referências**, calculadas pelo mesmo motor e sem nenhuma
 
 | Referência | O que faz |
 |---|---|
-| **Só caixa** | O capital parado, rendendo a Selic. |
+| **Só caixa** | O capital parado, rendendo a Selic (na conta internacional, a meta do Fed). |
 | **Comprar e segurar** | Fica comprada em todos os ativos o tempo todo. |
 | **Persistência** | Segue a direção do preço nos últimos 30 dias. É a única sem nenhuma IA. |
 
@@ -313,3 +313,29 @@ que custa, não se a IA inteira vale. Essa outra pergunta pediria comparar com a
 nenhuma IA, somando o custo de tudo; ela não está na medição principal.
 
 **O gráfico** mostra a diferença acumulada dia a dia: subindo, a IA está rendendo mais que a regra fixa; descendo, menos.
+
+## 9. A conta internacional
+
+A conta internacional opera **ouro** e **petróleo**, em **dólar**, com o capital padrão da Cartilha de US$ 2.000. Ela
+funciona como a da B3 (as mesmas trilhas, referências, rotina, diário e medição), com estas diferenças:
+
+| | Conta B3 | Conta internacional |
+|---|---|---|
+| **Ativos** | Milho, café e soja (futuros da B3) | Ouro (o futuro de ouro em dólar da B3) e petróleo (o Brent da NYMEX) |
+| **Moeda** | Reais (o café e a soja, cotados em dólar, convertem pela PTAX) | Dólar, sem conversão |
+| **Quantidade** | Em contratos (fracionária) | Em **onças** (ouro) e **barris** (petróleo), a unidade do CFD da Cartilha |
+| **Risco por operação** | 2% | 1,5% no ouro e 1% no petróleo |
+| **Alvos** | Alvo 1 em 1R e alvo 2 em 3R | Alvo 1 em 1,5R e alvo 2 em 3R |
+| **Travas de perda** | 4% no dia e 8% na semana | 3% no dia e 6% na semana |
+| **O caixa rende** | A Selic | A meta do Fed (o meio da faixa) |
+| **Dia útil** | O do BCB (o dia com PTAX) | O pregão da NYMEX (o dia com o Brent) |
+
+**Calendários diferentes.** O petróleo segue a NYMEX: ele tem pregão em feriados brasileiros (como 12/10) e não tem em
+feriados americanos em que a bolsa fecha. O ouro é o da B3: num feriado só da B3, o ouro fica sem preço naquele dia (as
+ordens dele expiram e a posição não muda), enquanto o petróleo segue normalmente.
+
+**O stop do petróleo.** O piso do stop usa o ATR(14) diário, calculado com a máxima e a mínima de cada dia do Brent (a
+Cartilha pede o ATR de 4 horas, que não temos). O Brent oscila bastante: com o ATR perto de 3,4, o stop mínimo fica a uns
+US$ 5 da entrada, e a quantidade se ajusta para o risco continuar em 1% do patrimônio.
+
+**A fonte do petróleo** é o Yahoo Finance, não oficial e provisória (a oficial, da ICE, é paga e depende do Comitê).

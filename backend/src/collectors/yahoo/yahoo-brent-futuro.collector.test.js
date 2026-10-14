@@ -148,3 +148,32 @@ test("parse: nenhum vencimento encontrado ou símbolo trocado é erro da fonte",
   assert.throws(() => collector.parse(trocado), /resposta inesperada \(símbolo CLZ26\.NYM/);
   assert.throws(() => collector.parse({}), /formato inesperado/);
 });
+
+test("normalize: a máxima e a mínima por vencimento (não na contínua); a faixa incoerente fica de fora, com aviso", () => {
+  const comFaixa = (simbolo, pontos) => {
+    const c = corpo(simbolo, pontos.map(([data, fechamento]) => [data, fechamento]));
+    c.chart.result[0].indicators.quote[0].high = pontos.map((p) => p[2]);
+    c.chart.result[0].indicators.quote[0].low = pontos.map((p) => p[3]);
+    return c;
+  };
+  // Valores reais do BZF27 (09/10/2026) e um dia com a máxima abaixo do ajuste.
+  const bruto = {
+    agora: "2026-10-14T14:46:00Z",
+    respostas: [
+      { simbolo: "BZF27.NYM", ticker: "BZF27", corpo: comFaixa("BZF27.NYM", [["2026-10-09", 101.25, 101.51000213623047, 99.20999908447266], ["2026-10-12", 103.2, 103.1, 99.01]]) },
+      { simbolo: "BZ=F", ticker: null, corpo: comFaixa("BZ=F", [["2026-10-09", 101.25, 101.51, 99.21]]) }
+    ]
+  };
+  const { validos, avisos } = collector.normalize(collector.parse(bruto));
+  assert.deepEqual(
+    validos.map((v) => [v.series_code, v.observed_at, v.value]),
+    [
+      ["YAHOO.BZ.BZF27.SETTLE", "2026-10-09", 101.25],
+      ["YAHOO.BZ.BZF27.HIGH", "2026-10-09", 101.51],
+      ["YAHOO.BZ.BZF27.LOW", "2026-10-09", 99.21],
+      ["YAHOO.BZ.BZF27.SETTLE", "2026-10-12", 103.2],
+      ["YAHOO.BZ_CONTINUO.SETTLE", "2026-10-09", 101.25]
+    ]
+  );
+  assert.match(avisos[0].motivo, /^1 dia\(s\) com a máxima e a mínima incoerentes/);
+});

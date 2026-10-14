@@ -55,7 +55,7 @@ function deps({ carteira = CARTEIRA } = {}) {
 
 test("opções: só a conta B3 disponível, os padrões por conta e o início no próximo dia útil", () => {
   const { opcoes } = painel.obterOpcoes({ hoje: "2026-10-16" });
-  assert.deepEqual(opcoes.contas.map((c) => [c.codigo, c.disponivel]), [["B3", true], ["INTERNACIONAL", false]]);
+  assert.deepEqual(opcoes.contas.map((c) => [c.codigo, c.disponivel]), [["B3", true], ["INTERNACIONAL", true]]);
   assert.deepEqual(Object.keys(opcoes.padroes.B3.ativos), ["MILHO", "CAFE", "SOJA"]);
   assert.equal(opcoes.inicioMinimo, "2026-10-19");
 });

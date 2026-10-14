@@ -58,8 +58,10 @@ test("criar: recusa início no passado, hoje, fim de semana; ativo de outra cont
   await assert.rejects(() => tentar({ ativos: ["MILHO", "OURO"] }), /não são da conta B3: OURO/);
   await assert.rejects(() => tentar({ capitalInicial: 0 }), /capitalInicial/);
   await assert.rejects(() => tentar({ conta: "XP" }), /conta/);
-  // A conta internacional entra na etapa 8.
-  await assert.rejects(() => tentar({ conta: "INTERNACIONAL", ativos: ["OURO"] }), /etapa 8/);
+  // A conta internacional (etapa 8): ouro e petróleo, em dólar; um ativo da B3 nela é recusado.
+  await assert.rejects(() => tentar({ conta: "INTERNACIONAL", ativos: ["OURO", "MILHO"] }), /não são da conta INTERNACIONAL: MILHO/);
+  const { carteira: intl } = await tentar({ nome: "Internacional", conta: "INTERNACIONAL", ativos: ["OURO", "PETROLEO"], capitalInicial: 2000 });
+  assert.deepEqual([intl.conta, intl.moeda, intl.capitalInicial], ["INTERNACIONAL", "USD", 2000]);
   await assert.rejects(() => carteiraService.criarCarteira("w1", "u1", NOVA, deps), (e) => e.statusCode === 409);
   // O mesmo nome em outro espaço pode.
   await carteiraService.criarCarteira("w2", "u2", NOVA, deps);

@@ -197,7 +197,7 @@ async function liquidarUmaVez({ carteira, trilhas, versoes, rodada, hoje, agora 
   }
 
   const mercadoService = deps.mercadoCarteiraService || mercadoCarteiraService;
-  const mercado = await mercadoService.lerMercadoParaLiquidacao({ data: rodada.data, tickers, agora, hoje }, deps);
+  const mercado = await mercadoService.lerMercadoParaLiquidacao({ data: rodada.data, tickers, conta: carteira.conta, agora, hoje }, deps);
   if (mercado.pendente) return { pendente: mercado.pendente };
 
   const resultados = [];

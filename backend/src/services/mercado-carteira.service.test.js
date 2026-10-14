@@ -134,3 +134,26 @@ test("liquidação: o feriado reconhecido pelo dado de um dia posterior, sem esp
   const semContrato = await lerMercadoParaLiquidacao({ ...pedido, tickers: {} }, semAjuste);
   assert.equal(semContrato.diaUtil, false);
 });
+
+test("liquidação na conta internacional: o dia útil pelo Brent contínuo, o caixa pela meta do Fed, sem câmbio", async () => {
+  const linhas = [
+    { series_code: "YAHOO.BZ_CONTINUO.SETTLE", observed_at: "2026-10-12", value: 103.2 },
+    { series_code: "YAHOO.BZ.BZF27.SETTLE", observed_at: "2026-10-12", value: 103.2 },
+    { series_code: "YAHOO.BZ.BZF27.HIGH", observed_at: "2026-10-12", value: 103.73 },
+    { series_code: "YAHOO.BZ.BZF27.LOW", observed_at: "2026-10-12", value: 99.01 },
+    { series_code: "FRED.DFEDTARL", observed_at: "2026-10-09", value: 3.75 },
+    { series_code: "FRED.DFEDTARU", observed_at: "2026-10-09", value: 4 }
+  ];
+  const deps = { observationRepository: repoFalso(linhas), marketQuoteRepository: marketQuoteFalso() };
+  // 12/10: feriado no Brasil (sem PTAX), pregão na NYMEX.
+  const r = await lerMercadoParaLiquidacao({ data: "2026-10-12", tickers: { PETROLEO: ["BZF27"] }, conta: "INTERNACIONAL", agora: new Date("2026-10-13T09:30:00Z"), hoje: "2026-10-13" }, deps);
+  assert.deepEqual(r.barras.BZF27, { ajuste: 103.2, maxima: 103.73, minima: 99.01, medio: undefined });
+  assert.deepEqual([r.cambio, r.diaUtil], [null, true]);
+  assert.ok(Math.abs(r.taxaCaixaDia - (Math.pow(1.03875, 1 / 252) - 1)) < 1e-12);
+  // 13/10 sem o Brent do dia ainda: espera; com o de 14/10 já gravado, é feriado da NYMEX.
+  const pedido = { data: "2026-10-13", tickers: {}, conta: "INTERNACIONAL", agora: new Date("2026-10-14T09:30:00Z"), hoje: "2026-10-14" };
+  assert.deepEqual(await lerMercadoParaLiquidacao(pedido, deps), { pendente: "SEM_PREGAO_NYMEX_DO_DIA" });
+  const comPosterior = { ...deps, observationRepository: repoFalso([...linhas, { series_code: "YAHOO.BZ_CONTINUO.SETTLE", observed_at: "2026-10-14", value: 104 }]) };
+  const feriado = await lerMercadoParaLiquidacao({ ...pedido, hoje: "2026-10-15", agora: new Date("2026-10-15T09:30:00Z") }, comPosterior);
+  assert.deepEqual([feriado.diaUtil, feriado.taxaCaixaDia], [false, 0]);
+});

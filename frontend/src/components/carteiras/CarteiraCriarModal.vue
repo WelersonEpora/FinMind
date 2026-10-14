@@ -52,8 +52,13 @@ watch(
   }
 )
 
+// O capital padrão da Cartilha por conta: R$ 10.000 na B3 e US$ 2.000 na internacional.
+const CAPITAL_PADRAO = { B3: "10000", INTERNACIONAL: "2000" }
+const moedaDaConta = computed(() => opcoes.value?.contas.find((c) => c.codigo === conta.value)?.moeda || "BRL")
+
 watch(conta, () => {
   ativos.value = ativosDaConta.value.map((a) => a.codigo)
+  capital.value = CAPITAL_PADRAO[conta.value] || capital.value
 })
 
 async function onSubmit() {
@@ -115,7 +120,7 @@ async function onSubmit() {
                     </select>
                   </div>
                   <div class="col-sm-4">
-                    <label for="carteira-capital" class="form-label">Capital inicial</label>
+                    <label for="carteira-capital" class="form-label">Capital inicial ({{ moedaDaConta }})</label>
                     <input id="carteira-capital" v-model="capital" type="text" inputmode="decimal" class="form-control" required />
                   </div>
                   <div class="col-sm-4">

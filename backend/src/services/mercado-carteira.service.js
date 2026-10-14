@@ -16,12 +16,16 @@ const { somarDias, somarDiasUteis } = require("../carteiras/calendario");
 //   para a DECISÃO de D: até o ajuste de D−1, conhecido no instante `agora` (a madrugada de D). Por ativo: o contrato
 //     (o primeiro com limite a mais de N dias úteis de D e com a liquidez mínima no último pregão), o ATR(14) dele, o
 //     último ajuste, a variação de 30 dias (a Persistência) e o valor do ponto (com a PTAX de D−1).
-//   para a LIQUIDAÇÃO de D: a barra de D (ajuste, máxima, mínima e médio) de cada contrato pedido, a PTAX de D e a
-//     Selic do dia (a taxa diária da Selic realizada, em 252 dias úteis).
+//   para a LIQUIDAÇÃO de D: a barra de D (ajuste, máxima, mínima e médio) de cada contrato pedido e, pela conta, o dia
+//     útil e o juro do caixa: na B3, a PTAX de D (o dia útil do BCB, o câmbio) e a Selic realizada; na conta
+//     internacional (em dólar, etapa 8), o Brent contínuo de D (o pregão da NYMEX) e a meta do Fed (o ponto médio da
+//     faixa, decisão do usuário em 2026-10-14). Os dois juros em taxa diária de 252 dias úteis.
 //
-// Calendário: segunda a sexta. Um feriado aparece como um dia sem barra nem PTAX (o motor expira as ordens dele). O dia
-// sem dado é reconhecido como feriado quando já existe dado de um dia POSTERIOR (a PTAX ou o ajuste de um dos contratos):
-// a liquidação segue sem esperar. Sem essa prova, espera até DIAS_DE_ESPERA (o dado pode só estar atrasado).
+// Calendário: segunda a sexta. Um feriado aparece como um dia sem barra nem o dado do dia útil da conta (o motor expira
+// as ordens dele). O dia sem dado é reconhecido como feriado quando já existe dado de um dia POSTERIOR (o do dia útil ou o
+// ajuste de um dos contratos): a liquidação segue sem esperar. Sem essa prova, espera até DIAS_DE_ESPERA (o dado pode só
+// estar atrasado). Na conta internacional, o ouro é o da B3 (GLD) e o petróleo, o da NYMEX: num feriado só de uma das
+// bolsas, o ativo dela fica sem barra no dia (as ordens dele expiram e a posição não é marcada).
 
 // O prefixo das séries do futuro de cada ativo e se ele tem o número de contratos negociados (o Brent do Yahoo não).
 const FUTUROS = Object.freeze({
@@ -35,6 +39,9 @@ const FUTUROS = Object.freeze({
 // Janela de busca da decisão: o ATR(14) pede 15 pregões e a variação, 30 dias corridos.
 const DIAS_DE_HISTORICO = 60;
 const PTAX = "BCB.PTAX.VENDA";
+// O dia útil da conta internacional: o pregão da NYMEX, pelo Brent contínuo (o mesmo coletor do petróleo).
+const BRENT_CONTINUO = "YAHOO.BZ_CONTINUO.SETTLE";
+const META_FED = ["FRED.DFEDTARL", "FRED.DFEDTARU"];
 // Até quantos dias corridos a liquidação de um dia espera pelo dado dele, sem dado de um dia posterior, antes de tratá-lo
 // como sem pregão.
 const DIAS_DE_ESPERA = 4;
@@ -141,13 +148,54 @@ async function taxaCaixaDoDia(data, deps) {
   return Math.pow(1 + Number(ultima.value) / 100, 1 / 252) - 1;
 }
 
-// A prova de que D não teve o dado que falta (feriado do BCB ou da B3): já existe o mesmo dado de um dia depois de D,
-// conhecido no instante `agora`. Falta a PTAX: há PTAX posterior? Falta a barra: algum dos contratos tem ajuste posterior?
-async function haDadoPosterior({ data, hoje, agora, ptaxDoDia, temBarra, tickers }, deps) {
-  if (ptaxDoDia == null) {
-    const ultima = await ptaxAte(hoje, agora, deps);
-    if (!(ultima && ultima.data > data)) return false;
+// A meta do Fed (o ponto médio da faixa) do dia ou do último dia antes dele, em taxa diária (252 dias úteis).
+async function taxaFedDoDia(data, agora, deps) {
+  const repo = deps.observationRepository || observationRepository;
+  const series = linhasPorSerie(await repo.buscarAsOf({ seriesCodes: META_FED, asOf: agora, observadoDesde: somarDias(data, -10), observadoAte: data }));
+  const ultimo = (codigo) => {
+    const dias = [...(series.get(codigo)?.entries() || [])].sort(([a], [b]) => a.localeCompare(b));
+    return dias.length ? dias[dias.length - 1][1] : null;
+  };
+  const [inferior, superior] = META_FED.map(ultimo);
+  if (inferior == null || superior == null) return null;
+  return Math.pow(1 + (inferior + superior) / 2 / 100, 1 / 252) - 1;
+}
+
+// O dia útil de cada conta: o dado que o prova (`doDia`: { util, cambio }), a prova de um dia útil posterior
+// (`haPosterior`), o motivo da espera e o juro do caixa no dia.
+const CALENDARIOS = {
+  B3: {
+    semDia: "SEM_PTAX_DO_DIA",
+    async doDia(data, agora, deps) {
+      const ptax = await ptaxAte(data, agora, deps);
+      const doDia = ptax?.data === data ? ptax.valor : null;
+      return { util: doDia != null, cambio: doDia ?? ptax?.valor ?? null };
+    },
+    async haPosterior(data, hoje, agora, deps) {
+      const ultima = await ptaxAte(hoje, agora, deps);
+      return Boolean(ultima && ultima.data > data);
+    },
+    taxaDoDia: (data, agora, deps) => taxaCaixaDoDia(data, deps)
+  },
+  INTERNACIONAL: {
+    semDia: "SEM_PREGAO_NYMEX_DO_DIA",
+    async doDia(data, agora, deps) {
+      const repo = deps.observationRepository || observationRepository;
+      const linhas = await repo.buscarAsOf({ seriesCodes: [BRENT_CONTINUO], asOf: agora, observadoDesde: data, observadoAte: data });
+      return { util: linhas.length > 0, cambio: null };
+    },
+    async haPosterior(data, hoje, agora, deps) {
+      const repo = deps.observationRepository || observationRepository;
+      return (await repo.buscarAsOf({ seriesCodes: [BRENT_CONTINUO], asOf: agora, observadoDesde: somarDias(data, 1), observadoAte: hoje })).length > 0;
+    },
+    taxaDoDia: (data, agora, deps) => taxaFedDoDia(data, agora, deps)
   }
+};
+
+// A prova de que D não teve o dado que falta (feriado): já existe o mesmo dado de um dia depois de D, conhecido no
+// instante `agora`. Falta o dia útil da conta: há um posterior? Falta a barra: algum dos contratos tem ajuste posterior?
+async function haDadoPosterior({ data, hoje, agora, calendario, diaUtil, temBarra, tickers }, deps) {
+  if (!diaUtil && !(await calendario.haPosterior(data, hoje, agora, deps))) return false;
   if (!temBarra) {
     const ajustes = Object.entries(tickers).flatMap(([ativo, lista]) => lista.map((ticker) => `${FUTUROS[ativo].prefixo}.${ticker}.SETTLE`));
     if (ajustes.length) {
@@ -159,12 +207,14 @@ async function haDadoPosterior({ data, hoje, agora, ptaxDoDia, temBarra, tickers
   return true;
 }
 
-// A liquidação de D. `tickers`: { ATIVO: [ticker] } dos contratos com posição ou ordem. -> { pendente } (o dado do dia
-// ainda pode chegar) ou { barras, cambio, taxaCaixaDia, diaUtil }.
-async function lerMercadoParaLiquidacao({ data, tickers, agora = new Date(), hoje }, deps = {}) {
+// A liquidação de D. `tickers`: { ATIVO: [ticker] } dos contratos com posição ou ordem; `conta`: a da carteira (o
+// calendário e o juro do caixa). -> { pendente } (o dado do dia ainda pode chegar) ou { barras, cambio, taxaCaixaDia,
+// diaUtil }.
+async function lerMercadoParaLiquidacao({ data, tickers, conta = "B3", agora = new Date(), hoje }, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
-  const ptax = await ptaxAte(data, agora, deps);
-  const ptaxDoDia = ptax?.data === data ? ptax.valor : null;
+  const calendario = CALENDARIOS[conta];
+  if (!calendario) throw new Error(`Conta sem calendário: ${conta}`);
+  const dia = await calendario.doDia(data, agora, deps);
   const seriesCodes = Object.entries(tickers).flatMap(([ativo, lista]) =>
     lista.flatMap((ticker) => ["SETTLE", "HIGH", "LOW", "AVG"].map((campo) => `${FUTUROS[ativo].prefixo}.${ticker}.${campo}`))
   );
@@ -178,15 +228,16 @@ async function lerMercadoParaLiquidacao({ data, tickers, agora = new Date(), hoj
       barras[ticker] = { ajuste: valor("SETTLE"), maxima: valor("HIGH"), minima: valor("LOW"), medio: valor("AVG") };
     }
   }
-  // Dentro da espera, só liquida com a PTAX do dia (o dia útil do BCB, o calendário do caixa) e, havendo contrato a
-  // marcar, com a barra dele. Passada a espera, o dia sem dado é um feriado: sem barra, as ordens expiram; o câmbio é o
-  // último conhecido (nada é marcado sem barra) e o caixa não rende.
+  // Dentro da espera, só liquida com o dia útil da conta (o calendário do caixa) e, havendo contrato a marcar, com a
+  // barra dele. Passada a espera (ou provado o feriado), o dia sem dado é um feriado: sem barra, as ordens expiram; o
+  // câmbio é o último conhecido (nada é marcado sem barra) e o caixa não rende.
   const temBarra = Object.keys(barras).length > 0;
-  const completo = ptaxDoDia != null && (seriesCodes.length === 0 || temBarra);
-  if (!completo && somarDias(data, DIAS_DE_ESPERA) > hoje && !(await haDadoPosterior({ data, hoje, agora, ptaxDoDia, temBarra, tickers }, deps))) {
-    return { pendente: ptaxDoDia == null ? "SEM_PTAX_DO_DIA" : "SEM_BARRA_DO_DIA" };
+  const completo = dia.util && (seriesCodes.length === 0 || temBarra);
+  if (!completo && somarDias(data, DIAS_DE_ESPERA) > hoje && !(await haDadoPosterior({ data, hoje, agora, calendario, diaUtil: dia.util, temBarra, tickers }, deps))) {
+    return { pendente: !dia.util ? calendario.semDia : "SEM_BARRA_DO_DIA" };
   }
-  return { barras, cambio: ptaxDoDia ?? ptax?.valor ?? null, taxaCaixaDia: ptaxDoDia != null ? await taxaCaixaDoDia(data, deps) : 0, diaUtil: ptaxDoDia != null };
+  const taxa = dia.util ? await calendario.taxaDoDia(data, agora, deps) : 0;
+  return { barras, cambio: dia.cambio, taxaCaixaDia: taxa ?? 0, diaUtil: dia.util };
 }
 
 module.exports = { FUTUROS, lerMercadoParaDecisao, lerMercadoParaLiquidacao, t1DoMedio, ESPECIFICACOES };

@@ -265,7 +265,22 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
      acumulada (em %) paga o custo: custo ÷ vantagem.
    - Testado em dev em 2026-10-14 com a carteira de demonstração (desde 15/09): 21 dias, IA − Determinística de −1,93%,
      intervalo de −3,87% a +0,01%; o cálculo leva ~20 ms.
-8. A conta internacional.
+8. A conta internacional: ouro (o futuro em dólar da B3, GLD) e petróleo (o Brent da NYMEX, pelo Yahoo), em dólar,
+   com o capital padrão da Cartilha (US$ 2.000); a quantidade em onças e barris (§5). O que esta etapa definiu:
+   - **Adendo de dados (autorizado pelo usuário em 2026-10-14, junto com a etapa):** o coletor do Brent (ADR 0096)
+     passa a gravar a **máxima e a mínima** do dia de cada vencimento (`YAHOO.BZ.<TICKER>.HIGH` e `.LOW`), que vêm na
+     mesma resposta (verificado por chamada real em 2026-10-14). Um dia com a faixa incoerente (a máxima abaixo da
+     mínima ou o ajuste fora dela) fica sem ela, com aviso. O histórico sai do mesmo `backfill:yahoo-brent`. Com a
+     faixa, o ATR(14) do petróleo é o verdadeiro (em dev, de 1,42 só pelo ajuste para 3,37) e o stop e os alvos são
+     avaliados pela mínima e pela máxima, como no agro. A Cartilha pede o ATR de 4 horas; segue o diário (§11).
+   - **O calendário da conta** é o pregão da NYMEX, pelo Brent contínuo (`YAHOO.BZ_CONTINUO.SETTLE`), no lugar da
+     PTAX: um dia é útil se tem o Brent do dia; um dia sem ele é feriado assim que existe o de um dia posterior (como
+     na B3). O ouro segue o pregão da B3: num feriado só da B3, o ouro fica sem barra (as ordens dele expiram e a
+     posição não é marcada). Sem câmbio: os preços e o patrimônio são em dólar.
+   - **O caixa rende a meta do Fed** (decisão do usuário, 2026-10-14), no lugar da Selic do §5: o ponto médio da faixa
+     (FRED `DFEDTARL` e `DFEDTARU`, já coletados), em taxa diária de 252 dias úteis, só nos dias úteis da conta.
+   - Testado em dev em 2026-10-14 com uma carteira de teste começando no dia (apagada depois): a rodada decidida, as
+     referências com quantidades em onças e barris, o diário e a medição em dólar.
 
 **A 1ª rodada** é o início da primeira carteira, criada quando as três trilhas puderem começar juntas (depois da etapa
 4); a data é registrada aqui nesse dia e fixa a avaliação (§10). **Registrada em 2026-10-14:** a carteira "B3 – Cartilha

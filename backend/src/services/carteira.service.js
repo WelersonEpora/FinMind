@@ -14,8 +14,9 @@ const { ValidationError, ConflictError, NotFoundError } = require("../shared/err
 const TAMANHO_MAXIMO_NOME = 120;
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 const MOTIVO_INICIAL = "Versão inicial: os parâmetros da Cartilha de Operações v1.0 do Comitê";
-// A conta internacional entra na etapa 8 (ADR 0127, §11): até lá, uma carteira nova é só da B3.
-const CONTAS_DISPONIVEIS = Object.freeze(["B3"]);
+// As duas contas (ADR 0127, §11): a B3 (milho, café e soja, em reais) e, desde a etapa 8, a internacional (ouro e
+// petróleo, em dólar).
+const CONTAS_DISPONIVEIS = Object.freeze(["B3", "INTERNACIONAL"]);
 
 function hojeEmSaoPaulo(agora = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
