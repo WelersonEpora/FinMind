@@ -239,6 +239,35 @@ function forWorkspace(workspaceId) {
       });
     },
 
+    // As intenções de todas as rodadas da carteira, com a data da rodada (as métricas secundárias da medição, etapa 7b).
+    async intencoesParaMedicao(carteiraId, { transaction } = {}) {
+      const rodadas = await CarteiraRodada.findAll({ where: doEspaco({ carteira_id: carteiraId }), attributes: ["id", "data"], raw: true, transaction });
+      if (!rodadas.length) return [];
+      const dataDe = new Map(rodadas.map((r) => [r.id, r.data]));
+      const linhas = await CarteiraIntencao.findAll({
+        where: doEspaco({ rodada_id: [...dataDe.keys()] }),
+        attributes: ["rodada_id", "trilha_id", "ativo", "acao", "origem", "referencia", "resultado", "motivo_bloqueio"],
+        raw: true,
+        transaction
+      });
+      return linhas.map((i) => ({
+        data: dataDe.get(i.rodada_id),
+        trilhaId: i.trilha_id,
+        ativo: i.ativo,
+        acao: i.acao,
+        origem: i.origem,
+        referencia: i.referencia ?? null,
+        resultado: i.resultado,
+        motivoBloqueio: i.motivo_bloqueio
+      }));
+    },
+
+    // Os lançamentos do razão das trilhas, só o que a atribuição por ativo precisa.
+    async lancamentosParaMedicao(trilhaIds, { transaction } = {}) {
+      const linhas = await CarteiraLancamento.findAll({ where: doEspaco({ trilha_id: trilhaIds }), attributes: ["trilha_id", "data", "tipo", "ativo", "valor"], raw: true, transaction });
+      return linhas.map((l) => ({ trilhaId: l.trilha_id, data: l.data, tipo: l.tipo, ativo: l.ativo, valor: num(l.valor) }));
+    },
+
     // Todas as posições das trilhas (abertas primeiro, depois as encerradas da mais recente).
     async listarPosicoes(trilhaIds, { transaction } = {}) {
       const linhas = await CarteiraPosicao.findAll({

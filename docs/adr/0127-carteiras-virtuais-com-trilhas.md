@@ -265,6 +265,26 @@ etapa 8, num adendo a este ADR. Até lá, ATR do ajuste.
      acumulada (em %) paga o custo: custo ÷ vantagem.
    - Testado em dev em 2026-10-14 com a carteira de demonstração (desde 15/09): 21 dias, IA − Determinística de −1,93%,
      intervalo de −3,87% a +0,01%; o cálculo leva ~20 ms.
+   - **7b, as métricas secundárias** (feita em 2026-10-14; o usuário pediu os três blocos juntos, como propostos).
+     Descritivas, sem veredito, no segmento em vigor, na aba Medição abaixo da principal (`carteiras/secundarias.js`):
+     - **Atribuição:** os dias em que IA e Determinística carregavam posições diferentes (outro ativo ou lado) e a
+       diferença acumulada neles e nos outros; a diferença por ativo pelo razão (ajuste e custos; o caixa à parte; a
+       soma é a da principal); as recomendações contrárias à leitura (dias, ramos, aplicadas pela trilha IA e o resultado
+       das entradas que nasceram delas); os cortes do motor por trilha e motivo; a consistência da réplica (ações por
+       ativo e ramo e prioridades repetidas). O fallback segue no bloco do custo.
+     - **Painel das seis trilhas:** retorno em % do capital desde o início do segmento; volatilidade e Sharpe
+       anualizados (√252) sobre o retorno de cada dia em relação ao dia anterior, só com 20 dias; o Sharpe sobre o
+       retorno da trilha CAIXA (a Selic, ou a meta do Fed na internacional); maior recuo contra o `drawdownMaxPct` dos
+       parâmetros; tempo exposto (dias com posição carregada de um ajuste para o outro); custos de operação do razão. E a
+       diferença acumulada **IA − Persistência**, só o número, sem o custo das leituras.
+     - **Cartilha (Cap. 9.5)** por trilha (sem o caixa e o comprar e segurar) e ativo, das operações que entraram no
+       segmento: operações, encerradas, acerto, resultado médio em R, R:R realizado (ganho médio em R ÷ perda média em
+       R) contra o planejado (o alvo 2 em R) e o resultado em % do capital; a aderência do operador (as entradas, sem as
+       canceladas, com o checklist inteiro).
+     - **Fica para depois:** "operador alinhado × contrário à recomendação", até haver operações do operador. As
+       definições de "exposto", do R:R realizado, da anualização e do mínimo de 20 dias são proposta do FinMind.
+     - Testado em dev com a carteira de demonstração: a soma por ativo (−1,93% no café, −0,003% no caixa) fecha com a
+       diferença acumulada da principal; o cálculo leva de 20 a 40 ms.
 8. A conta internacional: ouro (o futuro em dólar da B3, GLD) e petróleo (o Brent da NYMEX, pelo Yahoo), em dólar,
    com o capital padrão da Cartilha (US$ 2.000); a quantidade em onças e barris (§5). O que esta etapa definiu:
    - **Adendo de dados (autorizado pelo usuário em 2026-10-14, junto com a etapa):** o coletor do Brent (ADR 0096)

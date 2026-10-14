@@ -7,14 +7,16 @@ const env = require("../config/env");
 const { custoUsd } = require("../carteiras/recomendacao");
 const { somarDias } = require("../carteiras/calendario");
 const { METODO, diferencasDiarias, segmentar, medirSegmento, pontoDeEquilibrio } = require("../carteiras/medicao");
+const secundarias = require("../carteiras/secundarias");
+const { resolverVigente } = require("../carteiras/parametros");
 const { NotFoundError } = require("../shared/errors");
 const { hojeEmSaoPaulo } = require("./carteira.service");
 
 // A MEDIÇÃO de uma carteira (ADR 0127, §10; etapa 7): a pergunta principal (a recomendação da IA agrega valor sobre a
 // regra fixa?) no segmento em vigor, com as datas, o parcial e, passadas as datas, a avaliação e a final; e o custo da
 // IA no segmento, com o ponto de equilíbrio. Só leitura do que a rotina gravou (o patrimônio diário das trilhas IA e
-// Determinística, as rodadas e as recomendações). As métricas secundárias (Cartilha, Sharpe, atribuição) ficam para uma
-// sub-etapa (decisão do usuário, 2026-10-14).
+// Determinística, as rodadas e as recomendações). E as métricas secundárias (etapa 7b, carteiras/secundarias.js), só
+// descritivas: a atribuição, o painel das seis trilhas e as métricas da Cartilha.
 
 const plano = (registro) => (typeof registro?.get === "function" ? registro.get({ plain: true }) : registro);
 const PTAX = "BCB.PTAX.VENDA";
@@ -44,6 +46,60 @@ function custoDaIa(recomendacoes, inicio, fim, precos) {
   };
 }
 
+// As métricas secundárias no segmento (desde `inicio`), sem veredito.
+function montarSecundarias({ trilhas, serie, posicoes, lancamentos, intencoes, ordensOperador, recomendacoes, parametros, diferencas, inicio, hoje, capital }) {
+  const daTrilha = (tipo) => trilhas.find((t) => t.tipo === tipo);
+  const serieDe = (t) => (t ? serie.filter((p) => p.trilhaId === t.id) : []);
+  const posicoesDe = (t) => (t ? posicoes.filter((p) => p.trilhaId === t.id) : []);
+  const [ia, det, caixa, persistencia] = ["IA", "DETERMINISTICA", "CAIXA", "PERSISTENCIA"].map(daTrilha);
+  const ativos = Object.keys(parametros?.ativos || {});
+  const tipoDaTrilha = new Map(trilhas.map((t) => [t.id, t.tipo]));
+  const doSegmento = (x) => x.data >= inicio && x.data <= hoje;
+
+  // O retorno diário do caixa (a taxa livre de risco), sobre o patrimônio do dia anterior.
+  const retornoCaixa = new Map();
+  let anterior = capital;
+  for (const p of serieDe(caixa)) {
+    retornoCaixa.set(p.data, p.patrimonio / anterior - 1);
+    anterior = p.patrimonio;
+  }
+
+  const painel = [...trilhas]
+    .sort((a, b) => secundarias.ORDEM_DAS_TRILHAS.indexOf(a.tipo) - secundarias.ORDEM_DAS_TRILHAS.indexOf(b.tipo))
+    .map((t) =>
+      secundarias.painelDaTrilha({
+        tipo: t.tipo,
+        serie: serieDe(t),
+        posicoes: posicoesDe(t),
+        custos: -lancamentos.filter((l) => l.trilhaId === t.id && doSegmento(l) && ["CUSTO", "CORRECAO_CUSTO"].includes(l.tipo)).reduce((s, l) => s + l.valor, 0),
+        caixa: retornoCaixa,
+        inicio,
+        capital,
+        minimoDias: METODO.minimoDias,
+        limiteDrawdownPct: parametros?.carteira?.drawdownMaxPct
+      })
+    );
+
+  const intencoesDoSegmento = intencoes.filter(doSegmento);
+  return {
+    atribuicao: {
+      divergentes: secundarias.diasDivergentes({ diferencas: diferencas.filter(doSegmento), posicoesIa: posicoesDe(ia), posicoesDet: posicoesDe(det) }),
+      porAtivo: ia && det ? secundarias.atribuicaoPorAtivo({ lancamentos: lancamentos.filter((l) => l.data <= hoje), iaId: ia.id, detId: det.id, inicio, ativos, capital }) : [],
+      contrarias: secundarias.contrariasALeitura({
+        principais: recomendacoes.filter((r) => r.tipo === "PRINCIPAL" && doSegmento(r)),
+        intencoesIa: ia ? intencoesDoSegmento.filter((i) => i.trilhaId === ia.id) : [],
+        posicoesIa: posicoesDe(ia),
+        capital
+      }),
+      cortes: secundarias.cortesDoMotor({ intencoes: intencoesDoSegmento, tipoDaTrilha }),
+      consistencia: secundarias.consistenciaDaReplica(recomendacoes.filter(doSegmento))
+    },
+    painel,
+    iaMenosPersistencia: ia && persistencia ? secundarias.diferencaAcumulada(serieDe(ia), serieDe(persistencia), inicio, capital) : null,
+    cartilha: secundarias.cartilhaPorTrilha({ trilhas, posicoes, ordensOperador, ativos, inicio, capital })
+  };
+}
+
 async function obterMedicao(workspaceId, carteiraId, deps = {}) {
   const repo = (deps.carteiraRepository || carteiraRepository).forWorkspace(workspaceId);
   const carteira = plano(await repo.buscar(carteiraId));
@@ -55,10 +111,17 @@ async function obterMedicao(workspaceId, carteiraId, deps = {}) {
   const hoje = deps.hoje || hojeEmSaoPaulo(deps.agora);
   const capital = Number(carteira.capital_inicial);
 
-  const [serie, rodadas, recomendacoes] = await Promise.all([
-    ia && det ? rRepo.seriesPatrimonio([ia.id, det.id]) : [],
+  const ids = trilhas.map((t) => t.id);
+  const operador = trilhas.find((t) => t.tipo === "OPERADOR");
+  const [serie, rodadas, recomendacoes, posicoes, lancamentos, intencoes, ordensOperador, versoes] = await Promise.all([
+    ids.length ? rRepo.seriesPatrimonio(ids) : [],
     rRepo.rodadasParaMedicao(carteiraId),
-    rRepo.listarRecomendacoes(carteiraId)
+    rRepo.listarRecomendacoes(carteiraId),
+    ids.length ? rRepo.listarPosicoes(ids) : [],
+    ids.length ? rRepo.lancamentosParaMedicao(ids) : [],
+    rRepo.intencoesParaMedicao(carteiraId),
+    operador ? rRepo.ordensDaTrilha(operador.id) : [],
+    repo.listarVersoes(carteiraId)
   ]);
   const diferencas = diferencasDiarias(
     serie.filter((p) => p.trilhaId === ia?.id),
@@ -87,6 +150,7 @@ async function obterMedicao(workspaceId, carteiraId, deps = {}) {
   const custoConhecido = custo.completo ? custo.custoUsd : null;
   const custoMoeda = custoConhecido == null ? null : carteira.moeda === "USD" ? custoConhecido : ptax ? custoConhecido * ptax.valor : null;
   const vantagem = medida.parcial.acumulada;
+  const parametros = resolverVigente(versoes.map(plano), hoje) || resolverVigente(versoes.map(plano), "9999-12-31");
 
   return {
     medicao: {
@@ -106,9 +170,10 @@ async function obterMedicao(workspaceId, carteiraId, deps = {}) {
         custoMoeda,
         vantagemMoeda: (vantagem / 100) * capital,
         pontoDeEquilibrio: pontoDeEquilibrio({ custoMoeda, vantagemAcumuladaPct: vantagem })
-      }
+      },
+      secundarias: montarSecundarias({ trilhas, serie, posicoes, lancamentos, intencoes, ordensOperador, recomendacoes, parametros, diferencas, inicio, hoje, capital })
     }
   };
 }
 
-module.exports = { obterMedicao };
+module.exports = { obterMedicao, montarSecundarias };

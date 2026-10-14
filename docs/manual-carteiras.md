@@ -309,10 +309,62 @@ custo **incompleto**, até os preços do modelo (em US$ por milhão de tokens) e
 horizontes CURTO, MÉDIO e LONGO) e a leitura de eventos de mercado também usam IA, mas ficam de fora: a trilha
 Determinística decide em cima das mesmas leituras, então elas não fazem parte da diferença medida, e seriam pagas de
 qualquer jeito (alimentam também o Centro de Decisão e a Qualidade da IA). A medição responde se a **recomendação** vale o
-que custa, não se a IA inteira vale. Essa outra pergunta pediria comparar com a referência **Persistência**, a única sem
-nenhuma IA, somando o custo de tudo; ela não está na medição principal.
+que custa, não se a IA inteira vale. Essa outra pergunta pede comparar com a referência **Persistência**, a única sem
+nenhuma IA: a diferença IA − Persistência aparece nas métricas secundárias, só o número, sem o custo das leituras.
 
 **O gráfico** mostra a diferença acumulada dia a dia: subindo, a IA está rendendo mais que a regra fixa; descendo, menos.
+
+### As métricas secundárias
+
+Abaixo da pergunta principal, a seção **Métricas secundárias (descritivas)** tem três blocos recolhíveis. Eles ajudam a
+entender o resultado, mas **não decidem nada** e não têm veredito. Contam só o segmento em vigor. Com poucas semanas,
+quase tudo ali é ruído.
+
+**1. De onde vem a diferença IA − Determinística.**
+
+- **Dias com posições diferentes:** em quantos dias as duas trilhas carregavam posições diferentes (outro ativo ou outro
+  lado), e quanto da diferença acumulada saiu desses dias. O resto vem de dias com as mesmas posições, mas com preço de
+  entrada, quantidade ou saída diferentes.
+- **Por ativo:** quanto cada trilha ganhou ou perdeu em cada ativo, pelo razão (o ajuste diário e os custos), e o
+  rendimento do caixa numa linha à parte. A soma das diferenças é a diferença acumulada da pergunta principal. Mostra se
+  a vantagem, ou a desvantagem, vem de um ativo só.
+- **Recomendações contrárias à leitura:** em quantos dias a IA recomendou algo contra a tendência do MÉDIO (por exemplo,
+  entrar comprado com o MÉDIO em baixa), quantas a trilha IA aplicou, e o resultado das operações que nasceram delas.
+- **Cortes do motor:** quantas intenções de cada trilha o motor barrou, e por quê (sem vaga, trava, contrato perto do
+  vencimento, sem ATR...).
+- **Consistência da réplica semanal:** uma vez por semana a IA responde de novo à mesma entrada; aqui aparece quantas
+  ações (por ativo e ramo) e quantas prioridades ela repetiu. Uma IA que muda muito com a mesma entrada é menos confiável.
+
+**2. As seis trilhas lado a lado:** as três que decidem e as três referências, com:
+
+| Coluna | O que é |
+|---|---|
+| **Retorno** | O ganho ou a perda desde o início do segmento, em % do capital inicial. |
+| **Volatilidade (ano)** | Quanto o patrimônio oscila de um dia para o outro, anualizado. Aparece com 20 dias. |
+| **Sharpe** | O retorno acima do caixa dividido pela oscilação, anualizado. Acima de zero: rendeu mais que o caixa pelo risco que correu. O caixa é a trilha Caixa (a Selic; na conta internacional, a meta do Fed). Aparece com 20 dias. |
+| **Maior recuo** | A maior queda desde um pico, contra o limite de drawdown da Cartilha (10%); fica em vermelho se o limite for atingido. |
+| **Tempo exposto** | A parte dos dias com alguma posição carregada de um ajuste para o outro. |
+| **Custos** | Os custos de operação lançados no razão (zero enquanto o custo por contrato não estiver nos parâmetros). |
+
+Abaixo da tabela, a **diferença IA − Persistência**: a IA inteira (as leituras e a recomendação) rende mais que uma regra
+sem nenhuma IA? É só o número, sem intervalo nem veredito.
+
+**3. Métricas da Cartilha, por trilha e ativo** (Cap. 9.5), das operações que entraram no segmento:
+
+| Coluna | O que é |
+|---|---|
+| **Operações** e **Encerradas** | Quantas entraram, e quantas já saíram. |
+| **Acerto** | A parte das encerradas que terminou com ganho. |
+| **Resultado médio** | O resultado médio das encerradas, em R (1R é o que se perde se o stop inicial for atingido). |
+| **R:R realizado** | O ganho médio em R dividido pela perda média em R. Só aparece quando há ganhos e perdas. |
+| **R:R planejado** | O alvo 2 em R, o que a Cartilha planeja. Comparar com o realizado mostra se os ganhos chegam perto do plano. |
+| **Resultado** | O resultado das encerradas, em % do capital inicial. |
+
+Na linha do operador aparece também a **aderência ao checklist**: das entradas registradas (sem as canceladas), quantas
+marcaram os 8 itens. O caixa e o comprar e segurar não aparecem aqui, porque não operam com stop e alvo.
+
+Ficou de fora, por enquanto, **operador alinhado × contrário à recomendação**: com poucas operações do operador, o número
+não diria nada. Entra quando houver dados.
 
 ## 9. A conta internacional
 

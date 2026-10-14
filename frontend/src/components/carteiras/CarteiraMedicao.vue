@@ -1,13 +1,14 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import LineChart from '../charts/LineChart.vue'
+import CarteiraMedicaoSecundarias from './CarteiraMedicaoSecundarias.vue'
 import carteirasService from '../../services/carteiras.service.js'
 import { formatarData, formatarMoeda, formatarRetorno, formatarUsd, rotulo } from '../../utils/carteiras.js'
 
 // A medição pré-registrada (ADR 0127, §10; etapa 7): a recomendação da IA agrega valor sobre a regra fixa? A diferença
 // diária de retorno IA − Determinística, em % do capital inicial, no segmento em vigor; o intervalo de 80%; as datas
 // (3 meses, só descritivo; 6, a avaliação; 12, a final). Antes da avaliação, os números são parciais e sem veredito.
-// E o custo da IA, com o ponto de equilíbrio.
+// E o custo da IA, com o ponto de equilíbrio, e as métricas secundárias (etapa 7b), só descritivas.
 const props = defineProps({
   workspaceId: { type: String, required: true },
   carteira: { type: Object, required: true }
@@ -178,6 +179,13 @@ const faltamDias = computed(() => Math.max(0, (medicao.value?.metodo.minimoDias 
           </p>
         </div>
       </div>
+
+      <CarteiraMedicaoSecundarias
+        v-if="medicao.secundarias"
+        :secundarias="medicao.secundarias"
+        :moeda="medicao.moeda"
+        :minimo-dias="medicao.metodo.minimoDias"
+      />
 
       <p class="small text-muted mb-0">
         Método (pré-registrado no ADR 0127): block bootstrap circular da média diária, blocos de {{ medicao.metodo.bloco }} pregões,
