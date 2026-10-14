@@ -26,7 +26,7 @@ const { documentoAberto, anterior, abrirDocumento, navegarDocumento, voltarDocum
 
 const ABAS = [
   { codigo: 'visao-geral', nome: 'Visão geral' },
-  { codigo: 'recomendacao', nome: 'Recomendação' },
+  { codigo: 'recomendacao', nome: 'Recomendação IA' },
   { codigo: 'rodadas', nome: 'Rodadas' },
   { codigo: 'posicoes', nome: 'Posições' },
   { codigo: 'operacoes', nome: 'Operações' },

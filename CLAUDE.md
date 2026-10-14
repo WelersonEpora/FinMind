@@ -388,7 +388,9 @@ Ver também `backend/src/collectors/base/README.md`.
   CSS global `tabela-card`/`tabela-paginada`/`tabela-refresh-botao`/
   `tabela-linhas-por-pagina` (`assets/main.css`) — ver `ObservaveisView.vue`
   (client-side, dataset pequeno) e `ExecucoesView.vue` (lazy/server-side)
-  como referência. Fora desse caso, UI continua sendo Bootstrap — ver ADR
+  como referência. A outra exceção é o `DatePicker` do PrimeVue, só quando a
+  data precisa desabilitar ou marcar dias específicos (ex.: o seletor de dia da
+  aba Recomendação IA). Fora desses casos, UI continua sendo Bootstrap — ver ADR
   0005.
 - **Espaço ativo** (`stores/workspace.js`, carregado junto com a sessão em
   `stores/auth.js`) é só contexto de interface — nunca vai no JWT. Rotas

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { consistencia, corDaAcao, doFormulario, formatarParametro, formatarR, formatarRetorno, nomeTrilha, paraFormulario, pontosDoPatrimonio, rotulo, CAMPOS_ATIVO } from './carteiras.js'
+import { consistencia, corDaAcao, dataDeIso, diasFora, isoDeData, doFormulario, formatarParametro, formatarR, formatarRetorno, nomeTrilha, paraFormulario, pontosDoPatrimonio, rotulo, CAMPOS_ATIVO } from './carteiras.js'
 
 const PARAMETROS = {
   modelo: 'cartilha-1.0',
@@ -60,4 +60,12 @@ test('consistência da réplica: ramos iguais sobre o total; sem uma das duas, n
   assert.deepEqual(consistencia(principal, replica), { iguais: 2, total: 3 })
   assert.equal(consistencia(principal, { recomendacoes: null }), null)
   assert.equal(corDaAcao('ZERAR'), 'text-bg-danger')
+})
+
+test('datas do calendário: ida e volta no dia local; os dias fora da lista, entre o primeiro e o último', () => {
+  assert.equal(isoDeData(dataDeIso('2026-10-14')), '2026-10-14')
+  assert.equal(isoDeData(dataDeIso('2026-03-01')), '2026-03-01')
+  assert.deepEqual(diasFora([]), [])
+  assert.deepEqual(diasFora(['2026-10-16', '2026-10-14']), ['2026-10-15'])
+  assert.deepEqual(diasFora(['2026-10-30', '2026-11-02']), ['2026-10-31', '2026-11-01'])
 })

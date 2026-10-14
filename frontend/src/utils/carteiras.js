@@ -121,6 +121,27 @@ export const formatarPreco = (v) => (v == null ? '—' : NUMERO(4).format(v))
 export const formatarQuantidade = (v) => (v == null ? '—' : NUMERO(6).format(v))
 export const formatarR = (v) => (v == null ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${N2.format(Math.abs(v))}R`)
 
+// AAAA-MM-DD <-> Date à meia-noite local (o calendário trabalha com Date; um Date em UTC mudaria o dia no fuso de Brasília).
+export function dataDeIso(iso) {
+  const [ano, mes, dia] = iso.split('-').map(Number)
+  return new Date(ano, mes - 1, dia)
+}
+export const isoDeData = (data) =>
+  `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
+
+// Os dias, entre o primeiro e o último da lista, que não estão nela (o calendário os desabilita).
+export function diasFora(datasIso) {
+  if (!datasIso.length) return []
+  const tem = new Set(datasIso)
+  const ordenadas = [...tem].sort()
+  const fim = ordenadas[ordenadas.length - 1]
+  const fora = []
+  for (let d = dataDeIso(ordenadas[0]); isoDeData(d) <= fim; d.setDate(d.getDate() + 1)) {
+    if (!tem.has(isoDeData(d))) fora.push(isoDeData(d))
+  }
+  return fora
+}
+
 // A classe de cor de um número com sinal.
 export const classeSinal = (v) => (v > 0 ? 'text-success' : v < 0 ? 'text-danger' : '')
 

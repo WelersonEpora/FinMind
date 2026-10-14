@@ -238,15 +238,15 @@ function forWorkspace(workspaceId) {
       return n > 0;
     },
 
-    // As recomendações da carteira, da mais recente, sem os textos longos (instrução, prompt, respostas, entrada).
-    async listarRecomendacoes(carteiraId, { limite = 60, transaction } = {}) {
+    // Todas as recomendações da carteira, da mais recente, sem os textos longos (instrução, prompt, respostas, entrada):
+    // o seletor de dia da tela precisa da carteira inteira (a avaliação é de 6 e 12 meses), e sem os textos a linha é leve.
+    async listarRecomendacoes(carteiraId, { transaction } = {}) {
       const rodadas = await CarteiraRodada.findAll({ where: doEspaco({ carteira_id: carteiraId }), attributes: ["id"], raw: true, transaction });
       if (!rodadas.length) return [];
       return CarteiraRecomendacao.findAll({
         where: doEspaco({ rodada_id: rodadas.map((r) => r.id) }),
         attributes: { exclude: ["instrucao", "prompt", "respostas", "entrada"] },
         order: [["data", "DESC"], ["tipo", "ASC"]],
-        limit: limite,
         raw: true,
         transaction
       });

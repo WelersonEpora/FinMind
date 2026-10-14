@@ -72,6 +72,14 @@ sistema de design completo antes de haver necessidade real de paridade visual to
   PrimeVue só quando a tela for uma tabela de dados densa nesse mesmo padrão; qualquer outra
   necessidade de UI usa Bootstrap, como já era.
 
+## Atualização (2026-10-14) — o calendário do PrimeVue
+
+Segunda exceção, decidida pelo usuário: o **`DatePicker`** do PrimeVue, onde a escolha de data precisa desabilitar ou
+marcar dias específicos (o `<input type="date">` do navegador só limita o intervalo). O primeiro uso é o seletor de dia
+da aba Recomendação IA da carteira virtual (`CarteiraRecomendacao.vue`, ADR 0127): só os dias com recomendação ficam
+habilitados, e os de falha e os de recomendação contrária à leitura ganham uma marca. Importado no componente que o usa,
+como as tabelas; um campo de data comum continua no `<input type="date">` do Bootstrap.
+
 ## Em aberto
 
 - Paridade visual completa (tokens/preset dedicados) se um dia for pedida explicitamente.

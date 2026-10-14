@@ -115,3 +115,61 @@ patrimônio em cada um (1/3 com milho, café e soja), sem alavancagem, stop nem 
 
 Como as três trilhas usam a mesma regra de tamanho, a comparação entre elas mede só a qualidade das decisões de entrar
 e sair.
+
+## 6. A aba Recomendação IA
+
+A aba mostra, para cada dia, o que a IA recomendou para cada ativo.
+
+**O dia:** a aba abre no dia mais recente. As setas ◀ ▶ vão para o dia anterior e o próximo que têm recomendação; o
+calendário pula para qualquer data. Só os dias com recomendação ficam habilitados no calendário. Fim de semana, feriado e
+dia em que a rodada não foi decidida não têm recomendação. Um ponto vermelho marca o dia em que a IA falhou (a trilha IA
+ficou em "manter") e um ponto amarelo, o dia com alguma recomendação contrária à leitura.
+
+**Os cards, um por ativo, em três situações.** A IA não recebe o estado da carteira: as três trilhas estão em situações
+diferentes no mesmo dia (a IA pode estar comprada em milho, a Determinística sem posição e o Operador vendido). Por isso
+ela responde as três situações possíveis de uma vez, e nenhum dado da carteira vai ao prompt:
+
+| Linha | Situação da carteira no ativo | Respostas possíveis |
+|---|---|---|
+| **Sem posição** | Não tem nada no ativo | Entrar comprado, Entrar vendido ou Não entrar |
+| **Se comprado** | Já está comprada (ganha se o preço sobe) | Manter, Reduzir ou Zerar |
+| **Se vendido** | Já está vendida (ganha se o preço cai) | Manter, Reduzir ou Zerar |
+
+- **Manter:** segue com a posição; o stop e os alvos continuam valendo.
+- **Reduzir:** sai de parte da posição (50% no padrão).
+- **Zerar:** sai da posição inteira.
+
+Cada linha tem um porquê curto. Abaixo delas, mais duas partes explicam a recomendação:
+
+- **Invalida se:** a condição que, se acontecer, derruba a tese da IA para o ativo (ex.: "a leitura do MÉDIO virar para
+  baixa ou o USDA revisar a safra americana para cima"). Serve para acompanhar: se aquilo acontecer, a recomendação
+  daquele dia deixa de valer, e a do dia seguinte deve mudar. É só texto: não dispara nada.
+- **Evidências:** os dados em que a IA se apoiou, citados por um código:
+  - `MILHO.MEDIO`: a leitura de tendência do horizonte MÉDIO do milho no dia (há também `MILHO.CURTO` e `MILHO.LONGO`);
+  - `MILHO.EV1`, `MILHO.EV2`...: os eventos de mercado do milho dos últimos 7 dias, na ordem em que foram à IA.
+
+  Cada leitura e cada evento vai ao prompt com o seu código, e a IA precisa citar pelo menos um. Ela não pode citar um
+  código que não recebeu: uma evidência inventada faz a resposta ser recusada. Para ver o que cada código é, abra **"O
+  que foi à IA"** no fim da aba: no prompt, cada um aparece entre colchetes (ex.: `[MILHO.MEDIO]`).
+
+**Quem usa cada linha:**
+
+- **A trilha IA** aplica a linha da situação dela no dia. O motor de risco ainda confere vagas, travas e tamanho antes
+  de executar.
+- **O Operador** pode olhar a linha da situação dele como sugestão; ele decide sozinho, no diário.
+- **A Determinística** não usa a recomendação: segue a regra fixa dela.
+
+**O selo amarelo "contra a leitura"** marca uma linha que vai contra a tendência da leitura do horizonte MÉDIO (ex.:
+entrar comprado, ou manter comprado, com o MÉDIO em baixa). Ela não é recusada: é marcada e medida.
+
+**A prioridade.** Os cards aparecem na ordem de prioridade que a IA dá aos ativos (1 = o primeiro). Ela só pesa quando
+falta vaga: com no máximo 2 posições abertas e 3 ativos, num dia em que a recomendação manda entrar em mais ativos do
+que há vagas, o motor preenche as vagas pela prioridade e o resto fica de fora. A prioridade não muda o tamanho da
+posição. A Determinística tem a ordem dela: a confiança da leitura do MÉDIO, depois a faixa forte antes da leve, e por
+fim a ordem fixa dos ativos da carteira.
+
+**O que foi à IA:** o botão à direita, na linha do dia, abre uma janela com abas para o prompt, a instrução do sistema
+e cada resposta, exatamente como foram.
+
+**O rodapé:** a réplica semanal (uma vez por semana, a mesma entrada vai de novo à IA, sem decidir nada, para medir se
+ela responde igual).
