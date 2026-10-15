@@ -131,7 +131,7 @@ cd backend && GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica
 cd backend && GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica-ia-soja
 # a do dólar também é própria (fase 1 do dólar, ADR 0124: 10 fontes e 5 tipos de evento só dela); só ela:
 cd backend && GEOPOLITICA_REFAZER=1 npm run collect -- --coletor=geopolitica-ia-dolar
-# leitura de tendência do petróleo, do ouro, do milho, do café, da soja e do dólar (rodam depois de todos os coletores; uma por ativo e dia, ADRs 0052, 0054, 0058, 0062, 0116 e 0126); para trocar a de hoje (todas, ou uma com --coletor=milho-analise ou --coletor=dolar-analise):
+# leitura de tendência do petróleo, do ouro, do milho, do café, da soja e do dólar (rodam depois de todos os coletores; uma por ativo e dia, de segunda a sexta, ADRs 0052, 0054, 0058, 0062, 0116, 0126 e 0106); para trocar a de hoje (todas, ou uma com --coletor=milho-analise ou --coletor=dolar-analise):
 cd backend && ANALISE_DIARIA_REFAZER=1 npm run collect -- --coletor=analise
 ```
 

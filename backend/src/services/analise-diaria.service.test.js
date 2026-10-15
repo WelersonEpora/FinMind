@@ -94,6 +94,24 @@ test("os horizontes contam de onde a leitura gravada diz: do último preço (v1,
   assert.equal(v2.evidencias.referenciaHorizontes, "DATA_DA_ANALISE");
 });
 
+test("fim de semana (ADR 0106, adendo de 2026-10-15): sem a leitura do dia, a de sexta, com a data consultada; num dia útil, nunca outra", async () => {
+  const sexta = { ...REGISTRO, data_analise: "2026-10-16" };
+  const pedidas = [];
+  const soSexta = { buscarAnaliseDoDia: async (ativo, data) => (pedidas.push(data), data === "2026-10-16" ? sexta : null) };
+  for (const data of ["2026-10-17", "2026-10-18"]) {
+    const analise = await obterAnaliseDoDia("PETROLEO", data, { analiseDiariaRepository: soSexta });
+    assert.equal(analise.disponivel, true);
+    assert.equal(analise.data, "2026-10-16");
+    assert.equal(analise.dataConsultada, data);
+  }
+  assert.deepEqual(pedidas, ["2026-10-17", "2026-10-16", "2026-10-18", "2026-10-16"]);
+  // A leitura antiga de um sábado, gravada antes da regra, é a do próprio dia.
+  const sabado = await obterAnaliseDoDia("PETROLEO", "2026-10-10", { analiseDiariaRepository: repo({ ...REGISTRO, data_analise: "2026-10-10" }) });
+  assert.equal(sabado.dataConsultada, undefined);
+  // Segunda sem leitura: não busca a de outro dia.
+  assert.deepEqual(await obterAnaliseDoDia("PETROLEO", "2026-10-19", { analiseDiariaRepository: soSexta }), { disponivel: false, data: "2026-10-19" });
+});
+
 test("o prompt e a resposta saem só sob demanda, como foram gravados; sem leitura na data, 404", async () => {
   const { analiseEnviada } = await obterPromptEnviado({ ativo: "PETROLEO", data: "2026-10-03" }, { analiseDiariaRepository: repo(REGISTRO) });
   assert.deepEqual(

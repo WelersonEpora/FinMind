@@ -19,6 +19,10 @@ const { ATIVOS_COM_ANALISE_DIARIA, configuracaoDoAtivo } = require("../../shared
 // UMA leitura por ativo e dia, a primeira que der certo: o cron roda 3 vezes (01h, 03h e 05h em Brasília) e as
 // execuções seguintes pulam a chamada. ANALISE_DIARIA_REFAZER=1 força uma nova leitura, que substitui a do dia.
 //
+// Sábado e domingo, nenhuma leitura (ADR 0106, adendo de 2026-10-15), nem com ANALISE_DIARIA_REFAZER: sem pregão, a
+// leitura recebe o preço de sexta, o mesmo da de segunda, e ficaria fora da métrica. A execução pula com um aviso. O
+// feriado segue rodando (às 01h ele não se distingue de uma fonte atrasada); a Qualidade da IA o tira da métrica.
+//
 // VALIDAÇÃO (shared/resposta-analise-diaria.js): a resposta inteira passa ou nada é gravado. Uma resposta recusada leva
 // a UMA nova chamada; recusada de novo, a execução fica "failed" com os motivos, e o Centro de Decisão diz que não há
 // leitura no dia (nunca mostra uma leitura fora do formato).
@@ -31,6 +35,8 @@ const TENTATIVAS_ATE_VALIDAR = 2;
 function hojeEmSaoPaulo(agora = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
 }
+
+const fimDeSemana = (iso) => [0, 6].includes(new Date(`${iso}T00:00:00Z`).getUTCDay());
 
 // O que a validação precisa saber do prompt enviado: os horizontes do ativo, os fatores e, entre eles, os de contexto.
 function opcoesDeValidacao(promptDiario, config) {
@@ -53,6 +59,7 @@ function criarColetorAnaliseDiaria(ativo) {
     const dataAnalise = deps.dataAnalise || hojeEmSaoPaulo(deps.agora);
     const refazer = deps.refazer ?? env.analiseDiaria.refazer;
 
+    if (fimDeSemana(dataAnalise)) return { pular: true, fimDeSemana: true, dataAnalise };
     if (!refazer && (await repo.existeAnaliseDoDia(ATIVO, dataAnalise))) return { pular: true, dataAnalise };
 
     const { promptDiario } = await promptService.montarPromptDiario(ATIVO, { data: dataAnalise }, deps);
@@ -105,7 +112,12 @@ function criarColetorAnaliseDiaria(ativo) {
   }
 
   function normalize([resultado]) {
-    if (resultado.pular) return { validos: [{ pular: true }], invalidos: [], avisos: [] };
+    if (resultado.pular) {
+      const avisos = resultado.fimDeSemana
+        ? [{ item: { ativo: ATIVO, dataAnalise: resultado.dataAnalise }, motivo: "Sábado ou domingo: sem leitura de tendência (sem pregão; ADR 0106, adendo de 2026-10-15)." }]
+        : [];
+      return { validos: [{ pular: true }], invalidos: [], avisos };
+    }
 
     const { dataAnalise, promptDiario, resposta } = resultado;
     const detalhes = detalhesDaIa(resultado);

@@ -10,9 +10,10 @@ const { FATORES_SOJA } = require("../shared/metodologia-soja");
 const { FATORES_DOLAR } = require("../shared/metodologia-dolar");
 const { NotFoundError, ValidationError } = require("../shared/errors");
 const { dataDeReferenciaDosHorizontes, dataAlvoDoHorizonte } = require("../shared/analise-diaria-base");
+const { somarDias } = require("../shared/utils/date-utils");
 
 // Leitura diária de tendência da IA (petróleo, ADR 0052; ouro, ADR 0054; milho, ADR 0058; café, ADR 0062), como o Centro de Decisão a mostra: a leitura feita NA data escolhida
-// (nunca a de outro dia no lugar dela) e as evidências que formaram o prompt dela. Tudo sai da leitura GRAVADA (a
+// (nunca a de outro dia no lugar dela; no fim de semana, sem leitura, a de sexta, marcada) e as evidências que formaram o prompt dela. Tudo sai da leitura GRAVADA (a
 // entrada estruturada, o prompt e a resposta como foram): nada é recalculado agora, então um parâmetro que mude depois
 // não altera o que a tela diz que a IA recebeu naquele dia. Só os ativos com leitura diária têm o bloco.
 const CATALOGO_POR_ATIVO = { PETROLEO: FATORES_PETROLEO, OURO: FATORES_OURO, MILHO: FATORES_MILHO, CAFE: FATORES_CAFE, SOJA: FATORES_SOJA, DOLAR: FATORES_DOLAR };
@@ -137,15 +138,21 @@ function leituraGravada(ativo, registro) {
 // precisa: as quatro leituras, as faixas de cada horizonte (as da configuração gravada com ela), o preço de referência,
 // as evidências e a proveniência (modelo, versões, hash). O prompt e a resposta (~30 mil caracteres) ficam de fora:
 // `obterPromptEnviado`, sob demanda.
+// No sábado e no domingo não há leitura (ADR 0106, adendo de 2026-10-15): sem a do dia, vem a de sexta, com a data
+// consultada em `dataConsultada` para a tela dizer que é a de outro dia. Num dia útil, nunca a de outro dia.
 async function obterAnaliseDoDia(ativo, data, deps = {}) {
   if (!ATIVOS_COM_ANALISE.includes(ativo)) return null;
   const repo = deps.analiseDiariaRepository || analiseDiariaRepository;
-  const registro = await repo.buscarAnaliseDoDia(ativo, data);
+  let registro = await repo.buscarAnaliseDoDia(ativo, data);
+  const diaDaSemana = new Date(`${data}T00:00:00Z`).getUTCDay();
+  const sexta = diaDaSemana === 6 ? somarDias(data, -1) : diaDaSemana === 0 ? somarDias(data, -2) : null;
+  if (!registro && sexta) registro = await repo.buscarAnaliseDoDia(ativo, sexta);
   if (!registro) return { disponivel: false, data };
 
   const entrada = registro.entrada || {};
   return {
     ...leituraGravada(ativo, registro),
+    ...(registro.data_analise !== data ? { dataConsultada: data } : {}),
     evidencias: resumirEvidencias(ativo, entrada),
     proveniencia: {
       modelo: registro.modelo,

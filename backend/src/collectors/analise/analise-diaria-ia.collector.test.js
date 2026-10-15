@@ -8,7 +8,7 @@ const collector = criarColetorAnaliseDiaria("PETROLEO");
 
 const PROMPT_DIARIO = {
   ativo: "PETROLEO",
-  dataAnalise: "2026-10-03",
+  dataAnalise: "2026-10-05",
   versaoPrompt: "petroleo-analise-diaria@1",
   versaoMetodologia: "petroleo-v1 (2026-10-02)",
   versaoConfiguracao: 1,
@@ -52,7 +52,7 @@ function depsCom({ textos = [RESPOSTA_VALIDA], existe = false, refazer = false }
     montados,
     deps: {
       geminiSearch: provedor,
-      dataAnalise: "2026-10-03",
+      dataAnalise: "2026-10-05",
       refazer,
       analiseDiariaRepository: { existeAnaliseDoDia: async () => existe },
       promptDiarioService: {
@@ -68,14 +68,14 @@ function depsCom({ textos = [RESPOSTA_VALIDA], existe = false, refazer = false }
 test("envia o prompt diário do petróleo da data, sem busca, e grava as quatro leituras com a proveniência", async () => {
   const { deps, provedor, montados } = depsCom();
   const bruto = await collector.download({ signal: undefined }, deps);
-  assert.deepEqual(montados, [["PETROLEO", "2026-10-03"]]);
+  assert.deepEqual(montados, [["PETROLEO", "2026-10-05"]]);
   assert.deepEqual(provedor.chamadas.map((c) => [c.systemInstruction, c.prompt]), [["INSTRUÇÃO", "PROMPT"]]);
 
   const { validos, invalidos, detalhes } = collector.normalize(collector.parse(bruto));
   assert.deepEqual(invalidos, []);
   const { analise } = validos[0];
   assert.equal(analise.ativo, "PETROLEO");
-  assert.equal(analise.data_analise, "2026-10-03");
+  assert.equal(analise.data_analise, "2026-10-05");
   assert.equal(analise.hash_entrada, PROMPT_DIARIO.hashEntrada);
   assert.equal(analise.versao_configuracao, 1);
   assert.equal(analise.resposta_bruta, RESPOSTA_VALIDA);
@@ -112,6 +112,24 @@ test("uma leitura por dia: com a do dia já gravada, pula a chamada (salvo REFAZ
   const refazer = depsCom({ existe: true, refazer: true });
   await collector.download({}, refazer.deps);
   assert.equal(refazer.provedor.chamadas.length, 1);
+});
+
+test("sábado e domingo (ADR 0106, adendo de 2026-10-15): nenhuma leitura, nem com REFAZER; a execução pula com um aviso", async () => {
+  for (const dataAnalise of ["2026-10-10", "2026-10-11"]) {
+    const { deps, provedor, montados } = depsCom({ existe: false, refazer: true });
+    const bruto = await collector.download({}, { ...deps, dataAnalise });
+    assert.equal(provedor.chamadas.length, 0);
+    assert.equal(montados.length, 0);
+    const { validos, avisos } = collector.normalize(collector.parse(bruto));
+    assert.deepEqual(validos, [{ pular: true }]);
+    assert.equal(avisos.length, 1);
+    assert.deepEqual(avisos[0].item, { ativo: "PETROLEO", dataAnalise });
+    assert.match(avisos[0].motivo, /Sábado ou domingo/);
+  }
+  // O feriado (segunda, 12/10) segue rodando.
+  const feriado = depsCom({ existe: false });
+  await collector.download({}, { ...feriado.deps, dataAnalise: "2026-10-12" });
+  assert.equal(feriado.provedor.chamadas.length, 1);
 });
 
 test("resposta recusada: uma nova chamada; se a 2ª passa, grava a 2ª e conta os tokens das duas", async () => {
@@ -174,7 +192,7 @@ test("ouro: recusa a inflação (fator de contexto) como voto a favor e chama de
     }
   };
   const baixado = await ouro.download({}, deps);
-  assert.deepEqual(montados, [["OURO", "2026-10-03"]]);
+  assert.deepEqual(montados, [["OURO", "2026-10-05"]]);
   assert.equal(provedor.chamadas.length, 2);
   assert.equal(baixado.recusadas, 1);
   const { validos, detalhes } = ouro.normalize(ouro.parse(baixado));

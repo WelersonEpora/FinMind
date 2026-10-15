@@ -96,6 +96,12 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
     </div>
 
     <template v-else>
+      <!-- No fim de semana não há leitura (ADR 0106, adendo de 2026-10-15): a API traz a de sexta, com a data consultada. -->
+      <p v-if="analise.dataConsultada" class="analise__outro-dia">
+        <i class="bi bi-calendar-x"></i>
+        {{ formatarData(analise.dataConsultada) }} é fim de semana, sem pregão: não há leitura de tendência. Esta é a de
+        <strong>{{ formatarData(analise.data) }}</strong>, a última feita.
+      </p>
       <div class="analise__horizontes">
         <button
           v-for="horizonte in horizontes"
@@ -478,6 +484,14 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
   margin: 0;
   font-size: 0.8rem;
   color: var(--p-text-muted-color);
+}
+.analise__outro-dia {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: var(--p-text-muted-color);
+}
+.analise__outro-dia strong {
+  color: var(--p-text-color);
 }
 
 /* Os 4 horizontes em linha do tempo (largura inteira): um traço liga os marcos de 1, 7, 30 e 90 dias, do centro da 1ª

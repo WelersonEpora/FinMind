@@ -115,3 +115,26 @@ que ainda não existe. Um calendário de feriados por bolsa resolveria no prompt
 - Um pregão que a fonte nunca entregou parece um feriado: a leitura daquele dia sai da métrica. Raro (o coletor da B3
   falha alto quando falta um arquivo que deveria existir).
 - O item "Num feriado no meio da semana..." das consequências acima deixa de valer.
+
+### Sem leitura de tendência no sábado e no domingo (decisão do usuário, 2026-10-15)
+
+Na mesma conversa, olhando o gráfico do petróleo (três leituras de curto com alvo em 16/10: as de sábado, domingo e
+segunda, todas com o preço de sexta), o usuário decidiu parar a leitura de tendência no fim de semana, o que tinha
+preferido manter em 2026-10-05. A leitura de sábado e a de domingo recebem o preço de sexta, o mesmo da de segunda: no
+curto, no médio e no longo repetem a janela dela, e no imediato miram o próprio sábado ou domingo, um dia sem pregão
+(o prompt dizia "o próximo pregão", e a tabela 2.4, o dia da leitura). Nenhuma entrava na métrica; só desenhavam
+"dias fantasmas" no gráfico e gastavam 12 chamadas ao Gemini por fim de semana.
+
+- **O coletor da leitura de tendência pula sábado e domingo** (no dia de São Paulo), com um aviso na execução, também
+  com `ANALISE_DIARIA_REFAZER`. A leitura de eventos com busca na web segue todos os dias: o que acontece no fim de
+  semana chega à leitura de segunda.
+- **O feriado segue rodando**: às 01h ele não se distingue de uma fonte atrasada, e a Qualidade da IA o tira da métrica
+  (item 2 acima).
+- **O Centro de Decisão, no sábado e no domingo, mostra a leitura de sexta**, com o aviso de que é a de outro dia
+  (`dataConsultada`). Num dia útil sem leitura, continua "sem leitura".
+- **A data-alvo fica onde a regra a calcula**, mesmo no fim de semana: o preço de cada data é o do último pregão até
+  ela. Com leituras só de segunda a sexta, o imediato e o curto não têm alvo no sábado e no domingo; no médio e no
+  longo (30 e 90 dias não são múltiplos de 7), os dias sem alvo mudam de lugar, e um alvo no fim de semana é medido no
+  fechamento de sexta.
+- As leituras de fim de semana já gravadas ficam como estão (fora da métrica, `SEM_PREGAO_NA_DATA`). As carteiras
+  virtuais não mudam: as rodadas já são só em dias úteis.
