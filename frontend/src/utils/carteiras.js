@@ -128,8 +128,23 @@ export const VERIFICACOES = {
 
 export const rotulo = (codigo) => (codigo == null ? '—' : ROTULOS[codigo] || codigo)
 
-export const ATIVOS = { MILHO: 'Milho', CAFE: 'Café', SOJA: 'Soja', OURO: 'Ouro', PETROLEO: 'Petróleo' }
+export const ATIVOS = { MILHO: 'Milho', CAFE: 'Café', SOJA: 'Soja', DOLAR: 'Dólar', OURO: 'Ouro', PETROLEO: 'Petróleo' }
 export const nomeAtivo = (codigo) => ATIVOS[codigo] || codigo
+
+// A escolha dos ativos na criação. `ativosDaConta`: [{ codigo, carteiraPropria }] da API. Um ativo de carteira própria
+// (o dólar, adendo de 2026-10-15 ao ADR 0127) roda sozinho: o padrão são os outros, marcá-lo desmarca os outros e
+// marcar outro o desmarca. O backend recusa a mistura do mesmo jeito.
+export function selecaoPadrao(ativosDaConta) {
+  const comuns = ativosDaConta.filter((a) => !a.carteiraPropria).map((a) => a.codigo)
+  return comuns.length ? comuns : ativosDaConta.slice(0, 1).map((a) => a.codigo)
+}
+
+export function alternarAtivo(selecionados, codigo, marcado, ativosDaConta) {
+  if (!marcado) return selecionados.filter((c) => c !== codigo)
+  const proprio = (c) => ativosDaConta.find((a) => a.codigo === c)?.carteiraPropria
+  if (proprio(codigo)) return [codigo]
+  return [...selecionados.filter((c) => c !== codigo && !proprio(c)), codigo]
+}
 
 const NUMERO = (casas) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: casas })
 const N2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -209,7 +224,11 @@ export const CAMPOS_ATIVO = [
       'Como é cobrado: por contrato, em cada execução (por lado). A entrada cobra uma vez e cada saída (alvo, stop, zerar) cobra de novo sobre a quantidade que saiu.\n\n' +
       'Sobre o prazo: vale só para as execuções a partir de agora; as já feitas não são corrigidas para trás.\n\n' +
       'Detalhes no Manual, seção 2.'
-  }
+  },
+  // O vencimento e a liquidez são por ativo desde 2026-10-15: o dólar vence todo mês (adendo ao ADR 0127).
+  { chave: 'diasUteisMinimosAteOLimite', rotulo: 'Folga mínima até o limite do contrato', unidade: 'dias úteis', tipo: 'inteiro' },
+  { chave: 'diasUteisEncerrarAntesDoLimite', rotulo: 'Encerrar antes do limite', unidade: 'dias úteis', tipo: 'inteiro' },
+  { chave: 'liquidezMinima', rotulo: 'Liquidez mínima', unidade: 'contratos no dia', tipo: 'inteiro' }
 ]
 
 export const CAMPOS_CARTEIRA = [
@@ -227,9 +246,6 @@ export const CAMPOS_CARTEIRA = [
 export const CAMPOS_EXECUCAO = [
   { chave: 'quantidade', rotulo: 'Quantidade', unidade: '', tipo: 'texto' },
   { chave: 'periodoAtr', rotulo: 'Período do ATR', unidade: 'pregões', tipo: 'inteiro' },
-  { chave: 'diasUteisMinimosAteOLimite', rotulo: 'Folga mínima até o limite do contrato', unidade: 'dias úteis', tipo: 'inteiro' },
-  { chave: 'diasUteisEncerrarAntesDoLimite', rotulo: 'Encerrar antes do limite', unidade: 'dias úteis', tipo: 'inteiro' },
-  { chave: 'liquidezMinima', rotulo: 'Liquidez mínima', unidade: 'contratos no dia', tipo: 'inteiro' },
   { chave: 'registroTardioDiasUteis', rotulo: 'Registro tardio até', unidade: 'dias úteis', tipo: 'inteiro' }
 ]
 

@@ -189,9 +189,20 @@ function limiteDoSjc(contrato) {
   const indice = contrato.ano * 12 + (contrato.mes - 1) - 1; // o mês anterior
   return `${Math.floor(indice / 12)}-${String((indice % 12) + 1).padStart(2, "0")}-${DIA_LIMITE_DO_SJC}`;
 }
+// O dólar e o minidólar (DOL e WDO) vencem no 1º dia útil do mês do contrato: o último pregão é o último dia útil do mês
+// ANTERIOR (no banco, de 2025-06 a 2026-09, todos os WDO pararam nesse dia). O limite é esse dia útil (seg-sex), sem o
+// 31 de dezembro, quando a B3 não abre (o WDOF26 parou em 2025-12-30). Outro feriado nele antecipa o fim em um dia, o que
+// a carteira cobre saindo antes (adendo de 2026-10-15 ao ADR 0127).
+function limiteDoDolar(contrato) {
+  const d = new Date(Date.UTC(contrato.ano, contrato.mes - 1, 0)); // o último dia do mês anterior
+  if (contrato.mes === 1) d.setUTCDate(30);
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
 const limiteDoVencimento = (contrato) => {
   if (contrato.simbolo === "BZ") return limiteDoBrent(contrato);
   if (contrato.simbolo === "SJC") return limiteDoSjc(contrato);
+  if (contrato.simbolo === "DOL" || contrato.simbolo === "WDO") return limiteDoDolar(contrato);
   return `${contrato.vencimento}-${String(DIA_LIMITE_DO_VENCIMENTO).padStart(2, "0")}`;
 };
 

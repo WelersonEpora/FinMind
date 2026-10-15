@@ -26,11 +26,18 @@ async function carteiraETrilhas(workspaceId, carteiraId, deps) {
 // primeira data de início possível (o próximo dia útil).
 function obterOpcoes(deps = {}) {
   const hoje = deps.hoje || hojeEmSaoPaulo(deps.agora);
-  const ativosDa = (conta) => Object.keys(ESPECIFICACOES).filter((a) => ESPECIFICACOES[a].conta === conta);
+  // O padrão de uma conta: os ativos dela, sem os de carteira própria (o dólar), que só rodam sozinhos.
+  const ativosDa = (conta) => Object.keys(ESPECIFICACOES).filter((a) => ESPECIFICACOES[a].conta === conta && !ESPECIFICACOES[a].carteiraPropria);
   return {
     opcoes: {
       contas: Object.entries(CONTAS).map(([codigo, c]) => ({ codigo, rotulo: c.rotulo, moeda: c.moeda, disponivel: CONTAS_DISPONIVEIS.includes(codigo) })),
-      ativos: Object.entries(ESPECIFICACOES).map(([codigo, e]) => ({ codigo, conta: e.conta, unidade: e.unidade, moedaPreco: e.moedaPreco })),
+      ativos: Object.entries(ESPECIFICACOES).map(([codigo, e]) => ({
+        codigo,
+        conta: e.conta,
+        unidade: e.unidade,
+        moedaPreco: e.moedaPreco,
+        carteiraPropria: Boolean(e.carteiraPropria)
+      })),
       padroes: Object.fromEntries(Object.keys(CONTAS).map((conta) => [conta, parametrosPadrao(conta, ativosDa(conta))])),
       inicioMinimo: somarDiasUteis(hoje, 1)
     }

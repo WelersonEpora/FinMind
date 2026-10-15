@@ -86,7 +86,8 @@ REFAZER. O horizonte IMEDIATO não é operável (ADR 0106).
   sempre; a pergunta vai ao Comitê.
 - **Vencimento** (D13): o contrato é o primeiro com limite (`limiteDoVencimento`) a mais de 30 dias úteis de D e pelo
   menos 100 contratos negociados (ADR 0078); a posição é **encerrada** (não rolada) 15 dias úteis antes do limite, e o
-  dia seguinte pode reentrar no próximo vencimento.
+  dia seguinte pode reentrar no próximo vencimento. Desde o adendo de 2026-10-15, os três números são por ativo (o dólar
+  usa 3, 2 e 100).
 - **Travas** (D11): perda diária e semanal sem novas entradas no resto do dia e da semana; drawdown de 10% pausa a trilha
   até uma retomada manual, com motivo; 3 perdas seguidas pausam por 5 pregões (proposta do FinMind); a véspera de
   evento de alto impacto fica desligada (não há calendário formal de eventos).
@@ -169,7 +170,7 @@ a partir do razão). Cada uma entra no registro do ADR 0007 na migration que a c
 
 ### 11. Ativos e contas (D2, D12)
 
-Petróleo, ouro, milho, café e soja; o dólar fica fora. O petróleo segue no Brent (o WTI fica guardado). A **soja entra**,
+Petróleo, ouro, milho, café e soja; o dólar fica fora (entrou na conta B3 pelo adendo de 2026-10-15). O petróleo segue no Brent (o WTI fica guardado). A **soja entra**,
 com a divergência registrada: a Cartilha a trata como ativo de observação até decisão do Comitê (§2.2e). **Começa pela
 conta B3** (milho, café e soja): o piso da Tabela 2 no agro é o ATR(14) diário, calculável com dados oficiais. Na conta
 internacional, o piso usa o ATR diário (a Cartilha pede o de 4 horas, que não temos), e o stop do petróleo pede a
@@ -335,6 +336,68 @@ a rotina rodou à mão: a rodada de 14/10 foi decidida depois da abertura do mer
 véspera, a mesma exceção do 1º dia da B3. A avaliação dela conta dessa data (cada carteira tem a sua medição). Os custos reais por contrato (corretagem e
 emolumentos da B3) e o tamanho do contrato do café (a Cartilha diverge entre 100 e ~458 sacas; com quantidade
 fracionária, não muda o resultado em R nem em %) podem chegar depois (§8).
+
+## Adendo de 2026-10-15: o dólar na conta B3 (decisão do usuário)
+
+**Contexto.** O §11 deixou o dólar fora: a Cartilha v1.0 não o traz como ativo operado (só como risco cambial da conta
+internacional), e a Tabela 2 não tem parâmetros para ele. O usuário (Welerson, com o mesmo poder de decisão do David)
+decidiu incluí-lo em 2026-10-15, com as decisões abaixo, propostas pelo assistente.
+
+**Decisões (usuário, 2026-10-15):**
+
+1. **O contrato:** o minidólar da B3 (**WDO**), na **conta B3**, em reais. Mesmo ajuste do DOL em todos os vencimentos
+   (ADR 0118), e é onde está a liquidez (em 2026-10-08, 2,26 milhões de contratos de WDOX26 contra 277 mil de DOLX26).
+   Especificação: US$ 10.000 por contrato, cotado em R$ por US$ 1.000 (multiplicador 10), tick de 0,5 ponto. A
+   **Qualidade da IA continua pela PTAX** (ADR 0126): a carteira precisa de um contrato negociável, a medição da leitura
+   não.
+2. **O vencimento, sem rolar, com números próprios:** entra só com **mais de 3 dias úteis** até o limite, **encerra 2
+   dias úteis antes** dele e exige **100 contratos** no dia. O WDO vence todo mês e o negócio fica no 1º vencimento; com
+   os 30 e 15 do agro, a carteira operaria o 2º ou o 3º, com ~0,1% a 0,3% do volume do 1º. A opção de rolar foi
+   descartada: a rolagem carrega o diferencial de juros.
+3. **O risco e os alvos:** os do agro da B3 (2%, piso de 1,5× o ATR(14), alvo 1 em 1R, alvo 2 em 3R, R:R mínimo 1:2).
+4. **A slippage:** 1 tick (o agro usa 2).
+
+**Implementação.**
+
+- **O vencimento e a liquidez passam a ser parâmetros por ativo** (`carteiras/parametros.js`: de `execucao` para cada
+  ativo; na tela, da "Execução simulada" para a tabela "Por ativo"). Nos outros ativos, os mesmos 30, 15 e 100. As
+  versões já gravadas não são reescritas (append-only): na leitura, o valor único da execução vai para cada ativo
+  (`noFormatoAtual`), e nada muda no que as carteiras existentes faziam.
+- `carteiras/especificacoes.js` v2 (o DOLAR) e `mercado-carteira.service.js` (o WDO, `B3.WDO`).
+- **O limite do contrato** (`centro-decisao.service.js::limiteDoVencimento`): no DOL e no WDO, o **último dia útil do
+  mês anterior** ao do contrato, sem o 31 de dezembro (a B3 não abre). Antes, valia o dia 15 do mês do contrato, duas
+  semanas depois do fim real. Conferido no banco de dev: todos os WDO de 2025-06 a 2026-09 pararam nesse dia (o WDOF26
+  em 2025-12-30). Muda só para DOL e WDO, e a leitura diária do dólar não usa contrato por horizonte (ADR 0126).
+- A rodada, a recomendação da IA e os eventos já eram genéricos por ativo: o dólar entra com a leitura de tendência
+  (ADR 0126) e os eventos dele (ADR 0124).
+- **Conferido em dev:** a decisão usa o WDOV26 até 2026-09-24 e o WDOX26 a partir de 2026-09-25, com ATR(14) de 45 a 60
+  pontos e o ponto valendo R$ 10.
+
+**Decisões seguintes (usuário, 2026-10-15):**
+
+5. **As travas e as vagas:** o dólar segue as da conta B3 (4% no dia, 8% na semana, no máximo 2 posições), disputando as
+   vagas com o agro. A Cartilha (Cap. 6) limita a exposição **por conta**: "máx. 2 posições simultâneas por conta;
+   risco agregado ≤ limite diário". Com o dólar a 2%, 2 × 2% = 4%, o limite diário; uma vaga própria (6%) passaria dele.
+6. **A Persistência do dólar pela PTAX:** a direção dos 30 dias vem da PTAX de venda, a série da faixa LATERAL (1,9%)
+   e da Qualidade da IA (ADR 0064); a execução segue no WDO. O WDO embute o diferencial de juros e converge para a PTAX
+   até o vencimento: no banco de dev, cada vencimento fica ~0,6% acima do anterior, e a variação de 30 dias do WDO
+   sai ~0,5 p.p. abaixo da PTAX (em 2026-10-09: −2,02% no WDO, "baixa"; −1,45% na PTAX, "lateral").
+   `mercado-carteira.service.js` (`variacaoPela`).
+7. **O dólar numa carteira própria**, sem o agro. O café e a soja da B3 já têm exposição ao dólar (o preço em dólar,
+   convertido pela PTAX; o stop protege só o preço em dólar), e o dólar na mesma carteira a somaria ou anularia. Em dev
+   (2026-10-09, R$ 10.000, 1R = 2%): uma alta de 2% no dólar vale ±1,1R no WDO, ±1,2R na soja só pelo câmbio e ±0,4R no
+   café; dólar e soja comprados, com o real subindo 2%, perderiam ~2,2R (4,4%), acima da trava diária. Sem regra de
+   correlação na Cartilha, a separação evita o caso sem inventar regra. Uma conta própria ("B3 dólar") foi descartada:
+   a conta define moeda, calendário, caixa e travas, iguais aos da B3. Implementação: `carteiraPropria` na
+   especificação do dólar; `validarParametros` recusa a mistura (a criação e as versões novas); o padrão da conta B3
+   (`painel-carteira.service.js`) e a tela de criação (`utils/carteiras.js::selecaoPadrao` e `alternarAtivo`) deixam o
+   dólar desmarcado, marcá-lo desmarca os outros, e marcar outro o desmarca.
+
+**Pergunta ao Comitê:**
+
+- **A correlação**, para quando se quiser dólar e agro na mesma carteira: que regra vale (bloquear a mesma direção,
+  contar a exposição cambial no risco agregado...)? Até lá, a trava da decisão 7.
+- **O custo por contrato** do WDO começa pendente, como nos outros ativos.
 
 ## Alternativas consideradas
 

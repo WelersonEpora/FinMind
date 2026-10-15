@@ -5,6 +5,7 @@ const { somarDiasUteis, diasUteisEntre } = require("./calendario");
 const { CONTAS, ESPECIFICACOES, valorDoPonto } = require("./especificacoes");
 const { LADO_DA_ENTRADA, validarIntencao } = require("./intencao");
 const { sinal, niveis, planejarEntradaAutomatica, conferirPlanoDoOperador, truncar } = require("./risco");
+const { PADRAO_POR_ATIVO } = require("./parametros");
 
 // O MOTOR ÚNICO das três trilhas (ADR 0127). Puro: recebe o estado, as intenções e o mercado; não lê nem grava nada.
 //
@@ -30,7 +31,7 @@ function motivoDeBloqueioDaEntrada({ data, ativo, mercado, parametros, travas, v
   if (vagas <= 0) return "MAX_POSICOES";
   const m = mercado[ativo];
   if (!m?.contrato) return "SEM_CONTRATO";
-  if (diasUteisEntre(data, m.contrato.limite, feriados) < parametros.execucao.diasUteisMinimosAteOLimite) return "VENCIMENTO_PROXIMO";
+  if (diasUteisEntre(data, m.contrato.limite, feriados) < parametros.ativos[ativo].diasUteisMinimosAteOLimite) return "VENCIMENTO_PROXIMO";
   if (m.atr == null || !(m.atr > 0)) return "SEM_ATR";
   if (!(m.valorDoPonto > 0)) return "SEM_CAMBIO";
   return null;
@@ -46,9 +47,11 @@ function decidir({ data, estado, intencoes, mercado, parametros, travas = null, 
   const porAtivo = new Map(posicoes.map((pos) => [pos.ativo, pos]));
   const saindo = new Set();
 
-  // 1. O vencimento vem antes de tudo: a posição sai 15 dias úteis antes do limite do contrato, sem rolar (D13).
+  // 1. O vencimento vem antes de tudo: a posição sai N dias úteis antes do limite do contrato (15 nos ativos da
+  // Cartilha, 2 no dólar), sem rolar (D13). Um ativo que saiu da carteira com posição aberta usa o padrão dele.
   for (const pos of posicoes) {
-    const encerrarEm = somarDiasUteis(pos.contrato.limite, -parametros.execucao.diasUteisEncerrarAntesDoLimite, feriados);
+    const regra = parametros.ativos[pos.ativo] || PADRAO_POR_ATIVO[pos.ativo];
+    const encerrarEm = somarDiasUteis(pos.contrato.limite, -regra.diasUteisEncerrarAntesDoLimite, feriados);
     if (data >= encerrarEm) {
       ordens.push(saida(pos, "VENCIMENTO"));
       saindo.add(pos.id);

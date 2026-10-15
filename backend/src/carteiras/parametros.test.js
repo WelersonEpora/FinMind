@@ -34,13 +34,42 @@ test("validação estrita: campo desconhecido, ativo de outra conta, números fo
   p.ativos.MILHO.alvo2R = 0.5;
   p.ativos.OURO = parametrosPadrao("INTERNACIONAL", ["OURO"]).ativos.OURO;
   p.carteira.maxPosicoes = 0;
-  p.execucao.diasUteisMinimosAteOLimite = 10;
+  p.ativos.MILHO.diasUteisMinimosAteOLimite = 10;
   const erros = validarParametros(p);
   assert.ok(erros.some((e) => e.includes('"riscoPCT"')));
   assert.ok(erros.some((e) => e.includes("alvo2R")));
   assert.ok(erros.some((e) => e.includes("ativos.OURO: o ativo é da conta INTERNACIONAL")));
   assert.ok(erros.some((e) => e.includes("maxPosicoes")));
-  assert.ok(erros.some((e) => e.includes("diasUteisMinimosAteOLimite")));
+  assert.ok(erros.some((e) => e.includes("ativos.MILHO.diasUteisMinimosAteOLimite")));
+});
+
+test("o dólar (adendo de 2026-10-15): na conta B3, o risco do agro, 1 tick de slippage e o vencimento próprio", () => {
+  const p = parametrosPadrao("B3", ["DOLAR"]);
+  assert.deepEqual(validarParametros(p), []);
+  const { riscoPct, alvo1R, alvo2R, rrMinimo, slippageTicks, diasUteisMinimosAteOLimite, diasUteisEncerrarAntesDoLimite, liquidezMinima } = p.ativos.DOLAR;
+  assert.deepEqual([riscoPct, alvo1R, alvo2R, rrMinimo, slippageTicks], [2, 1, 3, 2, 1]);
+  assert.deepEqual([diasUteisMinimosAteOLimite, diasUteisEncerrarAntesDoLimite, liquidezMinima], [3, 2, 100]);
+  assert.equal(parametrosPadrao("B3", ["MILHO"]).ativos.MILHO.diasUteisMinimosAteOLimite, 30);
+  assert.equal("diasUteisMinimosAteOLimite" in p.execucao, false);
+  // Carteira própria: o dólar não se mistura com o agro.
+  assert.deepEqual(validarParametros(parametrosPadrao("B3", ["MILHO", "DOLAR"])), ["ativos.DOLAR: roda numa carteira própria, sem outros ativos."]);
+  assert.ok(validarParametros(parametrosPadrao("INTERNACIONAL", ["DOLAR"])).some((e) => e.includes("ativos.DOLAR: o ativo é da conta B3")));
+  assert.equal(valorDoPonto("DOLAR", "B3"), 10);
+});
+
+test("versão gravada antes do adendo: o vencimento da execução vai para cada ativo, na leitura", () => {
+  const atual = parametrosPadrao("B3", ["MILHO", "CAFE"]);
+  const antigo = structuredClone(atual);
+  for (const a of Object.values(antigo.ativos)) {
+    delete a.diasUteisMinimosAteOLimite;
+    delete a.diasUteisEncerrarAntesDoLimite;
+    delete a.liquidezMinima;
+  }
+  Object.assign(antigo.execucao, { diasUteisMinimosAteOLimite: 30, diasUteisEncerrarAntesDoLimite: 15, liquidezMinima: 100 });
+  const versoes = [{ versao: 1, tipo: "INICIAL", vigente_desde: "2026-10-14", parametros: antigo }];
+  assert.deepEqual(resolverVigente(versoes, "2026-10-15"), atual);
+  assert.equal(antigo.execucao.liquidezMinima, 100, "a versão gravada não muda");
+  assert.equal(classificarMudanca(resolverVigente(versoes, "9999-12-31"), atual).erro, "Nada mudou: nenhuma versão nova.");
 });
 
 test("sem ativos, ou com quantidade inteira (não implementada na v1), é inválido", () => {

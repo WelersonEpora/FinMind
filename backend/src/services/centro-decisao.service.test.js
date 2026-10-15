@@ -296,6 +296,12 @@ test("limite do vencimento: dia 15 do mês na B3; no Brent, o dia útil antes do
   assert.equal(limite("BZF27"), "2026-11-27"); // vence em 30/11 (segunda): a sexta antes
   assert.equal(limite("BZH27"), "2027-01-28"); // vence em 29/01/2027
   assert.equal(limite("BZG27"), "2026-12-30"); // virada de ano: vence em 31/12
+  // DOL e WDO: o último dia útil do mês anterior (o último pregão de cada WDO no banco, de 2025-06 a 2026-09).
+  assert.equal(limite("WDOV26"), "2026-09-30");
+  assert.equal(limite("WDOZ25"), "2025-11-28"); // 30/11/2025 foi domingo
+  assert.equal(limite("DOLX26"), "2026-10-30");
+  assert.equal(limite("WDOF26"), "2025-12-30"); // 31/12 a B3 não abre
+  assert.equal(limite("WDOF27"), "2026-12-30");
 });
 
 test("dólar (ADR 0126): a PTAX de venda vem de market_quote, com 4 casas; a PTAX do dia só conta depois das 13h30", async () => {

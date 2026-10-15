@@ -32,6 +32,10 @@ const FUTUROS = Object.freeze({
   MILHO: { prefixo: "B3.CCM", contratos: true },
   CAFE: { prefixo: "B3.ICF", contratos: true },
   SOJA: { prefixo: "B3.SJC", contratos: true },
+  // O dólar: o minidólar (WDO), onde está a liquidez; o mesmo ajuste do DOL (ADR 0118). A variação de 30 dias (a
+  // Persistência) vem da PTAX, a série da faixa LATERAL e da Qualidade da IA: o WDO embute o diferencial de juros e
+  // converge para a PTAX até o vencimento (~0,5 p.p. a menos em 30 dias). Decisão do usuário, 2026-10-15 (ADR 0127).
+  DOLAR: { prefixo: "B3.WDO", contratos: true, variacaoPela: "BCB.PTAX.VENDA" },
   OURO: { prefixo: "B3.GLD", contratos: true },
   PETROLEO: { prefixo: "YAHOO.BZ", contratos: false }
 });
@@ -66,13 +70,22 @@ async function ptaxAte(data, asOf, deps) {
   return ultima ? { data: ultima.observed_at, valor: ultima.value } : null;
 }
 
+// A variação de 30 dias corridos do último ponto (em ordem crescente) contra o último ponto até 30 dias antes dele. -> %
+// ou null (sem histórico).
+function variacao30d(pontos) {
+  const ultimo = pontos[pontos.length - 1];
+  const base = ultimo ? [...pontos].reverse().find((p) => p.data <= somarDias(ultimo.data, -30)) : null;
+  return base ? (ultimo.valor / base.valor - 1) * 100 : null;
+}
+
 // O mercado de um ativo para a decisão de D. -> { contrato, atr, ajuste, dataAjuste, variacao30dPct, valorDoPonto } ou
 // null, com o motivo em `semMercado`.
 async function lerAtivoParaDecisao(ativo, { data, conta, parametros, asOf, cambio }, deps) {
   const repo = deps.observationRepository || observationRepository;
   const futuro = FUTUROS[ativo];
   const ate = somarDias(data, -1);
-  const limiteMinimo = somarDiasUteis(data, parametros.execucao.diasUteisMinimosAteOLimite);
+  const regra = parametros.ativos[ativo];
+  const limiteMinimo = somarDiasUteis(data, regra.diasUteisMinimosAteOLimite);
   const candidatos = (await repo.listarUltimasDatasItens({ prefixoSerie: futuro.prefixo, campoReferencia: "SETTLE" }))
     .map((item) => decodificarFuturoB3(item.codigo))
     .filter(Boolean)
@@ -97,7 +110,7 @@ async function lerAtivoParaDecisao(ativo, { data, conta, parametros, asOf, cambi
   if (!ultimoPregao) return { semMercado: "SEM_PRECO" };
 
   // O primeiro vencimento que negociou no último pregão com a liquidez mínima (o Brent, sem esse dado, só pelo ajuste).
-  const minimo = parametros.execucao.liquidezMinima;
+  const minimo = regra.liquidezMinima;
   const contrato = candidatos.find((c) => {
     if (!ajustes(c).has(ultimoPregao)) return false;
     if (!futuro.contratos) return true;
@@ -110,14 +123,15 @@ async function lerAtivoParaDecisao(ativo, { data, conta, parametros, asOf, cambi
   const minimas = series.get(`${futuro.prefixo}.${contrato.ticker}.LOW`) || new Map();
   const barras = diasDoContrato.map((d) => ({ data: d, ajuste: ajustes(contrato).get(d), maxima: maximas.get(d), minima: minimas.get(d) }));
   const ultima = barras[barras.length - 1];
-  const base = [...barras].reverse().find((b) => b.data <= somarDias(ultima.data, -30));
 
   return {
     contrato: { ticker: contrato.ticker, limite: contrato.limite },
     atr: calcularAtr(barras, parametros.execucao.periodoAtr),
     ajuste: ultima.ajuste,
     dataAjuste: ultima.data,
-    variacao30dPct: base ? (ultima.ajuste / base.ajuste - 1) * 100 : null,
+    variacao30dPct: futuro.variacaoPela
+      ? variacao30d((await precoMarketQuote.buscarLinhas(futuro.variacaoPela, { asOf, observadoDesde: somarDias(data, -DIAS_DE_HISTORICO), observadoAte: ate }, deps)).map((l) => ({ data: String(l.observed_at).slice(0, 10), valor: Number(l.value) })))
+      : variacao30d(barras.map((b) => ({ data: b.data, valor: b.ajuste }))),
     valorDoPonto: valorDoPonto(ativo, conta, cambio)
   };
 }

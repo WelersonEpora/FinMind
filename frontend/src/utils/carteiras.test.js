@@ -1,13 +1,15 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { consistencia, corDaAcao, dataDeIso, diasFora, isoDeData, lerNumero, doFormulario, formatarParametro, formatarR, formatarRetorno, nomeTrilha, paraFormulario, pontosDoPatrimonio, rotulo, CAMPOS_ATIVO } from './carteiras.js'
+import { alternarAtivo, selecaoPadrao, consistencia, corDaAcao, dataDeIso, diasFora, isoDeData, lerNumero, doFormulario, formatarParametro, formatarR, formatarRetorno, nomeTrilha, paraFormulario, pontosDoPatrimonio, rotulo, CAMPOS_ATIVO } from './carteiras.js'
 
 const PARAMETROS = {
   modelo: 'cartilha-1.0',
   conta: 'B3',
-  ativos: { MILHO: { riscoPct: 2, pisoAtr: 1.5, alvo1R: 1, alvo2R: 3, rrMinimo: 2, slippageTicks: 2, custoPorContrato: null } },
+  ativos: {
+    MILHO: { riscoPct: 2, pisoAtr: 1.5, alvo1R: 1, alvo2R: 3, rrMinimo: 2, slippageTicks: 2, custoPorContrato: null, diasUteisMinimosAteOLimite: 30, diasUteisEncerrarAntesDoLimite: 15, liquidezMinima: 100 }
+  },
   carteira: { maxPosicoes: 2, perdaDiariaPct: 4, perdaSemanalPct: 8, drawdownMaxPct: 10, perdasSeguidas: 3, pausaPregoes: 5, saidaAlvo1Pct: 50, fracaoReduzirPct: 50, fatorOvernight: 1 },
-  execucao: { quantidade: 'FRACIONARIA', periodoAtr: 14, diasUteisMinimosAteOLimite: 30, diasUteisEncerrarAntesDoLimite: 15, liquidezMinima: 100, registroTardioDiasUteis: 5 }
+  execucao: { quantidade: 'FRACIONARIA', periodoAtr: 14, registroTardioDiasUteis: 5 }
 }
 
 test('o formulário dos parâmetros vai e volta igual; vírgula decimal; custo vazio é pendente', () => {
@@ -37,7 +39,7 @@ test('formatação: retorno com sinal, R, parâmetro pendente', () => {
   assert.equal(formatarRetorno(-0.4), '−0,40%')
   assert.equal(formatarRetorno(0), '0,00%')
   assert.equal(formatarR(-1), '−1,00R')
-  assert.equal(formatarParametro(null, CAMPOS_ATIVO.at(-1)), 'Pendente')
+  assert.equal(formatarParametro(null, CAMPOS_ATIVO.find((c) => c.chave === 'custoPorContrato')), 'Pendente')
   assert.equal(formatarParametro(1.5, CAMPOS_ATIVO[1]), '1,5')
   assert.equal(rotulo('SEM_DECISAO'), 'Sem decisão')
   assert.equal(rotulo('DESCONHECIDO'), 'DESCONHECIDO')
@@ -75,4 +77,14 @@ test('número digitado: vírgula decimal com ponto de milhar, ou ponto decimal',
   assert.equal(lerNumero('1.234,5'), 1234.5)
   assert.equal(lerNumero('70.5'), 70.5)
   assert.ok(Number.isNaN(lerNumero('')))
+})
+
+test('escolha dos ativos: o dólar roda numa carteira própria (fora do padrão; marcá-lo desmarca os outros e vice-versa)', () => {
+  const b3 = [{ codigo: 'MILHO' }, { codigo: 'CAFE' }, { codigo: 'SOJA' }, { codigo: 'DOLAR', carteiraPropria: true }]
+  assert.deepEqual(selecaoPadrao(b3), ['MILHO', 'CAFE', 'SOJA'])
+  assert.deepEqual(selecaoPadrao([{ codigo: 'OURO' }, { codigo: 'PETROLEO' }]), ['OURO', 'PETROLEO'])
+  assert.deepEqual(alternarAtivo(['MILHO', 'CAFE'], 'DOLAR', true, b3), ['DOLAR'])
+  assert.deepEqual(alternarAtivo(['DOLAR'], 'SOJA', true, b3), ['SOJA'])
+  assert.deepEqual(alternarAtivo(['MILHO'], 'CAFE', true, b3), ['MILHO', 'CAFE'])
+  assert.deepEqual(alternarAtivo(['MILHO', 'CAFE'], 'MILHO', false, b3), ['CAFE'])
 })

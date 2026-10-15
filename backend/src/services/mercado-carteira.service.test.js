@@ -89,6 +89,29 @@ test("decisão: sem contrato com liquidez, o ativo fica sem mercado, com o motiv
   assert.equal(semMercado.MILHO, "SEM_LIQUIDEZ");
 });
 
+test("decisão do dólar: o 1º vencimento do WDO, com a folga de 3 dias úteis; a variação de 30 dias pela PTAX", async () => {
+  // O WDO parado em 5.000 (o juro embutido some até o vencimento); a PTAX sobe de 4,90 para 5,10 no período.
+  const linhas = DIAS.flatMap((dia) => [
+    { series_code: "B3.WDO.WDOX26.SETTLE", observed_at: dia, value: 5000 },
+    { series_code: "B3.WDO.WDOX26.HIGH", observed_at: dia, value: 5030 },
+    { series_code: "B3.WDO.WDOX26.LOW", observed_at: dia, value: 4970 },
+    { series_code: "B3.WDO.WDOX26.CONTRACTS", observed_at: dia, value: 2000000 }
+  ]);
+  const repo = { ...repoFalso(linhas), listarUltimasDatasItens: async () => [{ codigo: "WDOX26" }] };
+  const ptax = Object.fromEntries(DIAS.map((dia, i) => [dia, 4.9 + (0.2 * i) / (DIAS.length - 1)]));
+  const { mercado } = await lerMercadoParaDecisao(
+    { data: D, conta: "B3", ativos: ["DOLAR"], parametros: parametrosPadrao("B3", ["DOLAR"]), agora: new Date(`${D}T09:30:00Z`) },
+    { observationRepository: repo, marketQuoteRepository: marketQuoteFalso({ ptax }) }
+  );
+  const m = mercado.DOLAR;
+  assert.equal(m.contrato.ticker, "WDOX26");
+  assert.equal(m.contrato.limite, "2026-10-30");
+  assert.equal(m.valorDoPonto, 10);
+  const base = [...DIAS].reverse().find((d) => d <= "2026-09-09");
+  assert.ok(Math.abs(m.variacao30dPct - (ptax["2026-10-09"] / ptax[base] - 1) * 100) < 1e-9);
+  assert.ok(m.variacao30dPct > 2);
+});
+
 test("liquidação: a barra do dia, a PTAX do dia e a Selic diária em 252 dias úteis", async () => {
   const linhas = [
     { series_code: "B3.CCM.CCMH27.SETTLE", observed_at: "2026-10-09", value: 73 },

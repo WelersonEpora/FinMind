@@ -57,6 +57,7 @@ test("opções: só a conta B3 disponível, os padrões por conta e o início no
   const { opcoes } = painel.obterOpcoes({ hoje: "2026-10-16" });
   assert.deepEqual(opcoes.contas.map((c) => [c.codigo, c.disponivel]), [["B3", true], ["INTERNACIONAL", true]]);
   assert.deepEqual(Object.keys(opcoes.padroes.B3.ativos), ["MILHO", "CAFE", "SOJA"]);
+  assert.deepEqual(opcoes.ativos.filter((a) => a.carteiraPropria).map((a) => a.codigo), ["DOLAR"]);
   assert.equal(opcoes.inicioMinimo, "2026-10-19");
 });
 

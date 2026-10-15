@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import carteirasService from '../../services/carteiras.service.js'
-import { formatarData, nomeAtivo } from '../../utils/carteiras.js'
+import { alternarAtivo, formatarData, nomeAtivo, selecaoPadrao } from '../../utils/carteiras.js'
 
 // Criar uma carteira virtual (ADR 0127). Os parâmetros são os padrões da Cartilha v1.0 para a conta e os ativos; a
 // aba Configuração muda depois (uma versão nova, com motivo). Conta, capital e início ficam fixos.
@@ -24,6 +24,8 @@ const erros = ref([])
 const saving = ref(false)
 
 const ativosDaConta = computed(() => (opcoes.value?.ativos || []).filter((a) => a.conta === conta.value))
+const ativosProprios = computed(() => ativosDaConta.value.filter((a) => a.carteiraPropria).map((a) => nomeAtivo(a.codigo)))
+const alternar = (codigo, marcado) => (ativos.value = alternarAtivo(ativos.value, codigo, marcado, ativosDaConta.value))
 
 async function carregar() {
   carregando.value = true
@@ -31,7 +33,7 @@ async function carregar() {
   try {
     opcoes.value = await carteirasService.obterOpcoes(props.workspaceId)
     inicio.value = opcoes.value.inicioMinimo
-    ativos.value = ativosDaConta.value.map((a) => a.codigo)
+    ativos.value = selecaoPadrao(ativosDaConta.value)
   } catch (err) {
     errorMessage.value = err.response?.data?.error?.message || 'Não foi possível carregar as opções.'
   } finally {
@@ -57,7 +59,7 @@ const CAPITAL_PADRAO = { B3: "10000", INTERNACIONAL: "2000" }
 const moedaDaConta = computed(() => opcoes.value?.contas.find((c) => c.codigo === conta.value)?.moeda || "BRL")
 
 watch(conta, () => {
-  ativos.value = ativosDaConta.value.map((a) => a.codigo)
+  ativos.value = selecaoPadrao(ativosDaConta.value)
   capital.value = CAPITAL_PADRAO[conta.value] || capital.value
 })
 
@@ -132,10 +134,20 @@ async function onSubmit() {
                   <div class="col-12">
                     <span class="form-label d-block">Ativos</span>
                     <div v-for="a in ativosDaConta" :key="a.codigo" class="form-check form-check-inline">
-                      <input :id="`carteira-ativo-${a.codigo}`" v-model="ativos" class="form-check-input" type="checkbox" :value="a.codigo" />
+                      <input
+                        :id="`carteira-ativo-${a.codigo}`"
+                        class="form-check-input"
+                        type="checkbox"
+                        :checked="ativos.includes(a.codigo)"
+                        @change="alternar(a.codigo, $event.target.checked)"
+                      />
                       <label class="form-check-label" :for="`carteira-ativo-${a.codigo}`">
                         {{ nomeAtivo(a.codigo) }} <span class="text-muted small">({{ a.unidade }})</span>
                       </label>
+                    </div>
+                    <div v-if="ativosProprios.length" class="form-text">
+                      O {{ ativosProprios.join(', ').toLowerCase() }} roda numa carteira própria, sem os outros ativos: o
+                      café e a soja já têm exposição ao dólar pela PTAX.
                     </div>
                   </div>
 

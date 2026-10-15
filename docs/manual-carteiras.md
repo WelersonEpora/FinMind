@@ -27,10 +27,10 @@ mudam nada. Para uma carteira só sua, crie no seu espaço pessoal; num espaço 
 | Campo | O que colocar |
 |---|---|
 | **Nome** | Um nome que identifique a carteira (ex.: "B3 – Cartilha v1.0"). Não pode repetir outro do mesmo espaço. |
-| **Conta** | **B3** (milho, café e soja, em reais) ou **Internacional** (ouro e petróleo, em dólar; seção 9). Uma carteira é de uma conta só. |
+| **Conta** | **B3** (milho, café, soja e dólar, em reais) ou **Internacional** (ouro e petróleo, em dólar; seção 9). Uma carteira é de uma conta só. |
 | **Capital inicial** | O valor simulado, na moeda da conta. O padrão é o da Cartilha: **R$ 10.000** na B3 e **US$ 2.000** na internacional. O resultado é medido em % e em R, então o valor não muda a comparação entre as trilhas. |
 | **Início (1ª rodada)** | Um dia útil (segunda a sexta) **a partir do próximo dia útil**. A carteira nunca começa no passado nem no próprio dia. |
-| **Ativos** | Os da conta vêm marcados (milho, café e soja; ou ouro e petróleo). Desmarque os que não quiser; pelo menos um. A Cartilha trata a soja como ativo de observação até o Comitê decidir. |
+| **Ativos** | Os da conta vêm marcados (milho, café e soja; ou ouro e petróleo). Desmarque os que não quiser; pelo menos um. A Cartilha trata a soja como ativo de observação até o Comitê decidir. O **dólar** roda numa carteira **só dele**: marcá-lo desmarca os outros, e marcar outro o desmarca (abaixo). |
 
 4. Clique em criar. A carteira abre na hora.
 
@@ -66,6 +66,33 @@ O custo de operar (corretagem e emolumentos), informado por ativo na aba **Confi
 - **Sobre o prazo:** hoje o custo novo vale para as execuções **a partir da próxima liquidação**. As execuções já feitas
   não são corrigidas para trás (os lançamentos de correção previstos no ADR 0127 ainda não existem). Por isso, informe o
   custo antes da primeira liquidação, ou o quanto antes.
+
+### O vencimento e o dólar
+
+Cada ativo tem a sua regra de vencimento, na tabela **Por ativo** da aba **Configuração**:
+
+- **Folga mínima até o limite do contrato:** só entra num contrato a mais desses dias úteis do último dia dele.
+- **Encerrar antes do limite:** a posição sai esses dias úteis antes do último dia, sem passar para o contrato seguinte.
+  No dia seguinte, a trilha pode entrar de novo, já no próximo vencimento.
+- **Liquidez mínima:** o contrato precisa ter negociado pelo menos esse número de contratos no último pregão.
+
+No milho, no café, na soja, no ouro e no petróleo, os números são **30, 15 e 100**: os contratos vencem poucas vezes
+por ano. O **dólar** opera o **minidólar da B3 (WDO)**: US$ 10.000 por contrato, cotado em R$ por US$ 1.000 (cada ponto
+vale R$ 10). Ele vence **todo mês**: o último pregão é o último dia útil do mês anterior ao do contrato (o de novembro
+para no fim de outubro), e quase todo o negócio fica no 1º vencimento. Por isso a regra dele é **3, 2 e 100**: opera
+sempre o 1º vencimento, sai 2 dias úteis antes do fim (quando o negócio começa a passar para o próximo) e, nesses dias,
+entra no seguinte. O risco e os alvos são os do agro da B3 (2%, alvo 1 em 1R, alvo 2 em 3R), com 1 tick de slippage.
+A Cartilha não traz o dólar: esses números são decisão do usuário (ADR 0127, adendo de 2026-10-15).
+
+A leitura de tendência do dólar é medida pela PTAX na Qualidade da IA (ADR 0126); a carteira executa no WDO, o contrato
+que se negocia. O WDO carrega a diferença de juros até o vencimento, então a variação dele não é igual à da PTAX: por
+isso a referência **Persistência** do dólar lê a direção dos 30 dias pela PTAX, a mesma série da faixa e da Qualidade
+da IA. As travas são as da conta B3 (4% no dia, 8% na semana, até 2 posições).
+
+**O dólar numa carteira só dele.** O café e a soja da B3 já têm exposição ao dólar: o preço deles é em dólar e o
+resultado passa pela PTAX, e o stop protege só o preço em dólar. Com o dólar na mesma carteira, essa exposição se somaria
+(dólar e soja comprados perdem juntos quando o real sobe) ou se anularia, sem regra na Cartilha. Por isso a criação não
+mistura o dólar com o agro; a regra para misturar é uma pergunta ao Comitê.
 
 ## 3. As trilhas e as referências
 
@@ -306,7 +333,7 @@ alvo, e depois executa a sua saída.
 
 **As fases de uma operação:** **planejada** (aguarda a liquidação), **aberta**, **em gestão** (depois do alvo 1, de uma
 redução ou de um stop movido), **encerrada**, **cancelada** ou **não executada** (o preço ficou fora da faixa do dia). O
-vencimento do contrato também encerra a posição, 15 dias úteis antes do limite, como nas outras trilhas.
+vencimento do contrato também encerra a posição, como nas outras trilhas (15 dias úteis antes do limite; 2 no dólar).
 
 ## 8. A aba Medição
 
@@ -430,7 +457,7 @@ funciona como a da B3 (as mesmas trilhas, referências, rotina, diário e mediç
 
 | | Conta B3 | Conta internacional |
 |---|---|---|
-| **Ativos** | Milho, café e soja (futuros da B3) | Ouro (o futuro de ouro em dólar da B3) e petróleo (o Brent da NYMEX) |
+| **Ativos** | Milho, café, soja e dólar (futuros da B3) | Ouro (o futuro de ouro em dólar da B3) e petróleo (o Brent da NYMEX) |
 | **Moeda** | Reais (o café e a soja, cotados em dólar, convertem pela PTAX) | Dólar, sem conversão |
 | **Quantidade** | Em contratos (fracionária) | Em **onças** (ouro) e **barris** (petróleo), a unidade do CFD da Cartilha |
 | **Risco por operação** | 2% | 1,5% no ouro e 1% no petróleo |

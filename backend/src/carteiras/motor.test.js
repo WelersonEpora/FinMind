@@ -98,6 +98,18 @@ test("vencimento: sai 15 dias úteis antes do limite, mesmo com a intenção de 
   assert.deepEqual(fica.ordens, []);
 });
 
+test("vencimento por ativo: o dólar sai 2 dias úteis antes do limite e entra com mais de 3 até ele", () => {
+  const p = parametrosPadrao("B3", ["DOLAR"]);
+  const mercadoDolar = (limite) => ({ ...MERCADO, DOLAR: { contrato: { ticker: "WDOX26", limite }, atr: 30, valorDoPonto: 10 } });
+  const pos = (limite) => ({ ...posicao("MILHO", "WDOX26"), id: "pos-DOLAR", ativo: "DOLAR", contrato: { ticker: "WDOX26", limite } });
+  const decide = (limite, intencoes, posicoes = []) => decidir({ data: DATA, estado: { patrimonio: 10000, posicoes }, intencoes, mercado: mercadoDolar(limite), parametros: p });
+
+  assert.deepEqual(decide(somarDiasUteis(DATA, 2), [intencao("DOLAR", "MANTER")], [pos(somarDiasUteis(DATA, 2))]).ordens.map((o) => o.motivo), ["VENCIMENTO"]);
+  assert.deepEqual(decide(somarDiasUteis(DATA, 3), [intencao("DOLAR", "MANTER")], [pos(somarDiasUteis(DATA, 3))]).ordens, []);
+  assert.equal(decide(somarDiasUteis(DATA, 2), [intencao("DOLAR", "ENTRAR_COMPRADO")]).bloqueios[0].motivo, "VENCIMENTO_PROXIMO");
+  assert.deepEqual(decide(somarDiasUteis(DATA, 3), [intencao("DOLAR", "ENTRAR_COMPRADO")]).ordens.map((o) => [o.ativo, o.tipo]), [["DOLAR", "ENTRADA"]]);
+});
+
 test("entrada recusada: contrato perto do limite, sem ATR, sem câmbio, ação que não vale no estado, ativo fora da carteira", () => {
   const p = parametros();
   const mercado = {
