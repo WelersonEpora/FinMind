@@ -56,6 +56,9 @@ test('as leituras desenhadas: todas com faixa (as fora da métrica marcadas), me
   assert.equal(linhasDoGrafico(linhas, { modo: 'um', horizonte: 'IMEDIATO' }).length, 1)
   assert.deepEqual(linhasDoGrafico(linhas, { modo: 'quatro' }).map(foraDaMetrica), [null, 'SEM_PREGAO_NA_DATA', 'REFERENCIA_ANTIGA', 'SEM_PREGAO_NA_DATA', null])
   assert.equal(foraDaMetrica(linha({ motivoFora: 'SEM_BENCHMARK' })), 'SEM_BENCHMARK')
+  // ADR 0106, adendo: o horizonte deslocado e a fonte atrasada são da leitura, e o gráfico os esmaece.
+  assert.equal(foraDaMetrica(linha({ motivoFora: 'HORIZONTE_DESLOCADO' })), 'HORIZONTE_DESLOCADO')
+  assert.equal(foraDaMetrica(linha({ motivoFora: 'PRECO_DEFASADO' })), 'PRECO_DEFASADO')
   // Esperar o preço não esmaece: é só o tempo.
   assert.equal(foraDaMetrica(linha({ motivoFora: 'A_APURAR' })), null)
 })

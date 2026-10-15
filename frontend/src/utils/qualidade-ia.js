@@ -25,12 +25,14 @@ export const PREVISOR_MOTOR = {
 // Por que uma linha ficou fora da métrica, na ordem em que o backend verifica (qualidade-ia.service.js::MOTIVOS_FORA).
 const MOTIVOS = {
   REFERENCIA_ANTIGA: 'Horizonte contado do último preço (petróleo v1)',
+  HORIZONTE_DESLOCADO: 'Horizonte deslocado para a data da análise (sem o preço do pregão anterior; regra até 14/10/2026)',
+  SEM_PREGAO_NA_DATA: 'Sem pregão na data da análise',
+  PRECO_DEFASADO: 'Houve pregão entre o preço recebido e a data da análise (fonte atrasada)',
   A_APURAR: 'A apurar',
   AGUARDANDO_DADO: 'Aguardando o preço',
   SEM_PRECO: 'Sem preço perto do alvo (contrato vencido ou série parada)',
   SEM_PREGAO: 'Sem pregão novo até o alvo',
   SEM_BASE: 'Sem base',
-  SEM_PREGAO_NA_DATA: 'Sem pregão na data da análise',
   INSUFICIENTE: 'A IA não leu (insuficiente)',
   SEM_BENCHMARK: 'Sem a variação passada (benchmark)'
 }

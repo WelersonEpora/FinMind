@@ -3,7 +3,7 @@
 const crypto = require("node:crypto");
 const { carregarPrompt } = require("../ai/carregar-prompt");
 const { configuracaoDoAtivo } = require("../shared/analise-diaria");
-const { REFERENCIA_HORIZONTES, dataAlvoDoHorizonte, precoDoPregaoAnterior } = require("../shared/analise-diaria-base");
+const { REFERENCIA_HORIZONTES, dataAlvoDoHorizonte } = require("../shared/analise-diaria-base");
 const metodologiaAtivoService = require("./metodologia-ativo.service");
 const centroDecisaoService = require("./centro-decisao.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
@@ -79,8 +79,9 @@ function blocoPreco(preco, dataAnalise, config, ptax = null, referencia = REFERE
   );
   if (config.PRECO.emReais) linhas.push(linhaEmReais(preco, ptax, config));
   linhas.push(
-    // De onde os horizontes contam (ADR 0106): do último preço, com o IMEDIATO no próximo pregão; com o preço defasado,
-    // da data da análise, e o intervalo entre o último preço e ela é dito como desconhecido, para a IA não o estimar.
+    // De onde os horizontes contam (ADR 0106): do último preço, com o IMEDIATO no próximo pregão (desde 2026-10-15, com
+    // qualquer preço). Da data da análise, numa configuração que conte dela, o intervalo entre o último preço e ela é
+    // dito como desconhecido, para a IA não o estimar.
     referencia === REFERENCIA_HORIZONTES.DATA_DO_PRECO_RECEBIDO
       ? `Os horizontes da tabela 2.4 contam a partir deste último preço, de ${fmtData(preco.dataReferencia)}: o IMEDIATO vai até o ` +
           "próximo pregão depois dele, e os outros terminam o número de dias depois dele (a data-alvo de cada um está na tabela 2.4)."
@@ -474,12 +475,10 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     centro.lerPreco(serie, { data: dataAnalise, agora }, deps)
   ]);
   const ptax = config.PRECO.emReais && preco.disponivel ? await lerPtax(preco.dataReferencia, deps) : null;
-  // De onde os horizontes contam (ADR 0106): a regra do ativo, quando o preço é o do pregão anterior; com o preço mais
-  // velho (feriado, fonte atrasada, defasado) ou sem preço, da data da análise.
-  const referencia =
-    preco.disponivel && !preco.defasada && precoDoPregaoAnterior(preco.dataReferencia, dataAnalise)
-      ? config.REFERENCIA_HORIZONTES
-      : REFERENCIA_HORIZONTES.DATA_DA_ANALISE;
+  // De onde os horizontes contam (ADR 0106 e adendo de 2026-10-15): a regra do ativo com qualquer preço, mesmo mais velho
+  // que o pregão anterior (às 01h, um feriado e uma fonte atrasada não se distinguem; a Qualidade da IA separa os dois
+  // depois, pela série de preços, sem deslocar o horizonte); sem preço, da data da análise.
+  const referencia = preco.disponivel ? config.REFERENCIA_HORIZONTES : REFERENCIA_HORIZONTES.DATA_DA_ANALISE;
   const dataPreco = preco.disponivel ? preco.dataReferencia : null;
   // A curva e o contrato de cada horizonte (o milho e o café, ADR 0078). Num ativo cujo preço não é um futuro, a curva de
   // outro instrumento como contexto (o DOL no dólar, ADR 0126: `CURVA.futuro`), sem contrato por horizonte.

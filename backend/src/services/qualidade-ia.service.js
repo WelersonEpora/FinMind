@@ -15,22 +15,42 @@ const { somarDias } = require("../shared/utils/date-utils");
 // `analise_diaria` e o realizado da camada point-in-time (realizado-analise.service.js). Cada número da tela sai das
 // linhas devolvidas junto, para ser auditado.
 //
-// Uma linha entra na métrica só se: os horizontes contam da data da análise; o horizonte está APURADO; houve pregão na
-// própria data da análise (sem isso, as leituras de sexta, sábado e domingo mediriam a mesma janela); a IA leu o
-// horizonte (INSUFICIENTE vira cobertura, não erro); e a leitura tem a variação passada do horizonte (a Persistência).
-// Os motivos de ficar fora são verificados nessa ordem; a linha conta só no primeiro.
+// Uma linha entra na métrica só se: os horizontes contam do preço recebido ou da data da análise, sem o horizonte
+// deslocado; houve pregão na própria data da análise (sem isso, as leituras de sábado, domingo e feriado repetiriam a
+// janela de outra); não houve pregão entre o preço recebido e a data da análise (a fonte atrasou: a IA estaria prevendo
+// um pregão que já aconteceu); o horizonte está APURADO; a IA leu o horizonte (INSUFICIENTE vira cobertura, não erro); e
+// a leitura tem a variação passada do horizonte (a Persistência). Os pregões vêm da série de preços (ADR 0106, adendo de
+// 2026-10-15), conhecidos assim que ela chega à data da análise. Os motivos de ficar fora são verificados nessa ordem; a
+// linha conta só no primeiro (nas leituras que contavam da data da análise, o pregão na data é visto depois do SEM_BASE).
 
 const MOTIVOS_FORA = Object.freeze([
   "REFERENCIA_ANTIGA",
+  "HORIZONTE_DESLOCADO",
+  "SEM_PREGAO_NA_DATA",
+  "PRECO_DEFASADO",
   "A_APURAR",
   "AGUARDANDO_DADO",
   "SEM_PRECO",
   "SEM_PREGAO",
   "SEM_BASE",
-  "SEM_PREGAO_NA_DATA",
   "INSUFICIENTE",
   "SEM_BENCHMARK"
 ]);
+
+// A primeira versão da configuração de cada ativo com os horizontes contados do preço recebido (ADR 0106). Uma leitura
+// com preço que conta da data da análise nessa versão ou depois foi deslocada: sem o preço do pregão anterior (o
+// feriado de 2026-10-12), o horizonte ia para a data da análise, e a IA era perguntada sobre um pregão depois do que
+// podia antecipar. Fica fora (ADR 0106, adendo de 2026-10-15: a regra deixou de deslocar). Um ativo fora da lista já
+// nasceu com o preço recebido.
+const PRIMEIRA_VERSAO_DO_PRECO_RECEBIDO = Object.freeze({ PETROLEO: 5, OURO: 2, MILHO: 4, CAFE: 5 });
+
+function horizonteDeslocado(ativo, registro, leitura) {
+  return (
+    leitura.referenciaHorizontes.tipo === "DATA_DA_ANALISE" &&
+    Boolean(leitura.precoReferencia) &&
+    registro.versao_configuracao >= (PRIMEIRA_VERSAO_DO_PRECO_RECEBIDO[ativo] ?? 1)
+  );
+}
 
 // Os três "previsores" medidos nas mesmas linhas: a IA e os dois benchmarks. A síntese compara a IA com o melhor dos
 // BENCHMARKS.
@@ -95,20 +115,27 @@ function persistencia(variacoes, { dias, t1, t2 }) {
 // Fim de semana (sábado ou domingo), sem pregão na data da leitura.
 const fimDeSemana = (iso) => [0, 6].includes(new Date(`${iso}T00:00:00Z`).getUTCDay());
 
-// Por que uma linha não entra na métrica. Contando do preço recebido (ADR 0106), a leitura de fim de semana fica fora:
-// ela recebeu o mesmo preço da de sexta e repetiria a medida dos horizontes longos.
-function motivoFora({ referencia, dataAnalise, situacao, base, lida, faixaRealizada, persistida }) {
+// Por que uma linha não entra na métrica. Contando do preço recebido (ADR 0106), a leitura sem pregão no dia (fim de
+// semana, feriado) fica fora: ela recebeu o mesmo preço da do dia útil seguinte e repetiria a medida dela; e a leitura
+// com um pregão entre o preço recebido e ela também (a fonte atrasou). `pregoes`: os da série de preços
+// (realizado-analise.service.js::pregoesDaLeitura), null até a série chegar à data da análise (até lá, só o fim de
+// semana é sabido).
+function motivoFora({ referencia, deslocado, pregoes, dataAnalise, situacao, base, lida, faixaRealizada, persistida }) {
   if (referencia !== "DATA_DA_ANALISE" && referencia !== "DATA_DO_PRECO_RECEBIDO") return "REFERENCIA_ANTIGA";
+  if (deslocado) return "HORIZONTE_DESLOCADO";
+  const doPreco = referencia === "DATA_DO_PRECO_RECEBIDO";
+  if (doPreco && pregoes && !pregoes.naDataDaAnalise) return "SEM_PREGAO_NA_DATA";
+  if (doPreco && pregoes?.entreOPrecoEADataDaAnalise) return "PRECO_DEFASADO";
   if (situacao !== "APURADO") return situacao;
   if (!faixaRealizada) return "SEM_BASE";
-  if (referencia === "DATA_DA_ANALISE" ? !base?.naDataDaAnalise : fimDeSemana(dataAnalise)) return "SEM_PREGAO_NA_DATA";
+  if (doPreco ? !pregoes && fimDeSemana(dataAnalise) : !base?.naDataDaAnalise) return "SEM_PREGAO_NA_DATA";
   if (!lida || POSICAO_DA_FAIXA[lida.faixa] === undefined) return "INSUFICIENTE";
   if (!persistida) return "SEM_BENCHMARK";
   return null;
 }
 
 // Uma linha da tabela: a leitura × um horizonte, com tudo o que forma o número.
-function montarLinha(registro, leitura, realizado, horizonte) {
+function montarLinha(registro, leitura, realizado, horizonte, ativo) {
   const preco = leitura.precoReferencia;
   const apurado = realizado.horizontes.find((r) => r.horizonte === horizonte.codigo) || { situacao: "SEM_BASE" };
   const lida = (leitura.leituras || []).find((l) => l.horizonte === horizonte.codigo) || null;
@@ -120,6 +147,8 @@ function montarLinha(registro, leitura, realizado, horizonte) {
   const motor = (leitura.agregacaoMotor?.horizontes || []).find((h) => h.horizonte === horizonte.codigo) || null;
   const motivo = motivoFora({
     referencia: leitura.referenciaHorizontes.tipo,
+    deslocado: horizonteDeslocado(ativo, registro, leitura),
+    pregoes: realizado.pregoes ?? null,
     dataAnalise: leitura.data,
     situacao: apurado.situacao,
     base,
@@ -245,7 +274,7 @@ async function obterQualidadeIa(filtros = {}, deps = {}) {
     { agora, diasDePreco: DIAS_DE_PRECO },
     deps
   );
-  const linhas = leituras.flatMap((leitura, i) => leitura.horizontes.map((h) => montarLinha(registros[i], leitura, realizados[i], h)));
+  const linhas = leituras.flatMap((leitura, i) => leitura.horizontes.map((h) => montarLinha(registros[i], leitura, realizados[i], h, ativo)));
   const contexto = await lerContexto(ativo, { agora, hoje }, deps);
 
   // Os horizontes na ordem da configuração atual; um código que só exista em leituras antigas vem no fim.

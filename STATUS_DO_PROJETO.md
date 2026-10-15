@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-14.**
+**Última atualização: 2026-10-15.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -655,6 +655,15 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>6. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-15</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Qualidade da IA: o horizonte não se desloca mais | Na apresentação ao Comitê, o imediato de 14/10 aparecia duas vezes (milho e os demais ativos da B3 e da PTAX): a leitura de 13/10 recebeu o preço de sexta por causa do feriado de 12/10, a regra viu a segunda como dia útil sem preço e deslocou os horizontes para a data da análise. Nenhuma leitura duplicada no banco (conferido no servidor) nem relação com a rotina das carteiras. Por decisão do usuário: os horizontes contam sempre do preço recebido, sem calendário de feriados; a Qualidade da IA decide depois, pela série de preços, nos quatro horizontes: fora sem pregão no dia da leitura (fim de semana e, agora, feriado) e com pregão entre o preço recebido e a leitura (fonte atrasada, motivo novo); as leituras de 13/10 ficam fora como horizonte deslocado. Uma leitura avaliada por pregão. Conferido com os dados do servidor: só as leituras de 12/10 e 13/10 mudam (o petróleo de 12/10 vale, a NYMEX abriu) | ADR 0106 (adendo de 2026-10-15) e ADR 0064 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-13</summary>

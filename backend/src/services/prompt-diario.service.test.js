@@ -147,10 +147,10 @@ test("a base traz o preço do Brent futuro com o contrato, as datas e as variaç
   assert.match(p.prompt, /Contrato: BZX26 \(nov\/2026\), o vencimento mais próximo negociado até a data/);
   assert.deepEqual(d.chamadas.simular, ["PETROLEO", "2026-10-03"]);
   assert.match(p.prompt, /Último preço: US\$ 96,16 em 29\/09\/2026 \| publicado em 30\/09\/2026 \(data estimada\) \| 4 dia\(s\) antes da data da análise/);
-  assert.match(
-    p.prompt,
-    /Os horizontes da tabela 2\.4 contam a partir de 03\/10\/2026, a data da análise\. O preço depois de 29\/09\/2026 até 03\/10\/2026 NÃO está na BASE: é desconhecido\./
-  );
+  // Um preço mais velho que o pregão anterior (feriado, fonte atrasada) não volta à data da análise (ADR 0106, adendo):
+  // os horizontes contam dele, e a Qualidade da IA decide depois se a leitura entra na métrica.
+  assert.match(p.prompt, /Os horizontes da tabela 2\.4 contam a partir deste último preço, de 29\/09\/2026: o IMEDIATO vai até o próximo pregão/);
+  assert.match(p.prompt, /IMEDIATO \(Imediato, 1 dia\): .* \| data-alvo: 03\/10\/2026/);
   assert.match(p.prompt, /1 dia \(pregão anterior\): -3,23% \(desde 28\/09\/2026\) \| 7 dias: -0,26% .* \| 90 dias: SEM DADO/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/barril\): 29\/09\/2026: 96,16; 28\/09\/2026: 99,37/);
   assert.match(p.prompt, /2\.2 CURVA FUTURA DO BRENT .*\nSEM DADO: nenhum vencimento do Brent futuro com ajuste até a data\./);
@@ -159,11 +159,11 @@ test("a base traz o preço do Brent futuro com o contrato, as datas e as variaç
 });
 
 test("petróleo (ADR 0052, adendo de 2026-10-07): cada horizonte no seu vencimento do Brent e a curva só com o ajuste, sem liquidez", async () => {
-  const contrato = (ticker, rotulo, valor) => ({ ...PRECO, seriesCode: `YAHOO.BZ.${ticker}.SETTLE`, contrato: { ticker, rotulo }, valor });
-  // Análise de 07/10: o Z26 vence em 30/10, então o médio (06/11) cai no F27 e o longo (05/01) no H27.
+  const contrato = (ticker, rotulo, valor) => ({ ...PRECO, seriesCode: `YAHOO.BZ.${ticker}.SETTLE`, contrato: { ticker, rotulo }, valor, dataReferencia: "2026-10-06" });
+  // Análise de 07/10 com o preço de 06/10: o Z26 vence em 30/10, então o médio (05/11) cai no F27 e o longo (04/01) no H27.
   const porAlvo = {
-    "2026-11-06": contrato("BZF27", "BZF27 (jan/2027)", 97.59),
-    "2027-01-05": contrato("BZH27", "BZH27 (mar/2027)", 93.25)
+    "2026-11-05": contrato("BZF27", "BZF27 (jan/2027)", 97.59),
+    "2027-01-04": contrato("BZH27", "BZH27 (mar/2027)", 93.25)
   };
   const curva = {
     dataReferencia: "2026-10-06",
@@ -176,9 +176,9 @@ test("petróleo (ADR 0052, adendo de 2026-10-07): cada horizonte no seu vencimen
   d.agora = new Date("2026-10-07T15:00:00Z");
   const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-07" }, d);
 
-  assert.deepEqual(d.chamadas.alvos, ["2026-10-08", "2026-10-14", "2026-11-06", "2027-01-05"]);
+  assert.deepEqual(d.chamadas.alvos, ["2026-10-07", "2026-10-13", "2026-11-05", "2027-01-04"]);
   assert.match(p.prompt, /BZZ26 \(dez\/2026\): US\$ 100,58\nBZF27 \(jan\/2027\): US\$ 97,59\nFonte: Yahoo Finance, não oficial/);
-  assert.match(p.prompt, /MEDIO \(Médio, 30 dias\).*\n {3}Contrato: BZF27 \(jan\/2027\), negocia depois da data-alvo \(06\/11\/2026\) \| US\$ 97,59 em 29\/09\/2026 \| variação até/);
+  assert.match(p.prompt, /MEDIO \(Médio, 30 dias\).*\n {3}Contrato: BZF27 \(jan\/2027\), negocia depois da data-alvo \(05\/11\/2026\) \| US\$ 97,59 em 06\/10\/2026 \| variação até/);
   assert.match(p.prompt, /LONGO \(Longo, 90 dias\).*\n {3}Contrato: BZH27 \(mar\/2027\)/);
   assert.doesNotMatch(p.prompt, /contratos negociados|POUCA LIQUIDEZ/);
   const medio = p.entrada.horizontes.find((h) => h.codigo === "MEDIO");
@@ -213,7 +213,7 @@ test("a leitura do motor junta os blocos dos fatores na ordem do catálogo; a en
   assert.deepEqual(estoques.leitura, { pressao: "NEUTRA", intensidade: "FRACA", tendencia: "ESTAVEL" });
   assert.equal(p.entrada.fatores.find((f) => f.fator === "PETROLEO_GEOPOLITICA").janelaDias, 7);
   assert.deepEqual(p.entrada.horizontes.map((h) => h.codigo), ["IMEDIATO", "CURTO", "MEDIO", "LONGO"]);
-  assert.equal(p.entrada.referenciaHorizontes, "DATA_DA_ANALISE");
+  assert.equal(p.entrada.referenciaHorizontes, "DATA_DO_PRECO_RECEBIDO");
 });
 
 test("o mesmo dia e a mesma base dão o mesmo hash; outro ativo não tem prompt diário", async () => {

@@ -134,6 +134,24 @@ test("do preço recebido (ADR 0106): a base é o preço que a IA viu e o imediat
   assert.equal(horizontes[0].variacaoPct, 2);
 });
 
+test("pregões em volta da leitura (ADR 0106, adendo): os dias com preço na série dizem o feriado e a fonte atrasada", async () => {
+  const code = "B3.CCM.CCMX26.SETTLE";
+  // Sexta 09/10, o feriado de segunda 12/10 sem preço, terça 13/10 e quarta 14/10.
+  const repo = repoCom([
+    [code, "2026-10-09", 70],
+    [code, "2026-10-13", 71],
+    [code, "2026-10-14", 72]
+  ]);
+  const pregoes = async (data, recebidoEm, agora = AGORA) =>
+    (await apurarRealizado(analise({ serie: "CCM", contrato: { ticker: "CCMX26" }, data, recebidoEm, referencia: "DATA_DO_PRECO_RECEBIDO" }), { agora }, { observationRepository: repo }))
+      .pregoes;
+  assert.deepEqual(await pregoes("2026-10-12", "2026-10-09"), { naDataDaAnalise: false, entreOPrecoEADataDaAnalise: false }); // o feriado
+  assert.deepEqual(await pregoes("2026-10-13", "2026-10-09"), { naDataDaAnalise: true, entreOPrecoEADataDaAnalise: false }); // terça: vale
+  assert.deepEqual(await pregoes("2026-10-14", "2026-10-09"), { naDataDaAnalise: true, entreOPrecoEADataDaAnalise: true }); // fonte atrasada
+  // A série ainda não chegou à data da análise: não se sabe.
+  assert.equal(await pregoes("2026-10-15", "2026-10-14", new Date("2026-10-15T15:00:00Z")), null);
+});
+
 test("futuro: o MESMO contrato da leitura, nunca o vencimento mais próximo na data-alvo", async () => {
   const repo = repoCom([
     ["B3.GLD.GLDV26.SETTLE", "2026-08-31", 99],

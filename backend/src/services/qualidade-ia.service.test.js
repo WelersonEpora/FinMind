@@ -56,6 +56,7 @@ function realizadoFalso(porData) {
         return {
           seriesCode: "B3.CCM.CCMX26.SETTLE",
           base: { data: r.baseEm || l.data, valor: 70, naDataDaAnalise: (r.baseEm || l.data) === l.data, confirmada: true },
+          pregoes: r.pregoes ?? null,
           horizontes: [
             { horizonte: "IMEDIATO", dataAlvo: "x", situacao: r.situacao || "APURADO", preco: 72, dataPreco: "y", variacaoPct: 2, faixa: r.faixa || null },
             { horizonte: "CURTO", dataAlvo: "z", situacao: "A_APURAR" }
@@ -128,7 +129,7 @@ test("a célula: só as linhas avaliáveis, as mesmas para a IA e os dois benchm
   assert.deepEqual(imediato.cobertura, { respondidas: 3, total: 4 });
   assert.deepEqual(
     Object.entries(imediato.fora).filter(([, v]) => v),
-    [["REFERENCIA_ANTIGA", 1], ["SEM_PRECO", 1], ["SEM_PREGAO_NA_DATA", 1], ["INSUFICIENTE", 1], ["SEM_BENCHMARK", 1]]
+    [["REFERENCIA_ANTIGA", 1], ["SEM_PREGAO_NA_DATA", 1], ["SEM_PRECO", 1], ["INSUFICIENTE", 1], ["SEM_BENCHMARK", 1]]
   );
   assert.deepEqual(imediato.medidas.IA, { direcao: { k: 2, pct: 100 }, faixaExata: { k: 1, pct: 50 }, distanciaMedia: 0.5 });
   assert.deepEqual(imediato.medidas.SEMPRE_LATERAL, { direcao: { k: 1, pct: 50 }, faixaExata: { k: 1, pct: 50 }, distanciaMedia: 1 });
@@ -153,6 +154,48 @@ test("a célula: só as linhas avaliáveis, as mesmas para a IA e os dois benchm
   assert.equal(q.hoje, "2026-12-20");
   assert.deepEqual(q.precos, [{ seriesCode: "B3.CCM.CCMX26.SETTLE", contrato: "CCMX26", pontos: [{ data: "2026-09-01", valor: 70 }] }]);
   assert.equal(linha.seriesCode, "B3.CCM.CCMX26.SETTLE");
+});
+
+test("do preço recebido (ADR 0106, adendo): os pregões da série decidem; sem pregão no dia, pregão no meio e o horizonte deslocado ficam fora", async () => {
+  const doPreco = { referencia: "DATA_DO_PRECO_RECEBIDO", versao: 4 };
+  const registros = [
+    registro("2026-10-10", doPreco), // sábado
+    registro("2026-10-12", doPreco), // o feriado: a mesma janela da terça
+    registro("2026-10-13", { ...doPreco, faixa: "ALTA_FORTE" }), // terça, com o preço de sexta: avaliada
+    registro("2026-10-13", { referencia: "DATA_DA_ANALISE", versao: 4 }), // a mesma terça, deslocada pela regra antiga
+    registro("2026-10-14", doPreco), // a fonte atrasou: houve pregão entre o preço e a leitura
+    registro("2026-10-15", doPreco), // a série ainda não chegou ao dia: o motivo é o do horizonte
+    registro("2026-10-06", { referencia: "DATA_DA_ANALISE", versao: 3 }) // da data da análise antes da v4: na métrica
+  ];
+  const pregoes = (naDataDaAnalise, entreOPrecoEADataDaAnalise = false) => ({ naDataDaAnalise, entreOPrecoEADataDaAnalise });
+  const realizado = realizadoFalso({
+    "2026-10-10": { faixa: "LATERAL", pregoes: pregoes(false) },
+    "2026-10-12": { faixa: "LATERAL", pregoes: pregoes(false) },
+    "2026-10-13": { faixa: "ALTA_FORTE", pregoes: pregoes(true) },
+    "2026-10-14": { faixa: "LATERAL", pregoes: pregoes(true, true) },
+    "2026-10-15": { situacao: "AGUARDANDO_DADO" },
+    "2026-10-06": { faixa: "LATERAL" }
+  });
+  const { qualidadeIa: q } = await obterQualidadeIa(
+    { ativo: "MILHO" },
+    { agora: AGORA, analiseDiariaRepository: repoCom(registros), realizadoAnaliseService: realizado }
+  );
+  const motivos = (horizonte) => q.linhas.filter((l) => l.horizonte === horizonte).map((l) => [l.dataAnalise, l.referenciaHorizontes, l.motivoFora]);
+  assert.deepEqual(motivos("IMEDIATO"), [
+    ["2026-10-10", "DATA_DO_PRECO_RECEBIDO", "SEM_PREGAO_NA_DATA"],
+    ["2026-10-12", "DATA_DO_PRECO_RECEBIDO", "SEM_PREGAO_NA_DATA"],
+    ["2026-10-13", "DATA_DO_PRECO_RECEBIDO", null],
+    ["2026-10-13", "DATA_DA_ANALISE", "HORIZONTE_DESLOCADO"],
+    ["2026-10-14", "DATA_DO_PRECO_RECEBIDO", "PRECO_DEFASADO"],
+    ["2026-10-15", "DATA_DO_PRECO_RECEBIDO", "AGUARDANDO_DADO"],
+    ["2026-10-06", "DATA_DA_ANALISE", null]
+  ]);
+  // A regra é da leitura, em todos os horizontes: o CURTO ainda a apurar já sai pelo motivo dela.
+  assert.deepEqual(
+    motivos("CURTO").map(([, , m]) => m),
+    ["SEM_PREGAO_NA_DATA", "SEM_PREGAO_NA_DATA", "A_APURAR", "HORIZONTE_DESLOCADO", "PRECO_DEFASADO", "A_APURAR", "A_APURAR"]
+  );
+  assert.equal(q.horizontes[0].n, 2);
 });
 
 test("filtros: período e versão vão ao repository; inválidos são recusados", async () => {

@@ -37,9 +37,12 @@ function criarClassificador(faixas) {
 //   - DATA_DO_PRECO_RECEBIDO (ADR 0106, desde 2026-10-07): do último preço que a IA recebeu (o pregão anterior à
 //     leitura, que roda de madrugada). A base da avaliação é esse preço e a data-alvo é a data dele + os dias, nunca
 //     antes da data da análise: o IMEDIATO é o próximo pregão depois do preço (o de sexta + 1 dia cai no sábado; vale a
-//     segunda da leitura). Assim o pregão que a IA pode antecipar é o que se avalia;
+//     segunda da leitura). Assim o pregão que a IA pode antecipar é o que se avalia. Desde 2026-10-15 (ADR 0106,
+//     adendo), com qualquer preço recebido, mesmo mais velho que o pregão anterior (feriado, fonte atrasada): se a
+//     leitura entra na métrica, a Qualidade da IA decide depois, pela série de preços (qualidade-ia.service.js);
 //   - DATA_DA_ANALISE (ADR 0052, adendo de 2026-10-03): da data da análise, com a base no preço dela, que a IA não viu. É
-//     a regra quando o preço passou da tolerância da série (o Brent da EIA, semanal) e a das leituras até 2026-10-07;
+//     a regra das leituras até 2026-10-07 e a das sem preço; de 2026-10-07 a 2026-10-14, também a das leituras com o
+//     preço mais velho que o pregão anterior (o horizonte deslocado, fora da métrica);
 //   - DATA_DO_ULTIMO_PRECO: o petróleo v1 (2026-10-03), do último preço, sem o ajuste do próximo pregão.
 const REFERENCIA_HORIZONTES = Object.freeze({
   DATA_DO_PRECO_RECEBIDO: "DATA_DO_PRECO_RECEBIDO",
@@ -51,16 +54,6 @@ function somarDiasIso(iso, dias) {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + dias);
   return d.toISOString().slice(0, 10);
-}
-
-// O preço é o do pregão anterior à leitura (ou o do próprio dia): nenhum dia útil entre a data dele e a da análise. Só
-// então os horizontes contam dele (ADR 0106); um preço mais velho (feriado, fonte atrasada) volta à data da análise.
-function precoDoPregaoAnterior(dataPreco, dataAnalise) {
-  if (!dataPreco || !dataAnalise || dataPreco > dataAnalise) return false;
-  for (let d = somarDiasIso(dataPreco, 1); d < dataAnalise; d = somarDiasIso(d, 1)) {
-    if (![0, 6].includes(new Date(`${d}T00:00:00Z`).getUTCDay())) return false;
-  }
-  return true;
 }
 
 // A data de onde os horizontes contam.
@@ -84,6 +77,5 @@ module.exports = {
   classificarNaFaixa,
   criarClassificador,
   dataDeReferenciaDosHorizontes,
-  dataAlvoDoHorizonte,
-  precoDoPregaoAnterior
+  dataAlvoDoHorizonte
 };

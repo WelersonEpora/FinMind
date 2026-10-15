@@ -75,12 +75,15 @@ avaliação é da data da análise, no mesmo contrato). As demais aparecem no hi
 | Motivo | Quando |
 |---|---|
 | `REFERENCIA_ANTIGA` | Os horizontes contavam do último preço (petróleo, configuração v1), e começavam antes da leitura |
+| `HORIZONTE_DESLOCADO` | Contando do preço recebido (ADR 0106), a leitura sem o preço do pregão anterior teve os horizontes deslocados para a data da análise (até 2026-10-14; as de 13/10, depois do feriado de 12/10). Ver o adendo de 2026-10-15 do ADR 0106 |
+| `SEM_PREGAO_NA_DATA` | Não houve pregão na data da análise (fim de semana, feriado, contrato sem negócio). Sem a regra, as leituras de sexta, sábado e domingo mediriam a mesma janela de preço. Contando do preço recebido, o pregão é o da série (os dias com preço), conhecido assim que ela chega à data da análise |
+| `PRECO_DEFASADO` | Contando do preço recebido: houve pregão entre o preço que a IA recebeu e a data da análise (a fonte atrasou), e a IA estaria prevendo um pregão que já aconteceu (ADR 0106, adendo de 2026-10-15) |
 | `A_APURAR`, `AGUARDANDO_DADO`, `SEM_PRECO`, `SEM_PREGAO`, `SEM_BASE` | A situação do realizado (ADR 0063) |
-| `SEM_PREGAO_NA_DATA` | Não houve pregão na data da análise (fim de semana, feriado, contrato sem negócio). Sem a regra, as leituras de sexta, sábado e domingo mediriam a mesma janela de preço |
 | `INSUFICIENTE` | A IA não leu o horizonte |
 | `SEM_BENCHMARK` | A leitura não tem a variação passada do horizonte (contrato com pouco histórico): sem ela, a IA e a Persistência seriam medidas em linhas diferentes |
 
-Os motivos são verificados nessa ordem; uma linha conta só no primeiro que se aplica.
+Os motivos são verificados nessa ordem; uma linha conta só no primeiro que se aplica. Nas leituras que contam da data
+da análise, o `SEM_PREGAO_NA_DATA` é verificado depois do `SEM_BASE`, como antes de 2026-10-15.
 
 **INSUFICIENTE** fica fora do denominador e aparece como cobertura: "n respondidas de N", sobre as linhas que
 entrariam na métrica. Contá-lo como erro empurraria a IA a nunca se abster; contá-lo como LATERAL inventaria uma

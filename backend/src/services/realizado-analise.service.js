@@ -14,8 +14,9 @@ const precoMarketQuote = require("../shared/preco-market-quote");
 //   - a BASE DA AVALIAÇÃO segue de onde os horizontes contam (shared/analise-diaria-base.js::REFERENCIA_HORIZONTES):
 //     desde 2026-10-07 (ADR 0106), o preço que a IA recebeu (o do pregão anterior; num horizonte com contrato próprio,
 //     o dele), e a variação vai dele ao fim do horizonte; nas leituras que contavam da data da análise (2026-10-03 a
-//     2026-10-07, e quando o preço estava defasado), o último preço até a data da análise, conhecido depois; na v1 do
-//     petróleo, o último preço recebido;
+//     2026-10-07 e, até 2026-10-14, quando o preço era mais velho que o pregão anterior), o último preço até a data da
+//     análise, conhecido depois; na v1 do petróleo, o último preço recebido;
+//   - os pregões em volta da leitura (`pregoes`): se ela entra na métrica, decide a Qualidade da IA (ADR 0106, adendo);
 //   - o alvo é a data-alvo gravada com a leitura (a data de onde os horizontes contam + os dias);
 //   - o preço realizado é o último observado até a data-alvo, na versão mais recente (a revisão conta: é o preço que de
 //     fato houve), na MESMA série ou contrato da base (sem a troca de vencimento no meio da medida);
@@ -109,13 +110,24 @@ function apurarHorizonte({ codigo, dataAlvo, t1, t2 }, { base, pontos, hoje, tol
   };
 }
 
+// Os pregões em volta da leitura (ADR 0106, adendo de 2026-10-15), na série do preço dela (os dias com preço são os dias
+// com pregão; nenhum calendário de feriados): houve pregão na data da análise? houve pregão entre o preço recebido e
+// ela (a fonte atrasou)? null enquanto a série não chegou à data da análise.
+function pregoesDaLeitura(analise, pontos, recebido) {
+  if (!pontos.some((p) => p.data >= analise.data)) return null;
+  return {
+    naDataDaAnalise: pontos.some((p) => p.data === analise.data),
+    entreOPrecoEADataDaAnalise: pontos.some((p) => p.data > recebido.dataReferencia && p.data < analise.data)
+  };
+}
+
 function semBase(analise) {
-  return { seriesCode: null, base: null, horizontes: analise.horizontes.map((h) => ({ horizonte: h.codigo, dataAlvo: h.dataAlvo ?? null, situacao: "SEM_BASE" })) };
+  return { seriesCode: null, base: null, pregoes: null, horizontes: analise.horizontes.map((h) => ({ horizonte: h.codigo, dataAlvo: h.dataAlvo ?? null, situacao: "SEM_BASE" })) };
 }
 
 // Várias leituras de uma vez (a Qualidade da IA): UMA consulta para todas as séries e contratos, da base mais antiga até
 // hoje. `analises`: o que analise-diaria.service.js::leituraGravada devolve. -> { realizados (um por leitura, na mesma
-// ordem: { seriesCode, base, horizontes }), pontosPorSerie (Map seriesCode -> [{ data, valor }], o que foi consultado; o
+// ordem: { seriesCode, base, pregoes, horizontes }), pontosPorSerie (Map seriesCode -> [{ data, valor }], o que foi consultado; o
 // gráfico da Qualidade da IA desenha a linha do preço com eles), hoje }. `diasDePreco`: os pontos começam, no máximo,
 // tantos dias antes de hoje, mesmo sem leitura tão antiga (o passado do gráfico).
 async function apurarRealizadosComPontos(analises, { agora = new Date(), diasDePreco = 0 } = {}, deps = {}) {
@@ -164,7 +176,7 @@ async function apurarRealizadosComPontos(analises, { agora = new Date(), diasDeP
           : contextoDa(analise, doHorizonte, h.precoRecebido?.dataReferencia ? h.precoRecebido : analise.precoReferencia);
       return { ...apurarHorizonte(h, ctx), seriesCode: doHorizonte.seriesCode, base: ctx.base };
     });
-    return { seriesCode: serie.seriesCode, base: contexto.base, horizontes };
+    return { seriesCode: serie.seriesCode, base: contexto.base, pregoes: pregoesDaLeitura(analise, contexto.pontos, analise.precoReferencia), horizontes };
   });
   return { realizados, pontosPorSerie, hoje };
 }
