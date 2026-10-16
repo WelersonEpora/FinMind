@@ -229,3 +229,42 @@ test("gerarJson (ADR 0052): sem busca, com a resposta em JSON; mesma ordem de ch
   assert.equal(resposta.modelo, "gemini-2.5-flash");
   assert.equal("grounding" in resposta, false);
 });
+
+test("cota (ADR 0127, adendo de 2026-10-16): com `esperasCotaMs`, o 429 na última chave espera e tenta de novo; sem, encerra", async () => {
+  const soPaga = { ...CONFIG, apiKeyFree: "" };
+  const esperas = [];
+  const esperar = async (ms) => esperas.push(ms);
+  const pedir = (fetchFn, extra = {}) => provedor.gerarJson({ systemInstruction: "s", prompt: "p" }, { fetch: fetchFn, gemini: soPaga, esperar, ...extra });
+
+  const passa = fetchEmSequencia([429, 429, 200]);
+  const r = await pedir(passa.fetchFn, { esperasCotaMs: [30000, 90000] });
+  assert.equal(passa.chaves.length, 3);
+  assert.deepEqual(esperas, [30000, 90000]);
+  assert.deepEqual(r.tentativas.map((t) => t.resultado), ["status 429", "status 429", "ok"]);
+
+  // As esperas acabaram: o 429 sobe, com as tentativas na mensagem.
+  const esgota = fetchEmSequencia([429, 429, 429]);
+  await assert.rejects(pedir(esgota.fetchFn, { esperasCotaMs: [1, 1] }), /status 429.*Tentativas: paga: status 429.*paga: status 429.*paga: status 429/s);
+
+  // Sem `esperasCotaMs` (a leitura diária), o 429 encerra na hora, como antes.
+  const semEspera = fetchEmSequencia([429, 200]);
+  await assert.rejects(pedir(semEspera.fetchFn), /status 429/);
+  assert.equal(semEspera.chaves.length, 1);
+
+  // A espera sugerida pelo Google (retryDelay), quando maior, vale no lugar da nossa (até 120 s).
+  esperas.length = 0;
+  let n = 0;
+  const comSugestao = async () =>
+    (n += 1) === 1
+      ? respostaHttp(429, { error: { code: 429, details: [{ "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "45s" }] } })
+      : respostaHttp(200, RESPOSTA_OK);
+  await pedir(comSugestao, { esperasCotaMs: [30000] });
+  assert.deepEqual(esperas, [45000]);
+
+  // Com as duas chaves, o 429 da gratuita passa para a paga sem esperar; a espera só vale na paga.
+  esperas.length = 0;
+  const duas = fetchEmSequencia([429, 429, 200]);
+  await provedor.gerarJson({ systemInstruction: "s", prompt: "p" }, { fetch: duas.fetchFn, gemini: CONFIG, esperar, esperasCotaMs: [5] });
+  assert.deepEqual(duas.chaves, ["chave-gratuita", "chave-paga", "chave-paga"]);
+  assert.deepEqual(esperas, [5]);
+});

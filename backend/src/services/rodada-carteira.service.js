@@ -5,6 +5,7 @@ const rodadaRepository = require("../repositories/carteira-rodada.repository");
 const analiseDiariaRepository = require("../repositories/analise-diaria.repository");
 const mercadoCarteiraService = require("./mercado-carteira.service");
 const recomendacaoCarteiraService = require("./recomendacao-carteira.service");
+const { chaveDoMemo } = recomendacaoCarteiraService;
 const { resolverVigenteComVersao, pendencias } = require("../carteiras/parametros");
 const { decidir, liquidar } = require("../carteiras/motor");
 const { avaliarTravas } = require("../carteiras/travas");
@@ -26,11 +27,18 @@ const logger = require("../shared/logger");
 //      cada trilha, passa pelo motor e grava as ordens para o ajuste de hoje. Com uma liquidação pendente, a rodada de
 //      hoje fica SEM_DECISAO (o estado de ontem não é conhecido) e é liquidada assim mesmo.
 //
+// Antes das carteiras, a rotina faz as chamadas da recomendação do dia, uma por combinação de ativos, e tenta de novo as
+// que falharam (prepararRecomendacoes; adendo de 2026-10-16).
+//
 // Uma rodada decidida nunca é refeita: rodar de novo no mesmo dia não faz nada. Trilhas automáticas: a IA (a
-// recomendação diária, etapa 4: uma chamada por carteira e dia, antes do motor; falhou, fallback "manter"), a
+// recomendação diária, etapa 4: compartilhada pelas carteiras com os mesmos ativos, antes do motor; falhou, fallback "manter"), a
 // Determinística e as referências (caixa, comprar e segurar, Persistência). O operador (etapa 6) decide no diário, ao
 // longo do dia: as ordens dele entram na rodada pendente e a liquidação as executa no preço informado; a decisão só
 // gera, para ele, a saída por vencimento, como nas outras trilhas.
+
+// A pausa antes da 2ª tentativa das recomendações compartilhadas que falharam com o Gemini fora.
+const PAUSA_SEGUNDA_PASSADA_MS = 120000;
+const esperarPadrao = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function hojeEmSaoPaulo(agora = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
@@ -104,9 +112,56 @@ async function recomendacoesDoDia({ carteira, data, ativos, leiturasPorAtivo }, 
   const principal = await service.recomendar({ data, ativos, leiturasPorAtivo }, deps);
   const registros = [principal];
   if (principal.situacao === "VALIDA" && !(await rRepo.existeReplicaEntre(carteira.id, ...semanaDe(data)))) {
-    registros.push(await service.replicar(principal, deps));
+    const replica = await service.replicar(principal, semanaDe(data), deps);
+    if (replica) registros.push(replica);
   }
   return { principal, registros };
+}
+
+// Os ativos de uma carteira no dia, se ela vai decidir hoje com a trilha IA; senão, null.
+async function ativosParaRecomendar({ workspace_id: workspaceId, id }, hoje, deps) {
+  if (!ehDiaUtil(hoje)) return null;
+  const cRepo = (deps.carteiraRepository || carteiraRepository).forWorkspace(workspaceId);
+  const rRepo = (deps.rodadaRepository || rodadaRepository).forWorkspace(workspaceId);
+  const carteira = plano(await cRepo.buscar(id));
+  if (!carteira || hoje < carteira.data_inicio || (await rRepo.buscarRodada(id, hoje))) return null;
+  if (!(await cRepo.listarTrilhas(id)).map(plano).some((t) => t.tipo === "IA")) return null;
+  const vigente = resolverVigenteComVersao((await cRepo.listarVersoes(id)).map(plano), hoje);
+  return vigente ? Object.keys(vigente.parametros.ativos) : null;
+}
+
+// A RECOMENDAÇÃO COMPARTILHADA antes das carteiras (ADR 0127, adendo de 2026-10-16): uma chamada por combinação de
+// ativos, não por carteira. Faz as chamadas do dia, guarda o resultado (as falhas também) em `deps.memoRecomendacoes` e
+// tenta de novo, depois de uma pausa, as que falharam com o Gemini fora; na decisão, cada carteira lê do memo e não
+// chama a IA. Nunca lança: uma falha aqui só deixa a carteira chamar na decisão, como antes.
+async function prepararRecomendacoes(pares, hoje, deps) {
+  const service = deps.recomendacaoCarteiraService || recomendacaoCarteiraService;
+  const log = deps.logger || logger;
+  const pedidos = new Map();
+  for (const par of pares) {
+    try {
+      const ativos = await ativosParaRecomendar(par, hoje, deps);
+      if (!ativos) continue;
+      const combinacao = [...ativos].sort().join(",");
+      if (pedidos.has(combinacao)) continue;
+      const { porAtivo } = await congelarLeituras(ativos, hoje, deps);
+      const pedido = { data: hoje, ativos, leiturasPorAtivo: porAtivo };
+      pedidos.set(combinacao, { pedido, resultado: await service.recomendar(pedido, deps) });
+    } catch (erro) {
+      log.warn({ err: erro, carteiraId: par.id }, "Rotina das carteiras: falha ao preparar a recomendação compartilhada");
+    }
+  }
+  const falharam = [...pedidos.values()].filter((p) => p.resultado?.motivo_falha === "GEMINI_FORA");
+  if (!falharam.length) return;
+  await (deps.esperar || esperarPadrao)(PAUSA_SEGUNDA_PASSADA_MS);
+  for (const p of falharam) {
+    deps.memoRecomendacoes.delete(chaveDoMemo(p.resultado));
+    try {
+      await service.recomendar(p.pedido, deps);
+    } catch (erro) {
+      log.warn({ err: erro }, "Rotina das carteiras: falha na 2ª tentativa da recomendação compartilhada");
+    }
+  }
 }
 
 async function decidirRodada({ carteira, trilhas, versoes, data, agora }, rRepo, deps) {
@@ -272,9 +327,11 @@ async function processarCarteira({ workspace_id: workspaceId, id }, { hoje, agor
   return resumo;
 }
 
-async function executarRotina({ agora = new Date() } = {}, deps = {}) {
+async function executarRotina({ agora = new Date() } = {}, depsDeFora = {}) {
+  const deps = { ...depsDeFora, memoRecomendacoes: depsDeFora.memoRecomendacoes || new Map() };
   const hoje = deps.hoje || hojeEmSaoPaulo(agora);
   const pares = await (deps.carteiraRepository || carteiraRepository).listarAtivasParaRotina();
+  await prepararRecomendacoes(pares, hoje, deps);
   const resumos = [];
   for (const par of pares) {
     try {

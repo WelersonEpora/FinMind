@@ -58,7 +58,8 @@ REFAZER. O horizonte IMEDIATO não é operável (ADR 0106).
 
 ### 4. A recomendação
 
-- **Uma chamada por carteira por dia**, depois das leituras. Entrada: as leituras congeladas de CURTO, MEDIO e LONGO de
+- **Uma chamada por carteira por dia**, depois das leituras (desde o adendo de 2026-10-16, uma por combinação de ativos
+  e dia, compartilhada pelas carteiras). Entrada: as leituras congeladas de CURTO, MEDIO e LONGO de
   cada ativo e os eventos da semana; **nenhum estado de trilha** (D8). A IA responde, por ativo, **os três ramos** (sem
   posição, comprado, vendido), com prioridade, porquê, evidências citadas pelos ids recebidos e o que invalida a tese. O
   motor aplica o ramo do estado de cada trilha; a mesma resposta serve ao operador e à trilha IA.
@@ -399,6 +400,40 @@ decidiu incluí-lo em 2026-10-15, com as decisões abaixo, propostas pelo assist
   contar a exposição cambial no risco agregado...)? Até lá, a trava da decisão 7.
 - **O custo por contrato** do WDO começa pendente, como nos outros ativos.
 
+## Adendo de 2026-10-16: a recomendação compartilhada e a cota esgotada (decisão do usuário)
+
+**Contexto.** Em 2026-10-15, a recomendação da carteira "Carla Souza" falhou: o Gemini respondeu 429 ("Resource has
+been exhausted") depois de 81 s, 2 minutos depois da chamada, que passou, da carteira "B3 – Cartilha v1.0", e a trilha
+IA ficou no fallback. Duas coisas apareceram: (1) com uma chamada por carteira (§4), o uso da IA cresce com o número de
+carteiras (100 carteiras seriam 100 chamadas seguidas por dia, 600 por semana com as réplicas); (2) um 429 encerrava a
+chamada na hora, sem nova tentativa. A entrada da recomendação, porém, não depende da carteira (D8: só as leituras e os
+eventos do dia, nenhum estado de trilha): as duas carteiras mandaram o mesmo prompt. O usuário (Welerson, com o mesmo
+poder de decisão do David) decidiu em 2026-10-16 as duas mudanças abaixo, propostas pelo assistente.
+
+**Decisão.**
+
+1. **A recomendação é compartilhada.** A chamada é uma por chave (data, tipo, hash da entrada, versão do prompt e
+   modelo), gravada na tabela GLOBAL `recomendacao_ia` (append-only; a entrada e a resposta só têm dado de mercado).
+   Cada carteira guarda a cópia em `carteira_recomendacao` (PRIVADA), com `recomendacao_ia_id`, como a rodada já guarda a
+   cópia das leituras. As chamadas por dia passam a ser uma por combinação de ativos (no máximo 15 na conta B3 e 3 na
+   internacional), não uma por carteira. Uma leitura refeita no meio do dia muda o hash e leva a uma chamada nova.
+2. **A réplica semanal também:** uma por combinação de ativos e semana. A carteira que decide no dia da réplica guarda a
+   cópia; uma carteira que começa depois, na mesma semana, fica sem réplica naquela semana.
+3. **A rotina faz as chamadas antes das carteiras** (`rodada-carteira.service.js::prepararRecomendacoes`): uma por
+   combinação; as que falharam com o Gemini fora são tentadas de novo depois de 2 minutos, antes de qualquer carteira
+   decidir. Na decisão, a carteira lê o resultado (válido ou a falha) e não chama a IA de novo.
+4. **Cota esgotada (429):** a chamada espera 30 s e 90 s (ou o tempo que o Google sugerir, até 120 s) e tenta de novo,
+   duas vezes, só na recomendação das carteiras (`gemini-search.provider.js::chamarComEsperaNaCota`). A leitura diária
+   segue como era (o 429 da gratuita passa para a paga).
+
+**Efeito na medição.** Carteiras com os mesmos ativos passam a decidir, no mesmo dia, com a mesma resposta da IA (antes,
+cada uma podia receber uma resposta diferente, pelo ruído do modelo). A comparação entre carteiras fica mais justa; a
+medição de cada carteira (§10) não muda de forma. O custo registrado na cópia é o da chamada, não o da carteira (a tela
+marca "chamada compartilhada"). As recomendações de antes desta data seguem como estão (`recomendacao_ia_id` nulo).
+
+**Para o acesso de leitura (ADR 0107):** a `recomendacao_ia` é GLOBAL nova e precisa de `GRANT SELECT ... TO
+finmind_leitura`, rodado pelo usuário.
+
 ## Alternativas consideradas
 
 - **Contratos inteiros com capital maior:** com R$ 10.000, nenhum contrato da B3 cabe no risco de 2% pelo piso de ATR
@@ -408,6 +443,8 @@ decidiu incluí-lo em 2026-10-15, com as decisões abaixo, propostas pelo assist
   resolvem e mantêm dado privado fora do prompt.
 - **Sharpe como métrica principal:** em 12 meses, uma diferença de 0,5 não é demonstrável; a diferença diária pareada
   usa todos os dias.
+- **Uma pausa entre as carteiras (2026-10-16):** com 50 ou 100 carteiras, a rotina levaria horas e a cota seguiria
+  sob rajada; a recomendação compartilhada corta as chamadas na origem.
 - **Avaliar o stop só no ajuste:** subestima as perdas (o preço passa do stop e volta no mesmo dia); a Cartilha pede
   stop no servidor (§2.6).
 

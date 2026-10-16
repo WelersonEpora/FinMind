@@ -15,6 +15,7 @@ db.GeopoliticaLeitura = require("./geopoliticaLeitura")(sequelize);
 db.GeopoliticaEvento = require("./geopoliticaEvento")(sequelize);
 db.FatorParametroVersao = require("./fatorParametroVersao")(sequelize);
 db.AnaliseDiaria = require("./analiseDiaria")(sequelize);
+db.RecomendacaoIa = require("./recomendacaoIa")(sequelize);
 Object.assign(db, require("./carteira")(sequelize));
 
 Object.values(db).forEach((model) => {

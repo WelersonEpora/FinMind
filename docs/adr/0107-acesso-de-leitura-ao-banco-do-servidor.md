@@ -57,3 +57,27 @@ recarregar uma série, refazer uma leitura) segue por script ou migration no rep
 - Para revogar: apagar a linha `finmind-tunel` do `authorized_keys` (corta o túnel); de vez, também
   `docker rm -f finmind-pg-leitura`, `DROP OWNED BY finmind_leitura` (no database `finmind`) e `DROP ROLE finmind_leitura`.
 - Se a chave do túnel ou a senha do papel vazarem, o alcance é a leitura das tabelas de mercado.
+
+## Adendo (2026-10-16): as tabelas das carteiras virtuais
+
+**Decisão do usuário (Welerson), 2026-10-16:** o papel `finmind_leitura` passa a ler as 12 tabelas das carteiras
+virtuais (ADR 0127), para o assistente conferir no servidor a rotina diária (rodadas, recomendações da IA, intenções,
+ordens, posições, lançamentos e patrimônio). São tabelas PRIVADAS (ADR 0007), a primeira exceção ao item 1; o motivo é
+que guardam só simulação (nenhum dinheiro, corretora ou ordem real) e nenhum dado pessoal além de identificadores
+internos e do nome da carteira. `user`, `workspace`, `workspace_member` e `system_setting` continuam fechadas.
+
+Rodado pelo usuário na VM (contêiner `postgres`, `psql -U postgres -d finmind`):
+
+```sql
+GRANT SELECT ON carteira, carteira_parametros_versao, carteira_trilha, carteira_rodada,
+  carteira_rodada_leitura, carteira_intencao, carteira_posicao, carteira_posicao_evento,
+  carteira_ordem, carteira_lancamento, carteira_patrimonio_diario, carteira_recomendacao
+  TO finmind_leitura;
+```
+
+- O GRANT é por tabela, como no item 5: uma tabela nova de carteira precisa de outro GRANT, rodado pelo usuário.
+- A leitura alcança as carteiras de **todos** os espaços, não só as do usuário. Se outras pessoas passarem a ter
+  carteiras no servidor, a liberação deve ser revista (revogar com `REVOKE SELECT ON ... FROM finmind_leitura`).
+- Se a chave do túnel ou a senha do papel vazarem, o alcance passa a incluir as carteiras simuladas.
+- A `recomendacao_ia` (GLOBAL, ADR 0127, adendo de 2026-10-16), criada no mesmo dia, precisa do seu GRANT depois do
+  deploy: `GRANT SELECT ON recomendacao_ia TO finmind_leitura;`.

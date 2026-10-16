@@ -100,6 +100,7 @@ Regras adicionais, todas obrigatórias:
 | `geopolitica_evento` | GLOBAL | eventos de cada leitura, um por ativo afetado, com tipo e fator do FEL 1 (ADRs 0047 e 0049) |
 | `fator_parametro_versao` | GLOBAL | parâmetros da camada C de um fator em uso no sistema, uma versão por ajuste, append-only, com autor e motivo (ADR 0050); sem `workspace_id` |
 | `analise_diaria` | GLOBAL | leitura diária de tendência da IA, uma por ativo e dia, com o prompt, a resposta e as versões (ADR 0052; hoje só o petróleo); sem `workspace_id` |
+| `recomendacao_ia` | GLOBAL | a recomendação da IA das carteiras virtuais, uma chamada por combinação de ativos e dia (e a réplica semanal), compartilhada pelas carteiras, append-only (ADR 0127, adendo de 2026-10-16); sem `workspace_id` |
 | `collection_execution` | GLOBAL | visibilidade hoje aberta a autenticados; restringir a admin de plataforma quando houver clientes externos |
 | `system_setting` | GLOBAL | configuração da plataforma |
 | `carteira` | PRIVADA | carteira virtual (ADR 0127): conta, moeda, capital e início fixos; `ON DELETE RESTRICT` no espaço; `UNIQUE (workspace_id, id)` como alvo das FKs compostas |
@@ -113,7 +114,7 @@ Regras adicionais, todas obrigatórias:
 | `carteira_posicao_evento` | PRIVADA | entrada, stop, alvos, redução e saída de cada posição, append-only |
 | `carteira_lancamento` | PRIVADA | o razão de cada trilha (marcação, custos, Selic), append-only |
 | `carteira_patrimonio_diario` | PRIVADA | o patrimônio de cada trilha por dia, projeção recalculável do razão |
-| `carteira_recomendacao` | PRIVADA | a recomendação diária da IA de cada rodada (e a réplica semanal), com o prompt e as respostas como foram, append-only (ADR 0127, §4); FK composta `(workspace_id, rodada_id)` |
+| `carteira_recomendacao` | PRIVADA | a recomendação diária da IA de cada rodada (e a réplica semanal), com o prompt e as respostas como foram, append-only (ADR 0127, §4); FK composta `(workspace_id, rodada_id)`; a cópia da chamada compartilhada, com `recomendacao_ia_id` (adendo de 2026-10-16) |
 | `user` | USER (identidade) | identidade global, não vínculo com espaço |
 | `workspace` | estrutura de vínculo | não é dado de mercado nem privado |
 | `workspace_member` | estrutura de vínculo | idem |

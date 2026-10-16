@@ -21,6 +21,8 @@ const { NotConfiguredError, UpstreamServiceError } = require("../shared/errors")
 const URL_BASE = "https://generativelanguage.googleapis.com/v1beta";
 // Tentativas com a MESMA chave num 5xx (sobrecarga momentânea), com estas esperas entre elas.
 const ESPERAS_ERRO_TRANSITORIO_MS = [2000, 5000];
+// Teto para a espera sugerida pelo Google num 429 (ver chamarComEsperaNaCota).
+const MAXIMA_ESPERA_SUGERIDA_MS = 120000;
 
 function esperarPadrao(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -63,6 +65,9 @@ async function chamar({ apiKey, corpo, signal, timeoutMs }, { config, fetchFn })
     const texto = await resposta.text().catch(() => "");
     const erro = new UpstreamServiceError(`Gemini respondeu com status ${resposta.status}: ${texto.slice(0, 300)}`);
     erro.statusGemini = resposta.status;
+    // O tempo de espera que o Google sugere num 429 (RetryInfo: "retryDelay": "30s"), quando vem.
+    const sugerida = /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/.exec(texto);
+    if (sugerida) erro.esperaSugeridaMs = Math.round(Number(sugerida[1]) * 1000);
     throw erro;
   }
   return resposta.json();
@@ -94,6 +99,20 @@ async function chamarComRetry({ chave, apiKey, corpo, signal }, contexto, tentat
       const sobra = limite - contexto.agora() - (espera ?? 0);
       if (!eTransitorio(erro) || espera === undefined || sobra <= 0) throw erro;
       await contexto.esperar(espera);
+    }
+  }
+}
+
+// A cota esgotada (429) na ÚLTIMA chave, só quando quem chama pede (`esperas`, em ms; hoje, a recomendação das
+// carteiras, ADR 0127): espera e chama de novo, com uma janela nova, uma vez por espera. A espera é a sugerida pelo
+// Google, quando vem e é maior. Sem `esperas`, o 429 encerra como antes (na gratuita, a paga é a reserva).
+async function chamarComEsperaNaCota(chave, contexto, tentativas, esperas = []) {
+  for (let i = 0; ; i += 1) {
+    try {
+      return await chamarComRetry(chave, contexto, tentativas);
+    } catch (erro) {
+      if (erro.statusGemini !== 429 || esperas[i] === undefined) throw erro;
+      await contexto.esperar(Math.max(esperas[i], Math.min(erro.esperaSugeridaMs ?? 0, MAXIMA_ESPERA_SUGERIDA_MS)));
     }
   }
 }
@@ -130,7 +149,10 @@ async function chamarComChaves(corpo, { signal }, deps) {
   let chaveUsada = chaves[0];
   let json;
   try {
-    json = await chamarComRetry({ ...chaveUsada, corpo, signal }, contexto, tentativas);
+    json =
+      chaves.length === 1
+        ? await chamarComEsperaNaCota({ ...chaveUsada, corpo, signal }, contexto, tentativas, deps.esperasCotaMs)
+        : await chamarComRetry({ ...chaveUsada, corpo, signal }, contexto, tentativas);
   } catch (erro) {
     if (chaves.length === 1 || !passaParaAPaga(erro)) {
       erro.message = `${erro.message} Tentativas: ${descreverTentativas(tentativas)}.`;
@@ -138,7 +160,7 @@ async function chamarComChaves(corpo, { signal }, deps) {
     }
     chaveUsada = chaves[1];
     try {
-      json = await chamarComRetry({ ...chaveUsada, corpo, signal }, contexto, tentativas);
+      json = await chamarComEsperaNaCota({ ...chaveUsada, corpo, signal }, contexto, tentativas, deps.esperasCotaMs);
     } catch (erroPaga) {
       // As duas falharam: a mensagem diz o que cada tentativa respondeu (no registro da execução, sem isso, não dá
       // para saber se a paga chegou a ser tentada).

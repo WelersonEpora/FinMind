@@ -198,6 +198,8 @@ function paraRecomendacao(r, { completa = false } = {}) {
     tokens: r.tokens,
     custoUsd: r.custo_usd == null ? null : Number(r.custo_usd),
     tentativas: r.tentativas,
+    // A chamada é compartilhada pelas carteiras com os mesmos ativos (ADR 0127, adendo de 2026-10-16).
+    compartilhada: r.recomendacao_ia_id != null,
     detalhes: r.detalhes,
     ...(completa ? { entrada: r.entrada, instrucao: r.instrucao, prompt: r.prompt, respostas: r.respostas } : {})
   };

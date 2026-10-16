@@ -3,6 +3,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { processarCarteira, executarRotina } = require("./rodada-carteira.service");
+const { chaveDoMemo } = require("./recomendacao-carteira.service");
 const { parametrosPadrao } = require("../carteiras/parametros");
 
 const CARTEIRA = { id: "c1", workspace_id: "w1", nome: "Conta B3", conta: "B3", capital_inicial: "10000.00", data_inicio: "2026-10-06" };
@@ -172,7 +173,7 @@ test("antes do início, nada; a rotina isola a falha de uma carteira", async () 
   const { deps } = ambiente();
   assert.equal((await rodar("2026-10-05", deps)).aguardandoInicio, "2026-10-06");
   const quebrado = { ...deps, carteiraRepository: { ...deps.carteiraRepository, forWorkspace: () => ({ buscar: async () => { throw new Error("banco fora"); } }) } };
-  const { resumos } = await executarRotina({}, { ...quebrado, hoje: "2026-10-06", logger: { error() {} } });
+  const { resumos } = await executarRotina({}, { ...quebrado, hoje: "2026-10-06", logger: { error() {}, warn() {} } });
   assert.deepEqual(resumos, [{ carteiraId: "c1", erro: "banco fora" }]);
 });
 
@@ -215,4 +216,59 @@ test("as ordens mudaram durante a liquidação: nada gravado, a rotina lê de no
   assert.deepEqual(r.liquidadas, ["2026-10-06"]);
   assert.equal(db.gravacoes.filter((g) => g.data === "2026-10-06").length, 2);
   assert.ok(Array.isArray(db.gravacoes[0].ordensLidas));
+});
+
+test("recomendação compartilhada (adendo de 2026-10-16): uma chamada por combinação de ativos antes das carteiras; o Gemini fora tem 2ª tentativa", async () => {
+  // Um serviço falso que respeita o memo da rotina, como o real: só conta como chamada o que não estava no memo.
+  function servicoFalso(falhasAntes) {
+    const reais = [];
+    let falhas = falhasAntes;
+    return {
+      reais,
+      recomendar: async ({ data }, d) => {
+        const base = { data, tipo: "PRINCIPAL", hash_entrada: "h", versao_prompt: "v", modelo_pedido: "m" };
+        const chave = chaveDoMemo(base);
+        if (d.memoRecomendacoes?.has(chave)) return d.memoRecomendacoes.get(chave);
+        reais.push(data);
+        const r =
+          falhas-- > 0
+            ? { ...base, situacao: "FALHA", motivo_falha: "GEMINI_FORA", recomendacoes: null }
+            : { ...base, situacao: "VALIDA", motivo_falha: null, recomendacoes: [RECOMENDACAO], contrarias: {} };
+        d.memoRecomendacoes?.set(chave, r);
+        return r;
+      },
+      replicar: async () => null
+    };
+  }
+  const montar = (falhasAntes) => {
+    const { db, deps } = ambiente();
+    const servico = servicoFalso(falhasAntes);
+    const esperas = [];
+    const carteiraRepository = { ...deps.carteiraRepository, listarAtivasParaRotina: async () => [{ workspace_id: "w1", id: "c1" }, { workspace_id: "w2", id: "c2" }] };
+    return { db, servico, esperas, deps: { ...deps, carteiraRepository, recomendacaoCarteiraService: servico, esperar: async (ms) => esperas.push(ms), hoje: "2026-10-06" } };
+  };
+
+  // Duas carteiras com os mesmos ativos: uma chamada só, e a decisão lê do memo.
+  const normal = montar(0);
+  await executarRotina({}, normal.deps);
+  assert.deepEqual(normal.servico.reais, ["2026-10-06"]);
+  assert.equal(normal.esperas.length, 0);
+  assert.equal(normal.db.intencoes.find((i) => i.trilha_id === "t-IA").origem, "RECOMENDACAO");
+
+  // O Gemini fora na 1ª: pausa de 2 min e 2ª tentativa, antes de decidir; a trilha IA decide com a válida.
+  const fora = montar(1);
+  await executarRotina({}, fora.deps);
+  assert.deepEqual([fora.servico.reais.length, fora.esperas], [2, [120000]]);
+  assert.equal(fora.db.intencoes.find((i) => i.trilha_id === "t-IA").origem, "RECOMENDACAO");
+
+  // Fora nas duas: a decisão não chama de novo (lê a falha do memo) e a trilha IA fica no fallback.
+  const sempreFora = montar(2);
+  await executarRotina({}, sempreFora.deps);
+  assert.equal(sempreFora.servico.reais.length, 2);
+  assert.equal(sempreFora.db.intencoes.find((i) => i.trilha_id === "t-IA").origem, "FALLBACK");
+
+  // Fim de semana: nada a preparar.
+  const sabado = montar(0);
+  await executarRotina({}, { ...sabado.deps, hoje: "2026-10-10" });
+  assert.equal(sabado.servico.reais.length, 0);
 });

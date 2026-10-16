@@ -192,6 +192,9 @@ async function abrirDetalhe() {
           {{ atual.modeloDevolvido || atual.modeloPedido || 'sem modelo' }} · {{ atual.versaoPrompt || '—' }}
           <template v-if="atual.tokens"> · {{ atual.tokens.total.toLocaleString('pt-BR') }} tokens</template>
           · custo {{ formatarUsd(atual.custoUsd) }}
+          <template v-if="atual.compartilhada">
+            · <span title="A chamada é feita uma vez por dia para cada combinação de ativos e vale para todas as carteiras com esses ativos; o custo é o da chamada, não desta carteira.">chamada compartilhada</span>
+          </template>
         </span>
         <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" @click="abrirDetalhe">
           <i class="bi bi-chat-square-text me-1"></i> O que foi à IA

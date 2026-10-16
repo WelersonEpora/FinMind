@@ -192,7 +192,9 @@ module.exports = (sequelize) => {
     tokens: { type: JSONB, allowNull: true },
     custo_usd: { type: DECIMAL(12, 6), allowNull: true },
     tentativas: { type: JSONB, allowNull: false },
-    detalhes: { type: JSONB, allowNull: true }
+    detalhes: { type: JSONB, allowNull: true },
+    // A chamada compartilhada de que esta cópia veio (migration 20261016120000; ADR 0127, adendo de 2026-10-16).
+    recomendacao_ia_id: { type: UUID, allowNull: true }
   });
 
   return {
