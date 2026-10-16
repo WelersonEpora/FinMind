@@ -27,6 +27,8 @@ const links = [
 // Grupo "Dados de Mercado" - mesmo agrupamento usado no AgroMind
 // (DashboardShell.vue).
 const dadosMercadoLinks = [
+  // A tela de comparação (outra rota) também deixa este item ativo.
+  { to: '/dados-mercado/tradingview', label: 'TradingView', icon: 'bi-bar-chart-line', rotas: ['dados-mercado-tradingview-comparar'] },
   { to: '/dados-mercado/observaveis', label: 'Observáveis', icon: 'bi-database' },
   { to: '/dados-mercado/eventos', label: 'Eventos', icon: 'bi-globe2' },
   { to: '/dados-mercado/execucoes', label: 'Execuções', icon: 'bi-arrow-repeat' }
@@ -116,6 +118,7 @@ const systemLinks = computed(() => {
         <router-link
           :to="link.to"
           class="nav-link text-white d-flex align-items-center gap-2"
+          :class="{ active: link.rotas?.includes(route.name) }"
           active-class="active"
           :title="link.label"
           @click="emit('navigate')"

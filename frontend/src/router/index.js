@@ -10,6 +10,8 @@ import ObservaveisView from '../views/ObservaveisView.vue'
 import ObservavelDetalheView from '../views/ObservavelDetalheView.vue'
 import ExecucoesView from '../views/ExecucoesView.vue'
 import EventosView from '../views/EventosView.vue'
+import TradingViewView from '../views/TradingViewView.vue'
+import TradingViewCompararView from '../views/TradingViewCompararView.vue'
 import MetodologiaAtivoView from '../views/MetodologiaAtivoView.vue'
 import QualidadeIaView from '../views/QualidadeIaView.vue'
 import EspacoView from '../views/EspacoView.vue'
@@ -29,6 +31,12 @@ const router = createRouter({
     { path: '/', name: 'centro-decisao', component: CentroDecisaoView },
     { path: '/como-funciona', name: 'como-funciona', component: ComoFuncionaView },
     { path: '/qualidade-ia', name: 'qualidade-ia', component: QualidadeIaView },
+    { path: '/dados-mercado/tradingview', name: 'dados-mercado-tradingview', component: TradingViewView },
+    {
+      path: '/dados-mercado/tradingview/comparar',
+      name: 'dados-mercado-tradingview-comparar',
+      component: TradingViewCompararView
+    },
     { path: '/dados-mercado/observaveis', name: 'dados-mercado-observaveis', component: ObservaveisView },
     {
       path: '/dados-mercado/observaveis/:codigo',

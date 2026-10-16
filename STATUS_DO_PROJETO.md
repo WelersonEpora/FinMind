@@ -115,6 +115,7 @@ minutos, estratégias, stops e paper trading) fica para uma fase 2, num módulo 
 | Centro de Decisão | A tela inicial (`/`), no desenho do AgroMind: para um ativo (ouro, petróleo, milho, café, soja, dólar) e uma data, o preço como era conhecido no fim daquele dia (point-in-time, com troca de série, mini-gráfico e variações; futuros pelo vencimento mais próximo, sem emendar) e a leitura de geopolítica da data, com os eventos da semana. Nos cinco ativos, o espaço da análise mostra a leitura diária de tendência da IA nos quatro horizontes (ADRs 0052, 0054, 0058, 0062 e 0116). Nenhum sinal de compra ou venda é gerado — ADR 0048 |
 | Qualidade da IA | `/qualidade-ia`: por ativo e horizonte, o que a IA leu contra o que o preço fez, em direção e faixa, contra os benchmarks Sempre Lateral e Persistência nas mesmas linhas, com o n e as linhas de cada número; o gráfico "faixas lidas × preço" mostra cada leitura na data-alvo, com os quatro horizontes lado a lado; sem índice único nem cor de acerto — ADR 0064 |
 | Telas de dados | `/dados-mercado/observaveis` (82 cards) e `/dados-mercado/execucoes` — ADR 0005 |
+| TradingView | `/dados-mercado/tradingview`: o widget gratuito do TradingView embutido, B3 e Pepperstone, e a comparação entre os dois; só visualização, o dado é deles — ADR 0128 |
 | Banco de dados | **PostgreSQL 16** desde 2026-09-26 (antes MariaDB): servidor compartilhado da VM (repositório `servidor02-infra`), database e usuário próprios do FinMind. Backup diário `pg_dump` (7 diários + 4 semanais) e backup semanal do disco — ADR 0026 |
 | Produção | VM `servidor02` (Oracle Always Free, Ampere A1 arm64, 2 OCPU / 12 GB), `https://finmind.weslab.com.br` pelo Nginx Proxy Manager — `docs/architecture.md` § "Deploy" |
 | Agendamento | Dev: Agendador do Windows às 22:00. Produção: cron do usuário `deploy` na `servidor02` (coleta 04:00, 06:00, 08:00 **UTC**; backup 10:00 UTC, **não versionado**) — ADR 0004, ADR 0026 |
@@ -655,6 +656,15 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>6. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-16</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Tela TradingView | O gráfico gratuito do TradingView (widget), embutido em `/dados-mercado/tradingview`, com a lista de ativos ao lado e uma tela que compara a B3 com a Pepperstone (milho, café, soja e dólar): candles diários, indicadores e desenhos do próprio widget, para os contratos da B3 (milho, café, soja, dólar, minidólar; 15 min de atraso) e os CFDs da Pepperstone (ouro, Brent e, para comparação, milho, café, soja e dólar). Tema escuro azul-marinho (como o Profit do David) ou claro, tela cheia, barra de desenho, barra de períodos, painel de detalhes (com a curva dos vencimentos e os "Sinais técnicos" do TradingView, mantidos por decisão do usuário), ATR(14) da Cartilha ligado (4 horas no ouro e no Brent) e, na comparação, os dois sobrepostos em %. Símbolos conferidos um a um no widget; o dado é do TradingView e não alimenta nada no FinMind. Pendente com o David: os períodos das médias móveis dos prints dele | ADR 0128 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-15</summary>

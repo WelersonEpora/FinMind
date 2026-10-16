@@ -54,7 +54,11 @@ decidiu e quando. O assistente propõe; não decide por nenhum dos dois.
   por categoria (os fatores dele são os blocos do relatório do Comitê); um ativo novo segue a regra acima. **Agregação em código (café e milho, ADRs 0066 e 0081):** a agregação dos
   fatores em código (pesos e limiares propostos pelo FinMind, não pelo David) fica só na tela de metodologia, como
   referência marcada como proposta: no histórico, não supera os benchmarks, e saiu do prompt e do Centro de Decisão do
-  café em 2026-10-07 (no milho, nunca entrou); os números dela não são atribuídos ao David.
+  café em 2026-10-07 (no milho, nunca entrou); os números dela não são atribuídos ao David. **Exceção da tela
+  TradingView (ADR 0128):** o widget gratuito do TradingView, embutido só para visualização, mostra os indicadores e o
+  medidor "Sinais técnicos" (compra/venda) do próprio TradingView, por decisão do usuário em 2026-10-16; a tela avisa que
+  tudo no quadro do gráfico é deles. O FinMind só pré-liga o ATR(14) da Cartilha; outro indicador pré-ligado, só com
+  decisão registrada no ADR. Nada do widget alimenta o motor, a IA, o Centro de Decisão nem as carteiras.
 - **Nenhuma execução automática de ordens** existe ou deve ser adicionada
   nesta fase. A arquitetura mantém geração de análise e execução de ordens
   como camadas fisicamente separadas (ver `docs/architecture.md`).
@@ -381,7 +385,10 @@ Ver também `backend/src/collectors/base/README.md`.
 - Gráficos: só `components/charts/` conhece `echarts`/`vue-echarts`
   (`EChartsBase.vue` genérico + `LineChart.vue` concreto); a lógica de
   montar a `option` do ECharts fica em `utils/echarts-option-builder.js`
-  (função pura, testável sem DOM).
+  (função pura, testável sem DOM). O widget do TradingView da tela
+  `/dados-mercado/tradingview` (ADR 0128) também fica lá
+  (`TradingViewWidget.vue`), com os símbolos e a configuração em
+  `utils/tradingview.js`; é só visualização, o dado é deles.
 - **Tabelas de dados densas** (com filtro/paginação/ordenação/atualizar):
   PrimeVue `DataTable`/`Column`/`Button`/`Dialog` diretamente na view (sem
   wrapper Vue próprio), com a moldura/paginação compartilhada via classe
