@@ -381,11 +381,17 @@ const DO_ATIVO = {
     `Eventos sem validação humana, por ora, com a janela de 7 dias (30 nos marcados com a demanda). ${DECISAO_COMITE}.`,
     "Onde ficam os eventos (usuário, 2026-10-07, ADR 0095): numa seção só na base do prompt, cada um com a condição que afeta, sem peso nem leitura do motor; nenhum fator do café é de evento. Até então, cada fator recebia os seus (ADR 0062). O que o David pediu na reunião de 2026-10-03 foi avaliar um fator de eventos também no café (ADR 0055, P12), não eventos em cada fator.",
     "O WASDE não cobre café: o balanço do USDA para o café é o PSD (Coffee: World Markets and Trade). David, 2026-10-03 (P14, ADR 0055).",
-    "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET fica para depois da v1 (usuário, 2026-10-06, ADR 0083); o diário de Londres e do KC, orçamento e licença; o diferencial FOB não tem fonte pública.",
+    "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET fica para depois da v1 (usuário, 2026-10-06, ADR 0083); o diário de Londres, orçamento e licença (o do KC veio depois, pelo Yahoo, ADR 0129); o diferencial FOB não tem fonte pública.",
     "Agregação em código (usuário, 2026-10-07, ADR 0066, adendo): sai do prompt e do Centro de Decisão e fica na tela de metodologia como referência, com o script `npm run agregacao:cafe -- --acerto` para medir de novo. No histórico do ICF (dev, 2022 a 2026), não supera o \"sempre lateral\" em faixa exata e distância em nenhum horizonte, e fora do lateral erra a direção na maior parte das vezes (18% a 37% de acerto). A IA segue combinando os fatores pelo prompt, com as regras do estudo como orientação.",
-    "A mesma régua no milho (usuário, 2026-10-07): já aplicada; a agregação em código do milho foi medida no histórico e ficou fora do prompt (ADR 0081)."
+    "A mesma régua no milho (usuário, 2026-10-07): já aplicada; a agregação em código do milho foi medida no histórico e ficou fora do prompt (ADR 0081).",
+    "O KC de Nova York (usuário, 2026-10-20, ADR 0129): coletado pelo Yahoo, fonte não oficial e provisória como o Brent, para o basis B3 × Nova York, a curva de Nova York e o histórico longo pedidos pela análise do café de 2026-10-19 (item E1). Só dado: o basis e a série contínua do ICF estão na seção \"Preço de referência\" desta tela, sem ir ao prompt nem ao Centro de Decisão."
   ],
-  perguntas: []
+  // A análise do café de 2026-10-19 (STATUS_DO_PROJETO.md, §0): o que segue com o Comitê sobre o preço de referência.
+  perguntas: [
+    "Regra de rolagem da série contínua do ICF (E1): a proposta da seção \"Preço de referência\" (a partir de 40 pregões antes do vencimento, para o seguinte com mais negócios em 5 pregões, entre os 3 seguintes; trava a 10 pregões; ajuste proporcional). Aprovar ou ajustar os números.",
+    "Contrato por horizonte ou série contínua (E11): manter um contrato por horizonte (preço negociável, horizontes com preços de partida diferentes) ou usar a série contínua em todos. Mesmo mantendo, trocar a regra do \"dia 15\" pela de liquidez: hoje a leitura fica semanas num contrato que já não negocia.",
+    "Basis B3 × Nova York e estrutura a termo como fatores (E10): hoje são só informação na tela."
+  ]
 };
 
 // Os pesos e as relações do estudo (formato em metodologia-base.js): sem pesos (o estudo os descarta) e sem matriz; as

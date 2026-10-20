@@ -11,6 +11,8 @@ const { obterMetodologiaDolar } = require("../shared/metodologia-dolar");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
 const { montarTextoPrompt } = require("../factors/base/texto-prompt");
+const { calcularSerieContinuaIcf } = require("../factors/serie-continua-icf");
+const { calcularBasisIcfKc } = require("../factors/basis-icf-kc");
 const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 
 // Metodologia dos fatores por ativo: a proposta para o David validar (ADRs 0050 e 0053); no milho, a proposta v0 do
@@ -83,6 +85,17 @@ const CALCULOS = {
   DOLAR_R1_FUNDOS: require("../factors/fundos-dolar.regra").METODOLOGIA
 };
 
+// O preço de referência visto de fora da leitura (análise do café de 2026-10-19, item E1), por ora só no café: a série
+// contínua do ICF (PROPOSTA, itens E1 e E11, a validar pelo Comitê: os vencimentos emendados pela liquidez, com o ajuste
+// proporcional) e o basis B3 × Nova York (INFORMAÇÃO; como fator, decisão do Comitê, item E10). Nada é gravado e nada
+// alimenta o prompt nem o Centro de Decisão.
+const PRECO_REFERENCIA = {
+  CAFE: {
+    serieContinua: { contrato: "ICF", nome: "Série contínua do ICF", unidade: "US$/saca", calcular: calcularSerieContinuaIcf },
+    basis: { nome: "Basis B3 × Nova York (ICF contra o KC da ICE)", unidade: "US$/saca", calcular: calcularBasisIcfKc }
+  }
+};
+
 const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 // O dia de hoje em São Paulo (AAAA-MM-DD): a data das leituras de eventos e o limite de uma simulação.
@@ -137,6 +150,7 @@ function paraResposta(metodologia) {
   return {
     ...metodologia,
     promptDiario: ATIVOS_COM_PROMPT_DIARIO.includes(metodologia.ativo),
+    precoReferencia: Boolean(PRECO_REFERENCIA[metodologia.ativo]),
     fatores: metodologia.fatores.map((fator) => ({
       ...fator,
       calculado: Boolean(CALCULOS[fator.codigo]),
@@ -425,6 +439,34 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
   };
 }
 
+// O preço de referência do ativo (PRECO_REFERENCIA), com o que se sabe agora: a série contínua (os pregões, com o ajuste
+// real do contrato do dia e o ajustado, e as trocas de vencimento) e o basis (um ponto por pregão, com o percentil).
+// Ativo sem eles: 404.
+async function obterPrecoReferencia(ativo, deps = {}) {
+  const codigo = String(ativo || "").trim().toUpperCase();
+  const config = PRECO_REFERENCIA[codigo];
+  if (!config) throw new NotFoundError("Este ativo não tem a série contínua nem o basis do preço de referência.");
+  const asOf = deps.agora || new Date();
+  const [continua, basis] = await Promise.all([
+    config.serieContinua.calcular({ asOf }, deps),
+    config.basis.calcular({ asOf }, deps)
+  ]);
+  const comum = { ativo: codigo, periodicidade: "DIARIA", tempoReal: false };
+  return {
+    serieContinua: {
+      ...comum,
+      contrato: config.serieContinua.contrato,
+      nome: config.serieContinua.nome,
+      unidade: config.serieContinua.unidade,
+      situacao: "PROPOSTA",
+      parametros: continua.parametros,
+      pontos: continua.pontos.map(({ data, ticker, valor, ajustado }) => ({ data, ticker, valor, ajustado: Math.round(ajustado * 100) / 100 })),
+      trocas: continua.trocas
+    },
+    basis: { ...comum, nome: config.basis.nome, unidade: config.basis.unidade, situacao: "INFORMACAO", pontos: basis.pontos, ultimo: basis.ultimo }
+  };
+}
+
 // Histórico dos parâmetros do fator, da versão mais recente para a mais antiga, e os padrões do código.
 async function listarParametros(ativo, codigoFator, deps = {}) {
   const { fator, calculo } = fatorCalculado(ativo, codigoFator);
@@ -461,4 +503,13 @@ async function salvarParametros(ativo, codigoFator, { parametros, motivo } = {},
   }
 }
 
-module.exports = { ATIVOS_COM_PROMPT_DIARIO, obterMetodologiaAtivo, calcularFator, obterEventosFator, simularFatores, listarParametros, salvarParametros };
+module.exports = {
+  ATIVOS_COM_PROMPT_DIARIO,
+  obterMetodologiaAtivo,
+  calcularFator,
+  obterEventosFator,
+  simularFatores,
+  obterPrecoReferencia,
+  listarParametros,
+  salvarParametros
+};

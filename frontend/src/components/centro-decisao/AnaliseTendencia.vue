@@ -8,6 +8,7 @@ import {
   intervaloDaFaixa,
   leituraDoMotor,
   nivelConfianca,
+  precoDoHorizonte,
   realizadoDoHorizonte,
   rotuloDias,
   rotuloLacuna,
@@ -39,6 +40,8 @@ const horizontes = computed(() =>
       ...h,
       leitura,
       motor: leituraDoMotor(props.analise.agregacaoMotor, h.codigo, leitura),
+      // De onde o horizonte parte e até quando vai (o contrato, o preço recebido e a data-alvo).
+      partida: precoDoHorizonte(h, props.analise.precoReferencia, formatarData, (v) => `US$ ${formatarValor(v)}`),
       realizado: realizadoDoHorizonte(
         (props.analise.realizado?.horizontes || []).find((r) => r.horizonte === h.codigo),
         formatarData,
@@ -81,6 +84,9 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
             v-if="analise.referenciaHorizontes?.tipo === 'DATA_DO_PRECO_RECEBIDO'"
             >; o imediato é o próximo pregão depois dele (ADR 0106)</template
           >.
+          <template v-if="analise.referenciaHorizontes?.tipo === 'DATA_DO_PRECO_RECEBIDO'">
+            A leitura é feita de madrugada, antes do pregão do dia: o preço é o último ajuste oficial publicado.
+          </template>
         </p>
       </div>
       <span class="analise__selo"><span class="analise__selo-ponto"></span>Leitura de tendência da IA</span>
@@ -131,6 +137,7 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
               {{ nivelConfianca(horizonte.leitura.confianca).rotulo }}
             </span>
           </span>
+          <span v-if="horizonte.partida" class="horizonte__partida">{{ horizonte.partida }}</span>
 
           <template v-if="horizonte.leitura">
             <span class="horizonte__meio">
@@ -203,6 +210,9 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
           <span class="confianca" :class="`confianca--${nivelConfianca(aberto.leitura.confianca).classe}`">
             {{ nivelConfianca(aberto.leitura.confianca).rotulo }}
           </span>
+        </p>
+        <p v-if="aberto.partida" class="detalhe__realizado">
+          <strong>Preço de partida e data-alvo:</strong> {{ aberto.partida }}.
         </p>
         <p v-if="aberto.realizado" class="detalhe__realizado">
           <strong>Realizado:</strong>
@@ -600,6 +610,13 @@ const baseAvaliacao = computed(() => props.analise.realizado?.base || null)
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--p-text-muted-color);
+}
+
+/* O contrato, o preço de partida e a data-alvo, logo abaixo do nome do horizonte. */
+.horizonte__partida {
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Chip da confiança: âmbar (baixa), azul claro (média), azul forte (alta). Sem verde nem vermelho, que são a direção. */

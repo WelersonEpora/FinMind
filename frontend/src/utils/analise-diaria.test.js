@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { contarEventos, etiquetaLeitura, realizadoDoHorizonte, faltaNoFator, idadeDoDado, rotuloMedida, intervaloDaFaixa, leituraDoFator, leituraDoMotor, nivelConfianca, rotuloConfianca, rotuloDias, rotuloFaixa, rotuloPapelCot, tendencia } from './analise-diaria.js'
+import { contarEventos, precoDoHorizonte, etiquetaLeitura, realizadoDoHorizonte, faltaNoFator, idadeDoDado, rotuloMedida, intervaloDaFaixa, leituraDoFator, leituraDoMotor, nivelConfianca, rotuloConfianca, rotuloDias, rotuloFaixa, rotuloPapelCot, tendencia } from './analise-diaria.js'
 
 test('faixa em % a partir de T1 e T2 do horizonte, com as bordas da classificação', () => {
   const medio = { t1: 5, t2: 12 }
@@ -141,4 +141,16 @@ test('realizado com contrato próprio no horizonte (ADR 0078): a nota diz o cont
   const leitura = 'B3.CCM.CCMX26.SETTLE'
   assert.equal(realizadoDoHorizonte({ situacao: 'A_APURAR', dataAlvo: '2026-12-31', seriesCode: 'B3.CCM.CCMF27.SETTLE' }, fmt, leitura).nota, 'apura em 31/12/2026 no CCMF27')
   assert.equal(realizadoDoHorizonte({ situacao: 'A_APURAR', dataAlvo: '2026-10-09', seriesCode: leitura }, fmt, leitura).nota, 'apura em 09/10/2026')
+})
+
+test('precoDoHorizonte: o contrato, o preço recebido com a data e a data-alvo do horizonte', () => {
+  const formatarData = (iso) => iso.split('-').reverse().join('/')
+  const formatarValor = (v) => v.toFixed(2).replace('.', ',')
+  const referencia = { valor: 377.1, dataReferencia: '2026-10-16', contrato: { ticker: 'ICFZ26' } }
+  // O horizonte de 90 dias com contrato próprio (ADR 0078).
+  const longo = { dataAlvo: '2027-01-14', contrato: { ticker: 'ICFH27' }, precoRecebido: { valor: 370.95, dataReferencia: '2026-10-16' } }
+  assert.equal(precoDoHorizonte(longo, referencia, formatarData, formatarValor), 'ICFH27 · 370,95 em 16/10/2026 → até 14/01/2027')
+  // Sem contrato próprio, o da leitura.
+  assert.equal(precoDoHorizonte({ dataAlvo: '2026-10-19' }, referencia, formatarData, formatarValor), 'ICFZ26 · 377,10 em 16/10/2026 → até 19/10/2026')
+  assert.equal(precoDoHorizonte({}, referencia, formatarData, formatarValor), null)
 })

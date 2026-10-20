@@ -89,3 +89,40 @@ test("agregação do FinMind (ADR 0066): na tela, vinda do agregador, separada d
   // Nenhum parâmetro da proposta atribuído ao David.
   assert.ok(a.regras.filter((r) => r.origem === "DAVID").every((r) => !/\d,\d|\d%/.test(r.regra)));
 });
+
+test("preço de referência do café (análise de 2026-10-19, E1): a série contínua do ICF (proposta) e o basis B3 × NY (informação)", async () => {
+  const { obterPrecoReferencia } = require("../services/metodologia-ativo.service");
+  assert.equal(obterMetodologiaAtivo("CAFE").metodologia.precoReferencia, true);
+  assert.equal(obterMetodologiaAtivo("MILHO").metodologia.precoReferencia, false);
+  await assert.rejects(obterPrecoReferencia("MILHO"), /não tem a série contínua nem o basis/);
+
+  // Dois pregões: no 2º, os negócios passam do U26 para o Z26 (dentro da janela do vencimento de setembro). O KC=F
+  // ainda está no vencimento de setembro (o último pregão dele foi 18/09/2026).
+  const linha = (serie, data, valor) => ({ series_code: serie, observed_at: data, value: String(valor) });
+  const linhas = [
+    linha("B3.ICF.ICFU26.SETTLE", "2026-08-12", 400),
+    linha("B3.ICF.ICFU26.SETTLE", "2026-08-13", 403.2),
+    linha("B3.ICF.ICFZ26.SETTLE", "2026-08-12", 380),
+    linha("B3.ICF.ICFZ26.SETTLE", "2026-08-13", 382.3),
+    linha("B3.ICF.ICFU26.CONTRACTS", "2026-08-12", 900),
+    linha("B3.ICF.ICFZ26.CONTRACTS", "2026-08-12", 100),
+    linha("B3.ICF.ICFZ26.CONTRACTS", "2026-08-13", 2000),
+    linha("YAHOO.KC_CONTINUO.SETTLE", "2026-08-13", 320)
+  ];
+  const observationRepository = {
+    listarUltimasDatasItens: async ({ prefixoSerie }) => (prefixoSerie === "B3.ICF" ? [{ codigo: "ICFU26" }, { codigo: "ICFZ26" }] : []),
+    buscarAsOf: async ({ seriesCodes }) => linhas.filter((l) => seriesCodes.includes(l.series_code))
+  };
+  const { serieContinua, basis } = await obterPrecoReferencia("cafe", { observationRepository, agora: new Date("2026-10-20T12:00:00Z") });
+  assert.equal(serieContinua.situacao, "PROPOSTA");
+  assert.equal(serieContinua.unidade, "US$/saca");
+  assert.deepEqual(serieContinua.trocas.map((t) => [t.data, t.de, t.para, t.motivo]), [["2026-08-13", "ICFU26", "ICFZ26", "LIQUIDEZ"]]);
+  // O U26 ajustado pela razão da troca (382,30 / 403,20): 400 × 0,9482 = 379,27.
+  assert.deepEqual(serieContinua.pontos, [
+    { data: "2026-08-12", ticker: "ICFU26", valor: 400, ajustado: 379.27 },
+    { data: "2026-08-13", ticker: "ICFZ26", valor: 382.3, ajustado: 382.3 }
+  ]);
+  // O basis no mesmo mês do KC=F (setembro): 403,20 − 320 × 1,32277 = 403,20 − 423,29.
+  assert.equal(basis.situacao, "INFORMACAO");
+  assert.deepEqual([basis.ultimo.contratoIcf, basis.ultimo.contratoKc, basis.ultimo.kcSaca, basis.ultimo.basis, basis.ultimo.basisPct], ["ICFU26", "KCU26", 423.29, -20.09, -4.75]);
+});

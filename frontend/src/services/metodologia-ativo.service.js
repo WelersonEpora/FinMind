@@ -37,6 +37,12 @@ async function getPromptDiario(ativo, dataAnalise) {
   return data
 }
 
+// O preço de referência do ativo (análise do café de 2026-10-19, E1): a série contínua (proposta) e o basis B3 × NY.
+async function getPrecoReferencia(ativo) {
+  const { data } = await http.get(`/api/v1/ativos/${encodeURIComponent(ativo)}/metodologia/preco-referencia`)
+  return data
+}
+
 function urlParametros(ativo, fator) {
   return `/api/v1/ativos/${encodeURIComponent(ativo)}/metodologia/fatores/${encodeURIComponent(fator)}/parametros`
 }
@@ -53,4 +59,13 @@ async function salvarParametros(ativo, fator, { parametros, motivo }) {
   return data
 }
 
-export default { getMetodologiaAtivo, getCalculoFator, getEventosFator, getSimulacao, getPromptDiario, getParametros, salvarParametros }
+export default {
+  getMetodologiaAtivo,
+  getCalculoFator,
+  getEventosFator,
+  getSimulacao,
+  getPromptDiario,
+  getPrecoReferencia,
+  getParametros,
+  salvarParametros
+}

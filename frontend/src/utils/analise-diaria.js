@@ -219,3 +219,14 @@ export function leituraDoMotor(agregacaoMotor, codigoHorizonte, leituraIa = null
     versao: agregacaoMotor.versao
   }
 }
+
+// O preço de que o horizonte parte e até quando ele vai (análise do café de 2026-10-19, item E1): o contrato, o preço
+// que a IA recebeu, a data dele e a data-alvo. A leitura roda de madrugada: o preço é o ajuste do pregão anterior, e a
+// data-alvo do horizonte de 1 dia é o próximo pregão (ADR 0106). Sem data-alvo (resposta antiga da API), null.
+export function precoDoHorizonte(horizonte, precoReferencia, formatarData, formatarValor) {
+  if (!horizonte?.dataAlvo) return null
+  const preco = horizonte.precoRecebido || precoReferencia
+  const contrato = horizonte.contrato?.ticker || precoReferencia?.contrato?.ticker || null
+  const partida = preco ? `${formatarValor(preco.valor)} em ${formatarData(preco.dataReferencia)}` : null
+  return [contrato, partida].filter(Boolean).join(' · ') + ` → até ${formatarData(horizonte.dataAlvo)}`
+}

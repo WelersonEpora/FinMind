@@ -19,14 +19,15 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind indica baixa e o café está em alta?*).
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
-fim, **o que precisamos do David**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. Nada aqui foi implementado: é a análise para decidirmos juntos.
+fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, só no E1); o resto é a
+análise para decidirmos juntos.
 
-**Decisões pedidas, em uma tabela:**
+**Decisões pedidas ao Comitê, em uma tabela:**
 
-| Item | O que precisamos do David |
+| Item | O que precisamos do Comitê |
 |---|---|
-| E1 | A regra de rolagem da série contínua do ICF (junto com o E11) |
+| E1 | Aprovar a regra de rolagem da série contínua do ICF, já calculada como proposta (junto com o E11). Já implementados: a data do preço no Centro de Decisão, a série contínua (proposta) e o basis B3 × Nova York (informação) |
 | E2 | Aprovar a volta da Federação de Cafeteiros, a regra nova do El Niño, as fontes secundárias como alerta e a meia-vida dos eventos; montar a lista de eventos de referência para medir a captura |
 | E3 | Onde fica a curva (no F3 ou num fator próprio) e o limiar do estoque baixo |
 | E4 | Junto com a §3 do documento: como aplicar o F7 como modificador |
@@ -35,7 +36,7 @@ serão analisadas. Nada aqui foi implementado: é a análise para decidirmos jun
 | E7 | Quanto tempo a revisão da Conab pesa forte depois de publicada e qual medida de surpresa testar |
 | E8 | Peso Baixo para o câmbio e juntar o F4 com o F5 num fator de incentivo do produtor |
 | E9 | A data de publicação estimada do custo da Conab e o mesmo "juntar com o F4" |
-| E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos) e autorizar a Federação de Cafeteiros |
+| E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos), autorizar a Federação de Cafeteiros e decidir se o basis (já calculado, como informação) vira fator |
 | E11 | Contrato por horizonte ou série contínua ajustada para todos |
 
 O KC de Nova York pelo Yahoo (fonte não oficial e provisória, como o Brent futuro), necessário para o E1, o E3 e o E10,
@@ -63,7 +64,43 @@ negocia depois da data-alvo, sem emendar contratos (ADR 0078). O preço do KC de
 | Série contínua ajustada (junto com o E11) | Médio |
 | Coletar o KC pelo Yahoo e calcular o basis | Baixo a médio |
 
-**O que precisamos do David:** a regra de rolagem da série contínua (a do documento ou outra), decidida junto com o E11.
+**Implementado (2026-10-20).** Nada disto muda o que a IA recebe: o prompt, a leitura, o Centro de Decisão e a Qualidade
+da IA seguem com um contrato por horizonte.
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| 1. Data do preço | Cada horizonte mostra o contrato, o preço de partida com a data e a data-alvo (ex.: "ICFZ26 · US$ 377,10 em 16/10/2026 → até 19/10/2026"); o cabeçalho diz que a leitura é feita de madrugada, com o último ajuste oficial publicado. Só tela: a leitura já usava o preço certo | Centro de Decisão, análise do FinMind |
+| 2. Série contínua do ICF | **Proposta**: o cálculo, o gráfico (o ajuste do contrato do dia e a série ajustada) e a tabela de cada troca. Calculada na hora, sem gravar nada | Metodologia do café, seção "Preço de referência" |
+| 3. Basis B3 × Nova York | **Informação**: o KC da ICE coletado pelo Yahoo (ADR 0129); o basis em US$/saca e em %, no mesmo mês de vencimento (o 1º de Nova York e o ICF do mesmo mês), com o percentil no histórico desde 2022-03 | Metodologia do café, seção "Preço de referência" |
+
+**O basis hoje está normal.** No histórico (2022 a 2026), o ICF fica abaixo de Nova York: mediana de −7,1%, com 90% dos
+pregões entre −11,6% e −1,5%. Em 13/10/2026, −6,9% (−26,57 US$/saca; ICFZ26 a 360,60 contra o KCZ26 a 387,17), no
+percentil 52. Ou seja, o basis não explica, por ora, a divergência que a análise apontou.
+
+**Série contínua: o que o histórico do ICF (2022 a 2026) mostrou e a regra leva em conta:**
+- **O mercado gira em março, setembro e dezembro.** Maio às vezes negocia; julho quase nunca: nos 20 pregões antes do
+  vencimento de jul/2026, 0 contratos nele contra 12.748 no de setembro. Rolar "para o vencimento seguinte" cairia em
+  contrato sem negócio.
+- **Os negócios migram de 18 a 27 pregões antes do último pregão**, quase sempre em meados do mês anterior. A regra de
+  hoje (cada horizonte usa o vencimento até o dia 15 do mês de vencimento, ADR 0078) mantém por semanas um contrato que
+  já ficou sem negócio: em 2026, o de setembro até 15/09, com os negócios no de dezembro desde 13/08.
+- **Na troca, a curva quase sempre está invertida**, de −0,1% a −7,6% (de março para setembro, em fev/2026). Sem o
+  ajuste, a série teria quedas desse tamanho que não aconteceram.
+
+**A regra proposta:**
+- a partir de 40 pregões antes do vencimento, rola para o seguinte com mais contratos negociados em 5 pregões, quando
+  passa os do atual, entre os 3 vencimentos seguintes (pula os que não negociam);
+- se a liquidez não migrar, a trava rola 10 pregões antes do vencimento (a regra do documento);
+- ajuste proporcional: os retornos em % ficam iguais aos de cada contrato e o preço de hoje é o real.
+
+No histórico, 14 trocas por liquidez e 2 pela trava (as duas em 2023, quando o Boletim Diário da B3 saiu sem a tabela
+de derivativos).
+
+**O que precisamos do Comitê:**
+
+- aprovar a regra de rolagem acima (ou ajustar os números: 40, 5, 3 e 10 pregões), junto com o E11;
+- decidir se a série contínua substitui o contrato por horizonte na leitura (E11);
+- decidir se o basis vira fator (E10). Hoje ele é só informação na tela.
 
 </details>
 
@@ -98,7 +135,7 @@ secundárias; o risco de El Niño em 2027/28, porque do NOAA CPC só conta a mud
 
 O mesmo módulo atende o milho e a soja: as mudanças podem valer para os três agrícolas.
 
-**O que precisamos do David:** aprovar a volta da Federação de Cafeteiros, a regra nova do El Niño, as quatro fontes
+**O que precisamos do Comitê:** aprovar a volta da Federação de Cafeteiros, a regra nova do El Niño, as quatro fontes
 secundárias como alerta e os valores de meia-vida; dizer se vale só para o café ou para os três agrícolas; e montar a
 lista de eventos de referência para o teste.
 
@@ -130,7 +167,7 @@ entra na regra; vai só como contexto. O fator enxerga a velocidade da queda, n�
 | Resposta não linear | Baixo |
 | Teste fora da amostra | Médio |
 
-**O que precisamos do David:** se a curva fica dentro do F3 ou num fator próprio de estrutura a termo (E10), para não
+**O que precisamos do Comitê:** se a curva fica dentro do F3 ou num fator próprio de estrutura a termo (E10), para não
 contar duas vezes; e o limiar de estoque baixo da resposta não linear.
 
 </details>
@@ -161,7 +198,7 @@ extremo → alta forte"), que parece um voto. A janela do percentil é de 3 anos
 | Tirar a leitura simulada da tela e do relatório, deixando só o papel (extremo comprado ou vendido) | Baixo |
 | Posições da B3 | Fora |
 
-**O que precisamos do David:** decidir, junto com a §3 do documento, como o modificador é aplicado: sobre um sinal
+**O que precisamos do Comitê:** decidir, junto com a §3 do documento, como o modificador é aplicado: sobre um sinal
 calculado em código ou como orientação à IA.
 
 </details>
@@ -192,7 +229,7 @@ Sobre o "dado insuficiente": no FinMind, a marca quer dizer que o dado coletado 
 (falta histórico ou parte das fontes), não que o fator está sem valor. Estão marcados assim o F1, o F2, o F5 e o F6.
 A regra "dado insuficiente não vota" desligaria 4 dos 8 fatores; será tratada com a §6 do documento.
 
-**O que precisamos do David:** confirmar o F6 só no horizonte de 90 dias, com peso baixo.
+**O que precisamos do Comitê:** confirmar o F6 só no horizonte de 90 dias, com peso baixo.
 
 </details>
 
@@ -223,7 +260,7 @@ temperatura mínima nem El Niño.
 | El Niño (ONI e probabilidade) | Baixo |
 | VHI com peso menor | Baixo |
 
-**O que precisamos do David:** a regra nova do clima (por exemplo, a chuva dos últimos 15 a 30 dias abaixo de qual
+**O que precisamos do Comitê:** a regra nova do clima (por exemplo, a chuva dos últimos 15 a 30 dias abaixo de qual
 percentil da climatologia conta como estresse na florada) e a troca do INMET pela NASA POWER.
 
 </details>
@@ -250,7 +287,7 @@ menos firmeza ao F2.
 | Decaimento depois da publicação | Baixo |
 | Testar as medidas de surpresa (a) e (b) contra o histórico | Médio |
 
-**O que precisamos do David:** por quanto tempo a revisão pesa forte e como decai; e quais medidas de surpresa testar.
+**O que precisamos do Comitê:** por quanto tempo a revisão pesa forte e como decai; e quais medidas de surpresa testar.
 
 </details>
 
@@ -275,7 +312,7 @@ o preço (52% contra 48%). O indicador do café do Cepea não está na base.
 | Juntar o F4 e o F5 num fator de incentivo do produtor (ICF em R$ contra o custo) | Médio |
 | Indicador do Cepea | Depois |
 
-**O que precisamos do David:** o peso Baixo e a junção do F4 com o F5.
+**O que precisamos do Comitê:** o peso Baixo e a junção do F4 com o F5.
 
 </details>
 
@@ -301,7 +338,7 @@ o teste de 06/10 achou a crise de margem de 2013).
 | Margem com um preço longo (KC × PTAX ou o preço mensal do FMI) | Baixo a médio |
 | Juntar com o F4 (E8) | Médio |
 
-**O que precisamos do David:** aprovar a data de publicação estimada do custo e a junção com o F4.
+**O que precisamos do Comitê:** aprovar a data de publicação estimada do custo e a junção com o F4.
 
 </details>
 
@@ -334,7 +371,7 @@ não como sinal. O ATR(14) da Cartilha já existe nas carteiras virtuais.
 
 Ordem natural: série contínua (E1) → KC do Yahoo → Federação de Cafeteiros.
 
-**O que precisamos do David:** incluir o momentum (a mudança de filosofia) e autorizar a Federação de Cafeteiros.
+**O que precisamos do Comitê:** incluir o momentum (a mudança de filosofia) e autorizar a Federação de Cafeteiros.
 
 </details>
 
@@ -364,9 +401,11 @@ ajustada (E1).
 | Estrutura a termo como fator, uma vez só | Médio |
 | Contrato mais visível no relatório | Baixo |
 
-**O que precisamos do David:** escolher entre (a) manter um contrato por horizonte (preço negociável, mas horizontes
+**O que precisamos do Comitê:** escolher entre (a) manter um contrato por horizonte (preço negociável, mas horizontes
 com preços de partida diferentes) e (b) a série contínua ajustada para todos (comparáveis e com histórico longo, mas
-sintética); e aprovar a regra de rolagem.
+sintética); e aprovar a regra de rolagem (a proposta está no E1, já calculada na tela de Metodologia do café). Mesmo
+com (a), sugerimos trocar a regra do "dia 15" pela de liquidez: hoje a leitura fica semanas num contrato que já não
+negocia.
 
 </details>
 
@@ -882,7 +921,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Yahoo Finance — Brent futuro e café de Nova York · Petróleo, café · JSON · nível 5 · Dev e servidor (o café só em dev)</summary>
+<summary>Yahoo Finance — Brent futuro e café de Nova York · Petróleo, café · JSON · nível 5 · Dev e servidor</summary>
 
 **Acesso:** endpoint de gráfico do Yahoo, sem chave nem documentação. **Ressalva principal:** **fonte não oficial e provisória** (a oficial, a ICE, é paga; CME e Stooq bloqueiam); termos não preveem coleta automática, uso pessoal com o risco aceito pelo usuário; um vencimento some do Yahoo no dia seguinte ao vencimento. **Evidência:** ADRs 0096 e 0129.
 
@@ -890,8 +929,8 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 |---|---|---|---|---|---|
 | Brent futuro (NYMEX BZ) - ajuste por vencimento | Ajuste diário de cada vencimento dos 13 meses seguintes, US$/barril | Diária | 2018–2020 (vencimentos ativos) | Estimado (fim do dia do pregão em Nova York) | Dev e servidor (backfill de 2026-10-07: 26.672 valores com a contínua, 0 falhas nos dois) |
 | Brent futuro (NYMEX BZ) - 1º vencimento contínuo | O 1º vencimento encadeado pelo Yahoo (`BZ=F`), com o salto de cada rolagem | Diária | 2007-07-30 | Estimado | Dev e servidor |
-| Café arábica de Nova York (ICE KC) - ajuste por vencimento | Ajuste, máxima e mínima de cada vencimento (março, maio, julho, setembro e dezembro, ~18 meses à frente), US¢/lb | Diária | 2024–2025 (vencimentos ativos) | Estimado (fim do dia do pregão em Nova York) | Dev (backfill de 2026-10-20: 16.668 valores com a contínua, 0 falhas) |
-| Café arábica de Nova York (ICE KC) - 1º vencimento contínuo | O 1º vencimento encadeado pelo Yahoo (`KC=F`), com o salto de cada rolagem | Diária | 2000-01-03 | Estimado | Dev |
+| Café arábica de Nova York (ICE KC) - ajuste por vencimento | Ajuste, máxima e mínima de cada vencimento (março, maio, julho, setembro e dezembro, ~18 meses à frente), US¢/lb | Diária | 2024–2025 (vencimentos ativos) | Estimado (fim do dia do pregão em Nova York) | Dev e servidor (backfill de 2026-10-20: 16.668 valores com a contínua, 0 falhas nos dois) |
+| Café arábica de Nova York (ICE KC) - 1º vencimento contínuo | O 1º vencimento encadeado pelo Yahoo (`KC=F`), com o salto de cada rolagem | Diária | 2000-01-03 | Estimado | Dev e servidor |
 
 </details>
 
@@ -953,11 +992,10 @@ Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a 
 Backfill validado em dev que ainda não rodou na VM entra aqui; ao rodar, sai daqui e a fonte passa a "dev e servidor"
 em "Fontes" (§2).
 
-| Fonte | Comando | Esperado |
-|---|---|---|
-| Café arábica de Nova York (ICE KC) pelo Yahoo (ADR 0129) | `npm run backfill:yahoo-kc` | `success`, ~16.700 valores, 0 falhas, em segundos |
+Nenhuma no momento.
 
-As últimas, em 2026-10-08: a soja da Conab (1.074 linhas, 0 falhas, igual a dev; ADR 0114), a área plantada (89 linhas) e o Grain Stocks da soja (566 linhas, com as 2 edições sem CSV,
+A última, em 2026-10-20: o café arábica de Nova York (ICE KC) pelo Yahoo (16.668 valores, 0 falhas, igual a dev; ADR
+0129). Antes, em 2026-10-08: a soja da Conab (1.074 linhas, 0 falhas, igual a dev; ADR 0114), a área plantada (89 linhas) e o Grain Stocks da soja (566 linhas, com as 2 edições sem CSV,
 como no milho), iguais a dev (ADRs 0112 e 0113), o WASDE da soja (21.139 linhas, igual a dev; ADR 0111; o 3º bloco foi interrompido por um deploy e
 repetido com `--anoInicial=2021`), a saúde da vegetação sobre a soja (68.300 valores, igual a dev; ADR 0110; o COT, os preços do
 FMI e o Crop Progress da soja carregam o histórico inteiro na coleta diária), o futuro de soja SJC da B3 (949 pregões, de
@@ -1027,6 +1065,8 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 | Entrega | Resultado | Onde |
 |---|---|---|
 | Ajustes do café | A resposta do FinMind à análise do café de 2026-10-19, item a item (E1 a E11), com o que precisamos do David | §0 |
+| Basis B3 × Nova York e data do preço no Centro de Decisão | 3º passo do E1: o ICF contra o KC do mesmo mês em US$/saca e em %, com o percentil no histórico desde 2022-03, como informação na seção "Preço de referência" da Metodologia do café (hoje no percentil 52: normal); e, no Centro de Decisão, cada horizonte com o contrato, o preço de partida com a data e a data-alvo. Nada vai ao prompt | §0, E1 |
+| Série contínua do ICF (proposta) | 2º passo do E1: os vencimentos do ICF emendados pela liquidez (dentro de 40 pregões do vencimento, entre os 3 seguintes; trava a 10 pregões), com o ajuste proporcional, na tela de Metodologia do café (seção "Preço de referência": gráfico e tabela de trocas). Calculada na hora, sem gravar nada; não vai ao prompt nem ao Centro de Decisão. Regra a validar pelo Comitê. Script de conferência: `node scripts/serie-continua-icf.js` | §0, E1 |
 | Café de Nova York (ICE KC) pelo Yahoo | 1º passo do E1: o ajuste diário de cada vencimento do KC (com máxima e mínima) e a contínua desde 2000, em US¢/lb, fonte não oficial e provisória como o Brent; o coletor do Brent virou um molde comum dos futuros do Yahoo. Cards `KC_FUTURO_PRECOS` e `KC_FUTURO_CONTINUO`. Só aquisição: o basis, a curva e os fatores seguem nos itens da §0 | ADR 0129 |
 
 </details>

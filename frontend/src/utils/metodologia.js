@@ -202,3 +202,26 @@ export function resumoPesos(pesos) {
   const motor = pesos.agregacaoFinMind && pesos.agregacaoFinMind.emProducao !== false ? '; e a leitura agregada do motor (proposta do FinMind)' : ''
   return `No prompt: ${peso}${doEspecialista}${motor}.`
 }
+
+// A série contínua do preço de referência (proposta da análise do café de 2026-10-19): os pregões a partir de `desde`
+// -> as duas linhas do gráfico, no formato do LineChart. A "real" é o ajuste do contrato do dia (salta na troca); a
+// "ajustada" é a proposta (contínua, com o passado corrigido pela razão de cada troca).
+export function linhasSerieContinua(pontos = [], desde) {
+  const linhas = []
+  for (const p of pontos) {
+    if (desde && p.data < desde) continue
+    linhas.push({ data: p.data, valor: p.ajustado, serie: 'ajustado' }, { data: p.data, valor: p.valor, serie: 'real' })
+  }
+  return linhas
+}
+
+// O basis B3 × Nova York (análise do café de 2026-10-19, item E1), a partir de `desde`: a linha do gráfico (o basis em %)
+// e a faixa do histórico inteiro (os percentis 5, 50 e 95), para dizer se o último está fora do normal.
+export function resumoBasis(pontos = [], desde) {
+  const ordenados = pontos.map((p) => p.basisPct).sort((a, b) => a - b)
+  const quantil = (q) => (ordenados.length ? ordenados[Math.floor(q * (ordenados.length - 1))] : null)
+  return {
+    linhas: pontos.filter((p) => !desde || p.data >= desde).map((p) => ({ data: p.data, valor: p.basisPct, serie: 'basis' })),
+    faixa: { p5: quantil(0.05), mediana: quantil(0.5), p95: quantil(0.95) }
+  }
+}

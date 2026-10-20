@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 
 import {
   desdeDoPeriodo,
+  linhasSerieContinua,
+  resumoBasis,
   celulaPesoFamilia,
   resumoPesos,
   temCalendario,
@@ -176,4 +178,26 @@ test('resumoPesos: o que vai ao prompt, por ativo', () => {
 test('temCalendario: só com peso próprio do especialista em algum fator', () => {
   assert.equal(temCalendario({ fatores: [{ codigo: 'A' }] }), false)
   assert.equal(temCalendario({ fatores: [{ codigo: 'A' }, { codigo: 'B', fixo: 'Alto' }] }), true)
+})
+
+test('linhasSerieContinua: as duas linhas por pregão, a partir de `desde`', () => {
+  const pontos = [
+    { data: '2026-08-12', ticker: 'ICFU26', valor: 400, ajustado: 379.27 },
+    { data: '2026-08-13', ticker: 'ICFZ26', valor: 382.3, ajustado: 382.3 }
+  ]
+  assert.deepEqual(linhasSerieContinua(pontos, '2026-08-13'), [
+    { data: '2026-08-13', valor: 382.3, serie: 'ajustado' },
+    { data: '2026-08-13', valor: 382.3, serie: 'real' }
+  ])
+  assert.equal(linhasSerieContinua(pontos).length, 4)
+})
+
+test('resumoBasis: a linha do basis em % a partir de `desde` e a faixa do histórico inteiro', () => {
+  const pontos = Array.from({ length: 21 }, (_, i) => ({ data: `2026-01-${String(i + 1).padStart(2, '0')}`, basisPct: i - 10 }))
+  const { linhas, faixa } = resumoBasis(pontos, '2026-01-20')
+  assert.deepEqual(linhas, [
+    { data: '2026-01-20', valor: 9, serie: 'basis' },
+    { data: '2026-01-21', valor: 10, serie: 'basis' }
+  ])
+  assert.deepEqual(faixa, { p5: -9, mediana: 0, p95: 9 })
 })

@@ -16,6 +16,9 @@ router.get("/ativos/:ativo/metodologia/simulacao", requireAuth, metodologiaAtivo
 router.get("/ativos/:ativo/metodologia/prompt-diario", requireAuth, metodologiaAtivoController.promptDiario);
 // Fator de evento (ADR 0050): os eventos da leitura diária marcados com ele, na janela do fator, e o bloco do prompt.
 router.get("/ativos/:ativo/metodologia/fatores/:fator/eventos", requireAuth, metodologiaAtivoController.obterEventosFator);
+// O preço de referência (análise do café de 2026-10-19, E1): a série contínua (proposta, E1 e E11) e o basis B3 x Nova
+// York (informação), só no café, por ora.
+router.get("/ativos/:ativo/metodologia/preco-referencia", requireAuth, metodologiaAtivoController.obterPrecoReferencia);
 // Os parâmetros da camada C em uso no sistema (ADR 0050): o histórico para todos; gravar uma versão nova, só admin.
 router.get("/ativos/:ativo/metodologia/fatores/:fator/parametros", requireAuth, metodologiaAtivoController.listarParametros);
 router.post(

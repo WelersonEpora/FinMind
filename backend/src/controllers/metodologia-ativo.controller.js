@@ -43,6 +43,14 @@ async function promptDiario(req, res, next) {
   }
 }
 
+async function obterPrecoReferencia(req, res, next) {
+  try {
+    return res.json(await metodologiaAtivoService.obterPrecoReferencia(req.params.ativo));
+  } catch (err) {
+    return next(err);
+  }
+}
+
 async function listarParametros(req, res, next) {
   try {
     return res.json(await metodologiaAtivoService.listarParametros(req.params.ativo, req.params.fator));
@@ -60,4 +68,4 @@ async function salvarParametros(req, res, next) {
   }
 }
 
-module.exports = { detalhar, calcularFator, obterEventosFator, simular, promptDiario, listarParametros, salvarParametros };
+module.exports = { detalhar, calcularFator, obterEventosFator, simular, promptDiario, obterPrecoReferencia, listarParametros, salvarParametros };
