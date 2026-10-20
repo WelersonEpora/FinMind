@@ -21,6 +21,7 @@ const eiaEtanolCollector = require("./eia/eia-etanol.collector");
 const eiaPetroleoCollector = require("./eia/eia-petroleo.collector");
 const eiaSteoCollector = require("./eia/eia-steo.collector");
 const yahooBrentFuturoCollector = require("./yahoo/yahoo-brent-futuro.collector");
+const { criarColetorFuturoYahoo } = require("./yahoo/yahoo-futuro.collector");
 const anpProducaoPetroleoCollector = require("./anp/anp-producao-petroleo.collector");
 const jodiProducaoPetroleoCollector = require("./jodi/jodi-producao-petroleo.collector");
 const jodiDemandaPetroleoCollector = require("./jodi/jodi-demanda-petroleo.collector");
@@ -108,6 +109,9 @@ function bootstrapCollectors() {
     // Brent futuro (NYMEX BZ) pelo Yahoo: fonte NÃO oficial e provisória, autorizada pelo usuário até a decisão do
     // Comitê sobre a ICE (ADR 0096).
     registerCollector(yahooBrentFuturoCollector);
+    // Café arábica da ICE (KC) pelo Yahoo: a mesma fonte não oficial e provisória, autorizada pelo usuário para o basis
+    // B3 x Nova York, a curva de Nova York e o histórico longo do café (ADR 0129).
+    registerCollector(criarColetorFuturoYahoo("kc"));
     registerCollector(anpProducaoPetroleoCollector);
     registerCollector(jodiProducaoPetroleoCollector);
     registerCollector(jodiDemandaPetroleoCollector);

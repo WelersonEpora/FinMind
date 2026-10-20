@@ -2123,6 +2123,54 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- Café arábica de Nova York (ICE KC) pelo Yahoo: fonte NÃO oficial e provisória (ADR 0129) ---
+  // Séries `YAHOO.KC.<TICKER>.SETTLE` por vencimento (o mesmo card dos futuros da B3) e a contínua do Yahoo à parte.
+  {
+    instrumentCode: "KC_FUTURO_PRECOS",
+    origem: "observation",
+    nome: "Café arábica de Nova York (ICE KC) - ajuste por vencimento",
+    unidade: "US¢/lb",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "Yahoo Finance (não oficial) - café arábica \"C\" da ICE (KC)",
+    fonteCollectorCode: "yahoo-kc-futuro",
+    porVencimento: { prefixoSerie: "YAHOO.KC", campoReferencia: "SETTLE" },
+    campoPrincipal: "SETTLE",
+    campos: [{ codigo: "SETTLE", nome: "Preço de ajuste", unidade: "US¢/lb", casasDecimais: 2 }],
+    fonteDetalhe: {
+      descricao:
+        "Preço de ajuste diário de cada vencimento do café arábica \"C\" da ICE Futures U.S. (KC, Nova York), em centavos de dólar por libra-peso: a referência mundial do arábica, de onde vêm o COT dos fundos e os estoques certificados. Serve para comparar com o ICF da B3 (o basis B3 × Nova York; 1 saca de 60 kg = 132,28 lb, então US$/saca = centavos/lb × 1,3228) e para a curva de Nova York. Cada vencimento é uma linha própria.",
+      metodologia:
+        "Um valor por vencimento e pregão: o fechamento diário do Yahoo, que é o ajuste (o pregão fecha às 13:30 de Nova York; em 15, 16 e 19/10/2026 o diário do KCH27 difere do último negócio das 13:25, o que mostra que é apurado à parte). Cinco vencimentos por ano (março, maio, julho, setembro e dezembro), listados até ~18 meses à frente. Só pregões encerrados: o do dia entra na coleta seguinte. A data de disponibilidade é ESTIMADA (fim do dia do pregão em Nova York). Os vencimentos ativos têm histórico desde a listagem; um vencimento some do Yahoo no dia seguinte ao vencimento, então o histórico dos já vencidos é o que o FinMind guardou. FONTE NÃO OFICIAL E PROVISÓRIA: endpoint sem documentação nem garantia, termos de uso que não preveem coleta automática (dado da ICE redistribuído); uso pessoal, com o risco aceito pelo usuário (ADR 0129).",
+      escopo: "só o ajuste. A máxima e a mínima do dia também são gravadas, fora do card. Não coletados: abertura e volume (o volume do Yahoo tem dias repetidos).",
+      formatoOrigem: "JSON (query1.finance.yahoo.com/v8/finance/chart, sem chave nem documentação oficial)",
+      urlOficial: "https://finance.yahoo.com/quote/KC%3DF/"
+    }
+  },
+  {
+    instrumentCode: "KC_FUTURO_CONTINUO",
+    origem: "observation",
+    nome: "Café arábica de Nova York (ICE KC) - 1º vencimento contínuo",
+    unidade: "US¢/lb",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "Yahoo Finance (não oficial) - café arábica \"C\" da ICE (KC=F)",
+    fonteCollectorCode: "yahoo-kc-futuro",
+    series: [{ modalidade: "settle", seriesCode: "YAHOO.KC_CONTINUO.SETTLE" }],
+    modalidadePrincipal: "settle",
+    fonteDetalhe: {
+      descricao:
+        "O ajuste do 1º vencimento do café arábica da ICE, encadeado numa série contínua PELO YAHOO (KC=F), não pelo FinMind. É o único histórico dos vencimentos que já saíram do Yahoo e o histórico diário mais longo do café na base.",
+      metodologia:
+        "Um valor por pregão, desde 03/01/2000. A série rola para o vencimento seguinte no pregão depois do último negócio do vencimento, sem ajuste: o salto da rolagem fica na série (em 21/09/2026, do vencimento de setembro, a 294,55 em 18/09, para o de dezembro, a 276,40). Alguns dias podem vir sem fechamento na fonte e não são gravados. Mesma data de disponibilidade estimada e mesmas ressalvas de fonte não oficial e provisória do card por vencimento (ADR 0129).",
+      escopo: "só o ajuste do 1º vencimento. Por vencimento: o card \"Café arábica de Nova York (ICE KC) - ajuste por vencimento\".",
+      formatoOrigem: "JSON (query1.finance.yahoo.com/v8/finance/chart, sem chave nem documentação oficial)",
+      urlOficial: "https://finance.yahoo.com/quote/KC%3DF/"
+    }
+  },
+
   // --- ECF - estoques de café verde nos portos europeus, por tipo, mensal (ADR 0061) ---
   {
     instrumentCode: "ECF_CAFE_ESTOQUES",

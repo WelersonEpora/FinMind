@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-16.**
+**Última atualização: 2026-10-20.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -12,6 +12,365 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 > vale o documento apontado: `CLAUDE.md` (regras e convenções) e os ADRs em
 > `docs/adr/` (decisões, evidências e a autorização de cada fonte). O que depende
 > do David e do Comitê está aqui mesmo, na §4.
+
+<details>
+<summary>0. Ajustes do café (análise de 2026-10-19)</summary>
+
+Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind indica baixa e o café está em alta?*).
+O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
+a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
+fim, **o que precisamos do David**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
+serão analisadas. Nada aqui foi implementado: é a análise para decidirmos juntos.
+
+**Decisões pedidas, em uma tabela:**
+
+| Item | O que precisamos do David |
+|---|---|
+| E1 | A regra de rolagem da série contínua do ICF (junto com o E11) |
+| E2 | Aprovar a volta da Federação de Cafeteiros, a regra nova do El Niño, as fontes secundárias como alerta e a meia-vida dos eventos; montar a lista de eventos de referência para medir a captura |
+| E3 | Onde fica a curva (no F3 ou num fator próprio) e o limiar do estoque baixo |
+| E4 | Junto com a §3 do documento: como aplicar o F7 como modificador |
+| E5 | Confirmar o F6 só no horizonte de 90 dias |
+| E6 | A regra nova do clima (janela de chuva e limiar) e a troca do INMET pela NASA POWER |
+| E7 | Quanto tempo a revisão da Conab pesa forte depois de publicada e qual medida de surpresa testar |
+| E8 | Peso Baixo para o câmbio e juntar o F4 com o F5 num fator de incentivo do produtor |
+| E9 | A data de publicação estimada do custo da Conab e o mesmo "juntar com o F4" |
+| E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos) e autorizar a Federação de Cafeteiros |
+| E11 | Contrato por horizonte ou série contínua ajustada para todos |
+
+O KC de Nova York pelo Yahoo (fonte não oficial e provisória, como o Brent futuro), necessário para o E1, o E3 e o E10,
+foi **autorizado pelo usuário em 2026-10-20** e já é coletado (ADR 0129).
+
+<details>
+<summary>E1. Defasagem e base de preço</summary>
+
+**Nossa avaliação:** dos três pedidos, um já é atendido, um é viável com o dado que temos e destrava outros itens, e o
+terceiro passa a ser viável pelo Yahoo. Vale a pena.
+
+**O que o FinMind tem hoje:** a leitura roda de madrugada, com o último ajuste oficial da B3; na segunda, é o de sexta,
+e o horizonte de 1 dia vai até o fechamento de segunda (ADR 0106). Cada horizonte usa o vencimento do ICF que ainda
+negocia depois da data-alvo, sem emendar contratos (ADR 0078). O preço do KC de Nova York não está na base.
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Sinal com o fechamento de D para D+1, com a data registrada | Já atende | O preço de 16/10 numa leitura de 19/10 é o último ajuste que existia. Rodar à noite ganharia poucas horas: às 19h a B3 ainda publica o ajuste como parcial |
+| Série contínua do ICF com rolagem explícita e ajuste do salto | Sim | Temos o ICF por vencimento desde 03/2022, com ajuste, contratos negociados e em aberto: dá para rolar pela liquidez ou 10 dias úteis antes do vencimento. Histórico curto (~4,5 anos) |
+| Conciliar B3 e ICE e calcular o basis com percentil | Sim, pelo Yahoo | O KC está no Yahoo por vencimento e contínuo desde 2000, sem custo. Em 16/10: KCZ26 a 305,60 c/lb × 1,3228 = US$ 404,2/saca, contra o ICFZ26 a US$ 377,10: basis de cerca de −27 US$/saca (−6,7%) |
+
+| Sugestão | Esforço |
+|---|---|
+| Deixar a data do preço bem visível no relatório | Baixo |
+| Série contínua ajustada (junto com o E11) | Médio |
+| Coletar o KC pelo Yahoo e calcular o basis | Baixo a médio |
+
+**O que precisamos do David:** a regra de rolagem da série contínua (a do documento ou outra), decidida junto com o E11.
+
+</details>
+
+<details>
+<summary>E2. Módulo de eventos</summary>
+
+**Nossa avaliação:** o documento tem razão. O módulo foi desenhado estreito para o café: procura choques (geada,
+tarifa, rota) e descarta a informação de mercado que está movendo o preço. É o ajuste que mais muda o resultado.
+
+**O que o FinMind tem hoje:** uma leitura diária por IA, com busca na web só em fontes primárias autorizadas. Cada
+evento já tem tipo, direção (pressão de alta, baixa ou ambígua), intensidade (baixa, média ou alta) e confiança. Por
+regra, o que já coletamos como dado (estoques, exportações, relatórios de safra) não conta como evento. Os três fatos
+citados pelo documento ficaram de fora por motivos diferentes: os estoques baixos, por essa regra (é tarefa do F3, ver
+E3); a safra colombiana, porque a Federação de Cafeteiros ficou fora no teste de 06/10 e as fontes que a publicaram são
+secundárias; o risco de El Niño em 2027/28, porque do NOAA CPC só conta a mudança de status do fenômeno.
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Ampliar o escopo (Brasil, Colômbia, Vietnã, El Niño, estoques, exportações, câmbio) | Sim, em parte | Colômbia: voltar com a Federação de Cafeteiros. Vietnã: o USDA FAS já está na lista. El Niño: contar também a mudança de probabilidade. Estoques, exportações e câmbio já são dados diários: a correção deles fica nos fatores (E3 e E8) |
+| Classificar por tipo, direção, magnitude, horizonte e meia-vida | Quase pronto | Faltam o horizonte e a meia-vida. A meia-vida pode ser uma regra fixa por tipo (notícia de 3 a 5 dias; relatório de 20 a 30 dias). Hoje a IA recebe a idade do evento e julga o peso sozinha |
+| Fontes primárias com peso pleno; secundárias só com confirmação ou como alerta | Sim, depois de testar | Hoje só há primárias. Safras & Mercado, Notícias Agrícolas, Cepea e Trading Economics entrariam como alerta, com confiança baixa. Antes, testar se a busca da IA consegue ler esses sites |
+| "NORMAL" só com o escopo completo; senão, "NÃO VERIFICADO" | Sim | Hoje, quando a pesquisa não cumpre o mínimo, a leitura é repetida uma vez; se falhar de novo, fica NORMAL com um aviso interno. A troca é simples |
+| Teste retroativo: capturar 80% dos eventos relevantes em 30 dias | Em parte | Precisa de uma lista de eventos de referência feita à mão. Refazer datas passadas é otimista (a busca de hoje vê o que saiu depois); o teste honesto é daqui para frente |
+
+| Sugestão | Esforço |
+|---|---|
+| Colômbia, Vietnã e El Niño no escopo | Baixo |
+| Horizonte e meia-vida dos eventos | Baixo a médio |
+| Fontes secundárias como alerta | Médio |
+| Status NÃO VERIFICADO | Baixo |
+| Teste de captura daqui para frente | Médio |
+
+O mesmo módulo atende o milho e a soja: as mudanças podem valer para os três agrícolas.
+
+**O que precisamos do David:** aprovar a volta da Federação de Cafeteiros, a regra nova do El Niño, as quatro fontes
+secundárias como alerta e os valores de meia-vida; dizer se vale só para o café ou para os três agrícolas; e montar a
+lista de eventos de referência para o teste.
+
+</details>
+
+<details>
+<summary>E3. F3: estoques certificados da ICE</summary>
+
+**Nossa avaliação:** a falha é maior do que o documento descreve, e os ajustes agregam. A curva (backwardation) é o
+sinal mais forte que o sistema não usa.
+
+**O que o FinMind tem hoje:** o F3 mede só a **variação do estoque em 4 semanas** e a compara com os últimos 5 anos. O
+41 citado pelo documento é o percentil dessa variação (−6,83% é uma queda comum), não do nível. O nível do estoque não
+entra na regra; vai só como contexto. O fator enxerga a velocidade da queda, não se o estoque está baixo.
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Percentil de longo prazo (10 a 20 anos) | Sim | O diário da ICE vai desde 01/2016 (~10,8 anos); a média mensal da ICO para Nova York, desde 10/2012 |
+| Inclinação da curva (1º contra 2º vencimento) | Sim | Curva do ICF (já temos) e do KC (Yahoo). Em 16/10, Nova York tinha −3,6% de dezembro para março; o ICF, −1,6%. Café costuma ter o vencimento longo mais caro: a curva invertida nas duas bolsas é sinal de aperto |
+| Estoque em dias de consumo (USDA) | Sim | Acrescenta pouco: o estoque certificado é de 1 a 3 dias de consumo mundial, e o consumo muda pouco de um ano para outro |
+| Resposta não linear abaixo do percentil 10 | Sim | O limiar e o peso são decisão |
+| Correlação positiva com o retorno de 20 dias fora da amostra | Sim | Com o KC desde 2000 e os estoques desde 2016, há ~10 anos para testar |
+
+| Sugestão | Esforço |
+|---|---|
+| Percentil do nível em 10 anos | Baixo |
+| Curva do ICF e do KC | Médio |
+| Dias de consumo | Baixo; pode ficar para depois |
+| Resposta não linear | Baixo |
+| Teste fora da amostra | Médio |
+
+**O que precisamos do David:** se a curva fica dentro do F3 ou num fator próprio de estrutura a termo (E10), para não
+contar duas vezes; e o limiar de estoque baixo da resposta não linear.
+
+</details>
+
+<details>
+<summary>E4. F7: posição dos fundos (COT)</summary>
+
+**Nossa avaliação:** o FinMind chegou à mesma conclusão antes: o extremo vendido sozinho não antecipou alta. O F7 já é
+modificador, sem voto. O que agrega é o teste das três versões, a janela de 10 anos e a variação semanal.
+
+**O que o FinMind tem hoje:** desde 06/10, o F7 não vota e não muda a confiança, por um teste no histórico de 2009 a
+2026 (ADR 0089). O que pode ter confundido: a tela e o relatório ainda mostram a leitura simulada do fator ("vendido em
+extremo → alta forte"), que parece um voto. A janela do percentil é de 3 anos.
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Não inverter o sinal agora | Já atende | — |
+| Modificador que multiplica o sinal final por m entre 0,5 e 1,0 | Não como está escrito | Supõe um sinal final numérico. Hoje quem faz a leitura final é a IA; a soma ponderada em código saiu da leitura em 07/10 por não superar os benchmarks (ADR 0066). Depende da §3 do documento |
+| Testar três versões fora da amostra, por episódio | Sim | COT desde 2006 e KC desde 2000. São ~20 episódios por lado: estatística fraca, como o próprio documento diz |
+| Janela de 10 anos | Sim | É um parâmetro; o milho já usa 10 anos |
+| Variação semanal da posição líquida | Sim | O dado já está na base |
+| Posições por tipo de investidor na B3 | Duvidoso | O ICF é pouco líquido, e seria fonte nova. Sugerimos deixar fora |
+
+| Sugestão | Esforço |
+|---|---|
+| Teste das três versões | Médio |
+| Janela de 10 anos e variação semanal | Baixo |
+| Tirar a leitura simulada da tela e do relatório, deixando só o papel (extremo comprado ou vendido) | Baixo |
+| Posições da B3 | Fora |
+
+**O que precisamos do David:** decidir, junto com a §3 do documento, como o modificador é aplicado: sobre um sinal
+calculado em código ou como orientação à IA.
+
+</details>
+
+<details>
+<summary>E5. F6: demanda (USDA PSD)</summary>
+
+**Nossa avaliação:** concordamos. A nossa própria validação já mostrava que o consumo não separa o preço; falta
+amarrar o horizonte.
+
+**O que o FinMind tem hoje:** o F6 compara o crescimento do consumo mundial com a faixa de 1% a 2% ao ano. No
+histórico de 2003 a 2026, não separou o preço: nos anos de consumo forte o preço subiu em 7 de 11; nos de consumo
+fraco, em 8 de 12. O fator vai à leitura em todos os horizontes, com o peso Médio do FEL 1, e a IA decide sozinha se
+ele pesa no curto prazo.
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Tirar do curto prazo; só no horizonte de 90 dias, com peso baixo | Sim | Uma regra explícita, como a que o custo (F5) já tem |
+| Acompanhamento mensal pelo Cecafé e pela ICO | Sim, com ressalva | Os dados já estão na base, mas as exportações do Cecafé medem o fluxo de saída do Brasil, mais oferta do que demanda. Da ICO coletamos preços e estoques, não consumo. Demanda de verdade seria a importação dos blocos consumidores (UE e EUA): fonte nova |
+
+| Sugestão | Esforço |
+|---|---|
+| F6 só no horizonte de 90 dias, com peso baixo | Baixo |
+| Fluxo mensal do Cecafé, rotulado como fluxo | Baixo a médio |
+| Importação por bloco | Depois |
+
+Sobre o "dado insuficiente": no FinMind, a marca quer dizer que o dado coletado não cobre a regra inteira do estudo
+(falta histórico ou parte das fontes), não que o fator está sem valor. Estão marcados assim o F1, o F2, o F5 e o F6.
+A regra "dado insuficiente não vota" desligaria 4 dos 8 fatores; será tratada com a §6 do documento.
+
+**O que precisamos do David:** confirmar o F6 só no horizonte de 90 dias, com peso baixo.
+
+</details>
+
+<details>
+<summary>E6. F1: clima (VHI)</summary>
+
+**Nossa avaliação:** a direção do fator não está invertida, mas a medida é ruim para a florada. Chuva e El Niño
+agregam bastante.
+
+**O que o FinMind tem hoje:** o F1 já é sazonal: decide só na janela de geada (junho a agosto) e na de florada
+(setembro a novembro). Mede a saúde da vegetação (VHI da NOAA) contra 30 anos. Em outubro, com o VHI em 61, bem acima
+da mediana, lê "lavoura boa → baixa", o que bate com a regra do próprio documento ("florada com chuva regular é
+baixista"). O problema é que o VHI mostra a vegetação com atraso, não a regularidade da chuva agora. Não temos chuva,
+temperatura mínima nem El Niño.
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Leitura por janela sazonal | Sim | Existe para geada e florada; falta a colheita (maio a setembro: excesso de chuva é altista), que precisa de dado de chuva |
+| Chuva e temperatura mínima por região | Sim, pela NASA POWER | O INMET exige cadastro na API; o arquivo vem com ~1 mês de atraso e as estações do café começam em 2002–2006, sem 30 anos de climatologia. A NASA POWER é gratuita, diária, por coordenada, desde 1981 e com poucos dias de atraso: um ponto para o Sul de Minas, a Mogiana, o Cerrado Mineiro e o Espírito Santo. É dado de modelo e satélite, não de estação |
+| Alertas de geada | Em parte | O INMET já está no módulo de eventos, para geada ocorrida |
+| El Niño como regime | Sim | O ONI do NOAA CPC é mensal, público, desde 1950. O que moveu o mercado agora foi a probabilidade prevista para 2027/28, também do CPC, mensal |
+| VHI com peso menor | Sim | — |
+
+| Sugestão | Esforço |
+|---|---|
+| Chuva e temperatura mínima pela NASA POWER | Médio |
+| Janela da colheita | Baixo, depois da chuva |
+| El Niño (ONI e probabilidade) | Baixo |
+| VHI com peso menor | Baixo |
+
+**O que precisamos do David:** a regra nova do clima (por exemplo, a chuva dos últimos 15 a 30 dias abaixo de qual
+percentil da climatologia conta como estresse na florada) e a troca do INMET pela NASA POWER.
+
+</details>
+
+<details>
+<summary>E7. F2: safra da Conab</summary>
+
+**Nossa avaliação:** o documento acerta: uma revisão já esperada não é surpresa. O decaimento depois da publicação é
+barato e corrige o caso atual.
+
+**O que o FinMind tem hoje:** o F2 já mede a revisão do arábica contra o levantamento anterior, não o nível (que vai só
+como contexto). A revisão de +5,33% passou do limiar forte (5%): baixa forte. A revisão vale com a mesma força até o
+levantamento seguinte, cerca de 3 meses. O consenso de analistas é pago e não é coletado; hoje a IA só é orientada a dar
+menos firmeza ao F2.
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Medir a surpresa contra a expectativa do mercado | Não com o consenso (pago); sim, com aproximações | (a) A Conab contra a estimativa do USDA para o Brasil, publicada antes: o USDA fica sempre acima, então a medida é a mudança da diferença, com amostra pequena (Conab desde 2023). (b) A reação do preço no dia da publicação: se o preço quase não se mexeu, já era esperado. (c) Estimativas privadas (Safras & Mercado, Cooxupé), pelos eventos, se o E2 for aprovado |
+| Sinal forte por 1 a 2 semanas e depois decaindo | Sim | A data de publicação já está na base |
+| Nível só como contexto de longo prazo | Já atende | — |
+
+| Sugestão | Esforço |
+|---|---|
+| Decaimento depois da publicação | Baixo |
+| Testar as medidas de surpresa (a) e (b) contra o histórico | Médio |
+
+**O que precisamos do David:** por quanto tempo a revisão pesa forte e como decai; e quais medidas de surpresa testar.
+
+</details>
+
+<details>
+<summary>E8. F4: câmbio</summary>
+
+**Nossa avaliação:** concordamos com o peso menor. O "preço real" agrega, mas se sobrepõe ao F5: o melhor é juntar os
+dois.
+
+**O que o FinMind tem hoje:** o F4 mede a variação da PTAX em 10 pregões contra 5 anos (real se valorizando rápido, o
+produtor segura a venda, alta; real se desvalorizando forte, ele vende, baixa). A validação histórica quase não separa
+o preço (52% contra 48%). O indicador do café do Cepea não está na base.
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Peso de Médio para Baixo | Sim | A evidência sustenta |
+| Preço real: arábica do Cepea em R$ comparado ao ICF em R$ | Em parte | O Cepea do café seria fonte nova, com restrição de uso (no milho, ele vem pela B3; no café, não). Com o que temos: o ICF em R$ (ICF × PTAX) contra o custo de produção da Conab, que mede o incentivo do produtor a vender. Isso é quase o que o F5 mede |
+
+| Sugestão | Esforço |
+|---|---|
+| Peso Baixo | Baixo |
+| Juntar o F4 e o F5 num fator de incentivo do produtor (ICF em R$ contra o custo) | Médio |
+| Indicador do Cepea | Depois |
+
+**O que precisamos do David:** o peso Baixo e a junção do F4 com o F5.
+
+</details>
+
+<details>
+<summary>E9. F5: custo e margem</summary>
+
+**Nossa avaliação:** concordamos com o horizonte. O que falta é o fator funcionar: hoje fica neutro por construção.
+
+**O que o FinMind tem hoje:** o F5 compara o ICF em R$ com o custo da Conab e já é orientado só para o horizonte longo.
+A Conab não informa quando publicou cada custo; por isso, o custo só conta como conhecido desde a 1ª coleta
+(01/10/2026), e a regra da margem alta precisa de 2 anos: só decidiria em 10/2028. O histórico do custo existe (15 anos;
+o teste de 06/10 achou a crise de margem de 2013).
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Piso de longo prazo, acima de 90 dias | Já atende na orientação | Falta fixar no fator |
+| Sem sinal diário | Sim | — |
+
+| Sugestão | Esforço |
+|---|---|
+| Fixar o F5 no horizonte longo | Baixo |
+| Data de publicação estimada por regra, marcada como estimada (libera os 15 anos) | Baixo |
+| Margem com um preço longo (KC × PTAX ou o preço mensal do FMI) | Baixo a médio |
+| Juntar com o F4 (E8) | Médio |
+
+**O que precisamos do David:** aprovar a data de publicação estimada do custo e a junção com o F4.
+
+</details>
+
+<details>
+<summary>E10. Fatores ausentes</summary>
+
+**Nossa avaliação:** agregam. O momentum é o mais importante: a alta de 11,6% em 30 dias é o que o sistema não
+explica, porque nenhum fator olha o próprio preço.
+
+**O que o FinMind tem hoje:** a IA recebe o histórico do preço, mas só para dizer quanto do movimento já aconteceu,
+não como sinal. O ATR(14) da Cartilha já existe nas carteiras virtuais.
+
+| Novo fator | Viável? | Comentário |
+|---|---|---|
+| Momentum (retorno de 5, 20 e 60 dias ÷ volatilidade) | Sim | Depende da série contínua do E1: sem ela, o retorno cruza a troca de contrato. Muda a filosofia: o sistema passa a seguir tendência, não só fundamentos |
+| Estrutura a termo | Sim | Curvas do ICF e do KC. É o mesmo pedido do E3: fazer num lugar só |
+| Basis B3 × NY | Sim | É o E1, com o KC do Yahoo |
+| Oferta colombiana | Sim | Federação de Cafeteiros: planilha mensal pública, produção desde 1956, ~1 mês de atraso. Sem consenso público, a comparação é com o mesmo mês de anos anteriores. Fonte nova |
+| Sazonalidade | Sim | Os 4 anos do ICF não bastam; usar o KC desde 2000 e o preço mensal do FMI. No café costuma ser fraca: testar antes de pesar |
+| Volatilidade (ATR) | Já existe | Reaproveitar o das carteiras. Serve para a faixa, a confiança e o tamanho da posição, não para a direção |
+
+| Sugestão | Esforço |
+|---|---|
+| Momentum | Médio |
+| Estrutura a termo, num lugar só | Médio |
+| Basis | Baixo, depois do KC |
+| Oferta colombiana | Médio |
+| Sazonalidade, com teste | Baixo |
+| ATR | Baixo |
+
+Ordem natural: série contínua (E1) → KC do Yahoo → Federação de Cafeteiros.
+
+**O que precisamos do David:** incluir o momentum (a mudança de filosofia) e autorizar a Federação de Cafeteiros.
+
+</details>
+
+<details>
+<summary>E11. Mistura de contratos nos horizontes (ICFFUT)</summary>
+
+**Nossa avaliação:** o problema não existe como foi descrito, mas a sugestão por trás dele é boa: uma série contínua
+ajustada deixa os horizontes comparáveis e destrava o momentum.
+
+**O que o FinMind tem hoje:** cada horizonte usa o vencimento que ainda negocia depois da data-alvo (1, 7 e 30 dias no
+ICFZ26; 90 dias no ICFH27), e a variação e o realizado de cada um são medidos dentro do mesmo contrato (ADR 0078). Os
++4,21% são do próprio ICFH27. A diferença contra os +1,75% do ICFZ26 é a mudança do spread entre os dois, ou seja, a
+estrutura a termo se mexendo, não um erro de medida. O ICFFUT é a série contínua da Nelogica (Profit), montada pelo
+fornecedor e emendada na troca de contrato: não temos acesso a ela. O equivalente é a nossa própria série contínua
+ajustada (E1).
+
+| Pedido | Viável? | Comentário |
+|---|---|---|
+| Todos os horizontes no mesmo contrato ou em série contínua ajustada (ICFFUT) | Sim, com a nossa série | O preço da série contínua é sintético (não negociável num contrato só) e o realizado de um horizonte longo passa por uma rolagem |
+| Separar a variação do preço da variação da estrutura | Sim | É a estrutura a termo do E3 e do E10 |
+| Registrar o contrato de cada horizonte | Já atende | Pode ficar mais visível no relatório |
+| Critério: nenhum horizonte cruza contratos sem ajuste | Já cumprido | — |
+
+| Sugestão | Esforço |
+|---|---|
+| Série contínua ajustada (com o E1) | Médio |
+| Estrutura a termo como fator, uma vez só | Médio |
+| Contrato mais visível no relatório | Baixo |
+
+**O que precisamos do David:** escolher entre (a) manter um contrato por horizonte (preço negociável, mas horizontes
+com preços de partida diferentes) e (b) a série contínua ajustada para todos (comparáveis e com histórico longo, mas
+sintética); e aprovar a regra de rolagem.
+
+</details>
+
+</details>
 
 <details>
 <summary>1. Onde estamos e próximos passos</summary>
@@ -523,14 +882,16 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
-<summary>Yahoo Finance — Brent futuro · Petróleo · JSON · nível 5 · Dev e servidor</summary>
+<summary>Yahoo Finance — Brent futuro e café de Nova York · Petróleo, café · JSON · nível 5 · Dev e servidor (o café só em dev)</summary>
 
-**Acesso:** endpoint de gráfico do Yahoo, sem chave nem documentação. **Ressalva principal:** **fonte não oficial e provisória** (a oficial, a ICE, é paga e depende do Comitê; CME e Stooq bloqueiam); termos não preveem coleta automática, uso pessoal com o risco aceito pelo usuário; um vencimento some do Yahoo no dia seguinte ao vencimento. **Evidência:** ADR 0096.
+**Acesso:** endpoint de gráfico do Yahoo, sem chave nem documentação. **Ressalva principal:** **fonte não oficial e provisória** (a oficial, a ICE, é paga; CME e Stooq bloqueiam); termos não preveem coleta automática, uso pessoal com o risco aceito pelo usuário; um vencimento some do Yahoo no dia seguinte ao vencimento. **Evidência:** ADRs 0096 e 0129.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
 | Brent futuro (NYMEX BZ) - ajuste por vencimento | Ajuste diário de cada vencimento dos 13 meses seguintes, US$/barril | Diária | 2018–2020 (vencimentos ativos) | Estimado (fim do dia do pregão em Nova York) | Dev e servidor (backfill de 2026-10-07: 26.672 valores com a contínua, 0 falhas nos dois) |
 | Brent futuro (NYMEX BZ) - 1º vencimento contínuo | O 1º vencimento encadeado pelo Yahoo (`BZ=F`), com o salto de cada rolagem | Diária | 2007-07-30 | Estimado | Dev e servidor |
+| Café arábica de Nova York (ICE KC) - ajuste por vencimento | Ajuste, máxima e mínima de cada vencimento (março, maio, julho, setembro e dezembro, ~18 meses à frente), US¢/lb | Diária | 2024–2025 (vencimentos ativos) | Estimado (fim do dia do pregão em Nova York) | Dev (backfill de 2026-10-20: 16.668 valores com a contínua, 0 falhas) |
+| Café arábica de Nova York (ICE KC) - 1º vencimento contínuo | O 1º vencimento encadeado pelo Yahoo (`KC=F`), com o salto de cada rolagem | Diária | 2000-01-03 | Estimado | Dev |
 
 </details>
 
@@ -592,7 +953,9 @@ Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a 
 Backfill validado em dev que ainda não rodou na VM entra aqui; ao rodar, sai daqui e a fonte passa a "dev e servidor"
 em "Fontes" (§2).
 
-Nenhuma no momento.
+| Fonte | Comando | Esperado |
+|---|---|---|
+| Café arábica de Nova York (ICE KC) pelo Yahoo (ADR 0129) | `npm run backfill:yahoo-kc` | `success`, ~16.700 valores, 0 falhas, em segundos |
 
 As últimas, em 2026-10-08: a soja da Conab (1.074 linhas, 0 falhas, igual a dev; ADR 0114), a área plantada (89 linhas) e o Grain Stocks da soja (566 linhas, com as 2 edições sem CSV,
 como no milho), iguais a dev (ADRs 0112 e 0113), o WASDE da soja (21.139 linhas, igual a dev; ADR 0111; o 3º bloco foi interrompido por um deploy e
@@ -613,6 +976,7 @@ Os motores dos quatro ativos foram validados em 2026-10-07 (ADR 0108). O que seg
 
 | Definição | Situação |
 |---|---|
+| Ajustes do café (análise de 2026-10-19) | Em aberto: as decisões de cada item, E1 a E11, estão na §0 |
 | Os 10 pontos da conversa com o David | Em aberto: `docs/conversa-david-respostas-fel1.md`, com espaço para a resposta (entre eles, a confirmação do Brent futuro no petróleo e o instrumento do ouro). Os pontos por ativo estão na tabela "O motor por ativo" (§1) |
 | FEL 1 revisado | O David revisa o documento e envia ao Comitê, previsto para 2026-10-15 (ADR 0055) |
 | Ativos, mercados, fontes e dados a coletar | **Propostos pelo FEL 1** (café, petróleo, milho e ouro), aguardando a aprovação do Comitê. A coleta foi adiantada, **só aquisição de dados**, fonte a fonte, cada uma autorizada no seu ADR; está encerrada desde 2026-10-01 (§1) |
@@ -656,6 +1020,16 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>6. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-20</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Ajustes do café | A resposta do FinMind à análise do café de 2026-10-19, item a item (E1 a E11), com o que precisamos do David | §0 |
+| Café de Nova York (ICE KC) pelo Yahoo | 1º passo do E1: o ajuste diário de cada vencimento do KC (com máxima e mínima) e a contínua desde 2000, em US¢/lb, fonte não oficial e provisória como o Brent; o coletor do Brent virou um molde comum dos futuros do Yahoo. Cards `KC_FUTURO_PRECOS` e `KC_FUTURO_CONTINUO`. Só aquisição: o basis, a curva e os fatores seguem nos itens da §0 | ADR 0129 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-16</summary>
