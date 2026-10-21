@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, no E1 e no E2); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, no E1, no E2 e no E3); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -29,7 +29,7 @@ análise para decidirmos juntos.
 |---|---|
 | E1 | Aprovar a regra de rolagem da série contínua do ICF, já calculada como proposta (junto com o E11). Já implementados: a data do preço no Centro de Decisão, a série contínua (proposta) e o basis B3 × Nova York (informação) |
 | E2 | Confirmar os valores da meia-vida (4 e 25 dias) e montar a lista de eventos de referência para medir a captura. Já implementados, por decisão do usuário: NÃO VERIFICADO, o tipo SAFRA, a Federação de Cafeteiros, o Vietnã, o El Niño, a meia-vida e as fontes secundárias como alerta (ADR 0130) |
-| E3 | Onde fica a curva (no F3 ou num fator próprio) e o limiar do estoque baixo |
+| E3 | Decidir o sentido da regra do F3, que deu o sinal invertido em 2022 a 2026: tirar a pressão, inverter ou manter. Já implementado: o nível do estoque (percentil em 10 anos e a mínima da série) no texto do F3, como contexto (ADR 0131). A curva do ICF, testada, não antecipou o preço: sugerimos não criar fator por ora |
 | E4 | Junto com a §3 do documento: como aplicar o F7 como modificador |
 | E5 | Confirmar o F6 só no horizonte de 90 dias |
 | E6 | A regra nova do clima (janela de chuva e limiar) e a troca do INMET pela NASA POWER |
@@ -178,12 +178,60 @@ entra na regra; vai só como contexto. O fator enxerga a velocidade da queda, n�
 | Resposta não linear | Baixo |
 | Teste fora da amostra | Médio |
 
-**Achado no teste das fontes do E2 (2026-10-21):** o Trading Economics diz que os estoques certificados da ICE estão na
-**mínima de quase 27 anos** (~240 mil sacas). Se a nossa série confirmar, o F3, que só olha a variação de 4 semanas
-(percentil 41), está deixando passar o principal sinal de aperto. Conferimos na série do FinMind ao tratar o E3.
+**O nível de hoje (banco do servidor, 2026-10-21).** 234.901 sacas em 20/10/2026: **percentil 1,2** entre os pregões
+desde 2016. A mínima da série é de 217.646 sacas, em 15/09/2026; há 1 ano eram 468.410, e há 2 anos, 849.961. Confirma o
+que o Trading Economics publicou ("mínima de quase 27 anos").
 
-**O que precisamos do Comitê:** se a curva fica dentro do F3 ou num fator próprio de estrutura a termo (E10), para não
-contar duas vezes; e o limiar de estoque baixo da resposta não linear.
+**O teste fora da amostra** (o estoque contra o retorno do KC de Nova York nos 60 pregões seguintes, 2017 a 2026; detalhe
+no ADR 0131):
+
+| Medida | 2017–2021 | 2022–2026 |
+|---|---|---|
+| Nível abaixo do percentil 10 | +8,7%, subiu em 77% (um só episódio, 2020) | +0,9%, subiu em 54% |
+| Nível no percentil 90 ou mais | −6,3%, subiu em 19% | não aconteceu |
+| Variação em 4 semanas abaixo do p10 (o F3 diz alta) | +0,4%, subiu em 42% | **−6,9%, subiu em 30%** |
+| Variação em 4 semanas no p90 ou mais (o F3 diz baixa) | +0,9%, subiu em 47% | **+9,4%, subiu em 86%** |
+
+- **O nível baixo não deu o momento da alta:** de 2022 a 2026, o estoque ficou abaixo do percentil 10 por anos (fev/2022
+  a mar/2024 e out/2025 até hoje). Descreve o aperto, mas uma regra "abaixo do 10 = alta" ficaria ligada sem antecipar
+  nada. Por isso a resposta não linear não entrou.
+- **A regra do F3 deu o sinal invertido em 2022 a 2026.** Em 02/10 e 09/10/2026, a variação foi de +16% (percentil 91), e
+  o F3 deu pressão de baixa com o preço subindo. Uma explicação plausível: o estoque certificado segue o preço (com Nova
+  York cara, o café vai para a certificação), em vez de antecipá-lo. O ADR 0085 já tinha visto isso no mensal da ICO.
+- **Ressalvas:** janelas sobrepostas (~20 períodos independentes de 60 pregões em 2022 a 2026); o KC=F do Yahoo emenda
+  os contratos sem ajuste (o dia da rolagem foi zerado).
+
+**Implementado (2026-10-21), por decisão do usuário (ADR 0131).**
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| Nível no F3 | O texto do F3 que vai ao prompt passa a dizer o percentil do nível nos pregões dos até 10 anos anteriores e a mínima da série (hoje: "percentil 1,2 dos pregões desde 09/2016; a mínima da série é de 217.646 sacas, em 15/09/2026"). Contexto, sem pressão própria: a decisão do F3 continua a da variação | Metodologia do café, F3; o prompt do café |
+
+**A curva do ICF (testada em 2026-10-21, 2022 a 2026; detalhe no ADR 0131):**
+
+| | 1º contra 2º vencimento | Contrato líquido contra o próximo líquido |
+|---|---|---|
+| Curva invertida | 81% dos dias | 90% dos dias |
+| Correlação com o retorno seguinte do ICF e do KC | −0,12 a +0,06 | −0,06 a +0,08 |
+| Mais invertida que o normal: ICF em 60 pregões | +13,3%, subiu em 80% | +4,3%, subiu em 49% |
+| Todos os dias: ICF em 60 pregões | +6,1%, subiu em 59% | +6,1%, subiu em 59% |
+
+- **A curva ficou invertida quase o tempo todo:** "invertida = alta" ficaria ligada em 8 a 9 de cada 10 dias, sem dizer
+  quando vem a alta. O único sinal (na 1ª definição) some com os contratos que negociam: o ajuste de maio e julho, quase
+  sem negócio, é mais teórico.
+- **Hoje ela está menos invertida que o normal** do período (−0,11% ao mês, contra a mediana de −0,47%): também não
+  explica a alta de agora.
+- Quase não acompanha o estoque (correlação de 0,1 a 0,2): como fator, não contaria duas vezes com o F3.
+- **Ressalva:** 4,5 anos, todos num regime de aperto e alta. No KC, não dá: o Yahoo só tem os vencimentos ativos, desde 2024.
+
+**Sugestão:** não criar fator de curva por ora. A curva do ICF já vai ao prompt como informação (os vencimentos de cada
+horizonte, ADR 0078); a de Nova York pode voltar no E10, com mais histórico.
+
+**O que precisamos do Comitê:**
+
+- o sentido da regra do F3, pelo teste acima: **tirar a pressão** (a variação fica como contexto), **inverter** ou
+  **manter**;
+- concordar em não criar fator de curva por ora (ou pedir outra definição para testar).
 
 </details>
 
@@ -1079,6 +1127,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Nível do estoque no F3 (E3 da análise do café) | O F3 (fator v4) passa a levar ao prompt o percentil do nível do estoque certificado em até 10 anos e a mínima da série, como contexto. Teste com o diário da ICE contra o KC (2017 a 2026): o nível baixo não deu o momento da alta, e a regra da variação deu o sinal invertido em 2022 a 2026; o sentido da regra foi ao Comitê. A curva do ICF (2022 a 2026), testada em duas definições, não antecipou o preço: sem fator por ora | §0, E3; ADR 0131 |
 | Eventos dos agrícolas (E2 da análise do café) | NÃO VERIFICADO no lugar do NORMAL sem o mínimo de pesquisa (os seis ativos); tipo SAFRA; a Federação de Cafeteiros de volta, o Vietnã no USDA FAS e a probabilidade do El Niño no CPC; meia-vida dos eventos (4 e 25 dias, peso mínimo 0,25) no milho, no café e na soja; Safras & Mercado, Notícias Agrícolas e Trading Economics como fontes secundárias, só alerta (o Cepea, testado, ficou fora). Prompt de eventos v15 e o da soja v3; migration dos CHECKs de nível e de tipo | §0, E2; ADR 0130 |
 
 </details>

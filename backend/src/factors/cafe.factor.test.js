@@ -4,7 +4,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { derivarSafraCafe } = require("./safra-cafe.factor");
 const { derivarDemandaCafe } = require("./demanda-cafe.factor");
-const { medirEstoques, derivarEstoquesCafe } = require("./estoques-cafe-ice.factor");
+const { medirEstoques, derivarEstoquesCafe, textoNivel } = require("./estoques-cafe-ice.factor");
 const { medirDolar } = require("./dolar-cafe.factor");
 const { vencimento, decidirCustos, derivarCustosCafe } = require("./custos-cafe.factor");
 const { derivarClimaCafe, anosAntes } = require("./clima-cafe.factor");
@@ -133,6 +133,35 @@ test("estoques: sem 200 semanas de histórico não decide; com ele, a queda fora
   const comQueda = derivarEstoquesCafe(linhas).at(-1);
   assert.equal(comQueda.percentilJanela, 0);
   assert.deepEqual([comQueda.decisao.direcao, comQueda.decisao.intensidade], ["ALTA", "FORTE"]);
+});
+
+test("estoques (v4, ADR 0131): o nível no histórico de pregões e a mínima da série, como contexto, sem mudar a decisão", () => {
+  // 300 pregões (dias úteis) caindo de 1.000.000 a 701.000, com uma mínima intermediária e uma volta no fim.
+  const linhas = [];
+  let dia = "2025-01-01";
+  for (let i = 0; i < 300; i += 1) {
+    while ([0, 6].includes(new Date(`${dia}T00:00:00Z`).getUTCDay())) dia = somarDias(dia, 1);
+    const valor = i === 250 ? 500000 : 1000000 - i * 1000;
+    linhas.push(v(ICE, dia, `${dia}T20:00:00Z`, valor));
+    dia = somarDias(dia, 1);
+  }
+  const semanas = medirEstoques(linhas);
+  const ultima = semanas.at(-1);
+  assert.equal(ultima.nivelPercentil, 0.3); // abaixo de todos os anteriores, menos a mínima de 500.000
+  assert.equal(ultima.minimaSerie, 500000);
+  assert.equal(ultima.nivelDesde, "2025-01-01");
+  // Com menos de 1 ano de pregões (252), sem percentil.
+  assert.equal(semanas[10].nivelPercentil, null);
+
+  const [ponto] = derivarEstoquesCafe(linhas).slice(-1);
+  assert.match(textoNivel(ponto), /nível do estoque no percentil 0,3 dos pregões desde 01\/2025 \(0 = o menor\); a mínima da série \(desde 01\/2025\) é de 500\.000 sacas, em /);
+  assert.equal(ponto.decisao, null, "o nível não decide nada: a decisão continua sendo a da variação em 4 semanas");
+
+  // No pregão da mínima, o texto diz que é a mínima.
+  const ultimo = linhas.at(-1);
+  const naMinima = medirEstoques([...linhas.slice(0, -1), { ...ultimo, value: 400000 }]).at(-1);
+  assert.equal(naMinima.minimaSerie, 400000);
+  assert.match(textoNivel(naMinima), /; é a mínima da série \(desde 01\/2025\)$/);
 });
 
 // --- F4 câmbio --------------------------------------------------------------------------------------------------

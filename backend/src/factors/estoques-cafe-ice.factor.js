@@ -3,7 +3,7 @@
 const pointInTimeService = require("../services/point-in-time.service");
 const faixa = require("./base/decisao-por-faixa");
 const { somarDias, sextaDaSemana } = require("./base/semana-de-dias");
-const { criarFatorPosicaoSemanal, arredondar } = require("./modelos/posicao-historica");
+const { criarFatorPosicaoSemanal, arredondar, percentil } = require("./modelos/posicao-historica");
 
 // FATOR (PROPOSTA, ADR 0060): estoques certificados da ICE, fator "Estoque global e certificado (ICE)" do FEL 1 para o
 // café, como o F3 do Motor do Café v1 (2026-10-04). Camadas A e B calculadas, C simulada.
@@ -28,12 +28,41 @@ const { criarFatorPosicaoSemanal, arredondar } = require("./modelos/posicao-hist
 const FACTOR_ID = "estoques_cafe_ice_certificado";
 // v2 (2026-10-06): as sacas aguardando classificação e os portos europeus como contexto (ADR 0085).
 // v3 (2026-10-06): a ECF pelas versões publicadas até a semana (um mês revisado depois aparecia sumido; ADR 0085).
-const FACTOR_VERSION = 3;
+// v4 (2026-10-21): o NÍVEL do estoque como contexto, fora da conta: o percentil nos pregões dos até 10 anos anteriores e
+// a mínima da série (análise do café de 2026-10-19, item E3; decisão do usuário, ADR 0131). Sem pressão própria: no
+// histórico (2017 a 2026), o nível abaixo do percentil 10 durou anos sem antecipar a alta do KC.
+const FACTOR_VERSION = 4;
 
 const SERIE = "ICE.CAFE_C.ESTOQUE.TOTAL.CERTIFICADO";
 const SERIE_PENDENTE = "ICE.CAFE_C.ESTOQUE.TOTAL.PENDENTE";
 const SERIE_ECF = "ECF.CAFE.ESTOQUE_TOTAL";
 const SEMANAS_VARIACAO = 4;
+// O nível (v4): os pregões dos até 10 anos anteriores (~252 por ano); com menos de 1 ano, sem percentil.
+const PREGOES_NIVEL = 2520;
+const MINIMO_PREGOES_NIVEL = 252;
+
+// Os pregões da série, em ordem: [{ dia, valor }], a versão mais nova de cada dia já vem do obterAsOf.
+function pregoesDaSerie(linhasAsOf) {
+  return linhasAsOf
+    .filter((linha) => linha.seriesCode === SERIE)
+    .map((linha) => ({ dia: linha.observedAt, valor: linha.value }))
+    .sort((a, b) => a.dia.localeCompare(b.dia));
+}
+
+// O nível do estoque no pregão `dia`: o percentil entre os pregões anteriores (até 10 anos) e a mínima da série até ele.
+function nivelDoEstoque(pregoes, dia, valor) {
+  const ate = pregoes.findIndex((pregao) => pregao.dia >= dia);
+  const anteriores = (ate === -1 ? pregoes : pregoes.slice(0, ate)).slice(-PREGOES_NIVEL);
+  const ateODia = ate === -1 ? pregoes : pregoes.slice(0, ate + 1);
+  const minima = ateODia.reduce((menor, pregao) => (!menor || pregao.valor < menor.valor ? pregao : menor), null);
+  return {
+    nivelPercentil: anteriores.length >= MINIMO_PREGOES_NIVEL ? arredondar(percentil(valor, anteriores.map((p) => p.valor)), 1) : null,
+    nivelDesde: anteriores[0]?.dia ?? null,
+    minimaSerie: minima?.valor ?? null,
+    minimaSerieDia: minima?.dia ?? null,
+    serieDesde: pregoes[0]?.dia ?? null
+  };
+}
 
 // O último pregão de cada semana de uma série do relatório da ICE: sexta -> { dia, valor, disponivelEm, estimado }.
 function ultimoPregaoPorSemana(linhasAsOf, serie) {
@@ -54,6 +83,7 @@ function ultimoPregaoPorSemana(linhasAsOf, serie) {
 function medirEstoques(linhasAsOf) {
   const porSemana = ultimoPregaoPorSemana(linhasAsOf, SERIE);
   const pendentes = ultimoPregaoPorSemana(linhasAsOf, SERIE_PENDENTE);
+  const pregoes = pregoesDaSerie(linhasAsOf);
   // Todas as versões da ECF (obterVersoesAsOf): em cada semana, de cada mês, a versão mais nova publicada até ela.
   const ecf = linhasAsOf
     .filter((l) => l.seriesCode === SERIE_ECF)
@@ -75,6 +105,7 @@ function medirEstoques(linhasAsOf) {
       estoque: semana.valor,
       estoque4SemanasAntes: antes ? antes.valor : null,
       medida,
+      ...nivelDoEstoque(pregoes, semana.dia, semana.valor),
       pendente: pendentes.get(sexta)?.valor ?? null,
       pendente4SemanasAntes: pendentes.get(somarDias(sexta, -7 * SEMANAS_VARIACAO))?.valor ?? null,
       ecfMes: ecfUltimo?.mes ?? null,
@@ -95,9 +126,27 @@ async function carregar(asOf, deps = {}) {
   return [...ice, ...ecf];
 }
 
-// O contexto, fora da conta (ADR 0085): só o que existe na semana.
+function dataBr(dia) {
+  return `${dia.slice(8, 10)}/${dia.slice(5, 7)}/${dia.slice(0, 4)}`;
+}
+
+// O nível (v4, ADR 0131): "no percentil 1,1 dos pregões desde 10/2016; a mínima da série (desde 01/2016) é de ...".
+function textoNivel(p) {
+  if (p.nivelPercentil === null || p.nivelPercentil === undefined) return null;
+  const desde = `${p.nivelDesde.slice(5, 7)}/${p.nivelDesde.slice(0, 4)}`;
+  const serie = `${p.serieDesde.slice(5, 7)}/${p.serieDesde.slice(0, 4)}`;
+  const minima =
+    p.minimaSerieDia === p.ultimoPregao
+      ? `é a mínima da série (desde ${serie})`
+      : `a mínima da série (desde ${serie}) é de ${faixa.fmt(p.minimaSerie, 0)} sacas, em ${dataBr(p.minimaSerieDia)}`;
+  return `nível do estoque no percentil ${faixa.fmt(p.nivelPercentil, 1)} dos pregões desde ${desde} (0 = o menor); ${minima}`;
+}
+
+// O contexto, fora da conta (ADRs 0085 e 0131): só o que existe na semana.
 function contexto(p) {
   const partes = [];
+  const nivel = textoNivel(p);
+  if (nivel) partes.push(nivel);
   if (p.pendente !== null && p.pendente !== undefined) {
     partes.push(
       `${faixa.fmt(p.pendente, 0)} sacas aguardando classificação` +
@@ -136,7 +185,8 @@ const fator = criarFatorPosicaoSemanal({
   apresentacao: {
     quadrosA: [
       { camada: "A", rotulo: "Estoque certificado (ICE)", campo: "estoque", casas: 0, sufixo: "sacas" },
-      { camada: "A", rotulo: "Variação em 4 semanas", campo: "medida", casas: 2, sinal: true, unidadeValor: "%" }
+      { camada: "A", rotulo: "Variação em 4 semanas", campo: "medida", casas: 2, sinal: true, unidadeValor: "%" },
+      { camada: "A", rotulo: "Nível: percentil em até 10 anos (contexto)", campo: "nivelPercentil", casas: 1, sufixo: "0 = o menor, 100 = o maior" }
     ],
     rotuloMedida: "Variação em 4 semanas",
     unidadeMedida: "%",
@@ -155,4 +205,4 @@ const fator = criarFatorPosicaoSemanal({
   ]
 });
 
-module.exports = { FACTOR_ID, FACTOR_VERSION, SERIE, SERIE_PENDENTE, SERIE_ECF, METODOLOGIA: fator.METODOLOGIA, medirEstoques, derivarEstoquesCafe: fator.derivar };
+module.exports = { FACTOR_ID, FACTOR_VERSION, SERIE, SERIE_PENDENTE, SERIE_ECF, METODOLOGIA: fator.METODOLOGIA, medirEstoques, textoNivel, derivarEstoquesCafe: fator.derivar };

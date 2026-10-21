@@ -156,11 +156,16 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Injeção contínua e expressiva de novas sacas aprovadas na certificação da ICE associada à elevação dos estoques portuários europeus apurados pela ECF. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [],
+    // A regra da variação deu o sinal invertido em 2022 a 2026 (ADR 0131): segue com o Comitê.
+    perguntas: [
+      "Sentido da regra do F3 (E3, ADR 0131): no diário da ICE contra o KC de Nova York, 2022 a 2026, a queda fora do normal em 4 semanas (abaixo do percentil 10) foi seguida de −6,9% em 60 pregões (subiu em 30%), e a entrada fora do normal (percentil 90 ou mais), de +9,4% (subiu em 86%): o contrário da regra. Em 2017 a 2021, sem relação. Tirar a pressão da regra (a variação fica como contexto), inverter o sentido ou manter?"
+    ],
     decisoes: [
       "Queda sustentada (usuário, 2026-10-06, ADR 0085): fica a variação em 4 semanas contra o próprio histórico (a v1). No dado mensal da ICO (2012 a 2026), 3 meses seguidos de queda tiveram leve vantagem só em 6 meses (alta em 61%, contra 49% em todos), e meses seguidos não são as sessões do estudo; o teste com o dado diário da ICE fica para o servidor.",
       "Nível do estoque (usuário, 2026-10-06, ADR 0085): não dá direção, fica como contexto (o valor da camada A). Com o estoque abaixo do percentil 20 de 5 anos, o preço subiu em 3 meses em 40% dos meses, contra 43% em todos.",
-      "Pendentes e portos europeus (usuário, 2026-10-06, ADR 0085): vão ao prompt como contexto, fora da regra. O sentido do estudo aparece (com a ECF subindo, a queda do certificado foi seguida de alta em 25% dos meses; com a ECF caindo, em 40%), mas com 12 e 15 meses, pouco para condicionar a regra."
+      "Pendentes e portos europeus (usuário, 2026-10-06, ADR 0085): vão ao prompt como contexto, fora da regra. O sentido do estudo aparece (com a ECF subindo, a queda do certificado foi seguida de alta em 25% dos meses; com a ECF caindo, em 40%), mas com 12 e 15 meses, pouco para condicionar a regra.",
+      "Nível no prompt (usuário, 2026-10-21, ADR 0131; análise do café de 2026-10-19, item E3): o percentil do nível nos pregões dos até 10 anos anteriores e a mínima da série vão ao texto do fator, como contexto, sem pressão própria (em 20/10/2026, percentil 1,2; a mínima, 217.646 sacas em 15/09/2026). O teste com o diário da ICE (2017 a 2026, contra o KC de Nova York) confirmou o ADR 0085: abaixo do percentil 10, o retorno em 60 pregões foi de +0,9% em 2022 a 2026, com o estoque nessa faixa por anos.",
+      "Curva do ICF (usuário, 2026-10-21, ADR 0131; item E3): testada de 2022 a 2026, não vira fator por ora. Ficou invertida em 81% a 90% dos dias, sem correlação com o retorno seguinte do ICF ou do KC (−0,12 a +0,08); o único sinal some com só os contratos que negociam. Continua no prompt como informação (os vencimentos de cada horizonte, ADR 0078)."
     ]
   },
   {
