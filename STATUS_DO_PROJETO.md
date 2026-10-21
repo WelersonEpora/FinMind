@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10; o E11 é uma proposta para sanção); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -37,7 +37,7 @@ análise para decidirmos juntos.
 | E8 | Decidir se buscamos uma fonte para o preço físico do arábica (o Cepea) e se o preço em reais ganha uma regra, com o custo (o F5) como referência, juntando o F4 e o F5. Já implementado: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
 | E9 | **Sancionar (ou ajustar) a regra do F5 para o LONGO**, proposta pelo FinMind e calibrada no histórico: alta com o preço abaixo do custo ou até 15% acima dele, baixa com a margem acima de 200% (ADR 0138); e confirmar a data estimada do custo. Já implementado: a data estimada, o F5 como informação e a margem com o KC em reais (ADRs 0137 e 0138) |
 | E10 | Decidir se o momentum ganha uma regra: seguir a tendência não funcionou no café, e os extremos foram seguidos de reversão, o contrário do que o documento supõe; e se o basis (já calculado, como informação) vira fator. Já implementado: o momentum no prompt como informação. Testadas e não adotadas: a sazonalidade e a produção colombiana (ADR 0139) |
-| E11 | Contrato por horizonte ou série contínua ajustada para todos |
+| E11 | **Sancionar (ou ajustar) a série contínua ajustada do ICF em todos os horizontes**, proposta pelo FinMind com a medição no histórico: hoje, de 12% a 20% dos dias são medidos num contrato sem negócio na semana, e em 76% dos dias o LONGO usa outro contrato que o IMEDIATO (ADR 0140). Junto, aprovar a regra de rolagem do E1. Nada muda na leitura até a sanção |
 
 O KC de Nova York pelo Yahoo (fonte não oficial e provisória, como o Brent futuro), necessário para o E1, o E3 e o E10,
 foi **autorizado pelo usuário em 2026-10-20** e já é coletado (ADR 0129).
@@ -686,11 +686,39 @@ ajustada (E1).
 | Estrutura a termo como fator, uma vez só | Médio |
 | Contrato mais visível no relatório | Baixo |
 
-**O que precisamos do Comitê:** escolher entre (a) manter um contrato por horizonte (preço negociável, mas horizontes
-com preços de partida diferentes) e (b) a série contínua ajustada para todos (comparáveis e com histórico longo, mas
-sintética); e aprovar a regra de rolagem (a proposta está no E1, já calculada na tela de Metodologia do café). Mesmo
-com (a), sugerimos trocar a regra do "dia 15" pela de liquidez: hoje a leitura fica semanas num contrato que já não
-negocia.
+**A medição (2026-10-21; o ICF de 03/2022 a 10/2026, 954 pregões; detalhe no ADR 0140):** o realizado de cada horizonte
+pela regra de hoje (um contrato por horizonte, até o dia 15) e pela série contínua ajustada do E1.
+
+| Horizonte | Hoje: medido num contrato sem negócio na semana | A contínua cruza uma rolagem (ajustada) | Faixa do realizado diferente | Diferença média |
+|---|---|---|---|---|
+| IMEDIATO | 14,1% dos dias | 1,5% | 15,3% | 0,35 p.p. |
+| CURTO | 11,7% | 5,9% | 13,7% | 0,60 p.p. |
+| MÉDIO | 11,5% | 27,0% | 7,7% | 0,97 p.p. |
+| LONGO | 19,6% | 75,1% | 10,3% | 1,89 p.p. |
+
+- **A mistura que o documento aponta é frequente:** em 76% dos dias, o LONGO usa outro contrato que o IMEDIATO.
+- **O defeito maior é outro:** de 12% a 20% dos dias, o horizonte é medido num contrato que não negociou na semana (o
+  ajuste é teórico). A causa é a regra do dia 15 e os vencimentos de maio e julho, que quase não negociam.
+- Só trocar o dia 15 pela liquidez, mantendo um contrato por horizonte, ainda deixa a faixa diferente da contínua em 7%
+  a 12% dos dias: é a estrutura a termo entre os vencimentos.
+
+**Decisão do usuário (2026-10-21, ADR 0140): propor ao Comitê, sem mudar a leitura agora.**
+
+**Pedido de sanção ao Comitê: a série contínua nos horizontes do café.**
+
+| O que muda, se sancionado | Hoje (ADR 0078) | Proposta |
+|---|---|---|
+| Preço de partida dos horizontes | Um por horizonte (até dois contratos diferentes) | O mesmo para os quatro: a série contínua, com o contrato do dia informado |
+| Contrato sem negócio | De 12% a 20% dos dias | Não acontece: a série rola pela liquidez |
+| Troca de contrato dentro do horizonte | Não acontece (cada horizonte fica num contrato) | Acontece (75% dos dias no LONGO), com o salto ajustado |
+| Preço | Negociável | Sintético no passado; o de hoje é o real |
+| Qualidade da IA | — | Versão nova da configuração do café, para separar as leituras |
+
+**O que precisamos do Comitê:**
+
+- **sancionar a série contínua em todos os horizontes**, ou manter um contrato por horizonte com a liquidez no lugar do
+  dia 15;
+- aprovar a regra de rolagem do E1 (ou ajustar os números: 40, 5, 3 e 10 pregões).
 
 </details>
 
@@ -1362,6 +1390,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Série contínua nos horizontes do café proposta para a sanção do Comitê (E11 da análise do café) | Medição de 2022 a 2026: a regra de hoje mede o horizonte num contrato sem negócio na semana em 12% a 20% dos dias, e o LONGO usa outro contrato que o IMEDIATO em 76%; a série contínua muda a faixa do realizado em 8% a 15% dos dias. Proposta registrada, sem mudar a leitura | §0, E11; ADR 0140 |
 | Momentum do café como informação e fatores ausentes testados (E10 da análise do café) | O prompt do café traz o momentum do KC (o retorno de 5, 20 e 60 pregões ÷ a volatilidade), sem voto. Teste de 2000 a 2026: seguir a tendência acertou de 45% a 50%, e os extremos foram seguidos de reversão. A sazonalidade (44% de acerto) e a produção colombiana da Federação de Cafeteiros (sinal oposto ao esperado) foram testadas e não adotadas | §0, E10; ADR 0139 |
 | Regra do F5 proposta para a sanção do Comitê (E9 da análise do café) | O F5 (v3) mede a margem com o KC em reais desde 2004, e a regra por faixa de margem fica calculada na tela como proposta: alta com o preço abaixo do custo (4 semanas) ou até 15% acima; baixa moderada com a margem acima de 200%. No histórico, no LONGO, a alta subiu em 59% das semanas e a baixa em 38% (base 50%). Não está em vigor no prompt: o F5 segue como informação até a sanção | §0, E9; ADR 0138 |
 | Custo do café com a data estimada e como informação (E9 da análise do café) | O custo da Conab conta como conhecido 12 meses depois do mês dos preços (data estimada), e o F5 (v2) deixa de ficar neutro por falta de histórico; vai à IA como informação, piso de longo prazo, só no LONGO. Teste de 2004 a 2026: margem fina antes de alta (+34% em 250 pregões, 78%) e muito alta antes de queda (28%), com poucos episódios; o percentil da margem se inverte entre os períodos | §0, E9; ADR 0137 |
