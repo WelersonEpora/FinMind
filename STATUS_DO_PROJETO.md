@@ -17,10 +17,18 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 <summary>0. Ajustes do café (análise de 2026-10-19)</summary>
 
 Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind indica baixa e o café está em alta?*).
-O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
-a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
-fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) estão no fim da lista (ADRs 0141 e 0142). O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10; o E11 é uma proposta para sanção, e o E3, o E6 e o E9 trazem regras propostas para sanção); o resto é a
-análise para decidirmos juntos.
+O documento aponta 11 erros nos fatores e nos dados do café (E1 a E11) e, nas seções 3 a 6, propõe pesos por horizonte,
+um teste de inversão de sinal, um plano de implantação e regras de governança. Analisamos todos os pontos e testamos
+cada pedido no histórico (o café de Nova York desde 2000 e as séries do FinMind). Cada pedido teve um de três destinos:
+
+- **Implementado:** decidido pelo usuário, com o mesmo poder de decisão do David, e registrado num ADR.
+- **Proposto ao Comitê:** o FinMind calibrou uma regra no histórico, e ela espera a sanção (E3, E6, E9 e E11). Até lá,
+  nada muda na leitura da IA.
+- **Testado e não adotado:** o histórico não confirmou o pedido. O número fica no item.
+
+A tabela abaixo resume o que precisamos do Comitê em cada ponto. Os itens, um por seção recolhível, trazem a nossa
+avaliação, o que o FinMind tinha, cada pedido com a viabilidade, os testes, o que foi implementado e, por fim, **o que
+precisamos do Comitê**. As seções 3 a 6 do documento estão no fim da lista.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
 
