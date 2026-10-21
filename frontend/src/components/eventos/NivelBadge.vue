@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 import { nivel } from '../../utils/geopolitica.js'
 
-// Nível do dia da leitura de geopolítica (ADR 0047): Normal, Atenção, Relevante ou Excepcional.
+// Nível do dia da leitura de geopolítica (ADR 0047): Normal, Atenção, Relevante ou Excepcional; Não verificado quando a
+// pesquisa não cobriu o mínimo de fontes (ADR 0130).
 const props = defineProps({
   codigo: { type: String, default: null }
 })
@@ -11,7 +12,7 @@ const exibicao = computed(() => nivel(props.codigo))
 </script>
 
 <template>
-  <span class="nivel-badge" :class="`nivel-badge--${exibicao.classe}`">{{ exibicao.rotulo }}</span>
+  <span class="nivel-badge" :class="`nivel-badge--${exibicao.classe}`" :title="exibicao.titulo">{{ exibicao.rotulo }}</span>
 </template>
 
 <style scoped>
@@ -37,6 +38,10 @@ const exibicao = computed(() => nivel(props.codigo))
 }
 .nivel-badge--excepcional {
   color: var(--p-red-600, #dc2626);
+}
+.nivel-badge--nao-verificado {
+  color: var(--p-text-muted-color);
+  border-style: dashed;
 }
 .nivel-badge--desconhecido {
   color: var(--p-text-muted-color);

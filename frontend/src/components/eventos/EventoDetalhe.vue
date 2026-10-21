@@ -52,6 +52,13 @@ const emit = defineEmits(['ver-ia'])
           <!-- No evento, a fonte só é citada pelo nome; o link dos sites fica em "Fonte e metodologia" da tela Eventos.
                O único link aqui é o do próprio evento: a página que a pesquisa leu (origem "pesquisa"). -->
           <span class="evento-detalhe__fonte-nome">{{ rotuloFonte(fonte) }}</span>
+          <span
+            v-if="fonte.secundaria"
+            class="fonte-tag fonte-tag--alerta"
+            title="Fonte secundária (imprensa de mercado, ADR 0130): só alerta. Sem uma fonte primária, o evento vai com confiança baixa."
+          >
+            secundária
+          </span>
           <!-- Só a página "pesquisa" sustenta o evento (ADR 0049): a citação da IA, mesmo de fonte autorizada, não basta.
                O caso normal (a página lida, com o link ao lado) não leva marca; só as exceções levam, como aviso. Sem o
                link, a página lida ganha a marca, para não ficar igual a uma citação. -->

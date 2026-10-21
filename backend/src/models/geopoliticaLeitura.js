@@ -7,7 +7,8 @@ const { randomUUID } = require("node:crypto");
 // resposta bruta da IA. Os eventos ficam em geopolitica_evento (apagados em cascata quando o dia é refeito). Milho e café
 // entraram com o ADR 0049: nulos nas leituras anteriores. Desde o ADR 0115, uma leitura por dia POR FRENTE: a principal
 // (ouro, petróleo, milho e café) e a da soja (fase 1 da soja), cada uma só com as colunas dos seus ativos.
-const NIVEIS = ["NORMAL", "ATENCAO", "RELEVANTE", "EXCEPCIONAL"];
+// NAO_VERIFICADO (ADR 0130) é do coletor, não da IA: o NORMAL de um ativo cuja pesquisa não cumpriu o mínimo de fontes.
+const NIVEIS = ["NORMAL", "ATENCAO", "RELEVANTE", "EXCEPCIONAL", "NAO_VERIFICADO"];
 
 module.exports = (sequelize) => {
   const GeopoliticaLeitura = sequelize.define(

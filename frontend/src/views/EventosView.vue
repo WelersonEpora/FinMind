@@ -249,7 +249,7 @@ onMounted(atualizarTudo)
               chamada se já houver leitura de hoje.
             </dd>
             <template v-for="fonte in fontesConfiaveis || []" :key="fonte.nome">
-              <dt>{{ fonte.nome }}</dt>
+              <dt>{{ fonte.nome }}<template v-if="fonte.secundaria"> (secundária: só alerta)</template></dt>
               <dd>
                 <template v-for="(endereco, i) in fonte.enderecos" :key="endereco">
                   <template v-if="i > 0">, </template>

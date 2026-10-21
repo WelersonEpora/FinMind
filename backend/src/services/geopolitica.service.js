@@ -4,7 +4,17 @@ const geopoliticaRepository = require("../repositories/geopolitica.repository");
 const { NotFoundError, ValidationError } = require("../shared/errors");
 const { validarPaginacao } = require("../shared/utils/pagination");
 const { FONTES, CODIGOS, ativosDaFonte, fontesDaPesquisa } = require("../collectors/geopolitica/fontes-autorizadas");
-const { ATIVOS, ROTULO_ATIVO, TIPOS, CODIGOS_TIPO, frenteDoAtivo, leituraDoAtivo } = require("../shared/eventos-mercado");
+const {
+  ATIVOS,
+  ROTULO_ATIVO,
+  TIPOS,
+  CODIGOS_TIPO,
+  MEIA_VIDA_DIAS,
+  PESO_MINIMO_EVENTO,
+  pesoDoEvento,
+  frenteDoAtivo,
+  leituraDoAtivo
+} = require("../shared/eventos-mercado");
 const { nomeDoFator, NAO_SE_APLICA } = require("../shared/fatores-fel1");
 
 // Entrega a leitura diária de eventos de mercado (ADRs 0047 e 0049) ao Motor e às telas. Para o Motor, o bloco
@@ -19,7 +29,11 @@ const { nomeDoFator, NAO_SE_APLICA } = require("../shared/fatores-fel1");
 //
 // O peso disso na análise é decidido pela IA do ativo e pelas regras do David, não aqui.
 
-const NIVEL_EXIBICAO = { NORMAL: "NORMAL", ATENCAO: "ATENÇÃO", RELEVANTE: "RELEVANTE", EXCEPCIONAL: "EXCEPCIONAL" };
+const NIVEL_EXIBICAO = { NORMAL: "NORMAL", ATENCAO: "ATENÇÃO", RELEVANTE: "RELEVANTE", EXCEPCIONAL: "EXCEPCIONAL", NAO_VERIFICADO: "NÃO VERIFICADO" };
+// NAO_VERIFICADO (ADR 0130): o NORMAL de um ativo cuja pesquisa do dia não cumpriu o mínimo de fontes. Dito como falta de
+// informação, para a IA do ativo não ler calmaria.
+const EXPLICACAO_NAO_VERIFICADO = "a pesquisa do dia não cobriu o mínimo de fontes deste ativo: sem informação, não calmaria";
+const textoNivel = (nivel) => (nivel === "NAO_VERIFICADO" ? `${NIVEL_EXIBICAO[nivel]} (${EXPLICACAO_NAO_VERIFICADO})` : NIVEL_EXIBICAO[nivel]);
 const GRAU_EXIBICAO = { BAIXA: "baixa", MEDIA: "média", ALTA: "alta" };
 const PRESSAO_EXIBICAO = { ALTA: "alta", BAIXA: "baixa", AMBIGUA: "ambígua" };
 const ROTULO_TIPO = Object.fromEntries(TIPOS.map((t) => [t.codigo, t.rotulo]));
@@ -54,8 +68,12 @@ function detalhesDoEvento(evento, { comFator }) {
   ].filter(Boolean);
   if (graus.length > 0) linhas.push(`   ${graus.join(" | ")}`);
   // Só as páginas de fonte autorizada que sustentam o evento (ligadas a ele pela pesquisa).
-  const fontes = evento.fontes.filter((f) => f.origem === "pesquisa").map(formatarFonte);
-  if (fontes.length > 0) linhas.push(`   Fontes: ${fontes.join("; ")}`);
+  const daPesquisa = evento.fontes.filter((f) => f.origem === "pesquisa");
+  if (daPesquisa.length > 0) linhas.push(`   Fontes: ${daPesquisa.map(formatarFonte).join("; ")}`);
+  // Só fonte secundária (ADR 0130): alerta, ainda sem confirmação de fonte primária.
+  if (daPesquisa.length > 0 && daPesquisa.every((f) => f.secundaria)) {
+    linhas.push("   ALERTA: só fonte secundária (imprensa de mercado), ainda sem confirmação de fonte primária");
+  }
   return linhas;
 }
 
@@ -66,7 +84,7 @@ function formatarContexto(leitura) {
   }
   const linhas = [
     `${titulo} - leitura gerada por IA com busca na web, só em fontes autorizadas; escala de nível provisória`,
-    `Nível: ${NIVEL_EXIBICAO[leitura.nivel]}`
+    `Nível: ${textoNivel(leitura.nivel)}`
   ];
   if (leitura.resumo) linhas.push(`Resumo: ${leitura.resumo}`);
   // Quais fontes a pesquisa do dia de fato leu, pelo grounding (nunca pelo que a IA diz ter consultado: ADR 0049).
@@ -178,7 +196,7 @@ function formatarEventosDoFator(r) {
     linhas.push(`Leituras na janela: ${r.leiturasNaJanela}${desde}.`);
     if (r.ultimaLeitura) {
       const { data, nivel, resumo } = r.ultimaLeitura;
-      linhas.push(`Retrato do ativo na leitura mais recente (${data}): nível ${NIVEL_EXIBICAO[nivel]}.${resumo ? ` ${resumo}` : ""}`);
+      linhas.push(`Retrato do ativo na leitura mais recente (${data}): nível ${textoNivel(nivel)}.${resumo ? ` ${resumo}` : ""}`);
     }
     if (r.diasSemLeitura.length > 0) {
       const lista = r.diasSemLeitura.slice(0, DIAS_SEM_LEITURA_LISTADOS).join(", ");
@@ -245,8 +263,12 @@ async function obterEventosDoFator(ativo, fator, dataReferencia, janela, deps = 
 // e não se repetem aqui. A janela é a padrão, ou a de um fator quando a metodologia a dá (ex.: 30 dias na demanda do
 // café).
 
+const formatarPeso = (peso) => peso.toFixed(2).replace(".", ",");
+
 function formatarEventoDoAtivo(evento, indice) {
-  const quando = evento.idadeDias === 0 ? "hoje" : `há ${evento.idadeDias} dia(s)`;
+  const idade = evento.idadeDias === 0 ? "hoje" : `há ${evento.idadeDias} dia(s)`;
+  // Com a meia-vida (ADR 0130): o peso atual do evento, pelo tipo.
+  const quando = evento.peso == null ? idade : `${idade}; meia-vida de ${evento.meiaVidaDias} dias, peso atual ${formatarPeso(evento.peso)}`;
   const condicao = evento.fator && evento.fator !== NAO_SE_APLICA ? `${evento.fator} — ${nomeDoFator(evento.fator)}` : "nenhum fator do FEL 1";
   return [`${indice + 1}. [registrado em ${evento.data}, ${quando}] ${evento.titulo}`, `   Condição afetada: ${condicao}`, ...detalhesDoEvento(evento, { comFator: false })].join("\n");
 }
@@ -267,7 +289,13 @@ function formatarEventosDoAtivo(r) {
         ? ` Os eventos de ${listaComE(r.excluidos)} não estão aqui: vão no bloco ${r.excluidos.length > 1 ? "desses fatores" : "desse fator"}.`
         : "") +
       ` A data é a da leitura que registrou o evento: o fato é das 24 a 48 horas anteriores, salvo quando o resumo diz a data. ` +
-      `A pressão é leitura da IA sobre o fato isolado; a escala é provisória.`
+      `A pressão é leitura da IA sobre o fato isolado; a escala é provisória.` +
+      (r.meiaVida
+        ? ` Cada evento traz o peso atual pela meia-vida do tipo (${MEIA_VIDA_DIAS.GEOPOLITICA} dias no fato pontual; ` +
+          `${MEIA_VIDA_DIAS.POLITICA_COMERCIAL} na medida que segue valendo e na safra): 1 no dia, 0,5 depois de uma meia-vida; ` +
+          `o evento sai com o peso abaixo de ${formatarPeso(PESO_MINIMO_EVENTO)}. Use o peso para dar mais ou menos papel ao ` +
+          `evento, não como número da leitura.`
+        : "")
   ];
   if (!r.primeiraLeitura) {
     linhas.push("Leituras: a leitura diária ainda não rodou para este ativo. Não trate a ausência de eventos como situação normal.");
@@ -276,7 +304,7 @@ function formatarEventosDoAtivo(r) {
     linhas.push(`Leituras na janela: ${r.leiturasNaJanela}${desde}.`);
     if (r.ultimaLeitura) {
       const { data, nivel, resumo } = r.ultimaLeitura;
-      linhas.push(`Retrato do ativo na leitura mais recente (${data}): nível ${NIVEL_EXIBICAO[nivel]}.${resumo ? ` ${resumo}` : ""}`);
+      linhas.push(`Retrato do ativo na leitura mais recente (${data}): nível ${textoNivel(nivel)}.${resumo ? ` ${resumo}` : ""}`);
     }
     if (r.diasSemLeitura.length > 0) {
       const lista = r.diasSemLeitura.slice(0, DIAS_SEM_LEITURA_LISTADOS).join(", ");
@@ -289,13 +317,18 @@ function formatarEventosDoAtivo(r) {
   return linhas.join("\n");
 }
 
-// `opcoes`: { janelaDias, janelaPorFator: { CODIGO: dias }, excluirFatores: [CODIGO] }. -> o resultado com `contexto`, a
-// seção pronta para o prompt.
-async function obterEventosDoAtivo(ativo, dataReferencia, { janelaDias, janelaPorFator = {}, excluirFatores = [] }, deps = {}) {
+// A janela de um evento com a meia-vida (ADR 0130): fica enquanto o peso for de pelo menos PESO_MINIMO_EVENTO (duas
+// meias-vidas), sem nunca encurtar a janela de antes.
+const MEIAS_VIDAS_NA_JANELA = Math.log2(1 / PESO_MINIMO_EVENTO);
+const maiorMeiaVida = Math.max(...Object.values(MEIA_VIDA_DIAS));
+
+// `opcoes`: { janelaDias, janelaPorFator: { CODIGO: dias }, excluirFatores: [CODIGO], meiaVida }. -> o resultado com
+// `contexto`, a seção pronta para o prompt. `meiaVida` (os agrícolas, ADR 0130): cada evento com o peso atual pelo tipo.
+async function obterEventosDoAtivo(ativo, dataReferencia, { janelaDias, janelaPorFator = {}, excluirFatores = [], meiaVida = false }, deps = {}) {
   validar(ativo, dataReferencia);
   if (!Number.isInteger(janelaDias) || janelaDias < 1) throw new ValidationError("A janela dos eventos deve ser um número inteiro de dias.");
   const repo = deps.geopoliticaRepository || geopoliticaRepository;
-  const maior = Math.max(janelaDias, ...Object.values(janelaPorFator));
+  const maior = Math.max(janelaDias, ...Object.values(janelaPorFator), meiaVida ? maiorMeiaVida * MEIAS_VIDAS_NA_JANELA + 1 : 0);
   const inicioBusca = somarDias(dataReferencia, -(maior - 1));
   const inicio = somarDias(dataReferencia, -(janelaDias - 1));
   const [registros, leituras] = await Promise.all([
@@ -318,13 +351,19 @@ async function obterEventosDoAtivo(ativo, dataReferencia, { janelaDias, janelaPo
       pressao: e.pressao,
       intensidade: e.intensidade,
       confianca: e.confianca,
-      fontes: e.fontes
+      fontes: e.fontes,
+      ...(meiaVida ? { meiaVidaDias: MEIA_VIDA_DIAS[e.tipo] ?? null, peso: pesoDoEvento(e.tipo, diasEntre(e.leitura.data_referencia, dataReferencia)) } : {})
     }))
-    .filter((e) => !excluir.has(e.fator) && e.idadeDias < (janelaPorFator[e.fator] ?? janelaDias));
+    .filter((e) => {
+      if (excluir.has(e.fator)) return false;
+      const naJanela = e.idadeDias < (janelaPorFator[e.fator] ?? janelaDias);
+      return naJanela || (e.meiaVidaDias != null && e.peso >= PESO_MINIMO_EVENTO);
+    });
   const resultado = {
     ativo,
     dataReferencia,
     janelaDias,
+    meiaVida,
     janelaPorFator,
     excluidos: [...excluir],
     inicio,
@@ -408,6 +447,7 @@ function fontesConfiaveis() {
     enderecos: FONTES[codigo].escopos.map((e) => `${e.host}${e.caminho || ""}`),
     papel: FONTES[codigo].papel,
     tipos: FONTES[codigo].tipos,
+    secundaria: Boolean(FONTES[codigo].secundaria),
     // Com a soja quando a fonte tem o bloco dela (ADR 0115).
     ativos: ativosDaFonte(FONTES[codigo])
   }));

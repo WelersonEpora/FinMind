@@ -127,7 +127,7 @@ test("carregarPrompt: o prompt dos eventos de mercado tem versão, instrução f
     sugestoes_busca: "- C",
     eventos_recentes: "- 05/10 (MILHO): R"
   });
-  assert.equal(versao, "geopolitica-diaria@14");
+  assert.equal(versao, "geopolitica-diaria@15");
   assert.match(prompt, /Eventos já registrados nos últimos dias \(não repita; só um desdobramento novo\):\n- 05\/10 \(MILHO\): R/);
   assert.doesNotMatch(instrucaoDoSistema, /\{\{/);
   // A instrução é a mesma para as duas chamadas: o exemplo de formato e a seção EVENTOS; os ativos vêm do prompt.

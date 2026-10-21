@@ -1,6 +1,7 @@
 "use strict";
 
 const { FATORES } = require("./fatores-fel1");
+const { ATIVOS_COM_MEIA_VIDA } = require("./eventos-mercado");
 
 // A estrutura comum da metodologia dos fatores de um ativo (ADR 0050): cada ativo tem um módulo só com as definições
 // dos fatores (`metodologia-<ativo>.js`), e este monta o que a tela e o motor usam. Uma definição tem:
@@ -365,13 +366,14 @@ function montarPesos(ativo, fatores, pesos) {
 
 // A metodologia de um ativo, como o serviço a entrega: `versao` sobe quando uma definição de fator muda (vai com cada
 // prompt).
-// A seção de eventos da base do prompt (ADR 0095): a janela padrão, a de cada fator que tem outra, e os fatores de
-// evento, cujos eventos ficam no bloco deles.
+// A seção de eventos da base do prompt (ADR 0095): a janela padrão, a de cada fator que tem outra, os fatores de
+// evento, cujos eventos ficam no bloco deles, e, nos agrícolas, a meia-vida por tipo (ADR 0130).
 const JANELA_EVENTOS_PADRAO = 7;
 
-function montarEventosDoAtivo(fatores) {
+function montarEventosDoAtivo(ativo, fatores) {
   return {
     janelaDias: JANELA_EVENTOS_PADRAO,
+    meiaVida: ATIVOS_COM_MEIA_VIDA.includes(ativo),
     janelaPorFator: Object.fromEntries(fatores.filter((f) => f.janelaEventos).map((f) => [f.codigo, f.janelaEventos])),
     excluirFatores: fatores.filter((f) => f.evento).map((f) => f.codigo)
   };
@@ -386,7 +388,7 @@ function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, 
     dataVersao,
     doAtivo: montarDoAtivo(ativo, doAtivo),
     pesos: montarPesos(ativo, fatores.filter((f) => !f.regra), pesos),
-    eventosDoAtivo: montarEventosDoAtivo(fatores),
+    eventosDoAtivo: montarEventosDoAtivo(ativo, fatores),
     fatores
   };
 }

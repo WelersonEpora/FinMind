@@ -248,7 +248,8 @@ const DO_ATIVO = {
     `Pesos fixos por fator, na escala do FEL 1: F1 e F2 Alto (3), F3 Médio (2), F4 Baixo (1), iguais em todos os horizontes. A matriz fator × horizonte da proposta (§2.10) é relevância, não peso: vai ao prompt como orientação. A agregação segue a do milho e do café: a IA combina os fatores pelo prompt, sem soma ponderada em código. A sugestão de agregação do FinMind (docs/proposta-pesos-agregacao-soja.md) não foi adotada. Comitê, com o David, 2026-10-08 (ADR 0116, adendo).`,
     `As fontes da fase 2 (Export Sales e o Chicago diário do Yahoo como pesquisa) ficaram de fora (item 7). ${DECISAO_COMITE}.`,
     "A validação histórica da §3 da proposta deixa de ser condição para o prompt: a soja segue o caminho do milho e do café, e a validação é feita pela Qualidade da IA e por um teste histórico depois. Um fator que não passar sai do prompt como pressão (ADR 0116).",
-    "Os eventos de política comercial e de biocombustíveis da leitura diária da soja (ADR 0115) marcam o F4; a logística, a sanidade e o resto vão à seção de eventos da base do prompt, sem fator."
+    "Os eventos de política comercial e de biocombustíveis da leitura diária da soja (ADR 0115) marcam o F4; a logística, a sanidade e o resto vão à seção de eventos da base do prompt, sem fator.",
+    "Eventos dos agrícolas (usuário, 2026-10-21, ADR 0130; pela análise do café de 2026-10-19, item E2): o NORMAL sem o mínimo de pesquisa vira NÃO VERIFICADO; Safras & Mercado, Notícias Agrícolas e Trading Economics como fontes secundárias, só alerta (confiança baixa, não cumprem o piso); e a meia-vida no lugar da janela fixa: 4 dias nos fatos pontuais e 25 nas medidas que seguem valendo, com o evento no prompt enquanto o peso for de pelo menos 0,25."
   ],
   perguntas: []
 };

@@ -429,7 +429,8 @@ test("simulação: os 10 fatores na data (calculados até o fim dela, eventos na
   assert.ok(simulacao.fatores.filter((f) => f.tipo === "CALCULADO").every((f) => f.medida === null && f.textoPrompt.startsWith("FATOR — ")));
   assert.equal(simulacao.versaoMetodologia, "petroleo-v12 (2026-10-08)");
   // Os eventos do ativo numa seção da base (ADR 0095), sem os dos dois fatores de evento.
-  assert.deepEqual(eventosDoAtivo, { janelaDias: 7, janelaPorFator: {}, excluirFatores: ["PETROLEO_OPEP", "PETROLEO_GEOPOLITICA"] });
+  // Sem a meia-vida: só os agrícolas a têm (ADR 0130).
+  assert.deepEqual(eventosDoAtivo, { janelaDias: 7, meiaVida: false, janelaPorFator: {}, excluirFatores: ["PETROLEO_OPEP", "PETROLEO_GEOPOLITICA"] });
   assert.equal(simulacao.eventosDoAtivo.textoPrompt, "EVENTOS DO ATIVO");
   // A OPEP+ é calculada e com eventos: o texto do cálculo e, depois, o bloco dos eventos.
   assert.match(simulacao.fatores[0].textoPrompt, /^FATOR — Decisões da OPEP\+[^\n]*\n[\s\S]*\n\nEVENTOS DO FATOR PETROLEO_OPEP$/);

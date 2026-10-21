@@ -112,12 +112,17 @@ const FONTES = {
   },
   USDA_FAS: {
     nome: "USDA FAS (relatórios GAIN)",
-    papel: "medidas de outros governos sobre milho e café (México, China, UE e outros), relatadas pelos adidos agrícolas dos EUA",
+    // A safra do café do Vietnã (o relatório GAIN "Coffee Annual" e as revisões dos adidos) entrou com o ADR 0130.
+    papel: "medidas de outros governos sobre milho e café (México, China, UE e outros) e a safra de café do Vietnã e de outros produtores, relatadas pelos adidos agrícolas dos EUA",
     escopos: [{ host: "fas.usda.gov" }],
-    tipos: ["POLITICA_COMERCIAL", "SANIDADE", "REGULACAO"],
+    tipos: ["POLITICA_COMERCIAL", "SANIDADE", "REGULACAO", "SAFRA"],
     ativos: ["MILHO", "CAFE"],
     apelidos: ["usda fas", "foreign agricultural service", "gain report", "relatorio gain"],
-    buscas: ["site:fas.usda.gov GAIN corn import policy", "site:fas.usda.gov GAIN coffee"]
+    buscas: [
+      { busca: "site:fas.usda.gov GAIN corn import policy", ativos: ["MILHO"] },
+      { busca: "site:fas.usda.gov GAIN coffee", ativos: ["CAFE"] },
+      { busca: "site:fas.usda.gov GAIN Vietnam coffee annual", ativos: ["CAFE"] }
+    ]
   },
   INMET: {
     nome: "INMET (avisos meteorológicos)",
@@ -206,15 +211,73 @@ const FONTES = {
     apelidos: ["panama canal authority", "autoridad del canal de panama", "canal do panama", "acp"],
     buscas: ["site:pancanal.com advisory to shipping draft restriction"]
   },
+  // Desde o ADR 0130, também a mudança relevante na probabilidade prevista (o "risco de El Niño para a safra seguinte").
   CPC_ENSO: {
     nome: "NOAA CPC (El Niño e La Niña)",
-    papel: "mudança de status do El Niño ou da La Niña (alerta, início, fim), que muda o risco de seca na Argentina, no sul do Brasil e no café da Ásia",
+    papel: "mudança de status do El Niño ou da La Niña (alerta, início, fim) e mudança relevante na probabilidade prevista para os próximos meses, que mudam o risco de seca na Argentina, no sul do Brasil e no café da Ásia",
     escopos: [{ host: "cpc.ncep.noaa.gov" }],
     tipos: ["CLIMA_EXTREMO"],
     ativos: ["MILHO", "CAFE"],
     apelidos: ["climate prediction center", "cpc", "noaa cpc", "enso"],
     buscas: ["site:cpc.ncep.noaa.gov ENSO diagnostic discussion"],
     // A discussão mensal sai sempre na mesma URL (ensodisc.shtml).
+    paginaAtualizada: true
+  },
+  // A Federação de Cafeteiros da Colômbia: testada em 2026-10-06 e deixada "fora por ora" (ADR 0092); volta com o ADR 0130
+  // (autorização do usuário em 2026-10-21, pela análise do café de 2026-10-19): a safra colombiana abaixo do esperado
+  // foi um dos fatos que a leitura não viu.
+  FNC: {
+    nome: "Federação Nacional de Cafeteiros da Colômbia (FNC)",
+    papel: "produção e exportação mensais de café da Colômbia, o 2º maior produtor de arábica, e os comunicados sobre a safra (quebra, clima, pragas)",
+    escopos: [{ host: "federaciondecafeteros.org" }],
+    tipos: ["SAFRA", "CLIMA_EXTREMO", "SANIDADE"],
+    ativos: ["CAFE"],
+    apelidos: ["federacion nacional de cafeteros", "federación nacional de cafeteros", "fnc", "federacao de cafeteiros", "colombian coffee growers federation"],
+    buscas: ["site:federaciondecafeteros.org producción de café", "site:federaciondecafeteros.org cosecha"]
+  },
+  // FONTES SECUNDÁRIAS (ADR 0130; autorização do usuário em 2026-10-21, pela análise do café de 2026-10-19): imprensa de
+  // mercado agrícola, testada com a pesquisa do Gemini em 2026-10-21 (o Cepea, não lido, ficou fora: o conteúdo dele
+  // chega pelo Notícias Agrícolas). Só alerta: o evento sustentado só por elas vai com confiança BAIXA e marcado no prompt
+  // como à espera de uma fonte primária; não contam para o piso.
+  SAFRAS: {
+    secundaria: true,
+    nome: "Safras & Mercado",
+    papel: "imprensa de mercado agrícola: estimativas privadas de safra, clima nas regiões produtoras e o fechamento do mercado (fonte secundária: só alerta)",
+    escopos: [{ host: "safras.com.br" }],
+    tipos: ["SAFRA", "CLIMA_EXTREMO", "SANIDADE", "POLITICA_COMERCIAL"],
+    ativos: ["MILHO", "CAFE"],
+    apelidos: ["safras & mercado", "safras e mercado", "safras.com.br"],
+    buscas: [
+      { busca: "site:safras.com.br café safra", ativos: ["CAFE"] },
+      { busca: "site:safras.com.br milho safrinha", ativos: ["MILHO"] }
+    ]
+  },
+  NOTICIAS_AGRICOLAS: {
+    secundaria: true,
+    nome: "Notícias Agrícolas",
+    papel: "imprensa de mercado agrícola: o fechamento diário de Nova York e Londres, as análises do Cepea republicadas e o clima nas regiões produtoras (fonte secundária: só alerta)",
+    escopos: [{ host: "noticiasagricolas.com.br" }],
+    tipos: ["SAFRA", "CLIMA_EXTREMO", "SANIDADE", "POLITICA_COMERCIAL"],
+    ativos: ["MILHO", "CAFE"],
+    apelidos: ["noticias agricolas", "noticiasagricolas"],
+    buscas: [
+      { busca: "site:noticiasagricolas.com.br café Cepea safra", ativos: ["CAFE"] },
+      { busca: "site:noticiasagricolas.com.br milho Cepea", ativos: ["MILHO"] }
+    ]
+  },
+  TRADING_ECONOMICS: {
+    secundaria: true,
+    nome: "Trading Economics",
+    papel: "resumo diário do mercado de commodities: estoques certificados, clima e safra que movem o preço em Nova York e Chicago (fonte secundária: só alerta)",
+    escopos: [{ host: "tradingeconomics.com" }],
+    tipos: ["SAFRA", "CLIMA_EXTREMO", "POLITICA_COMERCIAL"],
+    ativos: ["MILHO", "CAFE"],
+    apelidos: ["trading economics", "tradingeconomics"],
+    buscas: [
+      { busca: "site:tradingeconomics.com commodity coffee", ativos: ["CAFE"] },
+      { busca: "site:tradingeconomics.com commodity corn", ativos: ["MILHO"] }
+    ],
+    // A página de cada commodity é reescrita todo dia na mesma URL.
     paginaAtualizada: true
   },
   // As dez abaixo entraram em 2026-10-09 só para a leitura do dólar (fase 1 do dólar, ADR 0124, pela autorização do ADR
@@ -382,6 +445,22 @@ const COBERTURA_DA_SOJA = {
     papel: "restrições de calado e de trânsito no Canal do Panamá (a rota da soja dos EUA para a Ásia)",
     tipos: ["CHOQUE_LOGISTICO"],
     buscas: ["site:pancanal.com advisory to shipping draft restriction"]
+  },
+  // As secundárias (ADR 0130), só alerta: sem clima nem safra, que na soja são fator.
+  SAFRAS: {
+    papel: "imprensa de mercado agrícola: comércio da soja com a China, biocombustíveis e logística (fonte secundária: só alerta)",
+    tipos: ["POLITICA_COMERCIAL", "REGULACAO", "CHOQUE_LOGISTICO"],
+    buscas: ["site:safras.com.br soja China"]
+  },
+  NOTICIAS_AGRICOLAS: {
+    papel: "imprensa de mercado agrícola: comércio da soja com a China, biocombustíveis e logística (fonte secundária: só alerta)",
+    tipos: ["POLITICA_COMERCIAL", "REGULACAO", "CHOQUE_LOGISTICO"],
+    buscas: ["site:noticiasagricolas.com.br soja China"]
+  },
+  TRADING_ECONOMICS: {
+    papel: "resumo diário do mercado da soja em Chicago: compras da China, tarifas e biocombustíveis (fonte secundária: só alerta)",
+    tipos: ["POLITICA_COMERCIAL", "REGULACAO"],
+    buscas: ["site:tradingeconomics.com commodity soybeans"]
   }
 };
 for (const [codigo, cobertura] of Object.entries(COBERTURA_DA_SOJA)) FONTES[codigo].soja = cobertura;
@@ -599,11 +678,12 @@ function listaParaPrompt({ rotuloTipo, nomeAtivo, ativos }) {
     .map((codigo) => {
       const fonte = FONTES[codigo];
       const enderecos = fonte.escopos.map((e) => `${e.host}${e.caminho || ""}`).join(", ");
+      const nome = fonte.secundaria ? `${fonte.nome} [SECUNDÁRIA]` : fonte.nome;
       if (bloco) {
-        return `- ${fonte.nome} (${enderecos}) - tipos: ${rotulosDe(fonte[bloco].tipos, rotuloTipo)} - ativos: ${nomeAtivo[ativos[0]]}: ${fonte[bloco].papel}`;
+        return `- ${nome} (${enderecos}) - tipos: ${rotulosDe(fonte[bloco].tipos, rotuloTipo)} - ativos: ${nomeAtivo[ativos[0]]}: ${fonte[bloco].papel}`;
       }
       const ativosDaFonte = ativos ? fonte.ativos.filter((a) => ativos.includes(a)) : fonte.ativos;
-      return `- ${fonte.nome} (${enderecos}) - tipos: ${rotulosDe(fonte.tipos, rotuloTipo)} - ativos: ${rotulosDe(ativosDaFonte, nomeAtivo)}: ${fonte.papel}`;
+      return `- ${nome} (${enderecos}) - tipos: ${rotulosDe(fonte.tipos, rotuloTipo)} - ativos: ${rotulosDe(ativosDaFonte, nomeAtivo)}: ${fonte.papel}`;
     })
     .join("\n");
 }

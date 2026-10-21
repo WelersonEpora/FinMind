@@ -68,9 +68,10 @@ const ROTULO_TIPO = Object.fromEntries(TIPOS.map((t) => [t.codigo, t.rotulo]));
 // texto do prompt e a regra que o coletor confere pelas fontes de fato lidas. Petróleo: uma fonte de geopolítica ou de
 // oferta do ativo (ADR 0092). Ouro: a AP ou o Tesouro.
 // Milho e café: uma fonte de política comercial ou regulação (o INMET sozinho não basta). Milho, também: a AP News (a
-// guerra no Mar Negro, que nenhuma fonte de comércio cobre). Não reescreve o nível da IA nem rejeita a leitura: vira
-// aviso da execução, para acompanhar a cobertura dia a dia.
+// guerra no Mar Negro, que nenhuma fonte de comércio cobre). Não rejeita a leitura: vira aviso da execução, para
+// acompanhar a cobertura dia a dia, e, desde o ADR 0130, o NORMAL sem o piso é gravado como NAO_VERIFICADO.
 const TIPOS_DO_PISO_AGRO = ["POLITICA_COMERCIAL", "REGULACAO"];
+const NIVEL_NAO_VERIFICADO = "NAO_VERIFICADO";
 // Petróleo (ADR 0092): as fontes de furacão (NHC, BSEE) e de rota (Canal do Panamá) cobrem o petróleo, mas um dia sem
 // tempestade não diz nada sobre Ormuz ou a OPEP+: sozinhas, não cumprem o piso.
 const TIPOS_DO_PISO_PETROLEO = ["GEOPOLITICA", "POLITICA_OFERTA"];
@@ -123,9 +124,10 @@ const PISO = {
   DOLAR: [BRASIL_MONETARIO_OU_FISCAL, FED_DOS_EUA]
 };
 
-// As exigências do piso que nenhuma fonte lida cumpriu ([] = piso cumprido).
+// As exigências do piso que nenhuma fonte lida cumpriu ([] = piso cumprido). Fonte secundária (ADR 0130) não cumpre o piso.
 function faltasDoPiso(ativo, fontesLidas) {
-  return PISO[ativo].filter((exigencia) => !fontesLidas.some((codigo) => exigencia.vale(FONTES[codigo]))).map((e) => e.descricao);
+  const primarias = fontesLidas.filter((codigo) => !FONTES[codigo].secundaria);
+  return PISO[ativo].filter((exigencia) => !primarias.some((codigo) => exigencia.vale(FONTES[codigo]))).map((e) => e.descricao);
 }
 
 // "- MILHO: ao menos uma busca numa fonte de política comercial...; e uma busca na AP News sobre o Mar Negro..."
@@ -329,7 +331,8 @@ function montarFontes(evento, fontesLidas, grounding, leitura) {
     // "…/sb0644" e "…/sb0644/" são a mesma página.
     const mesmaPagina = (url) => url.replace(/\/+$/, "") === pagina.url.replace(/\/+$/, "");
     if (codigo && !daPesquisa.some((fonte) => mesmaPagina(fonte.url))) {
-      daPesquisa.push({ nome: FONTES[codigo].nome, url: pagina.url, fonteAutorizada: codigo, confirmadaNaPesquisa: true, origem: "pesquisa" });
+      const entrada = { nome: FONTES[codigo].nome, url: pagina.url, fonteAutorizada: codigo, confirmadaNaPesquisa: true, origem: "pesquisa" };
+      daPesquisa.push(FONTES[codigo].secundaria ? { ...entrada, secundaria: true } : entrada);
     }
   }
   const fontesComPagina = new Set(daPesquisa.map((fonte) => fonte.fonteAutorizada));
@@ -363,8 +366,11 @@ function motivoDaRejeicao(fontes) {
 // fator, a pressão, a intensidade e o canal são os daquele ativo.
 function normalizarEvento(evento, ativos, fontesLidas, grounding, leitura) {
   const fontes = montarFontes(evento, fontesLidas, grounding, leitura);
-  const aceito = fontes.some((fonte) => fonte.origem === "pesquisa");
+  const daPesquisa = fontes.filter((fonte) => fonte.origem === "pesquisa");
+  const aceito = daPesquisa.length > 0;
   const motivo = aceito ? null : motivoDaRejeicao(fontes).slice(0, 255);
+  // Sustentado só por fonte secundária (ADR 0130): é alerta, com confiança BAIXA, até uma primária confirmar.
+  const soSecundaria = aceito && daPesquisa.every((fonte) => fonte.secundaria);
   return ativos.map((ativo) => ({
     ativo,
     tipo: evento.tipo,
@@ -375,7 +381,7 @@ function normalizarEvento(evento, ativos, fontesLidas, grounding, leitura) {
     canal_transmissao: evento.porAtivo[ativo].canal,
     pressao: evento.porAtivo[ativo].pressao,
     intensidade: evento.porAtivo[ativo].intensidade,
-    confianca: evento.confianca,
+    confianca: soSecundaria ? "BAIXA" : evento.confianca,
     fontes,
     aceito,
     motivo_rejeicao: motivo
@@ -512,7 +518,13 @@ function normalize(config, [resposta]) {
       }
       const faltas = nivel === "NORMAL" ? faltasDoPiso(ativo, fontesLidas) : [];
       if (faltas.length > 0) {
-        avisos.push({ item: { ativo, fontesLidas }, motivo: `Nível NORMAL do ${NOME_ATIVO[ativo]} sem ${faltas.join(" nem ")} lida na pesquisa.` });
+        // "NORMAL" só com o escopo pesquisado (análise do café de 2026-10-19, E2; ADR 0130): o coletor grava
+        // NAO_VERIFICADO, e o resumo da IA fica como veio.
+        secoes[ativo].nivel = NIVEL_NAO_VERIFICADO;
+        avisos.push({
+          item: { ativo, fontesLidas },
+          motivo: `Nível NORMAL do ${NOME_ATIVO[ativo]} sem ${faltas.join(" nem ")} lida na pesquisa: gravado como NÃO VERIFICADO.`
+        });
       }
     }
   }

@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-20.**
+**Última atualização: 2026-10-21.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, só no E1); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, no E1 e no E2); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -28,7 +28,7 @@ análise para decidirmos juntos.
 | Item | O que precisamos do Comitê |
 |---|---|
 | E1 | Aprovar a regra de rolagem da série contínua do ICF, já calculada como proposta (junto com o E11). Já implementados: a data do preço no Centro de Decisão, a série contínua (proposta) e o basis B3 × Nova York (informação) |
-| E2 | Aprovar a volta da Federação de Cafeteiros, a regra nova do El Niño, as fontes secundárias como alerta e a meia-vida dos eventos; montar a lista de eventos de referência para medir a captura |
+| E2 | Confirmar os valores da meia-vida (4 e 25 dias) e montar a lista de eventos de referência para medir a captura. Já implementados, por decisão do usuário: NÃO VERIFICADO, o tipo SAFRA, a Federação de Cafeteiros, o Vietnã, o El Niño, a meia-vida e as fontes secundárias como alerta (ADR 0130) |
 | E3 | Onde fica a curva (no F3 ou num fator próprio) e o limiar do estoque baixo |
 | E4 | Junto com a §3 do documento: como aplicar o F7 como modificador |
 | E5 | Confirmar o F6 só no horizonte de 90 dias |
@@ -36,7 +36,7 @@ análise para decidirmos juntos.
 | E7 | Quanto tempo a revisão da Conab pesa forte depois de publicada e qual medida de surpresa testar |
 | E8 | Peso Baixo para o câmbio e juntar o F4 com o F5 num fator de incentivo do produtor |
 | E9 | A data de publicação estimada do custo da Conab e o mesmo "juntar com o F4" |
-| E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos), autorizar a Federação de Cafeteiros e decidir se o basis (já calculado, como informação) vira fator |
+| E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos), a oferta colombiana como dado (a Federação de Cafeteiros já entrou como fonte de eventos, ADR 0130) e decidir se o basis (já calculado, como informação) vira fator |
 | E11 | Contrato por horizonte ou série contínua ajustada para todos |
 
 O KC de Nova York pelo Yahoo (fonte não oficial e provisória, como o Brent futuro), necessário para o E1, o E3 e o E10,
@@ -135,9 +135,20 @@ secundárias; o risco de El Niño em 2027/28, porque do NOAA CPC só conta a mud
 
 O mesmo módulo atende o milho e a soja: as mudanças podem valer para os três agrícolas.
 
-**O que precisamos do Comitê:** aprovar a volta da Federação de Cafeteiros, a regra nova do El Niño, as quatro fontes
-secundárias como alerta e os valores de meia-vida; dizer se vale só para o café ou para os três agrícolas; e montar a
-lista de eventos de referência para o teste.
+**Implementado (2026-10-21), por decisão do usuário (ADR 0130), nos três agrícolas (milho, café e soja).** Vale da
+primeira leitura de eventos depois do deploy em diante (prompt de eventos v15; o da soja, v3).
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| 4. NÃO VERIFICADO | Quando a IA declara um ativo NORMAL sem cumprir o mínimo de pesquisa dele, o FinMind grava **NÃO VERIFICADO**, e o prompt do ativo recebe "sem informação, não calmaria". Vale para os seis ativos: corrige uma informação errada | Tela Eventos (selo tracejado) e o prompt de cada ativo |
+| 1. Escopo | A **Federação de Cafeteiros** volta às fontes; o **USDA FAS** busca o relatório do café do Vietnã; do **NOAA CPC** conta também a mudança relevante na probabilidade do El Niño. Tipo novo **SAFRA** (milho e café; na soja, safra é fator) | Tela Eventos, "Fonte e metodologia" |
+| 2. Meia-vida | Cada evento vai ao prompt com o **peso atual**: meia-vida de **4 dias** nos fatos pontuais (geopolítica, clima, logística) e de **25 dias** nas medidas que seguem valendo (tarifa, regulação, sanidade) e na SAFRA. Fica no prompt enquanto o peso for de pelo menos 0,25: uma tarifa segue por 50 dias, em vez de sair no 8º | O prompt do milho, do café e da soja, na seção de eventos |
+| 3. Fontes secundárias | Testadas na pesquisa do Gemini (café, 06 a 21/10): **Safras & Mercado** (8 páginas lidas), **Notícias Agrícolas** (8, com o Cepea republicado) e **Trading Economics** (11) entram **só como alerta**: o evento só delas vai com confiança baixa e marcado "ALERTA" no prompt, e elas não contam para o mínimo de pesquisa. O **Cepea** ficou fora: a pesquisa não leu nenhuma página do site (o conteúdo chega pelo Notícias Agrícolas) | Tela Eventos (marca "secundária" na fonte do evento) |
+
+**O que precisamos do Comitê:**
+
+- confirmar ou ajustar os valores da meia-vida (4 e 25 dias), já em uso;
+- montar a lista de eventos de referência (o gabarito) para o teste de captura de 80% em 30 dias, daqui para frente.
 
 </details>
 
@@ -166,6 +177,10 @@ entra na regra; vai só como contexto. O fator enxerga a velocidade da queda, n�
 | Dias de consumo | Baixo; pode ficar para depois |
 | Resposta não linear | Baixo |
 | Teste fora da amostra | Médio |
+
+**Achado no teste das fontes do E2 (2026-10-21):** o Trading Economics diz que os estoques certificados da ICE estão na
+**mínima de quase 27 anos** (~240 mil sacas). Se a nossa série confirmar, o F3, que só olha a variação de 4 semanas
+(percentil 41), está deixando passar o principal sinal de aperto. Conferimos na série do FinMind ao tratar o E3.
 
 **O que precisamos do Comitê:** se a curva fica dentro do F3 ou num fator próprio de estrutura a termo (E10), para não
 contar duas vezes; e o limiar de estoque baixo da resposta não linear.
@@ -937,7 +952,7 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 <details>
 <summary>Eventos de mercado por IA (Gemini com busca na web) · Ouro, petróleo, milho, café, soja, dólar · API · nível 4 · Dev e servidor</summary>
 
-**Acesso:** uma chamada diária ao Gemini com Google Search (chave gratuita `GEMINI_API_KEY_FREE` primeiro; a paga, `GEMINI_API_KEY`, só no 429 ou 5xx persistente), orientada a uma lista única de 20 fontes autorizadas para os quatro ativos: UKMTO/JMIC, Tesouro dos EUA, OPEP, AP News, USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA (`gov.br/agricultura`), USDA FAS e INMET (desde 2026-10-02, ADR 0049) e CENTCOM, NOAA NHC, BSEE, Bolsa de Comercio de Rosario, governo da Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC (desde 2026-10-06, ADR 0092). Sete tipos de evento (a geopolítica é um deles), cada evento com os ativos afetados e o fator do FEL 1 de cada um. O evento só é aceito com uma página de fonte autorizada, conferida pela URL, que a pesquisa leu e ligou ao texto dele: a citação da IA não basta. **Ressalva principal:** **não é série nem é reproduzível**: uma leitura por dia (nível e resumo de cada ativo e os eventos), que vale da 1ª coleta em diante, sem backtest; a escala de níveis é provisória (a régua é do David); evento sem página de fonte autorizada, ou repetição de um aceito dos 3 dias anteriores, é rejeitado e não vai ao Motor; o número de preço, produção, exportação, estoque e dos relatórios periódicos coletados não vira evento (já é observável), mas o fato que esses números ainda não mostram pode virar (ADR 0092). **Evidência:** ADRs 0047, 0049 e 0092.
+**Acesso:** uma chamada diária ao Gemini com Google Search (chave gratuita `GEMINI_API_KEY_FREE` primeiro; a paga, `GEMINI_API_KEY`, só no 429 ou 5xx persistente), orientada a uma lista única de 20 fontes autorizadas para os quatro ativos: UKMTO/JMIC, Tesouro dos EUA, OPEP, AP News, USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA (`gov.br/agricultura`), USDA FAS e INMET (desde 2026-10-02, ADR 0049) e CENTCOM, NOAA NHC, BSEE, Bolsa de Comercio de Rosario, governo da Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC (desde 2026-10-06, ADR 0092); desde 2026-10-21, a Federação de Cafeteiros e, só como alerta, as secundárias Safras & Mercado, Notícias Agrícolas e Trading Economics, nos agrícolas (ADR 0130). Sete tipos de evento (a geopolítica é um deles), cada evento com os ativos afetados e o fator do FEL 1 de cada um. O evento só é aceito com uma página de fonte autorizada, conferida pela URL, que a pesquisa leu e ligou ao texto dele: a citação da IA não basta. **Ressalva principal:** **não é série nem é reproduzível**: uma leitura por dia (nível e resumo de cada ativo e os eventos), que vale da 1ª coleta em diante, sem backtest; a escala de níveis é provisória (a régua é do David); evento sem página de fonte autorizada, ou repetição de um aceito dos 3 dias anteriores, é rejeitado e não vai ao Motor; o número de preço, produção, exportação, estoque e dos relatórios periódicos coletados não vira evento (já é observável), mas o fato que esses números ainda não mostram pode virar (ADR 0092). **Evidência:** ADRs 0047, 0049 e 0092.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
@@ -1058,6 +1073,15 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>6. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-10-21</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| Eventos dos agrícolas (E2 da análise do café) | NÃO VERIFICADO no lugar do NORMAL sem o mínimo de pesquisa (os seis ativos); tipo SAFRA; a Federação de Cafeteiros de volta, o Vietnã no USDA FAS e a probabilidade do El Niño no CPC; meia-vida dos eventos (4 e 25 dias, peso mínimo 0,25) no milho, no café e na soja; Safras & Mercado, Notícias Agrícolas e Trading Economics como fontes secundárias, só alerta (o Cepea, testado, ficou fora). Prompt de eventos v15 e o da soja v3; migration dos CHECKs de nível e de tipo | §0, E2; ADR 0130 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-20</summary>

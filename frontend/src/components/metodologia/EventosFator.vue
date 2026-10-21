@@ -75,7 +75,7 @@ const retrato = computed(() => resultado.value?.ultimaLeitura || null)
       </p>
 
       <div v-if="retrato" class="eventos-fator__retrato">
-        <span class="eventos-fator__nivel" :class="`eventos-fator__nivel--${nivel(retrato.nivel).classe}`">{{ nivel(retrato.nivel).rotulo }}</span>
+        <span class="eventos-fator__nivel" :class="`eventos-fator__nivel--${nivel(retrato.nivel).classe}`" :title="nivel(retrato.nivel).titulo">{{ nivel(retrato.nivel).rotulo }}</span>
         <span><strong>Leitura de {{ formatarData(retrato.data) }}:</strong> {{ retrato.resumo }}</span>
       </div>
 

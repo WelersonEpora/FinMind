@@ -7,6 +7,9 @@ test('nível: rótulo e classe de cada um da escala; código desconhecido aparec
   assert.deepEqual(nivel('EXCEPCIONAL'), { rotulo: 'Excepcional', classe: 'excepcional' })
   assert.deepEqual(nivel('OUTRO'), { rotulo: 'OUTRO', classe: 'desconhecido' })
   assert.equal(nivel(null).rotulo, '—')
+  // Do coletor (ADR 0130): a pesquisa não cobriu o mínimo de fontes.
+  assert.equal(nivel('NAO_VERIFICADO').classe, 'nao-verificado')
+  assert.match(nivel('NAO_VERIFICADO').titulo, /não calmaria/)
 })
 
 test('ativo e grau', () => {
@@ -35,10 +38,11 @@ test('pressão: seta e rótulo; sem o dado (prompt v1), null', () => {
   assert.equal(pressao(null), null)
 })
 
-test('tipo: os 7 tipos do ADR 0049 e os 5 do dólar (ADR 0124); código desconhecido', () => {
+test('tipo: os 7 tipos do ADR 0049, a safra (ADR 0130) e os 5 do dólar (ADR 0124); código desconhecido', () => {
   assert.equal(rotuloTipo('POLITICA_OFERTA'), 'Política de oferta')
+  assert.equal(rotuloTipo('SAFRA'), 'Safra')
   assert.equal(rotuloTipo('INTERVENCAO_CAMBIAL'), 'Intervenção cambial')
   assert.equal(rotuloTipo('ROTA_MARITIMA'), '—')
   assert.equal(rotuloTipo(null), '—')
-  assert.equal(Object.keys(TIPOS).length, 12)
+  assert.equal(Object.keys(TIPOS).length, 13)
 })

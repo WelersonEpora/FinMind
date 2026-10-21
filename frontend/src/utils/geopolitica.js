@@ -5,7 +5,13 @@ const NIVEIS = {
   NORMAL: { rotulo: 'Normal', classe: 'normal' },
   ATENCAO: { rotulo: 'Atenção', classe: 'atencao' },
   RELEVANTE: { rotulo: 'Relevante', classe: 'relevante' },
-  EXCEPCIONAL: { rotulo: 'Excepcional', classe: 'excepcional' }
+  EXCEPCIONAL: { rotulo: 'Excepcional', classe: 'excepcional' },
+  // Do coletor, não da IA (ADR 0130): o NORMAL de um ativo cuja pesquisa do dia não cumpriu o mínimo de fontes.
+  NAO_VERIFICADO: {
+    rotulo: 'Não verificado',
+    classe: 'nao-verificado',
+    titulo: 'A pesquisa do dia não cobriu o mínimo de fontes deste ativo: sem informação, não calmaria'
+  }
 }
 
 export const ATIVOS = { OURO: 'Ouro', PETROLEO: 'Petróleo', MILHO: 'Milho', CAFE: 'Café', SOJA: 'Soja', DOLAR: 'Dólar' }
@@ -51,7 +57,8 @@ export function rotuloFonte(fonte) {
   }
 }
 
-// Tipo do evento (ADR 0049): a geopolítica é um deles. Os cinco últimos são só da leitura do dólar (ADR 0124).
+// Tipo do evento (ADR 0049): a geopolítica é um deles. A safra entrou com o ADR 0130. Os cinco últimos são só da
+// leitura do dólar (ADR 0124).
 export const TIPOS = {
   GEOPOLITICA: 'Geopolítica',
   POLITICA_COMERCIAL: 'Política comercial',
@@ -60,6 +67,7 @@ export const TIPOS = {
   CHOQUE_LOGISTICO: 'Choque logístico',
   SANIDADE: 'Sanidade',
   POLITICA_OFERTA: 'Política de oferta',
+  SAFRA: 'Safra',
   POLITICA_MONETARIA: 'Política monetária',
   POLITICA_FISCAL: 'Política fiscal',
   RISCO_INSTITUCIONAL: 'Risco institucional',

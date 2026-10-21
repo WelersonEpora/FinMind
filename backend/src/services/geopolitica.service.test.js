@@ -218,7 +218,8 @@ test("obterUltimaLeitura: nível e resumo de cada ativo; null antes da primeira 
   const vazia = await obterUltimaLeitura({ geopoliticaRepository: { buscarUltimaLeitura: async () => null } });
   assert.equal(vazia.leitura, null);
   // A lista de sites confiáveis vem sempre, do mesmo catálogo do prompt e do parser.
-  assert.equal(vazia.fontesConfiaveis.length, 30);
+  assert.equal(vazia.fontesConfiaveis.length, 34); // a FNC voltou e as 3 secundárias entraram (ADR 0130)
+  assert.deepEqual(vazia.fontesConfiaveis.filter((f) => f.secundaria).map((f) => f.nome), ["Safras & Mercado", "Notícias Agrícolas", "Trading Economics"]);
   assert.deepEqual(vazia.fontesConfiaveis.find((f) => f.nome.startsWith("MME")).enderecos, ["gov.br/mme"]);
   assert.deepEqual(vazia.fontesConfiaveis.find((f) => f.nome.startsWith("MAPA")).enderecos, ["gov.br/agricultura"]);
   assert.ok(!vazia.fontesConfiaveis.some((f) => f.enderecos.includes("gold.org")));
@@ -353,6 +354,49 @@ test("eventos do ativo: uma seção só, com a condição afetada, a janela de c
   assert.match(r.contexto, /Dias sem leitura \(sem informação, não calmaria\): 2026-10-02, 2026-10-03, 2026-10-04, 2026-10-05\./);
 });
 
+test("eventos do ativo com a meia-vida (ADR 0130): o peso pelo tipo e a janela até o peso de 1/4", async () => {
+  const comTipo = (data, tipo, titulo) => ({ ...eventoDoCafe(data, "CAFE_SAFRA_BRASIL", titulo), tipo });
+  const eventos = [
+    comTipo("2026-10-03", "CLIMA_EXTREMO", "Geada há 4 dias"),
+    comTipo("2026-09-29", "CLIMA_EXTREMO", "Geada há 8 dias: peso 1/4, ainda entra"),
+    comTipo("2026-09-28", "CLIMA_EXTREMO", "Geada há 9 dias: sai"),
+    comTipo("2026-09-12", "SAFRA", "Quebra na Colômbia há 25 dias"),
+    comTipo("2026-08-18", "POLITICA_COMERCIAL", "Tarifa há 50 dias: peso 1/4, ainda entra")
+  ];
+  const repo = repoDoFator({ datas: ["2026-10-07"], primeiraData: "2026-08-01" });
+  repo.listarEventosAceitosDoAtivo = async (args) => {
+    repo.chamadas.push({ eventos: args });
+    return eventos;
+  };
+  const r = await obterEventosDoAtivo("CAFE", "2026-10-07", { janelaDias: 7, meiaVida: true }, { geopoliticaRepository: repo });
+
+  // A busca alcança duas meias-vidas longas: o evento de 50 dias atrás.
+  assert.equal(repo.chamadas[0].eventos.dataInicio, "2026-08-18");
+  assert.deepEqual(
+    r.eventos.map((e) => [e.titulo, e.meiaVidaDias, e.peso]),
+    [
+      ["Geada há 4 dias", 4, 0.5],
+      ["Geada há 8 dias: peso 1/4, ainda entra", 4, 0.25],
+      ["Quebra na Colômbia há 25 dias", 25, 0.5],
+      ["Tarifa há 50 dias: peso 1/4, ainda entra", 25, 0.25]
+    ]
+  );
+  assert.match(r.contexto, /\[registrado em 2026-10-03, há 4 dia\(s\); meia-vida de 4 dias, peso atual 0,50\] Geada há 4 dias/);
+  assert.match(r.contexto, /o evento sai com o peso abaixo de 0,25/);
+  // Sem a meia-vida (ouro, petróleo, dólar e as carteiras), como antes: sem peso, só a janela.
+  const semMeiaVida = await obterEventosDoAtivo("CAFE", "2026-10-07", { janelaDias: 7 }, { geopoliticaRepository: repo });
+  assert.deepEqual(semMeiaVida.eventos.map((e) => e.titulo), ["Geada há 4 dias"]);
+  assert.doesNotMatch(semMeiaVida.contexto, /meia-vida/);
+});
+
+test("nível NÃO VERIFICADO (ADR 0130): dito como falta de informação, não calmaria", async () => {
+  const repo = repoDoFator({ datas: ["2026-10-07"], primeiraData: "2026-10-01" });
+  repo.listarEventosAceitosDoAtivo = async () => [];
+  repo.buscarLeituraComEventos = async () => ({ nivel_cafe: "NAO_VERIFICADO", resumo_cafe: "Nada encontrado." });
+  const r = await obterEventosDoAtivo("CAFE", "2026-10-07", { janelaDias: 7 }, { geopoliticaRepository: repo });
+  assert.match(r.contexto, /nível NÃO VERIFICADO \(a pesquisa do dia não cobriu o mínimo de fontes deste ativo: sem informação, não calmaria\)/);
+});
+
 test("eventos do ativo: sem leitura nenhuma, avisa que a ausência não é situação normal; janela inválida, erro", async () => {
   const repo = repoDoFator();
   repo.listarEventosAceitosDoAtivo = async () => [];
@@ -361,4 +405,14 @@ test("eventos do ativo: sem leitura nenhuma, avisa que a ausência não é situa
   assert.match(r.contexto, /nenhum evento do ativo na janela, fora os dos fatores de evento/);
   assert.doesNotMatch(r.contexto, /não estão aqui/);
   await assert.rejects(obterEventosDoAtivo("MILHO", "2026-10-07", { janelaDias: 0 }, { geopoliticaRepository: repo }), /janela/);
+});
+
+test("formatarContexto: evento só de fonte secundária vai como ALERTA (ADR 0130); com a primária, não", async () => {
+  const secundaria = { nome: "Safras & Mercado", url: "https://safras.com.br/x", fonteAutorizada: "SAFRAS", confirmadaNaPesquisa: true, origem: "pesquisa", secundaria: true };
+  const alerta = { ...LEITURA, eventos: [{ ...LEITURA.eventos[0], confianca: "BAIXA", fontes: [secundaria] }] };
+  const { contexto } = await obterGeopoliticaDoDia("OURO", "2026-10-01", { geopoliticaRepository: repoCom(alerta) });
+  assert.match(contexto, /ALERTA: só fonte secundária/);
+  const comPrimaria = { ...LEITURA, eventos: [{ ...LEITURA.eventos[0], fontes: [secundaria, LEITURA.eventos[0].fontes[0]] }] };
+  const normal = await obterGeopoliticaDoDia("OURO", "2026-10-01", { geopoliticaRepository: repoCom(comPrimaria) });
+  assert.doesNotMatch(normal.contexto, /ALERTA/);
 });

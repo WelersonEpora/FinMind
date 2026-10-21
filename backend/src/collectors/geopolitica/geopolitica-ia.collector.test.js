@@ -104,7 +104,7 @@ function chamada(frente, texto, grounding, extra = {}) {
 
 const RESPOSTA = {
   dataReferencia: "2026-10-02",
-  versaoPrompt: "geopolitica-diaria@14",
+  versaoPrompt: "geopolitica-diaria@15",
   instrucaoDoSistema: "instrução enviada",
   chamadas: [chamada("OURO_PETROLEO", TEXTO_OP, GROUNDING_OP), chamada("MILHO_CAFE", TEXTO_MC, GROUNDING_MC, { chave: "paga", tokens: 234 })]
 };
@@ -240,7 +240,7 @@ test("parser: fontes em 'Nome - URL', '[Nome](URL)' e só o nome", () => {
 
 // --- fontes autorizadas ---
 
-test("fontes: as 11 do ADR 0049, as 9 do ADR 0092 e as 10 do dólar (ADR 0124), cada uma com escopo, tipos e ativos válidos", () => {
+test("fontes: as 11 do ADR 0049, as 9 do ADR 0092, a FNC e as 3 secundárias (ADR 0130) e as 10 do dólar (ADR 0124), cada uma com escopo, tipos e ativos válidos", () => {
   assert.deepEqual(Object.keys(FONTES), [
     "UKMTO",
     "TESOURO",
@@ -262,6 +262,10 @@ test("fontes: as 11 do ADR 0049, as 9 do ADR 0092 e as 10 do dólar (ADR 0124), 
     "MME",
     "PANAMA",
     "CPC_ENSO",
+    "FNC",
+    "SAFRAS",
+    "NOTICIAS_AGRICOLAS",
+    "TRADING_ECONOMICS",
     "BCB",
     "FAZENDA",
     "TESOURO_NACIONAL",
@@ -297,7 +301,11 @@ test("fontes: cada chamada recebe só as fontes que cobrem os seus ativos", () =
     "EPA",
     "MME",
     "PANAMA",
-    "CPC_ENSO"
+    "CPC_ENSO",
+    "FNC",
+    "SAFRAS",
+    "NOTICIAS_AGRICOLAS",
+    "TRADING_ECONOMICS"
   ]);
 });
 
@@ -407,7 +415,7 @@ test("normalize: uma leitura com as duas chamadas; uma linha por (evento, ativo 
   assert.match(leitura.texto_bruto, /^=== OURO E PETRÓLEO ===\nOURO\n/);
   assert.match(leitura.texto_bruto, /\n\n=== MILHO E CAFÉ ===\nMILHO\n/);
   assert.match(leitura.prompt, /prompt OURO_PETROLEO[\s\S]*prompt MILHO_CAFE/);
-  assert.equal(leitura.versao_prompt, "geopolitica-diaria@14");
+  assert.equal(leitura.versao_prompt, "geopolitica-diaria@15");
   // Uma chamada usou a chave paga: a leitura registra "paga"; os tokens somam.
   assert.equal(leitura.chave, "paga");
   assert.equal(leitura.tokens, 1234);
@@ -662,7 +670,7 @@ test("normalize: detalhes das chamadas para a execução, com as fontes lidas de
       modelo: "gemini-flash-latest",
       tokens: 1234,
       repeticoesPeloPiso: 0,
-      versaoPrompt: "geopolitica-diaria@14",
+      versaoPrompt: "geopolitica-diaria@15",
       chamadas: 2,
       buscas: 3,
       paginasLidas: 4,
@@ -711,7 +719,7 @@ test("download: duas chamadas, cada uma com os seus ativos, o seu piso, as suas 
 
   assert.equal(recebidos.length, 2);
   assert.deepEqual(resposta.chamadas.map((c) => c.frente), ["OURO_PETROLEO", "MILHO_CAFE"]);
-  assert.equal(resposta.versaoPrompt, "geopolitica-diaria@14");
+  assert.equal(resposta.versaoPrompt, "geopolitica-diaria@15");
   // A instrução do sistema é a mesma; o prompt muda por chamada.
   assert.equal(recebidos[0].systemInstruction, recebidos[1].systemInstruction);
   assert.match(recebidos[0].systemInstruction, /Não procure notícias gerais\. Procure somente acontecimentos relevantes nas fontes autorizadas/);
@@ -801,8 +809,13 @@ test("download: a repetição não melhora o piso - fica a 1ª resposta e o avis
   assert.equal(mc.tokens, 100);
   assert.equal(mc.tokensDescartados, 50);
   assert.doesNotMatch(mc.texto, /segunda/);
-  const { avisos } = coletor.normalize(coletor.parse(resposta));
-  assert.ok(avisos.some((a) => /Nível NORMAL do café sem fonte de política comercial/.test(a.motivo)));
+  const { avisos, validos } = coletor.normalize(coletor.parse(resposta));
+  assert.ok(avisos.some((a) => /Nível NORMAL do café sem fonte de política comercial.*NÃO VERIFICADO/.test(a.motivo)));
+  // "NORMAL" só com o escopo pesquisado (ADR 0130): o café NORMAL sem a fonte de comércio fica NÃO VERIFICADO; os
+  // outros, fora do NORMAL, ficam como vieram.
+  const [{ leitura }] = validos;
+  assert.equal(leitura.nivel_cafe, "NAO_VERIFICADO");
+  assert.equal(leitura.nivel_milho, "ATENCAO");
 });
 
 test("download: a repetição pelo piso falhou - segue a 1ª resposta, sem derrubar a leitura", async () => {
@@ -889,7 +902,7 @@ const GROUNDING_SOJA = {
 
 test("soja: o prompt usa o arquivo próprio, só as fontes com bloco da soja (papel da soja) e o piso da soja", () => {
   const { versao, prompt, instrucaoDoSistema } = coletor.montarPrompt("2026-10-08", { codigo: "SOJA", nome: "Soja", ativos: ["SOJA"] }, [], "eventos-soja-diaria.md");
-  assert.equal(versao, "eventos-soja-diaria@2");
+  assert.equal(versao, "eventos-soja-diaria@3");
   assert.match(instrucaoDoSistema, /acompanhamento diário da SOJA/);
   assert.match(prompt, /- MOFCOM \(Ministério do Comércio da China\) \(mofcom\.gov\.cn\) - tipos: Política comercial - ativos: soja: tarifas, contramedidas e suspensões da China sobre a soja dos EUA/);
   assert.match(prompt, /site:english\.mofcom\.gov\.cn soybeans tariff/);
@@ -902,7 +915,7 @@ test("soja: as chamadas dos quatro ativos validados não veem a soja (lista, sug
   const { FRENTES } = require("../../shared/eventos-mercado");
   for (const frente of FRENTES) {
     const { prompt, versao } = coletor.montarPrompt("2026-10-08", frente, [{ data: "2026-10-07", ativo: "SOJA", titulo: "evento da soja", paginas: [] }]);
-    assert.equal(versao, "geopolitica-diaria@14", "o prompt principal não muda de versão");
+    assert.equal(versao, "geopolitica-diaria@15", "o prompt principal não muda de versão");
     assert.doesNotMatch(prompt, /soja|SOJA|soybean/i, `frente ${frente.codigo}`);
   }
   assert.equal(fontesDosAtivos(["MILHO", "CAFE"]).includes("BCR"), true);
@@ -914,7 +927,7 @@ test("soja: coletor próprio; a leitura grava a frente SOJA e só as colunas da 
   assert.equal(soja.codigo, "geopolitica-ia-soja");
   assert.equal(coletor.codigo, "geopolitica-ia-diario", "o módulo continua sendo o coletor da leitura principal");
 
-  const resposta = { dataReferencia: "2026-10-08", versaoPrompt: "eventos-soja-diaria@2", instrucaoDoSistema: "i", chamadas: [chamada("SOJA", TEXTO_SOJA, GROUNDING_SOJA)] };
+  const resposta = { dataReferencia: "2026-10-08", versaoPrompt: "eventos-soja-diaria@3", instrucaoDoSistema: "i", chamadas: [chamada("SOJA", TEXTO_SOJA, GROUNDING_SOJA)] };
   const { validos, invalidos } = soja.normalize(soja.parse(resposta));
   assert.equal(invalidos.length, 0);
   const { leitura, eventos } = validos[0];
@@ -954,7 +967,7 @@ test("soja: o download confere a leitura do dia DA SOJA e faz uma chamada só, c
   assert.deepEqual(perguntas, ["SOJA"]);
   assert.equal(recebidos.length, 1);
   assert.match(recebidos[0].prompt, /leitura de eventos de mercado da soja/);
-  assert.equal(resposta.versaoPrompt, "eventos-soja-diaria@2");
+  assert.equal(resposta.versaoPrompt, "eventos-soja-diaria@3");
 });
 
 // --- leitura do dólar (fase 1 do dólar, só aquisição, ADR 0124) ---
@@ -1050,4 +1063,37 @@ test("dólar: NORMAL sem ler o Fed vira aviso do piso", () => {
   const { avisos } = coletor.coletorDolar.normalize([{ dataReferencia: "2026-10-09", versaoPrompt: "v", instrucaoDoSistema: "i", chamadas: [chamada("DOLAR", texto, grounding)] }]);
   assert.equal(avisos.length, 1);
   assert.match(avisos[0].motivo, /Nível NORMAL do dólar sem busca no Fed lida na pesquisa/);
+});
+
+test("fontes secundárias (ADR 0130): o evento só delas vai com confiança baixa; não cumprem o piso; com a primária, fica como veio", () => {
+  const { listaParaPrompt, sugestoesDeBusca } = require("./fontes-autorizadas");
+  const { ROTULO_ATIVO } = require("../../shared/eventos-mercado");
+  const lista = listaParaPrompt({ rotuloTipo: {}, nomeAtivo: ROTULO_ATIVO, ativos: ["MILHO", "CAFE"] });
+  assert.match(lista, /- Safras & Mercado \[SECUNDÁRIA\] \(safras\.com\.br\)/);
+  assert.doesNotMatch(lista, /USTR \(Representante Comercial dos EUA\) \[SECUNDÁRIA\]/);
+  assert.match(sugestoesDeBusca({ ativos: ["SOJA"] }), /site:tradingeconomics\.com commodity soybeans/);
+  assert.equal(fonteDaUrl("https://www.noticiasagricolas.com.br/noticias/cafe/1-cepea.html"), "NOTICIAS_AGRICOLAS");
+
+  const PAGINA_SAFRAS = "https://safras.com.br/noticias/china-tarifa-milho";
+  const soSecundaria = {
+    groundingChunks: [{ web: { title: "safras.com.br", urlFinal: PAGINA_SAFRAS } }],
+    groundingSupports: [{ segment: { text: "China anuncia tarifa de 15% sobre o milho dos EUA" }, groundingChunkIndices: [0] }]
+  };
+  const { validos, avisos } = coletor.normalize(coletor.parse(comChamada("MILHO_CAFE", { grounding: soSecundaria })));
+  const [{ leitura, eventos }] = validos;
+  const tarifa = eventos.find((e) => e.ativo === "MILHO" && e.titulo.startsWith("China anuncia"));
+  assert.equal(tarifa.aceito, true);
+  assert.equal(tarifa.confianca, "BAIXA");
+  assert.equal(tarifa.fontes[0].secundaria, true);
+  // Só a secundária lida: o café NORMAL não cumpriu o piso.
+  assert.equal(leitura.nivel_cafe, "NAO_VERIFICADO");
+  assert.ok(avisos.some((a) => /Nível NORMAL do café/.test(a.motivo)));
+
+  const comPrimaria = {
+    groundingChunks: [...soSecundaria.groundingChunks, { web: { title: "mofcom", urlFinal: "https://english.mofcom.gov.cn/news/tarifa-milho.html" } }],
+    groundingSupports: [{ segment: { text: "China anuncia tarifa de 15% sobre o milho dos EUA" }, groundingChunkIndices: [0, 1] }]
+  };
+  const outra = coletor.normalize(coletor.parse(comChamada("MILHO_CAFE", { grounding: comPrimaria })));
+  const confirmada = outra.validos[0].eventos.find((e) => e.ativo === "MILHO" && e.titulo.startsWith("China anuncia"));
+  assert.equal(confirmada.confianca, "ALTA");
 });

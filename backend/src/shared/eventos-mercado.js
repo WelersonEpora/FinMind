@@ -23,6 +23,15 @@ const TIPOS = [
   { codigo: "CHOQUE_LOGISTICO", rotulo: "Choque logístico", descricao: "interrupção extraordinária de transporte, porto, rio ou rota, sem causa geopolítica" },
   { codigo: "SANIDADE", rotulo: "Sanidade", descricao: "praga, doença ou problema fitossanitário com efeito sobre oferta ou comércio" },
   { codigo: "POLITICA_OFERTA", rotulo: "Política de oferta", descricao: "toda decisão de produção da OPEP+, inclusive a que mantém as cotas; ou decisão de outro grande produtor que corta ou aumenta a oferta de forma extraordinária" },
+  // A safra de fora do que o FinMind coleta em série (análise do café de 2026-10-19, item E2; ADR 0130): a Colômbia, o
+  // Vietnã, a quebra que os relatórios coletados ainda não mostram.
+  // Só na leitura principal (milho e café): na soja, a safra é fator, não evento (`docs/proposta-ativo-soja.md`, §2.9).
+  {
+    codigo: "SAFRA",
+    rotulo: "Safra",
+    descricao: "quebra, revisão relevante ou anúncio de safra que os relatórios coletados pelo FinMind ainda não mostram, inclusive de país sem série no FinMind (ex.: Colômbia, Vietnã)",
+    leituras: ["PRINCIPAL"]
+  },
   {
     codigo: "POLITICA_MONETARIA",
     rotulo: "Política monetária",
@@ -56,11 +65,12 @@ const TIPOS = [
 ];
 const CODIGOS_TIPO = TIPOS.map((tipo) => tipo.codigo);
 
-// Os tipos de uma leitura: os explícitos dela (DOLAR) ou, nas outras, os comuns (sem `leituras`), os de sempre.
+// Os tipos de uma leitura: os explícitos dela (DOLAR) ou, nas outras, os comuns (sem `leituras`) e os que a citam (a
+// SAFRA, na principal).
 const TIPOS_EXPLICITOS = { DOLAR: ["GEOPOLITICA", "POLITICA_COMERCIAL", "POLITICA_MONETARIA", "POLITICA_FISCAL", "RISCO_INSTITUCIONAL", "INTERVENCAO_CAMBIAL", "DADO_ECONOMICO"] };
 function tiposDaLeitura(leitura) {
   const explicitos = TIPOS_EXPLICITOS[leitura];
-  return explicitos ? TIPOS.filter((tipo) => explicitos.includes(tipo.codigo)) : TIPOS.filter((tipo) => !tipo.leituras);
+  return explicitos ? TIPOS.filter((tipo) => explicitos.includes(tipo.codigo)) : TIPOS.filter((tipo) => !tipo.leituras || tipo.leituras.includes(leitura));
 }
 
 // A leitura diária é feita em DUAS chamadas à IA (ADR 0049, item 12), uma por frente: cada uma decide o nível dos seus
@@ -93,7 +103,42 @@ function leituraDoAtivo(ativo) {
   return ativo === "SOJA" || ativo === "DOLAR" ? ativo : "PRINCIPAL";
 }
 
+// MEIA-VIDA dos eventos (análise do café de 2026-10-19, item E2; decisão do usuário em 2026-10-21, ADR 0130): o peso de
+// um evento no prompt cai pela metade a cada N dias, pelo tipo. Curta (4 dias, o "3 a 5 dias" do documento para notícia)
+// no fato pontual; longa (25 dias, o "20 a 30" para relatório de safra) na medida que segue valendo e na safra. Só nos
+// três agrícolas; o evento fica no prompt enquanto o peso for de pelo menos 1/4 (duas meias-vidas).
+const MEIA_VIDA_CURTA = 4;
+const MEIA_VIDA_LONGA = 25;
+const MEIA_VIDA_DIAS = {
+  GEOPOLITICA: MEIA_VIDA_CURTA,
+  CLIMA_EXTREMO: MEIA_VIDA_CURTA,
+  CHOQUE_LOGISTICO: MEIA_VIDA_CURTA,
+  DADO_ECONOMICO: MEIA_VIDA_CURTA,
+  POLITICA_COMERCIAL: MEIA_VIDA_LONGA,
+  REGULACAO: MEIA_VIDA_LONGA,
+  SANIDADE: MEIA_VIDA_LONGA,
+  POLITICA_OFERTA: MEIA_VIDA_LONGA,
+  SAFRA: MEIA_VIDA_LONGA,
+  POLITICA_MONETARIA: MEIA_VIDA_LONGA,
+  POLITICA_FISCAL: MEIA_VIDA_LONGA,
+  INTERVENCAO_CAMBIAL: MEIA_VIDA_LONGA,
+  RISCO_INSTITUCIONAL: MEIA_VIDA_LONGA
+};
+const PESO_MINIMO_EVENTO = 0.25;
+const ATIVOS_COM_MEIA_VIDA = ["MILHO", "CAFE", "SOJA"];
+
+// O peso de um evento de `tipo` com `idadeDias`: 1 no dia, 0,5 depois de uma meia-vida (duas casas). Tipo sem
+// meia-vida: null.
+function pesoDoEvento(tipo, idadeDias) {
+  const meiaVida = MEIA_VIDA_DIAS[tipo];
+  return meiaVida ? Math.round(0.5 ** (idadeDias / meiaVida) * 100) / 100 : null;
+}
+
 module.exports = {
+  MEIA_VIDA_DIAS,
+  PESO_MINIMO_EVENTO,
+  ATIVOS_COM_MEIA_VIDA,
+  pesoDoEvento,
   ATIVOS,
   NOME_ATIVO,
   ROTULO_ATIVO,

@@ -1,6 +1,6 @@
 # Prompt — Leitura diária de eventos de mercado (ouro, petróleo, milho e café)
 
-**Versão:** 14
+**Versão:** 15
 
 Histórico: v1 (2026-10-01) - formato inicial. v2 (2026-10-01) - rótulo `Pressão sobre o preço` em cada evento (alta,
 baixa ou ambígua): a direção em que o fato, sozinho e com o resto constante, empurra o preço do ativo. Não é previsão
@@ -57,6 +57,16 @@ Cumprido o mínimo de pesquisa, as buscas restantes vão para o que o mínimo n�
 EUA, logística, demanda). Motivo: de 02 a 06/10 a tela só teve o petróleo, o mesmo fato de Ormuz dia após dia, enquanto
 a Bolsa de Rosario relatava 70% da região núcleo da Argentina em seca e o NHC acompanhava um sistema no Golfo do México
 (decisão do usuário, ADR 0092).
+v15 (2026-10-21) - análise do café de 2026-10-19, item E2 (decisão do usuário, ADR 0130): (1) tipo novo SAFRA, para a
+quebra ou a revisão relevante de safra que os relatórios coletados ainda não mostram, inclusive de país sem série no
+FinMind (a Colômbia, o Vietnã); (2) a Federação de Cafeteiros da Colômbia volta às fontes (fora desde o ADR 0092) e o
+USDA FAS ganha a busca da safra de café do Vietnã; (3) do NOAA CPC conta também a mudança relevante na probabilidade
+prevista do El Niño ou da La Niña, não só a mudança de status. Motivo: a leitura declarou o café NORMAL enquanto o
+mercado reagia à safra colombiana abaixo do esperado e ao risco de El Niño para a safra seguinte. O nível NÃO VERIFICADO
+é do coletor (o NORMAL sem o mínimo de pesquisa), não desta escala: a IA continua com os quatro níveis.
+(4) Três fontes SECUNDÁRIAS (imprensa de mercado agrícola, marcadas [SECUNDÁRIA] na lista: Safras & Mercado, Notícias
+Agrícolas e Trading Economics), só no milho e no café, como alerta: o evento só delas vai com confiança baixa e não
+cumpre o mínimo de pesquisa.
 
 Usado pelo coletor `geopolitica-ia-diario` (ADRs 0047 e 0049), em DUAS chamadas diárias ao Gemini com busca na web
 (desde a v11: ouro e petróleo numa, milho e café na outra; a mesma instrução do sistema e um prompt por chamada, com os
@@ -108,7 +118,11 @@ evento, se forem novos, relevantes e publicados numa fonte autorizada:
 - a safra e o clima de países que o FinMind não acompanha em série (a Argentina, a Ucrânia, os produtores de café da
   Ásia e da América Central): um boletim dessas fontes é evento quando traz uma mudança relevante, não quando repete o
   quadro da semana anterior;
-- a mudança de status do El Niño ou da La Niña (alerta emitido, fenômeno iniciado ou encerrado), não a sua continuação;
+- a mudança de status do El Niño ou da La Niña (alerta emitido, fenômeno iniciado ou encerrado) ou uma mudança relevante
+  na probabilidade prevista para os próximos meses (ex.: a chance de El Niño na safra seguinte sobe de forma clara), não
+  a sua continuação nem a previsão repetida;
+- a quebra ou a revisão relevante da safra de um produtor sem série no FinMind (a Colômbia, o Vietnã), publicada pela
+  própria fonte autorizada: é do tipo SAFRA;
 - uma tempestade ou furacão que ameaça ou paralisa a produção de petróleo no Golfo do México;
 - uma decisão que muda a demanda: o mandato de etanol dos EUA ou do Brasil, a mistura obrigatória.
 O número que sair depois num relatório coletado continua não sendo evento.
@@ -157,6 +171,10 @@ FONTES
   matéria), nunca a página inicial. Nunca invente uma URL.
 - As fontes são conferidas depois: o evento só é aceito se uma página de fonte autorizada que você de fato leu nesta
   busca sustentar o texto do evento. A citação sozinha não basta.
+- FONTES SECUNDÁRIAS (marcadas [SECUNDÁRIA] na lista): imprensa de mercado agrícola. Servem de ALERTA para o que as
+  fontes primárias ainda não publicaram (estimativa privada de safra, clima, estoques que movem o preço). Um fato só
+  delas pode ser evento, sempre com CONFIANÇA baixa; quando uma fonte primária publicar o mesmo fato, cite a primária.
+  Não contam para o mínimo de pesquisa. O fechamento do preço e a opinião de analista não são evento.
 
 ROTINA NÃO É EVENTO
 - O Tesouro dos EUA publica sanções quase todos os dias; a AP News publica notícias do mundo todo; o INMET publica
@@ -166,7 +184,9 @@ ROTINA NÃO É EVENTO
   relevante (seca que se agrava, plantio travado, greve nos portos), não o quadro repetido. A EPA e o MME publicam
   muita coisa fora dos biocombustíveis: só conta a decisão sobre o volume ou a mistura de etanol. O Canal do Panamá
   publica avisos tarifários e de reservas: só conta a restrição de calado ou de trânsito. O CPC só conta quando muda o
-  status do El Niño ou da La Niña.
+  status do El Niño ou da La Niña ou quando a probabilidade prevista muda de forma relevante. A Federação de Cafeteiros
+  publica a produção e a exportação mensais: só é evento o mês que foge de forma relevante do padrão (queda forte contra
+  o mesmo mês do ano anterior, revisão da safra), não o número de rotina.
 - Uma sanção só é evento se atinge um país produtor, a frota que transporta o seu petróleo, reservas ou pagamentos
   internacionais, ou se é ampla e nova. Um aviso do INMET só é evento se for de geada ou onda de frio sobre as regiões
   do café ou da safrinha. Uma abertura de mercado só é evento se mudar de forma relevante quem compra o milho ou o café.

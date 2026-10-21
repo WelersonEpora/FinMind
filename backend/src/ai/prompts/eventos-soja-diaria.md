@@ -1,6 +1,6 @@
 # Prompt — Leitura diária de eventos de mercado da soja
 
-**Versão:** 2
+**Versão:** 3
 
 Histórico: v1 (2026-10-08) - formato inicial (ADR 0115). A soja tem leitura PRÓPRIA, separada da leitura dos quatro
 ativos validados (ouro, petróleo, milho e café, ADR 0108), para que nada mude nela: outra chamada, outro prompt e outra
@@ -13,6 +13,10 @@ v2 (2026-10-08, ADR 0116) - a soja foi aprovada como 5º ativo: os eventos de po
 (tarifas e acordos, retenções da Argentina, RFS, mistura de biodiesel, regulação de importação) marcam o fator
 SOJA_POLITICA (o F4, fator de evento, que vai ao prompt diário da soja); a logística, a sanidade e o resto seguem com
 NAO_SE_APLICA, e vão à seção de eventos da base do prompt. Só muda o campo FATOR; o resto não muda.
+
+v3 (2026-10-21, ADR 0130) - análise do café de 2026-10-19, item E2 (decisão do usuário, nos três agrícolas): três
+fontes SECUNDÁRIAS (Safras & Mercado, Notícias Agrícolas e Trading Economics), marcadas [SECUNDÁRIA] na lista, como
+alerta: o evento só delas vai com confiança baixa e não cumpre o mínimo de pesquisa.
 
 Usado pelo coletor `geopolitica-ia-soja` (ADR 0115), numa chamada diária ao Gemini com busca na web. A resposta tem o
 MESMO formato da leitura principal (`geopolitica-diaria.md`), lido pelo mesmo parser
@@ -92,6 +96,10 @@ FONTES
   a página inicial. Nunca invente uma URL.
 - As fontes são conferidas depois: o evento só é aceito se uma página de fonte autorizada que você de fato leu nesta
   busca sustentar o texto do evento. A citação sozinha não basta.
+- FONTES SECUNDÁRIAS (marcadas [SECUNDÁRIA] na lista): imprensa de mercado agrícola. Servem de ALERTA para o que as
+  fontes primárias ainda não publicaram. Um fato só delas pode ser evento, sempre com CONFIANÇA baixa; quando uma fonte
+  primária publicar o mesmo fato, cite a primária. Não contam para o mínimo de pesquisa. O fechamento do preço e a
+  opinião de analista não são evento.
 
 ROTINA NÃO É EVENTO
 - O USDA FAS, o MAPA e a Casa Branca publicam muita rotina; a EPA e o MME publicam muita coisa fora dos

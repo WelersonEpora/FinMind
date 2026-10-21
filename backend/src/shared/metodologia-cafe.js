@@ -384,13 +384,16 @@ const DO_ATIVO = {
     "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET fica para depois da v1 (usuário, 2026-10-06, ADR 0083); o diário de Londres, orçamento e licença (o do KC veio depois, pelo Yahoo, ADR 0129); o diferencial FOB não tem fonte pública.",
     "Agregação em código (usuário, 2026-10-07, ADR 0066, adendo): sai do prompt e do Centro de Decisão e fica na tela de metodologia como referência, com o script `npm run agregacao:cafe -- --acerto` para medir de novo. No histórico do ICF (dev, 2022 a 2026), não supera o \"sempre lateral\" em faixa exata e distância em nenhum horizonte, e fora do lateral erra a direção na maior parte das vezes (18% a 37% de acerto). A IA segue combinando os fatores pelo prompt, com as regras do estudo como orientação.",
     "A mesma régua no milho (usuário, 2026-10-07): já aplicada; a agregação em código do milho foi medida no histórico e ficou fora do prompt (ADR 0081).",
-    "O KC de Nova York (usuário, 2026-10-20, ADR 0129): coletado pelo Yahoo, fonte não oficial e provisória como o Brent, para o basis B3 × Nova York, a curva de Nova York e o histórico longo pedidos pela análise do café de 2026-10-19 (item E1). Só dado: o basis e a série contínua do ICF estão na seção \"Preço de referência\" desta tela, sem ir ao prompt nem ao Centro de Decisão."
+    "O KC de Nova York (usuário, 2026-10-20, ADR 0129): coletado pelo Yahoo, fonte não oficial e provisória como o Brent, para o basis B3 × Nova York, a curva de Nova York e o histórico longo pedidos pela análise do café de 2026-10-19 (item E1). Só dado: o basis e a série contínua do ICF estão na seção \"Preço de referência\" desta tela, sem ir ao prompt nem ao Centro de Decisão.",
+    "Eventos dos agrícolas (usuário, 2026-10-21, ADR 0130; análise do café de 2026-10-19, item E2): o NORMAL sem o mínimo de pesquisa vira NÃO VERIFICADO; o tipo SAFRA (Colômbia, Vietnã); a Federação de Cafeteiros de volta, o relatório do Vietnã no USDA FAS e a mudança de probabilidade do El Niño no CPC; Safras & Mercado, Notícias Agrícolas e Trading Economics como fontes secundárias, só alerta (confiança baixa, não cumprem o piso); e a meia-vida no lugar da janela fixa: 4 dias nos fatos pontuais e 25 nas medidas que seguem valendo e na safra, com o evento no prompt enquanto o peso for de pelo menos 0,25."
   ],
-  // A análise do café de 2026-10-19 (STATUS_DO_PROJETO.md, §0): o que segue com o Comitê sobre o preço de referência.
+  // A análise do café de 2026-10-19 (STATUS_DO_PROJETO.md, §0): o que segue com o Comitê (preço de referência e eventos).
   perguntas: [
     "Regra de rolagem da série contínua do ICF (E1): a proposta da seção \"Preço de referência\" (a partir de 40 pregões antes do vencimento, para o seguinte com mais negócios em 5 pregões, entre os 3 seguintes; trava a 10 pregões; ajuste proporcional). Aprovar ou ajustar os números.",
     "Contrato por horizonte ou série contínua (E11): manter um contrato por horizonte (preço negociável, horizontes com preços de partida diferentes) ou usar a série contínua em todos. Mesmo mantendo, trocar a regra do \"dia 15\" pela de liquidez: hoje a leitura fica semanas num contrato que já não negocia.",
-    "Basis B3 × Nova York e estrutura a termo como fatores (E10): hoje são só informação na tela."
+    "Basis B3 × Nova York e estrutura a termo como fatores (E10): hoje são só informação na tela.",
+    "Meia-vida dos eventos (E2): confirmar ou ajustar os 4 dias (fatos pontuais) e os 25 dias (medidas que seguem valendo e safra), já em uso.",
+    "Teste de captura de eventos (E2): montar a lista de eventos de referência (o gabarito) para medir, daqui para frente, se a leitura captura 80% dos relevantes em 30 dias."
   ]
 };
 
