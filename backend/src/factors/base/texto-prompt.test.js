@@ -116,6 +116,13 @@ test("fator só de informação (ADR 0094): como o de contexto, sem fator-pai, c
   assert.match(t, /\nC — Papel na análise:\n- INFORMAÇÃO, por decisão do usuário: sem pressão própria; não conta a favor nem contra\.\n- Tendência: Estável\n/);
 });
 
+test("fator só de alguns horizontes (ADR 0133): a linha dos horizontes, com o motivo, depois de C", () => {
+  const fator = { ...FATOR, soNosHorizontes: { horizontes: ["LONGO"], motivo: "O dado é semestral" } };
+  const calculo = { apresentacao: APRESENTACAO, periodicidade: "SEMANAL", parametros: PARAMETROS, origemParametros: null, simulacao: false };
+  const t = montarTextoPrompt({ ativo: "CAFE", fator, calculo, ponto: PONTO });
+  assert.match(t, /- Tendência: Estável\n- Horizontes: só informa o LONGO; nos outros, é pouco relevante \(não conta a favor nem contra\)\. O dado é semestral\.\n/);
+});
+
 test("sinal defasado (o F6 do milho): a data de efeito esperada, contada do período do dado, depois de C", () => {
   const fator = { ...FATOR, efeitoDefasado: { mesesMin: 6, mesesMax: 12, sobre: "a safrinha seguinte" } };
   const calculo = { apresentacao: APRESENTACAO, periodicidade: "MENSAL", parametros: PARAMETROS, origemParametros: null, simulacao: false };

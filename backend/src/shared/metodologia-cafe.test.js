@@ -127,3 +127,12 @@ test("preço de referência do café (análise de 2026-10-19, E1): a série cont
   assert.equal(basis.situacao, "INFORMACAO");
   assert.deepEqual([basis.ultimo.contratoIcf, basis.ultimo.contratoKc, basis.ultimo.kcSaca, basis.ultimo.basis, basis.ultimo.basisPct], ["ICFU26", "KCU26", 423.29, -20.09, -4.75]);
 });
+
+test("o custo e a demanda só informam o LONGO (ADR 0133); os outros fatores, todos os horizontes", () => {
+  const { fatores } = obterMetodologiaCafe();
+  const restritos = fatores.filter((f) => f.soNosHorizontes).map((f) => [f.codigo, f.soNosHorizontes.horizontes]);
+  assert.deepEqual(restritos, [
+    ["CAFE_CUSTO_PRECO_MINIMO", ["LONGO"]],
+    ["CAFE_DEMANDA", ["LONGO"]]
+  ]);
+});

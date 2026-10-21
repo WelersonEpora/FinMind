@@ -387,6 +387,8 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
         // Fator de CONTEXTO de outro (metodologia-base.js): sem leitura própria no prompt.
         ...(fator.contextoDe ? { contextoDe: fator.contextoDe } : {}),
         ...(fator.informativo ? { informativo: true } : {}),
+        // Só informa alguns horizontes (ADR 0133): a validação da resposta da IA usa a lista.
+        ...(fator.soNosHorizontes ? { soNosHorizontes: fator.soNosHorizontes.horizontes } : {}),
         // Uma regra (a soja, ADR 0116) e um fator fora do FEL 1: o prompt não os chama de fator do FEL 1.
         ...(fator.regra ? { regra: fator.regra } : {}),
         ...(fator.origem ? { origem: fator.origem } : {})

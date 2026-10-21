@@ -30,7 +30,7 @@ function lerJson(texto) {
   }
 }
 
-function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidencia, codigosContexto }, erros) {
+function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidencia, codigosContexto, horizonte, soNosHorizontes }, erros) {
   if (lista === undefined) return;
   if (!Array.isArray(lista)) {
     erros.push(`${prefixo}: "${campo}" deve ser uma lista.`);
@@ -42,13 +42,17 @@ function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidenc
     // Um fator de CONTEXTO (ex.: a inflação do ouro, ADR 0054) ou SÓ DE INFORMAÇÃO (os fundos do petróleo, ADR 0094) não
     // tem leitura própria: não conta a favor nem contra.
     else if (codigosContexto && codigosContexto.has(item.fator)) erros.push(`${onde}: "${item.fator}" é fator sem pressão própria (contexto ou informação), não conta a favor nem contra.`);
+    // Um fator que só informa alguns horizontes (ADR 0133): nos outros, só como pouco relevante.
+    else if (soNosHorizontes?.[item.fator] && !soNosHorizontes[item.fator].includes(horizonte)) {
+      erros.push(`${onde}: "${item.fator}" só informa o horizonte ${soNosHorizontes[item.fator].join(" e ")}; em ${horizonte}, use fatoresPoucoRelevantes.`);
+    }
     for (const id of item?.evidencias || []) {
       if (!idsEvidencia.has(id)) erros.push(`${onde}: cita a evidência "${id}", que não está em "evidencias".`);
     }
   });
 }
 
-function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosContexto }, erros) {
+function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosContexto, soNosHorizontes }, erros) {
   const prefixo = `leituras[${horizonteEsperado}]`;
   if (!leitura || typeof leitura !== "object") {
     erros.push(`${prefixo}: ausente.`);
@@ -90,7 +94,7 @@ function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosConte
     }
   });
 
-  const votos = { codigosFator, idsEvidencia, codigosContexto };
+  const votos = { codigosFator, idsEvidencia, codigosContexto, horizonte: horizonteEsperado, soNosHorizontes };
   validarListaDeFatores(leitura.fatoresAFavor, "fatoresAFavor", prefixo, votos, erros);
   validarListaDeFatores(leitura.fatoresContra, "fatoresContra", prefixo, votos, erros);
   validarListaDeFatores(leitura.fatoresPoucoRelevantes, "fatoresPoucoRelevantes", prefixo, { codigosFator, idsEvidencia }, erros);
@@ -107,14 +111,14 @@ function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosConte
 }
 
 // `texto`: a resposta da IA. `horizontes`: os da configuração do ativo, na ordem. `codigosFator`: os códigos dos
-// fatores que foram no prompt; `codigosContexto`: os dos fatores de contexto entre eles. -> { leituras, erros }: com
-// algum erro, `leituras` é null.
-function validarRespostaAnalise(texto, { horizontes, codigosFator, codigosContexto = [] }) {
+// fatores que foram no prompt; `codigosContexto`: os dos fatores de contexto entre eles; `soNosHorizontes`: os que só
+// informam alguns horizontes ({ codigo: [horizontes] }, ADR 0133). -> { leituras, erros }: com algum erro, `leituras` é null.
+function validarRespostaAnalise(texto, { horizontes, codigosFator, codigosContexto = [], soNosHorizontes = {} }) {
   const json = lerJson(texto);
   if (json.erroDeLeitura) return { leituras: null, erros: [json.erroDeLeitura] };
 
   const erros = [];
-  const codigos = { codigosFator: new Set(codigosFator), codigosContexto: new Set(codigosContexto) };
+  const codigos = { codigosFator: new Set(codigosFator), codigosContexto: new Set(codigosContexto), soNosHorizontes };
   if (!Array.isArray(json.leituras)) return { leituras: null, erros: ['A resposta não tem a lista "leituras".'] };
   if (json.leituras.length !== horizontes.length) {
     erros.push(`São ${horizontes.length} leituras, uma por horizonte; vieram ${json.leituras.length}.`);

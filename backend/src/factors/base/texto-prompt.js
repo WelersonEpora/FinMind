@@ -208,6 +208,12 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
       );
     }
     if (fator.efeitoDefasado) linhas.push(linhaEfeitoDefasado(fator.efeitoDefasado, ponto.observedAt));
+    // Só alguns horizontes (ADR 0133): nos outros, o fator é pouco relevante e não conta a favor nem contra.
+    if (fator.soNosHorizontes) {
+      linhas.push(
+        `- Horizontes: só informa o ${fator.soNosHorizontes.horizontes.join(" e o ")}; nos outros, é pouco relevante (não conta a favor nem contra). ${comPonto(fator.soNosHorizontes.motivo)}`
+      );
+    }
   }
 
   // A validação histórica vale com ou sem ponto na data: é sobre a relação do fator com o preço, não sobre o dia.

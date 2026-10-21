@@ -216,6 +216,11 @@ const DEFINICOES = [
       mecanismo: "Custo de insumos e política agrícola definem piso",
       fonte: "Conab, MAPA"
     },
+    // Só o LONGO (ADR 0133): a regra do estudo (o par F5 x F2, "restrito ao horizonte de longo prazo"), antes só no prompt.
+    soNosHorizontes: {
+      horizontes: ["LONGO"],
+      motivo: "O custo age sobre as safras seguintes, em anos: pela regra do estudo, fica restrito ao longo prazo, e informa pouco"
+    },
     dados: {
       observaveis: ["CAFE_CUSTO_ARABICA_CONAB", "ICF_PRECOS", "USD_BRL"],
       eventos: false,
@@ -244,6 +249,7 @@ const DEFINICOES = [
     },
     perguntas: [],
     decisoes: [
+      "Só no horizonte LONGO, pela validação da resposta (usuário, 2026-10-21, ADR 0133): a regra do estudo (o par F5 x F2) já ia ao prompt como instrução; agora a resposta da IA que citar o F5 a favor ou contra fora do LONGO é recusada.",
       "Praças produtoras (usuário, 2026-10-06, ADR 0087): fica a mediana dos municípios de arábica da Conab. Só Sul de Minas e Cerrado (Guaxupé, Três Pontas e Patrocínio) dariam R$ 1.113 por saca de custo total em 2025, contra R$ 1.051 da mediana (6%): não muda nenhuma leitura com a margem de hoje.",
       "Custo Operacional Efetivo (usuário, 2026-10-06, ADR 0087): fica o custo operacional da Conab, com a ressalva de que ele inclui a depreciação e outros custos fixos e fica um pouco acima do COE estrito (o desembolso, mais perto do custo variável da Conab, de 74% a 94% do operacional). Com o variável, a regra não teria disparado em 15 anos; com o operacional, disparou na única crise de margem (2013)."
     ]
@@ -258,6 +264,11 @@ const DEFINICOES = [
       fonte: "ICO, USDA"
     },
     janelaEventos: 30,
+    // Só o LONGO, como peso baixo (ADR 0133; análise do café de 2026-10-19, item E5): o dado é semestral.
+    soNosHorizontes: {
+      horizontes: ["LONGO"],
+      motivo: "O consumo do USDA sai duas vezes por ano e muda devagar: não informa prazos de 1 a 30 dias. No LONGO, conta como peso Baixo (o Médio do FEL 1 fica só como referência)"
+    },
     dados: {
       observaveis: ["USDA_PSD_CAFE", "CAFE_PRECO_FMI", "ICO_CAFE"],
       eventos: false,
@@ -286,6 +297,7 @@ const DEFINICOES = [
     },
     perguntas: [],
     decisoes: [
+      "Só no horizonte LONGO, como peso baixo (usuário, 2026-10-21, ADR 0133; análise do café de 2026-10-19, item E5): o bloco do fator no prompt diz isso, e a resposta da IA que citar o F6 a favor ou contra no IMEDIATO, no CURTO ou no MEDIO é recusada (ali, só como pouco relevante). Nas 15 leituras de 05 a 21/10/2026, a IA já o marcava como pouco relevante no IMEDIATO (12 de 15), mas o usava no MEDIO (15 de 15), quase sempre contra a leitura de baixa: o F6 pressiona para alta, então a correção não explica a divergência da análise.",
       "Consumo do PSD (usuário, 2026-10-06, ADR 0088): substitui as importações e o desaparecimento aparente da ICO na v1. As estatísticas de comércio da ICO são só para membros, e a aquisição de dados está encerrada.",
       "Faixa neutra calibrada (usuário, 2026-10-06, ADR 0088): 2 p.p. em torno de 1,5% (de -0,5% a 3,5%, perto dos percentis 30 e 70 de 2003 a 2026), no lugar da faixa de 1% a 2% do estudo, em que nenhum ano era neutro. O forte segue em 4 p.p. A faixa maior reduz o ruído (o fator deixa de pressionar todo ano); ela não tem poder preditivo validado: o crescimento do consumo não separa o preço em nenhuma versão, e o teste foi de 12 meses com o valor final do PSD, não nos 30 a 90 dias do fator nem com o dado da época.",
       "Arbitragem Nova York ÷ Londres (usuário, 2026-10-06, ADR 0088): não entra na regra, porque o histórico vai contra a hipótese da substituição; fica como contexto (a razão arábica ÷ robusta do FMI, que já vai ao prompt)."

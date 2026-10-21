@@ -382,6 +382,7 @@ test("eventos do ativo com a meia-vida (ADR 0130): o peso pelo tipo e a janela a
     ]
   );
   assert.match(r.contexto, /\[registrado em 2026-10-03, há 4 dia\(s\); meia-vida de 4 dias, peso atual 0,50\] Geada há 4 dias/);
+  assert.match(r.contexto, /nos últimos 7 dias, de 2026-10-01 a 2026-10-07 e, de antes, os que ainda têm peso pela meia-vida \(abaixo\)/);
   assert.match(r.contexto, /o evento sai com o peso abaixo de 0,25/);
   // Sem a meia-vida (ouro, petróleo, dólar e as carteiras), como antes: sem peso, só a janela.
   const semMeiaVida = await obterEventosDoAtivo("CAFE", "2026-10-07", { janelaDias: 7 }, { geopoliticaRepository: repo });

@@ -127,3 +127,16 @@ test("fator de contexto (a inflação do ouro, ADR 0054): pode ser evidência ou
   assert.equal(erros.length, 1);
   assert.match(erros[0], /OURO_INFLACAO.*fator sem pressão própria/);
 });
+
+test("fator só de alguns horizontes (a demanda do café, ADR 0133): a favor ou contra só neles; nos outros, só pouco relevante", () => {
+  const opcoes = { horizontes: HORIZONTES, codigosFator: CODIGOS, soNosHorizontes: { PETROLEO_REFINO: ["LONGO"] } };
+  // A leitura padrão cita PETROLEO_REFINO contra em todos os horizontes: só o LONGO passa.
+  const { erros } = validarRespostaAnalise(JSON.stringify(respostaValida()), opcoes);
+  assert.deepEqual(
+    erros,
+    ["IMEDIATO", "CURTO", "MEDIO"].map((h) => `leituras[${h}].fatoresContra[0]: "PETROLEO_REFINO" só informa o horizonte LONGO; em ${h}, use fatoresPoucoRelevantes.`)
+  );
+  const fora = { fatoresContra: [], fatoresPoucoRelevantes: [{ fator: "PETROLEO_REFINO", motivo: "só no longo" }] };
+  const certa = respostaValida({ IMEDIATO: fora, CURTO: fora, MEDIO: fora });
+  assert.deepEqual(validarRespostaAnalise(JSON.stringify(certa), opcoes).erros, []);
+});

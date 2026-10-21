@@ -38,6 +38,9 @@ const { ATIVOS_COM_MEIA_VIDA } = require("./eventos-mercado");
 //              `contextoDe`.
 //   papelDecididoPor - (opcional, com `contextoDe` ou `informativo`) quem decidiu esse papel sem pressão, como o texto
 //              do prompt o diz: "do especialista" (padrão, o David) ou "do usuário" (ex.: o refino, ADR 0093).
+//   soNosHorizontes - (opcional) { horizontes, motivo }: o fator SÓ INFORMA esses horizontes (ex.: o custo e a demanda do
+//              café, só o LONGO, ADR 0133). O bloco do fator no prompt diz isso, com o motivo, e a resposta da IA que o
+//              citar a favor ou contra em outro horizonte é recusada (ali, só como pouco relevante).
 //   efeitoDefasado - (opcional) { mesesMin, mesesMax, sobre }: SINAL DEFASADO, pela regra do especialista (ex.: o F6 do
 //              milho age sobre a safrinha seguinte, de 6 a 12 meses depois). O bloco do fator no prompt ganha a data de
 //              efeito esperada, contada do período do dado (texto-prompt.js).
@@ -161,6 +164,7 @@ function montarRegra(ativo, definicao, definicoes, situacao) {
     contextoDe: null,
     informativo: false,
     papelDecididoPor: null,
+    soNosHorizontes: null,
     efeitoDefasado: null
   };
 }
@@ -185,6 +189,9 @@ function montarFatores(ativo, definicoes, validacao = null) {
       throw new Error(`${definicao.codigo}: contexto de um fator que não está no ativo (ou que também é contexto): ${definicao.contextoDe}`);
     }
     if (definicao.informativo && definicao.contextoDe) throw new Error(`${definicao.codigo}: informativo e contexto ao mesmo tempo`);
+    if (definicao.soNosHorizontes && (!definicao.soNosHorizontes.horizontes?.length || !definicao.soNosHorizontes.motivo)) {
+      throw new Error(`${definicao.codigo}: soNosHorizontes sem os horizontes ou o motivo`);
+    }
     if (definicao.janelaEventos && definicao.evento) throw new Error(`${definicao.codigo}: fator de evento não tem janela na seção de eventos da base`);
     return {
       codigo: fator.codigo,
@@ -205,6 +212,7 @@ function montarFatores(ativo, definicoes, validacao = null) {
       contextoDe: definicao.contextoDe || null,
       informativo: definicao.informativo === true,
       papelDecididoPor: definicao.contextoDe || definicao.informativo ? definicao.papelDecididoPor || "do especialista" : null,
+      soNosHorizontes: definicao.soNosHorizontes || null,
       efeitoDefasado: definicao.efeitoDefasado || null
     };
   });

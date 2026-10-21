@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 10
+**Versão:** 11
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -49,6 +49,9 @@ v10 (2026-10-21, ADR 0132) - análise do café de 2026-10-19, item E4: os fundos
 pressão da leitura (o bloco do fator dizia "Pressão: alta, Intensidade: forte", que parecia um voto, contra o item 9) e
 fora de fatoresAFavor e fatoresContra; o percentil nos 10 anos anteriores vai ao lado do de 3, e o item 9 diz como ler
 os dois. No teste das três versões (2009 a 2026), nem a reversão nem seguir o fluxo se sustentaram fora da amostra.
+v11 (2026-10-21, ADR 0133) - análise do café de 2026-10-19, item E5: a demanda (CAFE_DEMANDA, semestral) e o custo
+(CAFE_CUSTO_PRECO_MINIMO) só informam o horizonte LONGO; a demanda conta ali como peso baixo. O bloco de cada um e a
+tabela 2.3 dizem isso, o item 1 também, e a resposta que citar um deles a favor ou contra em outro horizonte é recusada.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -90,8 +93,9 @@ Para cada horizonte, separadamente:
 1. Relevância. Decida quais fatores informam aquele prazo, pela periodicidade, pela idade e pela natureza de cada um
    (a tabela 2.3 dá a idade e a situação dos dados). Um levantamento mensal ou anual com semanas de atraso diz pouco
    sobre 1 dia; um relatório de ontem pode dizer muito. O custo de produção (CAFE_CUSTO_PRECO_MINIMO) age sobre as
-   safras seguintes, em anos: só informa o horizonte LONGO, e pouco; nos outros, é pouco relevante. Diga quais fatores
-   pesaram pouco e por quê.
+   safras seguintes, em anos, e a demanda mundial (CAFE_DEMANDA) sai duas vezes por ano e muda devagar: os dois só
+   informam o horizonte LONGO (a demanda, como peso baixo). Nos outros horizontes, liste-os só em
+   fatoresPoucoRelevantes, nunca a favor nem contra. Diga quais fatores pesaram pouco e por quê.
 2. Pesos. O Motor do Café descartou os pesos fixos e não definiu peso novo: o peso do FEL 1 (tabela 2.3) é o único na
    BASE. Use-o como ordem de partida (os de peso Alto primeiro; os de peso Médio e Baixo confirmam ou enfraquecem a
    leitura). Nunca altere um peso nem crie um peso por mês. A validação histórica (parte D de cada

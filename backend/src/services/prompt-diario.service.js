@@ -218,6 +218,7 @@ function blocoCobertura(fatores, dataAnalise) {
       (f, i) =>
         `${i + 1}. ${f.codigo} — ${f.nome} (${pesoNaCobertura(f)})` +
         `${f.contextoDe ? ` | CONTEXTO de ${f.contextoDe}, sem leitura própria` : ""}${f.informativo ? " | INFORMAÇÃO, sem leitura própria" : ""}` +
+        `${f.soNosHorizontes ? ` | só no horizonte ${f.soNosHorizontes.join(" e ")}` : ""}` +
         ` | ${situacaoDoFator(f, dataAnalise).texto}`
     )
     .join("\n");
@@ -439,6 +440,7 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
       situacaoRegra: f.situacaoRegra,
       ...(f.contextoDe ? { contextoDe: f.contextoDe } : {}),
       ...(f.informativo ? { informativo: true } : {}),
+      ...(f.soNosHorizontes ? { soNosHorizontes: f.soNosHorizontes } : {}),
       ...(f.regra ? { regra: f.regra.sigla } : {}),
       ...situacaoDoFator(f, dataAnalise),
       ...(f.tipo === "CALCULADO"

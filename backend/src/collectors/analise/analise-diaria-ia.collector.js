@@ -44,7 +44,9 @@ function opcoesDeValidacao(promptDiario, config) {
   return {
     horizontes: config.HORIZONTES,
     codigosFator: fatores.map((f) => f.fator),
-    codigosContexto: fatores.filter((f) => f.contextoDe || f.informativo).map((f) => f.fator)
+    codigosContexto: fatores.filter((f) => f.contextoDe || f.informativo).map((f) => f.fator),
+    // Os fatores que só informam alguns horizontes (ADR 0133): { CAFE_DEMANDA: ["LONGO"] }.
+    soNosHorizontes: Object.fromEntries(fatores.filter((f) => f.soNosHorizontes).map((f) => [f.fator, f.soNosHorizontes]))
   };
 }
 

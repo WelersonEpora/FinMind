@@ -280,7 +280,9 @@ function listaComE(itens) {
 
 function formatarEventosDoAtivo(r) {
   const outras = Object.entries(r.janelaPorFator).map(([fator, dias]) => `${dias} nos marcados com ${fator}`);
-  const janela = `nos últimos ${r.janelaDias} dias${outras.length > 0 ? ` (${outras.join("; ")})` : ""}, de ${r.inicio} a ${r.dataReferencia}`;
+  // Com a meia-vida (ADR 0130), os de antes da janela que ainda têm peso também vão: o cabeçalho diz isso.
+  const alemDaJanela = r.meiaVida ? ` e, de antes, os que ainda têm peso pela meia-vida (abaixo)` : "";
+  const janela = `nos últimos ${r.janelaDias} dias${outras.length > 0 ? ` (${outras.join("; ")})` : ""}, de ${r.inicio} a ${r.dataReferencia}${alemDaJanela}`;
   const linhas = [
     `Eventos aceitos (sustentados por página de fonte autorizada) da leitura diária por IA para este ativo, ${janela}, do mais ` +
       `recente para o mais antigo, cada um uma vez. Não é fator: não tem peso nem leitura do motor. Cada evento diz a condição ` +

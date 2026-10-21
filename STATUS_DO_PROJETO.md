@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E4); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E5); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -31,7 +31,7 @@ análise para decidirmos juntos.
 | E2 | Confirmar os valores da meia-vida (4 e 25 dias) e montar a lista de eventos de referência para medir a captura. Já implementados, por decisão do usuário: NÃO VERIFICADO, o tipo SAFRA, a Federação de Cafeteiros, o Vietnã, o El Niño, a meia-vida e as fontes secundárias como alerta (ADR 0130) |
 | E3 | Decidir o sentido da regra do F3, que deu o sinal invertido em 2022 a 2026: tirar a pressão, inverter ou manter. Já implementado: o nível do estoque (percentil em 10 anos e a mínima da série) no texto do F3, como contexto (ADR 0131). A curva do ICF, testada, não antecipou o preço: sugerimos não criar fator por ora |
 | E4 | Nada a decidir agora: o F7 já foi à IA como informação, sem pressão, com a janela de 10 anos ao lado (ADR 0132). O modificador numérico fica com a §3 do documento |
-| E5 | Confirmar o F6 só no horizonte de 90 dias |
+| E5 | Nada a decidir agora: a demanda (F6) e o custo (F5) só informam o horizonte LONGO, com a validação da resposta (ADR 0133). A regra "dado insuficiente não vota" fica para a §6 do documento |
 | E6 | A regra nova do clima (janela de chuva e limiar) e a troca do INMET pela NASA POWER |
 | E7 | Quanto tempo a revisão da Conab pesa forte depois de publicada e qual medida de surpresa testar |
 | E8 | Peso Baixo para o câmbio e juntar o F4 com o F5 num fator de incentivo do produtor |
@@ -320,7 +320,30 @@ Sobre o "dado insuficiente": no FinMind, a marca quer dizer que o dado coletado 
 (falta histórico ou parte das fontes), não que o fator está sem valor. Estão marcados assim o F1, o F2, o F5 e o F6.
 A regra "dado insuficiente não vota" desligaria 4 dos 8 fatores; será tratada com a §6 do documento.
 
-**O que precisamos do Comitê:** confirmar o F6 só no horizonte de 90 dias, com peso baixo.
+**O que as leituras mostravam (as 15 do café no servidor, de 05 a 21/10/2026):**
+
+| Horizonte | F6 a favor da leitura | F6 contra a leitura | F6 pouco relevante |
+|---|---|---|---|
+| Imediato (1 dia) | 0 | 1 | 12 |
+| Curto (7 dias) | 0 | 3 | 6 |
+| Médio (30 dias) | 1 | 14 | 0 |
+| Longo (90 dias) | 1 | 14 | 0 |
+
+- No curto prazo, a IA já fazia quase o que o documento pede.
+- **O F6 pressiona para alta** (o consumo cresceu 3,6%): nas leituras de baixa, ele aparecia contra a leitura. Tirá-lo do
+  curto e do médio prazo remove um argumento de alta, então **a correção é de lógica, não explica a divergência**. O que
+  sustentou a baixa nas leituras recentes foram o F1 (clima) e o F2 (Conab), itens E6 e E7.
+
+**Implementado (2026-10-21), por decisão do usuário (ADR 0133).**
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| F6 só no LONGO | O bloco do F6 no prompt diz que ele só informa o horizonte LONGO, como peso baixo; a tabela 2.3 marca "só no horizonte LONGO"; e a resposta da IA que citar o F6 a favor ou contra no imediato, no curto ou no médio prazo é recusada (ali, só como pouco relevante). Prompt do café v11 | O prompt do café; metodologia do café, F6 |
+| F5 também | O custo já tinha a regra "só no longo prazo" do estudo, mas só como instrução no prompt; agora também na validação da resposta | Metodologia do café, F5 |
+| Cecafé | **Não entrou:** as exportações medem a saída do Brasil (oferta), não a demanda. A demanda de verdade seria a importação da UE e dos EUA, fonte nova | — |
+| Correção do E2 | O cabeçalho dos eventos dos agrícolas dizia só "nos últimos 7 dias"; com a meia-vida, vão também os de antes que ainda têm peso, e o texto passa a dizer isso | O prompt do milho, do café e da soja, seção de eventos |
+
+**O que precisamos do Comitê:** nada agora.
 
 </details>
 
@@ -1155,6 +1178,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Demanda e custo só no LONGO (E5 da análise do café) | O F6 (demanda, semestral) e o F5 (custo) só informam o horizonte LONGO: o bloco de cada um no prompt e a tabela 2.3 dizem isso, e a resposta da IA que os citar a favor ou contra em outro horizonte é recusada (mecanismo `soNosHorizontes`; prompt do café v11). Nas leituras de 05 a 21/10, o F6 pressionava para alta: a correção é de lógica, não explica a divergência. Junto, o cabeçalho dos eventos com a meia-vida (E2) | §0, E5; ADR 0133 |
 | Fundos só como informação (E4 da análise do café) | O F7 vai à IA como informação, sem a pressão (antes chegava "alta forte", contra o ADR 0089), com o percentil em 10 anos ao lado do de 3 (fator v2; prompt do café v10). Na semana de 13/10, 3,8 em 3 anos e 47,7 em 10: o "extremo" vinha do recorde de 2025 na janela. Teste das três versões (2009 a 2026): nenhuma supera o fator desligado | §0, E4; ADR 0132 |
 | Nível do estoque no F3 (E3 da análise do café) | O F3 (fator v4) passa a levar ao prompt o percentil do nível do estoque certificado em até 10 anos e a mínima da série, como contexto. Teste com o diário da ICE contra o KC (2017 a 2026): o nível baixo não deu o momento da alta, e a regra da variação deu o sinal invertido em 2022 a 2026; o sentido da regra foi ao Comitê. A curva do ICF (2022 a 2026), testada em duas definições, não antecipou o preço: sem fator por ora | §0, E3; ADR 0131 |
 | Eventos dos agrícolas (E2 da análise do café) | NÃO VERIFICADO no lugar do NORMAL sem o mínimo de pesquisa (os seis ativos); tipo SAFRA; a Federação de Cafeteiros de volta, o Vietnã no USDA FAS e a probabilidade do El Niño no CPC; meia-vida dos eventos (4 e 25 dias, peso mínimo 0,25) no milho, no café e na soja; Safras & Mercado, Notícias Agrícolas e Trading Economics como fontes secundárias, só alerta (o Cepea, testado, ficou fora). Prompt de eventos v15 e o da soja v3; migration dos CHECKs de nível e de tipo | §0, E2; ADR 0130 |

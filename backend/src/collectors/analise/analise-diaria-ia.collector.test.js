@@ -216,3 +216,18 @@ test("petróleo: recusa os fundos (fator só de informação, ADR 0094) como vot
   assert.ok(detalhes.ia.motivosRecusa.every((m) => /PETROLEO_FUNDOS.*fator sem pressão própria/.test(m)));
   assert.equal(detalhes.ia.motivosRecusa.length, 4);
 });
+
+test("café: recusa a demanda (só no LONGO, ADR 0133) como voto no MEDIO e chama de novo", async () => {
+  const cafe = criarColetorAnaliseDiaria("CAFE");
+  const prompt = { ...PROMPT_DIARIO, entrada: { horizontes: [], fatores: [{ fator: "CAFE_DOLAR" }, { fator: "CAFE_DEMANDA", soNosHorizontes: ["LONGO"] }] } };
+  const leituraCom = (h, fator) => ({ ...leitura(h), fatoresAFavor: [], fatoresContra: [{ fator, argumento: "...", evidencias: [] }], evidencias: [] });
+  const noMedio = JSON.stringify({ leituras: ["IMEDIATO", "CURTO", "MEDIO", "LONGO"].map((h) => leituraCom(h, h === "MEDIO" ? "CAFE_DEMANDA" : "CAFE_DOLAR")) });
+  const soNoLongo = JSON.stringify({ leituras: ["IMEDIATO", "CURTO", "MEDIO", "LONGO"].map((h) => leituraCom(h, h === "LONGO" ? "CAFE_DEMANDA" : "CAFE_DOLAR")) });
+  const { deps, provedor } = depsCom({ textos: [noMedio, soNoLongo] });
+  deps.promptDiarioService = { montarPromptDiario: async () => ({ promptDiario: prompt }) };
+  const baixado = await cafe.download({}, deps);
+  assert.equal(provedor.chamadas.length, 2);
+  assert.equal(baixado.recusadas, 1);
+  const { detalhes } = cafe.normalize(cafe.parse(baixado));
+  assert.deepEqual(detalhes.ia.motivosRecusa, ['leituras[MEDIO].fatoresContra[0]: "CAFE_DEMANDA" só informa o horizonte LONGO; em MEDIO, use fatoresPoucoRelevantes.']);
+});
