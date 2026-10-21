@@ -81,7 +81,7 @@ const DEFINICOES = [
     },
     // A análise do café de 2026-10-19, item E6 (ADR 0134): o que segue com o Comitê.
     perguntas: [
-      "El Niño com pressão própria (E6): o RONI forte (hoje +1,69) deve pesar para alta no café, e em quais horizontes? No KC (2000 a 2026), com o RONI em +1,0 ou mais, o preço subiu em 120 pregões em 78% dos dias, mas são cerca de 5 episódios. Hoje é só contexto.",
+      "SANÇÃO DA PRESSÃO DO EL NIÑO (análise do café de 2026-10-19, item E6; ao Comitê; ADR 0143): o FinMind propõe, só no LONGO, uma pressão de alta fraca com o RONI publicado de +1,0 ou mais, ao lado da leitura do VHI; abaixo disso e nos outros horizontes, só contexto. No KC (2000 a 2026, semanas), com o RONI de +1,0 ou mais, o preço subiu em 62 pregões em 68% das semanas (base 49%) e em 120 pregões em 79%; IC +0,10 em 62 pregões (intervalo de 90%: +0,02 a +0,19). A força não escala (o forte não foi melhor que o moderado), e são 4 episódios completos (2002-03 contra; 2010, 2015-16 e 2023-24 a favor). Hoje, +1,69: daria alta fraca no LONGO. Sancionar, ajustar (o limiar, a intensidade, o horizonte) ou manter só como contexto?",
       "Chuva por janela (E6): a regra do documento (florada seca = alta; colheita chuvosa = alta) não se confirmou na chuva da NASA POWER (o sentido saiu o oposto, com poucos anos). Manter o VHI como está, coletar a chuva só como contexto ou testar outra regra?",
       "Peso do VHI (E6): o documento pede peso menor. O F1 continua com a pressão do VHI nas janelas críticas; reduzir, e como, sem pesos numéricos no prompt (a §3 do documento)?"
     ],
@@ -177,7 +177,7 @@ const DEFINICOES = [
     },
     // A regra da variação deu o sinal invertido em 2022 a 2026 (ADR 0131): segue com o Comitê.
     perguntas: [
-      "Sentido da regra do F3 (E3, ADR 0131): no diário da ICE contra o KC de Nova York, 2022 a 2026, a queda fora do normal em 4 semanas (abaixo do percentil 10) foi seguida de −6,9% em 60 pregões (subiu em 30%), e a entrada fora do normal (percentil 90 ou mais), de +9,4% (subiu em 86%): o contrário da regra. Em 2017 a 2021, sem relação. Tirar a pressão da regra (a variação fica como contexto), inverter o sentido ou manter?"
+      "SANÇÃO DO SENTIDO DO F3 (análise do café de 2026-10-19, item E3; ao Comitê; ADRs 0131 e 0143): a regra de hoje deu o sinal invertido. O FinMind propõe, só no LONGO, a queda do estoque fora do normal pesando para BAIXA (moderada abaixo do percentil 10 da variação em 4 semanas, fraca do 10 ao 20); a entrada fora do normal e o meio, neutros; nos outros horizontes, o F3 como contexto. No diário da ICE contra o KC (12/2019 a 10/2026, 357 semanas), depois da queda abaixo do percentil 20 o KC subiu em 62 pregões em 41% das semanas, contra 73% nas outras; IC da leitura invertida +0,27 em 62 pregões (intervalo de 90%: +0,15 a +0,43), nas duas metades; em 5 e 21 pregões, sem sinal firme. A entrada fora do normal não deu retorno maior que o do meio. Sancionar, ajustar (os percentis 10 e 20, o horizonte) ou tirar a pressão do F3? Até a sanção, a regra de hoje continua."
     ],
     decisoes: [
       "Queda sustentada (usuário, 2026-10-06, ADR 0085): fica a variação em 4 semanas contra o próprio histórico (a v1). No dado mensal da ICO (2012 a 2026), 3 meses seguidos de queda tiveram leve vantagem só em 6 meses (alta em 61%, contra 49% em todos), e meses seguidos não são as sessões do estudo; o teste com o dado diário da ICE fica para o servidor.",

@@ -19,7 +19,7 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind indica baixa e o café está em alta?*).
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
-fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) estão no fim da lista (ADRs 0141 e 0142). O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10; o E11 é uma proposta para sanção); o resto é a
+fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) estão no fim da lista (ADRs 0141 e 0142). O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10; o E11 é uma proposta para sanção, e o E3, o E6 e o E9 trazem regras propostas para sanção); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -28,10 +28,10 @@ análise para decidirmos juntos.
 |---|---|
 | E1 | Aprovar a regra de rolagem da série contínua do ICF, já calculada como proposta (junto com o E11). Já implementados: a data do preço no Centro de Decisão, a série contínua (proposta) e o basis B3 × Nova York (informação) |
 | E2 | Confirmar os valores da meia-vida (4 e 25 dias) e montar a lista de eventos de referência para medir a captura. Já implementados, por decisão do usuário: NÃO VERIFICADO, o tipo SAFRA, a Federação de Cafeteiros, o Vietnã, o El Niño, a meia-vida e as fontes secundárias como alerta (ADR 0130) |
-| E3 | Decidir o sentido da regra do F3, que deu o sinal invertido em 2022 a 2026: tirar a pressão, inverter ou manter. Já implementado: o nível do estoque (percentil em 10 anos e a mínima da série) no texto do F3, como contexto (ADR 0131). A curva do ICF, testada, não antecipou o preço: sugerimos não criar fator por ora |
+| E3 | **Sancionar (ou ajustar) o sentido do F3**, proposto pelo FinMind e calibrado no histórico: só no LONGO, a queda do estoque fora do normal pesa para baixa; a entrada fica neutra (ADR 0143). Até a sanção, a regra de hoje continua. Já implementado: o nível do estoque (percentil em 10 anos e a mínima da série) no texto do F3, como contexto (ADR 0131). A curva do ICF, testada, não antecipou o preço: sugerimos não criar fator por ora |
 | E4 | Nada a decidir agora: o F7 já foi à IA como informação, sem pressão, com a janela de 10 anos ao lado (ADR 0132). O modificador numérico fica com a §3 do documento |
 | E5 | Nada a decidir agora: a demanda (F6) e o custo (F5) só informam o horizonte LONGO, com a validação da resposta (ADR 0133). A regra "dado insuficiente não vota" fica para a §6 do documento |
-| E6 | Decidir se o El Niño forte (hoje no F1 como contexto, ADR 0134) deve ter pressão de alta; o que fazer com a chuva por janela, que o teste não confirmou; e o peso do VHI. Já implementado: o RONI do NOAA CPC coletado e no F1, sem pressão |
+| E6 | **Sancionar (ou ajustar) a pressão do El Niño**, proposta pelo FinMind e calibrada no histórico: só no LONGO, alta fraca com o RONI de +1,0 ou mais (ADR 0143); decidir o que fazer com a chuva por janela, que o teste não confirmou; e o peso do VHI. Já implementado: o RONI do NOAA CPC coletado e no F1, sem pressão |
 | E7 | Confirmar os prazos do decaimento (14 e 42 dias) e decidir como medir a surpresa contra o mercado. Já implementado: a revisão da Conab perde força com a idade (ADR 0135) |
 | E8 | Decidir se buscamos uma fonte para o preço físico do arábica (o Cepea) e se o preço em reais ganha uma regra, com o custo (o F5) como referência, juntando o F4 e o F5. Já implementado: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
 | E9 | **Sancionar (ou ajustar) a regra do F5 para o LONGO**, proposta pelo FinMind e calibrada no histórico: alta com o preço abaixo do custo ou até 15% acima dele, baixa com a margem acima de 200% (ADR 0138); e confirmar a data estimada do custo. Já implementado: a data estimada, o F5 como informação e a margem com o KC em reais (ADRs 0137 e 0138) |
@@ -228,10 +228,32 @@ no ADR 0131):
 **Sugestão:** não criar fator de curva por ora. A curva do ICF já vai ao prompt como informação (os vencimentos de cada
 horizonte, ADR 0078); a de Nova York pode voltar no E10, com mais histórico.
 
+**A regra proposta (2026-10-21, ADR 0143).** O usuário pediu que o FinMind calibrasse uma regra para o Comitê só
+sancionar ou ajustar. Com o percentil do próprio fator (a variação em 4 semanas contra as 260 semanas anteriores; no
+diário da ICE do servidor, de 12/2019 a 10/2026, 357 semanas), contra o KC nos 62 pregões seguintes (o LONGO):
+
+| Variação em 4 semanas | Semanas | KC em 62 pregões | Subiu |
+|---|---|---|---|
+| Queda abaixo do percentil 10 | 78 | −3,3% | 37% |
+| Queda do percentil 10 ao 20 | 45 | +2,0% | 49% |
+| Do percentil 20 ao 80 | 135 | +9,8% | 68% |
+| Entrada do percentil 80 ao 90 | 29 | +10,8% | 79% |
+| Entrada no percentil 90 ou mais | 57 | +8,3% | 82% |
+
+- **Proposta:** só no LONGO, a queda fora do normal pesa para **baixa** (moderada abaixo do percentil 10, fraca do 10 ao
+  20); a entrada fora do normal e o meio ficam neutros; nos outros horizontes, o F3 vira contexto.
+- **Por quê:** o IC da leitura invertida é de +0,27 em 62 pregões (intervalo de 90% de +0,15 a +0,43), positivo nas duas
+  metades; em 5 e 21 pregões, sem sinal firme. O sinal está na queda: a entrada não deu retorno maior que o do meio.
+- Na proposta, depois da baixa, o KC subiu em 41% das semanas (123), contra 73% nas semanas sem sinal. Em 16/10/2026, a
+  variação foi de −6,8% (percentil 40): neutra.
+- **Ressalvas:** 7 anos de semanas sobrepostas (13 episódios de queda abaixo do percentil 10); o mecanismo não está
+  claro. Uma leitura plausível: o café sai depressa da bolsa quando entregar em Nova York deixa de compensar, e isso
+  antecede um preço mais fraco.
+
 **O que precisamos do Comitê:**
 
-- o sentido da regra do F3, pelo teste acima: **tirar a pressão** (a variação fica como contexto), **inverter** ou
-  **manter**;
+- **sancionar a regra proposta** para o F3, ajustá-la (os percentis 10 e 20, o horizonte) ou tirar a pressão do F3. Até a
+  sanção, a regra de hoje continua;
 - concordar em não criar fator de curva por ora (ou pedir outra definição para testar).
 
 </details>
@@ -407,10 +429,30 @@ Venda Nova do Imigrante, contra a climatologia 1991-2020) e o El Niño (RONI do 
 | El Niño no F1 | O F1 (v2) leva ao prompt o RONI conhecido na semana, com a força pela escala do CPC e o valor de 3 meses antes, como contexto de regime, **sem pressão**: a decisão do F1 continua a do VHI | Metodologia do café, F1; o prompt do café |
 | Chuva e geada | **Não coletadas**: testadas na NASA POWER, a regra por janela não se confirmou e a geada não aparece | — |
 
+**A regra proposta para o El Niño (2026-10-21, ADR 0143).** As semanas de 2000 a 2026, com o RONI do último trimestre
+publicado, contra o KC:
+
+| RONI publicado | Semanas | 62 pregões | Subiu | 120 pregões | Subiu |
+|---|---|---|---|---|---|
+| +2,0 ou mais | 17 | +4,9% | 82% | +15,9% | 100% |
+| +1,5 a +2,0 | 18 | +3,6% | 56% | +14,4% | 83% |
+| +1,0 a +1,5 | 60 | +6,6% | 67% | +14,8% | 72% |
+| +0,5 a +1,0 | 157 | +3,8% | 48% | +5,6% | 50% |
+| Neutro | 597 | +3,0% | 52% | +5,2% | 53% |
+| Todas | 1.385 | +1,8% | 49% | +3,4% | 49% |
+
+- **Proposta:** só no LONGO, com o RONI de +1,0 ou mais, uma pressão de **alta fraca** ao lado da leitura do VHI; abaixo
+  disso e nos outros horizontes, só contexto. Hoje (+1,69), daria alta fraca no LONGO.
+- **Por quê:** o IC é de +0,10 em 62 pregões (intervalo de +0,02 a +0,19) e de +0,18 em 120; em 5 e 21 pregões, zero. A
+  força não escala (o forte não foi melhor que o moderado): uma intensidade só, fraca. A La Niña não mostra sentido
+  estável.
+- **Ressalvas:** 4 episódios completos: 2002-03 contra (−6,0% em 62 pregões), 2010, 2015-16 e 2023-24 a favor. O arquivo
+  do CPC é a versão revisada de hoje.
+
 **O que precisamos do Comitê:**
 
-- **o El Niño forte deve ter pressão de alta** no café, e em quais horizontes? O histórico apoia (78% de alta em 120
-  pregões), mas com cerca de 5 episódios. Hoje é só contexto;
+- **sancionar a pressão do El Niño** proposta, ajustá-la (o limiar de +1,0, a intensidade, o horizonte) ou mantê-lo só
+  como contexto;
 - **a chuva por janela**: manter o VHI como está, coletar a chuva só como contexto ou testar outra regra?
 - **o peso menor do VHI**: como reduzir, sem pesos numéricos no prompt (depende da §3 do documento).
 
@@ -1467,6 +1509,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Regras propostas para o F3 e o El Niño (E3 e E6 da análise do café) | Calibradas no histórico para a sanção do Comitê, sem mudar o prompt: o F3 com a queda do estoque fora do normal pesando para baixa, só no LONGO (IC +0,27 em 62 pregões); o El Niño de +1,0 ou mais com alta fraca, só no LONGO (IC +0,10) | §0, E3 e E6; ADR 0143 |
 | Dado vencido e insuficiente não votam no café (§6 da análise do café) | O fator com o dado acima do limite (clima 14 dias, safra 42, estoques 7), sem dado ou sem a leitura do motor sai como SEM VOTO na tabela 2.3; a resposta que o citar a favor ou contra é recusada, e a falta vai às lacunas. O plano da §5 ficou mapeado, entrega a entrega | §0, §5 e §6; ADR 0142 |
 | Pesos e IC dos fatores do café (§3 e §4 da análise do café) | Os pesos por horizonte do documento, testados sobre os fatores que votam, não criam sinal (IC de 0,00 a +0,06; acerto do lado de 47% a 50%): não adotados. O IC de cada fator contra o KC: indistinguível de zero na maioria; só o F7 no LONGO é negativo com significância (já é informação). Comando novo, `npm run ic:cafe`, para a revisão mensal | §0, §3 e §4; ADR 0141 |
 | Série contínua nos horizontes do café proposta para a sanção do Comitê (E11 da análise do café) | Medição de 2022 a 2026: a regra de hoje mede o horizonte num contrato sem negócio na semana em 12% a 20% dos dias, e o LONGO usa outro contrato que o IMEDIATO em 76%; a série contínua muda a faixa do realizado em 8% a 15% dos dias. Proposta registrada, sem mudar a leitura | §0, E11; ADR 0140 |
