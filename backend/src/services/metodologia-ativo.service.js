@@ -396,6 +396,8 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
         ...(fator.informativo ? { informativo: true } : {}),
         // Só informa alguns horizontes (ADR 0133): a validação da resposta da IA usa a lista.
         ...(fator.soNosHorizontes ? { soNosHorizontes: fator.soNosHorizontes.horizontes } : {}),
+        // Dado vencido não vota (ADR 0142): o limite de idade, em dias.
+        ...(fator.idadeMaximaVotoDias ? { idadeMaximaVotoDias: fator.idadeMaximaVotoDias.dias } : {}),
         // Uma regra (a soja, ADR 0116) e um fator fora do FEL 1: o prompt não os chama de fator do FEL 1.
         ...(fator.regra ? { regra: fator.regra } : {}),
         ...(fator.origem ? { origem: fator.origem } : {})

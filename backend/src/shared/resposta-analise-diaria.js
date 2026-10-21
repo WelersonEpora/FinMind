@@ -30,7 +30,10 @@ function lerJson(texto) {
   }
 }
 
-function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidencia, codigosContexto, horizonte, soNosHorizontes }, erros) {
+// Por que um fator está SEM VOTO no dia (ADR 0142), como a mensagem de recusa o diz.
+const MOTIVOS_SEM_VOTO = Object.freeze({ VENCIDO: "dado vencido", SEM_DADO: "sem dado", SEM_LEITURA: "sem a leitura do motor" });
+
+function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidencia, codigosContexto, horizonte, soNosHorizontes, semVoto }, erros) {
   if (lista === undefined) return;
   if (!Array.isArray(lista)) {
     erros.push(`${prefixo}: "${campo}" deve ser uma lista.`);
@@ -46,13 +49,17 @@ function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidenc
     else if (soNosHorizontes?.[item.fator] && !soNosHorizontes[item.fator].includes(horizonte)) {
       erros.push(`${onde}: "${item.fator}" só informa o horizonte ${soNosHorizontes[item.fator].join(" e ")}; em ${horizonte}, use fatoresPoucoRelevantes.`);
     }
+    // Dado vencido ou insuficiente não vota (ADR 0142): só como pouco relevante, com a lacuna.
+    else if (semVoto?.[item.fator]) {
+      erros.push(`${onde}: "${item.fator}" está SEM VOTO hoje (${MOTIVOS_SEM_VOTO[semVoto[item.fator]] || semVoto[item.fator]}); use fatoresPoucoRelevantes e diga a lacuna.`);
+    }
     for (const id of item?.evidencias || []) {
       if (!idsEvidencia.has(id)) erros.push(`${onde}: cita a evidência "${id}", que não está em "evidencias".`);
     }
   });
 }
 
-function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosContexto, soNosHorizontes }, erros) {
+function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosContexto, soNosHorizontes, semVoto }, erros) {
   const prefixo = `leituras[${horizonteEsperado}]`;
   if (!leitura || typeof leitura !== "object") {
     erros.push(`${prefixo}: ausente.`);
@@ -94,7 +101,7 @@ function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosConte
     }
   });
 
-  const votos = { codigosFator, idsEvidencia, codigosContexto, horizonte: horizonteEsperado, soNosHorizontes };
+  const votos = { codigosFator, idsEvidencia, codigosContexto, horizonte: horizonteEsperado, soNosHorizontes, semVoto };
   validarListaDeFatores(leitura.fatoresAFavor, "fatoresAFavor", prefixo, votos, erros);
   validarListaDeFatores(leitura.fatoresContra, "fatoresContra", prefixo, votos, erros);
   validarListaDeFatores(leitura.fatoresPoucoRelevantes, "fatoresPoucoRelevantes", prefixo, { codigosFator, idsEvidencia }, erros);
@@ -112,13 +119,14 @@ function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosConte
 
 // `texto`: a resposta da IA. `horizontes`: os da configuração do ativo, na ordem. `codigosFator`: os códigos dos
 // fatores que foram no prompt; `codigosContexto`: os dos fatores de contexto entre eles; `soNosHorizontes`: os que só
-// informam alguns horizontes ({ codigo: [horizontes] }, ADR 0133). -> { leituras, erros }: com algum erro, `leituras` é null.
-function validarRespostaAnalise(texto, { horizontes, codigosFator, codigosContexto = [], soNosHorizontes = {} }) {
+// informam alguns horizontes ({ codigo: [horizontes] }, ADR 0133); `semVoto`: os sem voto no dia ({ codigo: motivo }, ADR
+// 0142). -> { leituras, erros }: com algum erro, `leituras` é null.
+function validarRespostaAnalise(texto, { horizontes, codigosFator, codigosContexto = [], soNosHorizontes = {}, semVoto = {} }) {
   const json = lerJson(texto);
   if (json.erroDeLeitura) return { leituras: null, erros: [json.erroDeLeitura] };
 
   const erros = [];
-  const codigos = { codigosFator: new Set(codigosFator), codigosContexto: new Set(codigosContexto), soNosHorizontes };
+  const codigos = { codigosFator: new Set(codigosFator), codigosContexto: new Set(codigosContexto), soNosHorizontes, semVoto };
   if (!Array.isArray(json.leituras)) return { leituras: null, erros: ['A resposta não tem a lista "leituras".'] };
   if (json.leituras.length !== horizontes.length) {
     erros.push(`São ${horizontes.length} leituras, uma por horizonte; vieram ${json.leituras.length}.`);

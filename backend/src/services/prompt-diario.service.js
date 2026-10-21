@@ -211,18 +211,38 @@ function situacaoDoFator(fator, dataAnalise) {
   };
 }
 
+// A governança da análise do café (§6, ADR 0142): o fator SEM VOTO no dia, que não pode ir a favor nem contra. Vencido:
+// a idade do dado passou do limite do fator (`idadeMaximaVotoDias`). Insuficiente, só no ativo que o pede
+// (`SEM_DADO_NAO_VOTA` na configuração): sem dado até a data, ou sem a leitura do motor (o histórico não basta). Um
+// fator sem pressão própria (contexto, informação ou regra) já não vota e não entra aqui. -> { motivo, texto } ou null.
+function semVotoDoFator(fator, dataAnalise, config = {}) {
+  if (fator.tipo !== "CALCULADO" || fator.contextoDe || fator.informativo || fator.regra) return null;
+  if (config.SEM_DADO_NAO_VOTA && !fator.medida) return { motivo: "SEM_DADO", texto: "SEM VOTO: sem dado até a data" };
+  if (config.SEM_DADO_NAO_VOTA && !fator.decisao) return { motivo: "SEM_LEITURA", texto: "SEM VOTO: sem a leitura do motor (o histórico não basta)" };
+  if (fator.idadeMaximaVotoDias && fator.medida) {
+    const idade = diasEntre(fator.observedAt, dataAnalise);
+    if (idade > fator.idadeMaximaVotoDias) {
+      return { motivo: "VENCIDO", texto: `SEM VOTO: dado vencido (idade de ${idade} dias, acima do limite de ${fator.idadeMaximaVotoDias})` };
+    }
+  }
+  return null;
+}
+
 // Um fator de CONTEXTO (metodologia-base.js, `contextoDe`) diz de qual fator é contexto; um SÓ DE INFORMAÇÃO
 // (`informativo`) diz isso: nenhum dos dois tem leitura própria. Uma REGRA (a soja, ADR 0116) não tem peso.
 const pesoNaCobertura = (f) => (f.regra ? `regra ${f.regra.sigla}, sem peso` : textoPeso(f));
-function blocoCobertura(fatores, dataAnalise) {
+function blocoCobertura(fatores, dataAnalise, config = {}) {
   return fatores
-    .map(
-      (f, i) =>
+    .map((f, i) => {
+      const semVoto = semVotoDoFator(f, dataAnalise, config);
+      return (
         `${i + 1}. ${f.codigo} — ${f.nome} (${pesoNaCobertura(f)})` +
         `${f.contextoDe ? ` | CONTEXTO de ${f.contextoDe}, sem leitura própria` : ""}${f.informativo ? " | INFORMAÇÃO, sem leitura própria" : ""}` +
         `${f.soNosHorizontes ? ` | só no horizonte ${f.soNosHorizontes.join(" e ")}` : ""}` +
-        ` | ${situacaoDoFator(f, dataAnalise).texto}`
-    )
+        ` | ${situacaoDoFator(f, dataAnalise).texto}` +
+        `${semVoto ? ` | ${semVoto.texto}` : ""}`
+      );
+    })
     .join("\n");
 }
 
@@ -444,6 +464,7 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
       ...(f.contextoDe ? { contextoDe: f.contextoDe } : {}),
       ...(f.informativo ? { informativo: true } : {}),
       ...(f.soNosHorizontes ? { soNosHorizontes: f.soNosHorizontes } : {}),
+      ...(semVotoDoFator(f, dataAnalise, config) ? { semVoto: semVotoDoFator(f, dataAnalise, config).motivo } : {}),
       ...(f.regra ? { regra: f.regra.sigla } : {}),
       ...situacaoDoFator(f, dataAnalise),
       ...(f.tipo === "CALCULADO"
@@ -503,7 +524,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     bloco_preco: blocoPreco(preco, dataAnalise, config, ptax, referencia),
     ...(momentum ? { bloco_momentum: momentum.texto } : {}),
     ...(config.CURVA.aplica ? { bloco_curva: blocoCurva(curva, config) } : {}),
-    bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
+    bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise, config),
     bloco_faixas: blocoFaixas(config, porHorizonte, { referencia, dataAnalise, dataPreco }),
     ...(simulacao.pesos ? { bloco_pesos: blocoPesos(simulacao.pesos) } : {}),
     bloco_eventos: simulacao.eventosDoAtivo?.textoPrompt ?? "SEM DADO: os eventos do ativo não foram lidos.",
@@ -541,5 +562,6 @@ module.exports = {
   blocoAgregacao,
   agregacaoParaEntrada,
   situacaoDoFator,
+  semVotoDoFator,
   lerPtax
 };

@@ -140,3 +140,15 @@ test("fator só de alguns horizontes (a demanda do café, ADR 0133): a favor ou 
   const certa = respostaValida({ IMEDIATO: fora, CURTO: fora, MEDIO: fora });
   assert.deepEqual(validarRespostaAnalise(JSON.stringify(certa), opcoes).erros, []);
 });
+
+test("fator SEM VOTO no dia (ADR 0142): a favor ou contra é recusado em todos os horizontes; pouco relevante passa", () => {
+  const opcoes = { horizontes: HORIZONTES, codigosFator: CODIGOS, semVoto: { PETROLEO_REFINO: "VENCIDO" } };
+  const { erros } = validarRespostaAnalise(JSON.stringify(respostaValida()), opcoes);
+  assert.deepEqual(
+    erros,
+    HORIZONTES.map((h) => `leituras[${h.codigo}].fatoresContra[0]: "PETROLEO_REFINO" está SEM VOTO hoje (dado vencido); use fatoresPoucoRelevantes e diga a lacuna.`)
+  );
+  const fora = { fatoresContra: [], fatoresPoucoRelevantes: [{ fator: "PETROLEO_REFINO", motivo: "dado vencido" }] };
+  const certa = respostaValida({ IMEDIATO: fora, CURTO: fora, MEDIO: fora, LONGO: fora });
+  assert.deepEqual(validarRespostaAnalise(JSON.stringify(certa), opcoes).erros, []);
+});

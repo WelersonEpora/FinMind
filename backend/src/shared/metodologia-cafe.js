@@ -50,6 +50,8 @@ const DEFINICOES = [
       mecanismo: "Quebra de safra reduz oferta; clima bom eleva produção",
       fonte: "Conab, USDA, Somar Meteorologia"
     },
+    // Dado vencido não vota (ADR 0142; clima: 14 dias, o limite da §6).
+    idadeMaximaVotoDias: { dias: 14, origem: "o usuário, em 2026-10-21, pela §6 da análise do café de 2026-10-19 (ADR 0142)" },
     dados: {
       observaveis: ["NOAA_VH_CAFE", "CONAB_CAFE", "NOAA_CPC_ENSO"],
       eventos: false,
@@ -99,6 +101,8 @@ const DEFINICOES = [
       mecanismo: "Brasil é maior produtor; ciclo bienal alterna anos de alta e baixa produção",
       fonte: "Conab, ICO"
     },
+    // Dado vencido não vota (ADR 0142; safra: 42 dias, o fim do decaimento do E7 (ADR 0135), no lugar dos 30 da §6).
+    idadeMaximaVotoDias: { dias: 42, origem: "o usuário, em 2026-10-21, pela §6 da análise do café de 2026-10-19 (ADR 0142)" },
     dados: {
       observaveis: ["CONAB_CAFE", "USDA_PSD_CAFE"],
       eventos: false,
@@ -145,6 +149,8 @@ const DEFINICOES = [
       mecanismo: "Nível de inventário indica aperto ou folga de oferta",
       fonte: "ICO, ICE"
     },
+    // Dado vencido não vota (ADR 0142; estoques: 7 dias, o limite da §6).
+    idadeMaximaVotoDias: { dias: 7, origem: "o usuário, em 2026-10-21, pela §6 da análise do café de 2026-10-19 (ADR 0142)" },
     dados: {
       observaveis: ["ICE_CAFE_ESTOQUES", "ICO_CAFE", "ECF_CAFE_ESTOQUES", "USDA_PSD_CAFE"],
       eventos: false,

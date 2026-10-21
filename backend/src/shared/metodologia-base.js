@@ -41,6 +41,9 @@ const { ATIVOS_COM_MEIA_VIDA } = require("./eventos-mercado");
 //   soNosHorizontes - (opcional) { horizontes, motivo }: o fator SÓ INFORMA esses horizontes (ex.: o custo e a demanda do
 //              café, só o LONGO, ADR 0133). O bloco do fator no prompt diz isso, com o motivo, e a resposta da IA que o
 //              citar a favor ou contra em outro horizonte é recusada (ali, só como pouco relevante).
+//   idadeMaximaVotoDias - (opcional) { dias, origem }: DADO VENCIDO NÃO VOTA (a governança da análise do café, §6, ADR
+//              0142): com a idade do dado (da data de referência até a data da análise) acima de `dias`, o fator sai como
+//              SEM VOTO na tabela 2.3 do prompt e a resposta da IA que o citar a favor ou contra é recusada.
 //   efeitoDefasado - (opcional) { mesesMin, mesesMax, sobre }: SINAL DEFASADO, pela regra do especialista (ex.: o F6 do
 //              milho age sobre a safrinha seguinte, de 6 a 12 meses depois). O bloco do fator no prompt ganha a data de
 //              efeito esperada, contada do período do dado (texto-prompt.js).
@@ -212,6 +215,10 @@ function montarFatores(ativo, definicoes, validacao = null) {
       throw new Error(`${definicao.codigo}: soNosHorizontes sem os horizontes ou o motivo`);
     }
     if (definicao.janelaEventos && definicao.evento) throw new Error(`${definicao.codigo}: fator de evento não tem janela na seção de eventos da base`);
+    const limite = definicao.idadeMaximaVotoDias;
+    if (limite && (!Number.isInteger(limite.dias) || limite.dias < 1 || !limite.origem)) {
+      throw new Error(`${definicao.codigo}: idadeMaximaVotoDias sem os dias (inteiro positivo) ou a origem`);
+    }
     const ajustesFel1 = montarAjustesFel1(fator, definicao);
     return {
       codigo: fator.codigo,
@@ -233,6 +240,7 @@ function montarFatores(ativo, definicoes, validacao = null) {
       informativo: definicao.informativo === true,
       papelDecididoPor: definicao.contextoDe || definicao.informativo ? definicao.papelDecididoPor || "do especialista" : null,
       soNosHorizontes: definicao.soNosHorizontes || null,
+      idadeMaximaVotoDias: definicao.idadeMaximaVotoDias || null,
       efeitoDefasado: definicao.efeitoDefasado || null
     };
   });

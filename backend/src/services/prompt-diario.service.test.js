@@ -9,7 +9,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { montarPromptDiario, situacaoDoFator, blocoPesos } = require("./prompt-diario.service");
+const { montarPromptDiario, situacaoDoFator, semVotoDoFator, blocoPesos } = require("./prompt-diario.service");
 const { obterMetodologiaMilho } = require("../shared/metodologia-milho");
 const config = require("../shared/analise-diaria-petroleo");
 const { ATIVOS } = require("./centro-decisao.service");
@@ -414,8 +414,8 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@14");
-  assert.equal(p.versaoConfiguracao, 6);
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@15");
+  assert.equal(p.versaoConfiguracao, 7);
   assert.match(p.prompt, /Momentum do preço \(KC de Nova York\) — INFORMAÇÃO, sem voto; não é fator:\nMOMENTUM até 2026-10-03\n/);
   assert.deepEqual(p.entrada.momentum, { data: "2026-10-02", janelas: [] });
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
@@ -449,4 +449,17 @@ test("ativo sem agregação (o ouro): sem bloco 3B nem agregacaoMotor na entrada
   const { promptDiario: p } = await montarPromptDiario("OURO", { data: "2026-10-03" }, d);
   assert.doesNotMatch(p.prompt, /LEITURA AGREGADA DO MOTOR/);
   assert.equal(p.entrada.agregacaoMotor, undefined);
+});
+
+test("§6 (ADR 0142): o fator SEM VOTO no dia — vencido pelo limite de idade, ou sem dado e sem leitura onde o ativo pede", () => {
+  const vencido = { ...CALCULADO, idadeMaximaVotoDias: 7 };
+  // 25/09 a 03/10: 8 dias, acima de 7.
+  assert.deepEqual(semVotoDoFator(vencido, "2026-10-03"), { motivo: "VENCIDO", texto: "SEM VOTO: dado vencido (idade de 8 dias, acima do limite de 7)" });
+  assert.equal(semVotoDoFator(vencido, "2026-10-02"), null);
+  // Sem dado ou sem leitura: só com SEM_DADO_NAO_VOTA na configuração (o café).
+  assert.equal(semVotoDoFator(SEM_DADO, "2026-10-03"), null);
+  assert.equal(semVotoDoFator(SEM_DADO, "2026-10-03", { SEM_DADO_NAO_VOTA: true }).motivo, "SEM_DADO");
+  assert.equal(semVotoDoFator({ ...CALCULADO, decisao: null }, "2026-10-03", { SEM_DADO_NAO_VOTA: true }).motivo, "SEM_LEITURA");
+  // Um fator sem pressão própria já não vota: não entra.
+  assert.equal(semVotoDoFator({ ...vencido, informativo: true }, "2026-10-03"), null);
 });

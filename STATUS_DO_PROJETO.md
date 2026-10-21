@@ -19,8 +19,7 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind indica baixa e o café está em alta?*).
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
-fim, **o que precisamos do Comitê**. As seções 3 e 4 do documento (pesos e teste de inversão) estão no fim da lista (ADR 0141); a 5 e a 6 (plano e
-governança) ainda serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10; o E11 é uma proposta para sanção); o resto é a
+fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) estão no fim da lista (ADRs 0141 e 0142). O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10; o E11 é uma proposta para sanção); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -37,8 +36,9 @@ análise para decidirmos juntos.
 | E8 | Decidir se buscamos uma fonte para o preço físico do arábica (o Cepea) e se o preço em reais ganha uma regra, com o custo (o F5) como referência, juntando o F4 e o F5. Já implementado: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
 | E9 | **Sancionar (ou ajustar) a regra do F5 para o LONGO**, proposta pelo FinMind e calibrada no histórico: alta com o preço abaixo do custo ou até 15% acima dele, baixa com a margem acima de 200% (ADR 0138); e confirmar a data estimada do custo. Já implementado: a data estimada, o F5 como informação e a margem com o KC em reais (ADRs 0137 e 0138) |
 | E10 | Decidir se o momentum ganha uma regra: seguir a tendência não funcionou no café, e os extremos foram seguidos de reversão, o contrário do que o documento supõe; e se o basis (já calculado, como informação) vira fator. Já implementado: o momentum no prompt como informação. Testadas e não adotadas: a sazonalidade e a produção colombiana (ADR 0139) |
-| §3 e §4 | Decidir o que fazer com os fatores de IC indistinguível de zero (pela regra da §4, rebaixar o peso ou desligar) e se o F7, com o IC negativo no LONGO, pede revisão da lógica. Os pesos da §3 foram testados e não criam sinal: não adotados (ADR 0141) |
 | E11 | **Sancionar (ou ajustar) a série contínua ajustada do ICF em todos os horizontes**, proposta pelo FinMind com a medição no histórico: hoje, de 12% a 20% dos dias são medidos num contrato sem negócio na semana, e em 76% dos dias o LONGO usa outro contrato que o IMEDIATO (ADR 0140). Junto, aprovar a regra de rolagem do E1. Nada muda na leitura até a sanção |
+| §3 e §4 | Decidir o que fazer com os fatores de IC indistinguível de zero (pela regra da §4, rebaixar o peso ou desligar) e se o F7, com o IC negativo no LONGO, pede revisão da lógica. Os pesos da §3 foram testados e não criam sinal: não adotados (ADR 0141) |
+| §5 e §6 | Decidir a confirmação obrigatória (é da execução: nas carteiras virtuais, seria uma trava da Cartilha) e a revisão imediata com evento de magnitude 3. Já implementado: o dado vencido e o insuficiente não votam, com o limite da safra em 42 dias (ADR 0142) |
 
 O KC de Nova York pelo Yahoo (fonte não oficial e provisória, como o Brent futuro), necessário para o E1, o E3 e o E10,
 foi **autorizado pelo usuário em 2026-10-20** e já é coletado (ADR 0129).
@@ -763,6 +763,42 @@ prompt, com os papéis do E3 ao E10). O IC fica registrado e é refeito pelo com
 
 </details>
 
+<details>
+<summary>§5 e §6. Plano de implantação e governança</summary>
+
+**§5, o plano de 9 semanas, entrega a entrega:**
+
+| Semana | Entrega do plano | Onde está |
+|---|---|---|
+| 1 | Contrato de referência, calendário de vencimento, data e rolagem, B3 × ICE, o "dado insuficiente" do F1, F2, F5 e F6 | E1 (a data do preço, a série contínua proposta e o basis), E11 (proposta), E5 e E9 (o F5 e o F6), §6 (abaixo) |
+| 2 | Eventos com fontes primárias; INMET, Conab, USDA, FNC e CFTC | E2 (ADR 0130); a FNC nos eventos e a série de produção testada (E10) |
+| 3 | Redefinir o F1, o F3 e o F7; os fatores novos; a mistura de contratos | E6, E3 e E4; E10; E11 (proposta) |
+| 4 | Backtest com IC, walk-forward e significância; as três versões do F7 | §3 e §4 (ADR 0141; as duas metades e o bootstrap em blocos no lugar de um walk-forward formal); E4 (ADR 0132) |
+| 5 a 8 | Paper trading (sinal sem execução), comparado com o mercado | As carteiras virtuais (ADR 0127) e a Qualidade da IA (ADR 0064) já fazem isso todo dia |
+| 9 | Decisão de implantação, com limites de risco | O Comitê: as sanções do E9 e do E11 e as perguntas da tabela acima |
+
+**§6, os controles:**
+
+| Controle | Situação no FinMind |
+|---|---|
+| Dado vencido não vota | **Implementado** (ADR 0142): clima (F1) 14 dias, safra (F2) 42 dias (o fim do decaimento do E7, no lugar dos 30 do documento), estoques (F3) 7 dias. O preço tem o aviso de DEFASADO no bloco 2.1 |
+| Dado insuficiente não vota, com alerta | **Implementado** (ADR 0142): sem dado ou sem a leitura do motor. O fator sai como SEM VOTO na tabela 2.3, a IA o registra em "lacunas" e a resposta que o citar a favor ou contra é recusada |
+| Contrato registrado em cada horizonte | Já existia (ADR 0078; a tela do E1) |
+| Confirmação obrigatória (baixa com momentum positivo e backwardation) | É da execução, que o FinMind não faz. Nas carteiras virtuais, seria uma trava da Cartilha: com o Comitê |
+| Versionamento | Já existia: a versão do prompt, da configuração, de cada fator e da metodologia, com um ADR por mudança |
+| Revisão: IC mensal; pesos trimestral; imediata com evento de magnitude 3 | O IC mensal tem o comando `npm run ic:cafe` (ADR 0141); não há pesos numéricos (§3); a revisão imediata fica com o Comitê |
+| Dimensionamento pela volatilidade | Nas carteiras virtuais, pelo ATR da Cartilha (ADR 0127) |
+
+No servidor, o VHI do café não teve, desde 2016, intervalo maior que 9 dias entre duas semanas: o limite do clima só
+tira o voto quando a coleta falha.
+
+**O que precisamos do Comitê:**
+
+- a confirmação obrigatória como trava das carteiras virtuais, ou não;
+- a revisão imediata com evento de magnitude 3: o que revisar e quem dispara.
+
+</details>
+
 </details>
 
 <details>
@@ -1431,6 +1467,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Dado vencido e insuficiente não votam no café (§6 da análise do café) | O fator com o dado acima do limite (clima 14 dias, safra 42, estoques 7), sem dado ou sem a leitura do motor sai como SEM VOTO na tabela 2.3; a resposta que o citar a favor ou contra é recusada, e a falta vai às lacunas. O plano da §5 ficou mapeado, entrega a entrega | §0, §5 e §6; ADR 0142 |
 | Pesos e IC dos fatores do café (§3 e §4 da análise do café) | Os pesos por horizonte do documento, testados sobre os fatores que votam, não criam sinal (IC de 0,00 a +0,06; acerto do lado de 47% a 50%): não adotados. O IC de cada fator contra o KC: indistinguível de zero na maioria; só o F7 no LONGO é negativo com significância (já é informação). Comando novo, `npm run ic:cafe`, para a revisão mensal | §0, §3 e §4; ADR 0141 |
 | Série contínua nos horizontes do café proposta para a sanção do Comitê (E11 da análise do café) | Medição de 2022 a 2026: a regra de hoje mede o horizonte num contrato sem negócio na semana em 12% a 20% dos dias, e o LONGO usa outro contrato que o IMEDIATO em 76%; a série contínua muda a faixa do realizado em 8% a 15% dos dias. Proposta registrada, sem mudar a leitura | §0, E11; ADR 0140 |
 | Momentum do café como informação e fatores ausentes testados (E10 da análise do café) | O prompt do café traz o momentum do KC (o retorno de 5, 20 e 60 pregões ÷ a volatilidade), sem voto. Teste de 2000 a 2026: seguir a tendência acertou de 45% a 50%, e os extremos foram seguidos de reversão. A sazonalidade (44% de acerto) e a produção colombiana da Federação de Cafeteiros (sinal oposto ao esperado) foram testadas e não adotadas | §0, E10; ADR 0139 |

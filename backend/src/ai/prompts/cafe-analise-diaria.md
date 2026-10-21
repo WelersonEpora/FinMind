@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 14
+**Versão:** 15
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -62,6 +62,9 @@ diz como ler.
 v14 (2026-10-21, ADR 0139) - análise do café de 2026-10-19, item E10: o momentum do preço (o retorno de 5, 20 e 60
 pregões do KC de Nova York, dividido pela volatilidade) vai ao bloco 2.1 como INFORMAÇÃO, com a validação: seguir a
 tendência não funcionou no café, e os extremos de 20 pregões foram seguidos de reversão. O item 13 diz como ler.
+v15 (2026-10-21, ADR 0142) - análise do café de 2026-10-19, §6 (governança): o dado vencido e o insuficiente não votam.
+O fator com o dado acima do limite de idade (clima 14 dias, safra 42, estoques 7), sem dado ou sem a leitura do motor
+sai como SEM VOTO na tabela 2.3; a resposta que o citar a favor ou contra é recusada. O item 1 diz isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -108,7 +111,9 @@ Para cada horizonte, separadamente:
    INFORMAÇÃO, sem voto em nenhum horizonte (não o liste em fatoresAFavor nem em fatoresContra), e só serve ao LONGO,
    como piso: a margem do preço sobre o custo diz o quanto o preço ainda pode cair antes de desestimular o trato da
    lavoura (margem fina, perto do custo operacional, sustenta o preço adiante; margem muito alta estimula a oferta
-   futura). Diga quais fatores pesaram pouco e por quê.
+   futura). Um fator marcado SEM VOTO na tabela 2.3 (dado vencido, sem dado ou sem a leitura do motor) não vota em
+   nenhum horizonte: liste-o só em fatoresPoucoRelevantes e registre a falta em "lacunas" (DEFASADO, SEM_DADO ou
+   SEM_LEITURA). Diga quais fatores pesaram pouco e por quê.
 2. Pesos. O Motor do Café descartou os pesos fixos e não definiu peso novo: o peso do FEL 1 (tabela 2.3) é o único na
    BASE. Use-o como ordem de partida (os de peso Alto primeiro; os de peso Médio e Baixo confirmam ou enfraquecem a
    leitura). Nunca altere um peso nem crie um peso por mês. A validação histórica (parte D de cada

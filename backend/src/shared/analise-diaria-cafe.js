@@ -14,9 +14,11 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // histórico do ICF, não supera os benchmarks. Fica na tela de metodologia, como no milho (ADR 0081).
 // v6 (2026-10-21): o momentum do KC de Nova York vai ao bloco 2.1, como informação (MOMENTUM_KC, ADR 0139; análise do
 // café de 2026-10-19, item E10). Horizontes e faixas não mudam.
+// v7 (2026-10-21): o dado insuficiente não vota (SEM_DADO_NAO_VOTA, ADR 0142; a §6 da análise do café). Horizontes e
+// faixas não mudam.
 // v5 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
 // dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
-const VERSAO = 6;
+const VERSAO = 7;
 
 // Os mesmos quatro horizontes do petróleo, do ouro e do milho, em dias corridos contados da data da análise. O estudo do
 // David conta em pregões (1, 7, 30 e 90): os dias corridos mantêm a régua dos outros ativos e a variação do Centro de
@@ -83,6 +85,11 @@ const CURVA = Object.freeze({
 // validação, como informação no bloco 2.1 (factors/momentum-kc.js). Sem voto: seguir a tendência não funcionou no café.
 const MOMENTUM_KC = true;
 
+// A governança da análise do café (§6, ADR 0142): um fator sem dado até a data, ou sem a leitura do motor, sai como SEM
+// VOTO na tabela 2.3, e a resposta que o citar a favor ou contra é recusada. O dado vencido é por fator, na metodologia
+// (`idadeMaximaVotoDias`).
+const SEM_DADO_NAO_VOTA = true;
+
 const NOME = "analise-diaria-cafe";
 const ARQUIVO_PROMPT = "cafe-analise-diaria.md";
 const COLETOR = "cafe-analise-ia-diario";
@@ -102,5 +109,6 @@ module.exports = {
   PRECO,
   CURVA,
   MOMENTUM_KC,
+  SEM_DADO_NAO_VOTA,
   classificarVariacao
 };

@@ -146,3 +146,11 @@ test("ajuste de peso que vai ao prompt (ADR 0136): vira o peso do fator, com o d
   assert.equal(textoPeso(soNaTela), "peso Alto");
   assert.throws(() => montarFatores("OURO", [comAjuste({ ajuste: "Mínimo", noPrompt: "pelo usuário" })]), /só um peso conhecido/);
 });
+
+test("dado vencido não vota (ADR 0142): o limite de idade passa para o fator; sem dias inteiros ou sem a origem, é erro", () => {
+  const comLimite = (limite) => ({ ...definicao("OURO_DOLAR"), idadeMaximaVotoDias: limite });
+  assert.deepEqual(montarFatores("OURO", [comLimite({ dias: 7, origem: "Usuário, ADR X" })])[0].idadeMaximaVotoDias, { dias: 7, origem: "Usuário, ADR X" });
+  assert.equal(montarFatores("OURO", [definicao("OURO_DOLAR")])[0].idadeMaximaVotoDias, null);
+  assert.throws(() => montarFatores("OURO", [comLimite({ dias: 1.5, origem: "x" })]), /idadeMaximaVotoDias/);
+  assert.throws(() => montarFatores("OURO", [comLimite({ dias: 7 })]), /idadeMaximaVotoDias/);
+});
