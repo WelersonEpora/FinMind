@@ -116,6 +116,13 @@ test("fator só de informação (ADR 0094): como o de contexto, sem fator-pai, c
   assert.match(t, /\nC — Papel na análise:\n- INFORMAÇÃO, por decisão do usuário: sem pressão própria; não conta a favor nem contra\.\n- Tendência: Estável\n/);
 });
 
+test("leitura que perde força com a idade (ADR 0135): a linha da idade depois da tendência", () => {
+  const calculo = { apresentacao: APRESENTACAO, periodicidade: "SEMANAL", parametros: PARAMETROS, origemParametros: null, simulacao: false };
+  const ponto = { ...PONTO, decisao: { ...PONTO.decisao, decaimento: "publicada há 27 dias (de 15 a 42): um nível abaixo do levantamento" } };
+  const t = montarTextoPrompt({ ativo: "CAFE", fator: FATOR, calculo, ponto });
+  assert.match(t, /- Tendência: Estável\n- Idade: publicada há 27 dias \(de 15 a 42\): um nível abaixo do levantamento\.\n/);
+});
+
 test("fator só de alguns horizontes (ADR 0133): a linha dos horizontes, com o motivo, depois de C", () => {
   const fator = { ...FATOR, soNosHorizontes: { horizontes: ["LONGO"], motivo: "O dado é semestral" } };
   const calculo = { apresentacao: APRESENTACAO, periodicidade: "SEMANAL", parametros: PARAMETROS, origemParametros: null, simulacao: false };

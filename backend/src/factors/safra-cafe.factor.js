@@ -25,7 +25,12 @@ const { arredondar } = require("./modelos/posicao-historica");
 // expectativa do mercado (paga) não é coletada. Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "safra_cafe_conab_arabica";
-const FACTOR_VERSION = 1;
+// v2 (2026-10-21): a revisão perde força com a idade, no levantamento vigente na data da leitura (análise do café de
+// 2026-10-19, item E7; decisão do usuário, ADR 0135): até 14 dias, a leitura do levantamento; de 15 a 42, um nível
+// abaixo (forte -> moderada; moderada -> neutra); depois de 42, neutra (a revisão fica como contexto).
+const FACTOR_VERSION = 2;
+const DIAS_FORCA_PLENA = 14;
+const DIAS_FORCA_REDUZIDA = 42;
 
 const SERIES = Object.freeze({
   arabica: "CONAB.CAFE.BRASIL.PRODUCAO_ARABICA",
@@ -52,8 +57,24 @@ function valorAte(versoes, serie, safra, ate) {
 
 const variacao = (a, b) => (a === undefined || b === undefined || !b ? null : arredondar((a / b - 1) * 100, 2));
 
-// Função PURA: as versões (obterVersoesAsOf, em ordem de publicação) -> um ponto por levantamento.
-function derivarSafraCafe(versoes, { parametros = PARAMETROS_PADRAO } = {}) {
+const diasEntre = (de, ate) => Math.floor((Date.parse(`${ate.slice(0, 10)}T00:00:00Z`) - Date.parse(`${de.slice(0, 10)}T00:00:00Z`)) / 864e5);
+
+// A decisão do levantamento com `idadeDias` desde a publicação (ADR 0135). Sem direção, fica como está.
+function decairPelaIdade(decisao, idadeDias) {
+  if (!decisao || decisao.direcao === faixa.DIRECAO.NEUTRA || idadeDias <= DIAS_FORCA_PLENA) return decisao ? { ...decisao, idadeDias } : decisao;
+  const neutra = { ...decisao, direcao: faixa.DIRECAO.NEUTRA, intensidade: faixa.INTENSIDADE.FRACA, idadeDias };
+  if (idadeDias > DIAS_FORCA_REDUZIDA) {
+    return { ...neutra, decaimento: `publicada há ${idadeDias} dias (mais de ${DIAS_FORCA_REDUZIDA}): a revisão já não pressiona, fica como contexto` };
+  }
+  const nota = `publicada há ${idadeDias} dias (de ${DIAS_FORCA_PLENA + 1} a ${DIAS_FORCA_REDUZIDA}): um nível abaixo do levantamento`;
+  if (decisao.intensidade === faixa.INTENSIDADE.FORTE) return { ...decisao, intensidade: faixa.INTENSIDADE.MODERADA, idadeDias, decaimento: nota };
+  return { ...neutra, decaimento: nota };
+}
+
+// Função PURA: as versões (obterVersoesAsOf, em ordem de publicação) -> um ponto por levantamento. Com
+// `dataReferencia` (a data da leitura), o levantamento vigente nela perde força pela idade (ADR 0135); os anteriores
+// ficam com a leitura do dia em que saíram.
+function derivarSafraCafe(versoes, { parametros = PARAMETROS_PADRAO, dataReferencia = null } = {}) {
   const ordenadas = [...versoes].map((v) => ({ ...v, publishedAt: new Date(v.publishedAt).toISOString() }));
   ordenadas.sort((a, b) => (a.publishedAt < b.publishedAt ? -1 : 1));
   const levantamentos = [...new Set(ordenadas.map((v) => v.publishedAt))];
@@ -89,13 +110,18 @@ function derivarSafraCafe(versoes, { parametros = PARAMETROS_PADRAO } = {}) {
       disponivelEmEhEstimado: false
     });
   });
+  const vigente = pontos.at(-1);
+  if (vigente && dataReferencia) {
+    vigente.decisaoNoLevantamento = vigente.decisao;
+    vigente.decisao = decairPelaIdade(vigente.decisao, diasEntre(vigente.disponivelEm, dataReferencia));
+  }
   return pontos;
 }
 
 async function calcularSafraCafe({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
   const versoes = await servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES), asOf }, deps);
-  return derivarSafraCafe(versoes, { parametros });
+  return derivarSafraCafe(versoes, { parametros, dataReferencia: asOf ? new Date(asOf).toISOString() : new Date().toISOString() });
 }
 
 const TEXTOS = {
@@ -114,7 +140,9 @@ const TEXTOS = {
 };
 
 function explicarSafraCafe(ponto, parametros = PARAMETROS_PADRAO) {
-  return faixa.explicarPorFaixa(ponto, parametros, TEXTOS);
+  const passos = faixa.explicarPorFaixa(ponto?.decisaoNoLevantamento ? { ...ponto, decisao: ponto.decisaoNoLevantamento } : ponto, parametros, TEXTOS);
+  if (ponto?.decisao?.decaimento) passos.push(`Idade (ADR 0135): ${ponto.decisao.decaimento}.`);
+  return passos;
 }
 
 function exemplosSafraCafe(pontosTodos, parametros = PARAMETROS_PADRAO) {
@@ -158,7 +186,8 @@ const APRESENTACAO = {
   exemplos: { colunaValor: "Revisão", unidade: "%" },
   nota:
     "Por levantamento, não é tempo real: a Conab publica 4 levantamentos da safra de café por ano (jan, mai, set e dez). " +
-    "Só o arábica decide (o ICF é arábica); o conilon é contexto. A base tem os levantamentos desde jan/2023."
+    "Só o arábica decide (o ICF é arábica); o conilon é contexto. A base tem os levantamentos desde jan/2023. A revisão " +
+    "perde força com a idade: até 14 dias, a leitura do levantamento; de 15 a 42, um nível abaixo; depois, neutra."
 };
 
 const METODOLOGIA = {
@@ -172,4 +201,4 @@ const METODOLOGIA = {
   apresentacao: APRESENTACAO
 };
 
-module.exports = { FACTOR_ID, FACTOR_VERSION, SERIES, PARAMETROS_PADRAO, METODOLOGIA, derivarSafraCafe };
+module.exports = { FACTOR_ID, FACTOR_VERSION, SERIES, PARAMETROS_PADRAO, METODOLOGIA, derivarSafraCafe, decairPelaIdade };

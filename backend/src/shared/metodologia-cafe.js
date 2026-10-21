@@ -125,8 +125,13 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Revisão altista da produção de arábica no levantamento da Conab superior a [CALIBRAR COM DADOS POINT-IN-TIME]% em comparação ao vintage oficial prévio. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [],
+    // A análise do café de 2026-10-19, item E7 (ADR 0135): o que segue com o Comitê.
+    perguntas: [
+      "Surpresa contra o mercado (E7): o consenso de analistas é pago. Testar a Conab contra a estimativa do USDA para o Brasil (cerca de 5 pares desde 2023, pouco para um teste) ou só acompanhar as estimativas privadas pelos eventos (Safras & Mercado e Notícias Agrícolas, fontes secundárias, ADR 0130)?",
+      "Prazo do decaimento (E7): ficam os 14 e os 42 dias (forte nas 2 primeiras semanas, um nível abaixo até 6 semanas, depois neutra), ou outro prazo?"
+    ],
     decisoes: [
+      "A revisão perde força com a idade (usuário, 2026-10-21, ADR 0135; análise do café de 2026-10-19, item E7): no levantamento vigente na data da leitura, até 14 dias a leitura do levantamento; de 15 a 42 dias, um nível abaixo (forte vira moderada; moderada vira neutra); depois de 42, neutra, e a revisão fica como contexto. O texto do fator diz a idade. Nos 11 levantamentos de 2023 a 2026 contra o KC, com direção, o F2 acertou o lado em 4 de 6 nas 2 primeiras semanas e em 3 de 5 de 10 a 60 pregões: amostra pequena; a de maio/2026 (baixa moderada) foi seguida de +54,5% de 10 a 60 pregões.",
       "Limiares (usuário, 2026-10-06, ADR 0084): a faixa neutra de 2% e o forte de 5% ficam como ponto de partida, até o backtest. Nas 11 revisões da base, as duas fortes com preço depois (set/2024, -5,99%; mai/2025, +6,61%) foram seguidas do movimento esperado no arábica do FMI em 3 meses (+23,4% e -8,0%); as moderadas se dividiram. São episódios, não validação.",
       "Bienalidade (usuário, 2026-10-06, ADR 0084): fica como contexto, fora da decisão, como o estudo deixa. Na safra de arábica do USDA (PSD, 1992 a 2025, valor final), a queda de 10% ou mais contra a safra anterior foi seguida de preço médio de -2,1% em 12 meses (alta em 5 de 14 anos) e a alta de 10% ou mais, de +16,8% (7 de 13): o ciclo é previsível (o sinal trocou em 28 de 33 anos) e o mercado o precifica; o que move o preço é a revisão."
     ]

@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E6); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E7); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -33,7 +33,7 @@ análise para decidirmos juntos.
 | E4 | Nada a decidir agora: o F7 já foi à IA como informação, sem pressão, com a janela de 10 anos ao lado (ADR 0132). O modificador numérico fica com a §3 do documento |
 | E5 | Nada a decidir agora: a demanda (F6) e o custo (F5) só informam o horizonte LONGO, com a validação da resposta (ADR 0133). A regra "dado insuficiente não vota" fica para a §6 do documento |
 | E6 | Decidir se o El Niño forte (hoje no F1 como contexto, ADR 0134) deve ter pressão de alta; o que fazer com a chuva por janela, que o teste não confirmou; e o peso do VHI. Já implementado: o RONI do NOAA CPC coletado e no F1, sem pressão |
-| E7 | Quanto tempo a revisão da Conab pesa forte depois de publicada e qual medida de surpresa testar |
+| E7 | Confirmar os prazos do decaimento (14 e 42 dias) e decidir como medir a surpresa contra o mercado. Já implementado: a revisão da Conab perde força com a idade (ADR 0135) |
 | E8 | Peso Baixo para o câmbio e juntar o F4 com o F5 num fator de incentivo do produtor |
 | E9 | A data de publicação estimada do custo da Conab e o mesmo "juntar com o F4" |
 | E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos), a oferta colombiana como dado (a Federação de Cafeteiros já entrou como fonte de eventos, ADR 0130) e decidir se o basis (já calculado, como informação) vira fator |
@@ -437,7 +437,34 @@ menos firmeza ao F2.
 | Decaimento depois da publicação | Baixo |
 | Testar as medidas de surpresa (a) e (b) contra o histórico | Médio |
 
-**O que precisamos do Comitê:** por quanto tempo a revisão pesa forte e como decai; e quais medidas de surpresa testar.
+**O teste (2026-10-21; os 11 levantamentos desde 2023 contra o KC de Nova York; detalhe no ADR 0135):**
+
+| Publicado | Revisão do arábica | F2 | Dia | 10 pregões | De 10 a 60 pregões |
+|---|---|---|---|---|---|
+| 19/09/2024 | −6,0% | alta forte | −4,2% | −3,7% | +27,3% |
+| 06/05/2025 | +6,6% | baixa forte | −0,7% | −7,9% | −19,9% |
+| 04/09/2025 | −4,9% | alta moderada | +0,1% | 0,0% | +12,7% |
+| 21/05/2026 | +3,8% | baixa moderada | +1,5% | −9,8% | **+54,5%** |
+| **24/09/2026** | **+5,3%** | **baixa forte** | +1,0% | **+5,0%** | — |
+
+- Com direção, o F2 acertou o lado em **4 de 6 nas 2 primeiras semanas** e em **3 de 5 de 10 a 60 pregões**: amostra
+  pequena, mas que não sustenta manter a força por 3 meses, como até agora.
+- **O caso atual:** a revisão de 24/09 seguia como "baixa forte" 27 dias depois, com o KC 5% acima nas 2 primeiras
+  semanas, e seguiria assim até dezembro.
+- A reação do dia (a medida "b") foi para o lado oposto ao do F2 em 4 de 6, e a Conab contra o USDA (a medida "a") teria
+  só cerca de 5 pares: sem teste.
+
+**Implementado (2026-10-21), por decisão do usuário (ADR 0135).**
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| Decaimento | O F2 (v2) perde força com a idade do levantamento vigente: até 14 dias, como saiu; de 15 a 42 dias, um nível abaixo (forte vira moderada; moderada vira neutra); depois, neutro, e a revisão fica como contexto. O texto do fator diz a idade. Hoje (27 dias), "baixa forte" passa a "baixa moderada"; a partir de 06/11, neutro | Metodologia do café, F2; o prompt do café |
+
+**O que precisamos do Comitê:**
+
+- confirmar ou ajustar os prazos do decaimento (14 e 42 dias);
+- a surpresa contra o mercado: o consenso é pago; testar a Conab contra o USDA (amostra pequena) ou só acompanhar as
+  estimativas privadas pelos eventos (as fontes secundárias do E2).
 
 </details>
 
@@ -1227,6 +1254,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Revisão da Conab perde força com a idade (E7 da análise do café) | O F2 (v2) mantém a leitura da revisão até 14 dias depois da publicação, um nível abaixo de 15 a 42 dias e neutra depois; o texto do fator diz a idade. A revisão de 24/09 (+5,33%) passou de "baixa forte" a "baixa moderada" e fica neutra a partir de 06/11. Teste dos 11 levantamentos desde 2023: amostra pequena, sem sustentar a força por 3 meses | §0, E7; ADR 0135 |
 | El Niño no clima do café (E6 da análise do café) | Fonte nova autorizada pelo usuário: o RONI e o ONI do NOAA CPC, desde 1950 (coletor `noaa-cpc-enso`, card "El Niño e La Niña"). O F1 (v2) leva o El Niño ao prompt como contexto, sem pressão (hoje +1,69, forte). Teste: o El Niño moderado ou mais forte foi seguido de alta do KC em 120 pregões em 78% dos dias (~5 episódios); a chuva por janela da NASA POWER não se confirmou (o sentido saiu o oposto) e a NASA POWER não viu a geada de 2021: não coletada | §0, E6; ADR 0134 |
 | Demanda e custo só no LONGO (E5 da análise do café) | O F6 (demanda, semestral) e o F5 (custo) só informam o horizonte LONGO: o bloco de cada um no prompt e a tabela 2.3 dizem isso, e a resposta da IA que os citar a favor ou contra em outro horizonte é recusada (mecanismo `soNosHorizontes`; prompt do café v11). Nas leituras de 05 a 21/10, o F6 pressionava para alta: a correção é de lógica, não explica a divergência. Junto, o cabeçalho dos eventos com a meia-vida (E2) | §0, E5; ADR 0133 |
 | Fundos só como informação (E4 da análise do café) | O F7 vai à IA como informação, sem a pressão (antes chegava "alta forte", contra o ADR 0089), com o percentil em 10 anos ao lado do de 3 (fator v2; prompt do café v10). Na semana de 13/10, 3,8 em 3 anos e 47,7 em 10: o "extremo" vinha do recorde de 2025 na janela. Teste das três versões (2009 a 2026): nenhuma supera o fator desligado | §0, E4; ADR 0132 |

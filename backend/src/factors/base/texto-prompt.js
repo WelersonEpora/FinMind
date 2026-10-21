@@ -204,7 +204,9 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
         `- Pressão: ${d.foraDaJanela ? "neutra (fora da janela da safra: o fator não pressiona nesta época)" : PRESSAO[d.direcao]}`,
         ...(d.foraDaJanela ? [] : [`- Intensidade: ${r.intensidade[d.intensidade].toLowerCase()}`]),
         // Um fator sem tendência (os da soja: o primário muda por publicação) não leva a linha.
-        ...(apresentacao.semTendencia ? [] : [`- Tendência: ${d.tendencia ? r.tendencia[d.tendencia] : "não calculada"}`])
+        ...(apresentacao.semTendencia ? [] : [`- Tendência: ${d.tendencia ? r.tendencia[d.tendencia] : "não calculada"}`]),
+        // A leitura que perde força com a idade (a revisão da Conab do café, ADR 0135).
+        ...(d.decaimento ? [`- Idade: ${d.decaimento}.`] : [])
       );
     }
     if (fator.efeitoDefasado) linhas.push(linhaEfeitoDefasado(fator.efeitoDefasado, ponto.observedAt));

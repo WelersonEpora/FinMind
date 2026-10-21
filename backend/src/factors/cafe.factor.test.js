@@ -2,7 +2,7 @@
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { derivarSafraCafe } = require("./safra-cafe.factor");
+const { derivarSafraCafe, decairPelaIdade } = require("./safra-cafe.factor");
 const { derivarDemandaCafe } = require("./demanda-cafe.factor");
 const { medirEstoques, derivarEstoquesCafe, textoNivel } = require("./estoques-cafe-ice.factor");
 const { medirDolar } = require("./dolar-cafe.factor");
@@ -40,6 +40,25 @@ test("safra: a revisão do arábica contra o levantamento anterior da mesma safr
   // +5,33%: acima do forte de 5% -> pressão de baixa forte; +3,81%: moderada.
   assert.deepEqual([porData["2026-09-24"].decisao.direcao, porData["2026-09-24"].decisao.intensidade], ["BAIXA", "FORTE"]);
   assert.deepEqual([porData["2026-05-21"].decisao.direcao, porData["2026-05-21"].decisao.intensidade], ["BAIXA", "MODERADA"]);
+});
+
+test("safra (v2, ADR 0135): o levantamento vigente perde força com a idade; os anteriores ficam como saíram", () => {
+  const A = "CONAB.CAFE.BRASIL.PRODUCAO_ARABICA";
+  const versoes = [v(A, "2026-01-01", "2026-05-21T12:00:00Z", 45772.8), v(A, "2026-01-01", "2026-09-24T12:00:00Z", 48213)];
+  const naData = (data) => derivarSafraCafe(versoes, { dataReferencia: `${data}T12:00:00Z` }).at(-1);
+  const leitura = (p) => [p.decisao.direcao, p.decisao.intensidade];
+  assert.deepEqual(leitura(naData("2026-10-08")), ["BAIXA", "FORTE"], "14 dias: a leitura do levantamento");
+  const reduzida = naData("2026-10-21");
+  assert.deepEqual(leitura(reduzida), ["BAIXA", "MODERADA"], "27 dias: um nível abaixo");
+  assert.equal(reduzida.decisao.idadeDias, 27);
+  assert.match(reduzida.decisao.decaimento, /publicada há 27 dias \(de 15 a 42\): um nível abaixo/);
+  assert.deepEqual([reduzida.decisaoNoLevantamento.direcao, reduzida.decisaoNoLevantamento.intensidade], ["BAIXA", "FORTE"]);
+  assert.deepEqual(leitura(naData("2026-11-06")), ["NEUTRA", "FRACA"], "43 dias: neutra");
+  // Sem a data da leitura (a tela do histórico), cada levantamento fica com a leitura do dia.
+  assert.equal(derivarSafraCafe(versoes).at(-1).decisao.intensidade, "FORTE");
+  // Moderada cai para neutra; neutra fica neutra.
+  assert.equal(decairPelaIdade({ direcao: "BAIXA", intensidade: "MODERADA", tendencia: null }, 20).direcao, "NEUTRA");
+  assert.equal(decairPelaIdade({ direcao: "NEUTRA", intensidade: "FRACA", tendencia: null }, 60).decaimento, undefined);
 });
 
 // --- F6 demanda -------------------------------------------------------------------------------------------------
