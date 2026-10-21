@@ -12,9 +12,11 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // v3 (2026-10-05): cada horizonte com o vencimento do ICF que ainda vale depois da data-alvo, e a curva no prompt (ADR 0078).
 // v4 (2026-10-07): a agregação em código sai do prompt e do Centro de Decisão (ADR 0066, adendo de 2026-10-07): no
 // histórico do ICF, não supera os benchmarks. Fica na tela de metodologia, como no milho (ADR 0081).
+// v6 (2026-10-21): o momentum do KC de Nova York vai ao bloco 2.1, como informação (MOMENTUM_KC, ADR 0139; análise do
+// café de 2026-10-19, item E10). Horizontes e faixas não mudam.
 // v5 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
 // dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
-const VERSAO = 5;
+const VERSAO = 6;
 
 // Os mesmos quatro horizontes do petróleo, do ouro e do milho, em dias corridos contados da data da análise. O estudo do
 // David conta em pregões (1, 7, 30 e 90): os dias corridos mantêm a régua dos outros ativos e a variação do Centro de
@@ -58,7 +60,7 @@ const PRECO = Object.freeze({
   unidadeEmReais: "por saca",
   descricaoFaixas: "café arábica no futuro ICF da B3, no vencimento de cada horizonte (a linha \"Contrato\" de cada um)",
   avisos: Object.freeze([
-    "Aviso: o ICF é o futuro de café arábica da B3 (US$ por saca de 60 kg). O KC da ICE (Nova York, centavos de US$ por libra-peso) não está na BASE: o COT e os estoques certificados dos fatores são de Nova York.",
+    "Aviso: o ICF é o futuro de café arábica da B3 (US$ por saca de 60 kg). O KC da ICE (Nova York, centavos de US$ por libra-peso) entra na BASE só pelo momentum, logo abaixo, e pelos fatores (o COT e os estoques certificados são de Nova York).",
     "Aviso: cada vencimento é uma série própria e nada é emendado: as variações usam só o histórico do contrato atual. Um contrato com pouco histórico, ou que não negociou na data de comparação, deixa a variação SEM DADO."
   ]),
   emReais: true
@@ -76,6 +78,10 @@ const CURVA = Object.freeze({
   semDado: "SEM DADO: nenhum vencimento do ICF negociou até a data.",
   lacuna: "Curva do ICF sem dado na data"
 });
+
+// O momentum do preço (ADR 0139): o retorno de 5, 20 e 60 pregões do KC de Nova York, dividido pela volatilidade, com a
+// validação, como informação no bloco 2.1 (factors/momentum-kc.js). Sem voto: seguir a tendência não funcionou no café.
+const MOMENTUM_KC = true;
 
 const NOME = "analise-diaria-cafe";
 const ARQUIVO_PROMPT = "cafe-analise-diaria.md";
@@ -95,5 +101,6 @@ module.exports = {
   REFERENCIA_HORIZONTES,
   PRECO,
   CURVA,
+  MOMENTUM_KC,
   classificarVariacao
 };

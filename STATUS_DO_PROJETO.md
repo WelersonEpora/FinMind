@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E9); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -36,7 +36,7 @@ análise para decidirmos juntos.
 | E7 | Confirmar os prazos do decaimento (14 e 42 dias) e decidir como medir a surpresa contra o mercado. Já implementado: a revisão da Conab perde força com a idade (ADR 0135) |
 | E8 | Decidir se buscamos uma fonte para o preço físico do arábica (o Cepea) e se o preço em reais ganha uma regra, com o custo (o F5) como referência, juntando o F4 e o F5. Já implementado: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
 | E9 | **Sancionar (ou ajustar) a regra do F5 para o LONGO**, proposta pelo FinMind e calibrada no histórico: alta com o preço abaixo do custo ou até 15% acima dele, baixa com a margem acima de 200% (ADR 0138); e confirmar a data estimada do custo. Já implementado: a data estimada, o F5 como informação e a margem com o KC em reais (ADRs 0137 e 0138) |
-| E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos), a oferta colombiana como dado (a Federação de Cafeteiros já entrou como fonte de eventos, ADR 0130) e decidir se o basis (já calculado, como informação) vira fator |
+| E10 | Decidir se o momentum ganha uma regra: seguir a tendência não funcionou no café, e os extremos foram seguidos de reversão, o contrário do que o documento supõe; e se o basis (já calculado, como informação) vira fator. Já implementado: o momentum no prompt como informação. Testadas e não adotadas: a sazonalidade e a produção colombiana (ADR 0139) |
 | E11 | Contrato por horizonte ou série contínua ajustada para todos |
 
 O KC de Nova York pelo Yahoo (fonte não oficial e provisória, como o Brent futuro), necessário para o E1, o E3 e o E10,
@@ -631,7 +631,32 @@ não como sinal. O ATR(14) da Cartilha já existe nas carteiras virtuais.
 
 Ordem natural: série contínua (E1) → KC do Yahoo → Federação de Cafeteiros.
 
-**O que precisamos do Comitê:** incluir o momentum (a mudança de filosofia) e autorizar a Federação de Cafeteiros.
+**O teste (2026-10-21; o KC de Nova York de 2000 a 2026, nos prazos dos horizontes; detalhe no ADR 0139):**
+
+| Item | Resultado | O que foi feito |
+|---|---|---|
+| Momentum (o retorno de 5, 20 e 60 pregões ÷ a volatilidade) | Seguir a tendência acertou o lado em 49,5% (1 pregão), 49,7% (5), 45,0% (21) e 47,6% (62): pior que uma moeda. Nos extremos, reversão: com o z de 20 pregões acima de +2, o KC subiu nos 21 pregões seguintes em só 33% dos dias, nos dois períodos | Vai ao prompt como informação (abaixo) |
+| Sazonalidade | Fora da amostra, a média do mês acertou o lado em 44% dos meses; com a média forte, em 33% | Não adotada |
+| Oferta colombiana (Federação de Cafeteiros, produção mensal desde 1956) | Fonte reconhecida (XLSX público). Mais produção contra o ano anterior veio seguida de **alta** (correlação +0,16), o oposto do esperado, nos dois períodos: a produção registrada acompanha o preço | Não coletada; a Federação segue nos eventos (ADR 0130) |
+| Estrutura a termo | Testada no E3: sem poder de previsão | — |
+| Basis B3 × NY | Calculado como informação, na tela (E1) | — |
+| Volatilidade (ATR) | Já existe nas carteiras; serve à faixa e à posição, não à direção | — |
+
+- **O caso atual:** a alta de outubro aparece agora no prompt, na régua da volatilidade. Em 19/10, z de 5 pregões +1,57 e de 20
+  +1,26: acima do normal, não extrema. Pela evidência, isso não indica continuação.
+
+**Implementado (2026-10-21), por decisão do usuário (ADR 0139).**
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| Momentum | O bloco 2.1 do prompt do café traz o KC de Nova York, a volatilidade de 60 pregões e o retorno e o z de 5, 20 e 60 pregões, com o tamanho em palavras e a validação. É informação: não é fator, não vota e não entra nos fatores a favor ou contra | O prompt do café (v14, bloco 2.1 e item 13) |
+| Colômbia | Reconhecimento e teste da produção da Federação de Cafeteiros; não coletada | `docs/reconhecimento-fontes/cafe-fnc-producao.md` |
+
+**O que precisamos do Comitê:**
+
+- o momentum: ficar como informação ou ganhar uma regra. Se ganhar, o histórico do café aponta para a reversão nos
+  extremos, não para seguir a tendência que o documento propõe;
+- se o basis B3 × Nova York vira fator (hoje, informação na tela).
 
 </details>
 
@@ -1337,6 +1362,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Momentum do café como informação e fatores ausentes testados (E10 da análise do café) | O prompt do café traz o momentum do KC (o retorno de 5, 20 e 60 pregões ÷ a volatilidade), sem voto. Teste de 2000 a 2026: seguir a tendência acertou de 45% a 50%, e os extremos foram seguidos de reversão. A sazonalidade (44% de acerto) e a produção colombiana da Federação de Cafeteiros (sinal oposto ao esperado) foram testadas e não adotadas | §0, E10; ADR 0139 |
 | Regra do F5 proposta para a sanção do Comitê (E9 da análise do café) | O F5 (v3) mede a margem com o KC em reais desde 2004, e a regra por faixa de margem fica calculada na tela como proposta: alta com o preço abaixo do custo (4 semanas) ou até 15% acima; baixa moderada com a margem acima de 200%. No histórico, no LONGO, a alta subiu em 59% das semanas e a baixa em 38% (base 50%). Não está em vigor no prompt: o F5 segue como informação até a sanção | §0, E9; ADR 0138 |
 | Custo do café com a data estimada e como informação (E9 da análise do café) | O custo da Conab conta como conhecido 12 meses depois do mês dos preços (data estimada), e o F5 (v2) deixa de ficar neutro por falta de histórico; vai à IA como informação, piso de longo prazo, só no LONGO. Teste de 2004 a 2026: margem fina antes de alta (+34% em 250 pregões, 78%) e muito alta antes de queda (28%), com poucos episódios; o percentil da margem se inverte entre os períodos | §0, E9; ADR 0137 |
 | Câmbio do café como informação, com o peso Baixo (E8 da análise do café) | O F4 vai à IA sem pressão própria (ia como "alta forte"), com o peso Baixo (Médio no FEL 1) e, no F4 v2, o café de Nova York em reais e o percentil em 5 anos como contexto. Teste com o KC diário de 2008 a 2026: a pressão não separou o preço (alta 50%, baixa 48%, todas 50%), e os períodos se contradizem; o percentil do café em reais também não sustentou uma regra | §0, E8; ADR 0136 |

@@ -409,11 +409,15 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
       return { registros: [{ reference_date: "2026-10-02", value: "5.2000" }], total: 1 };
     }
   };
+  // O momentum do KC (ADR 0139): informação no bloco 2.1, com a data da análise.
+  d.calcularMomentumKc = async ({ data }) => ({ momentum: { data: "2026-10-02", janelas: [] }, texto: `MOMENTUM até ${data}` });
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@13");
-  assert.equal(p.versaoConfiguracao, 5);
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@14");
+  assert.equal(p.versaoConfiguracao, 6);
+  assert.match(p.prompt, /Momentum do preço \(KC de Nova York\) — INFORMAÇÃO, sem voto; não é fator:\nMOMENTUM até 2026-10-03\n/);
+  assert.deepEqual(p.entrada.momentum, { data: "2026-10-02", janelas: [] });
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Último preço: US\$ 351,90 em 02\/10\/2026/);

@@ -6,6 +6,7 @@ const { configuracaoDoAtivo } = require("../shared/analise-diaria");
 const { REFERENCIA_HORIZONTES, dataAlvoDoHorizonte } = require("../shared/analise-diaria-base");
 const metodologiaAtivoService = require("./metodologia-ativo.service");
 const { textoPeso } = require("../shared/metodologia-base");
+const { calcularMomentumKc } = require("../factors/momentum-kc");
 const centroDecisaoService = require("./centro-decisao.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
 
@@ -490,6 +491,8 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
   const curva = futuroDaCurva ? await centro.lerCurva(futuroDaCurva, { data: dataAnalise, agora }, deps) : null;
   const porHorizonte =
     config.CURVA.porHorizonte && serie.futuro ? await lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config, referencia, dataPreco }, centro, deps) : null;
+  // O momentum do preço (o café, ADR 0139): informação no bloco 2.1, sem voto.
+  const momentum = config.MOMENTUM_KC ? await (deps.calcularMomentumKc || calcularMomentumKc)({ data: dataAnalise }, deps) : null;
   // A agregação em código (o café, ADR 0066), sobre os mesmos fatores do prompt.
   const agregacao = config.AGREGACAO ? config.AGREGACAO.calcular(simulacao.fatores, { dataAnalise }) : null;
 
@@ -498,6 +501,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     versao_metodologia: simulacao.versaoMetodologia,
     versao_configuracao: `${config.NOME} v${config.VERSAO}`,
     bloco_preco: blocoPreco(preco, dataAnalise, config, ptax, referencia),
+    ...(momentum ? { bloco_momentum: momentum.texto } : {}),
     ...(config.CURVA.aplica ? { bloco_curva: blocoCurva(curva, config) } : {}),
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise),
     bloco_faixas: blocoFaixas(config, porHorizonte, { referencia, dataAnalise, dataPreco }),
@@ -518,7 +522,10 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
       hashEntrada,
       instrucaoDoSistema: carregado.instrucaoDoSistema,
       prompt: carregado.prompt,
-      entrada: entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao, curva, porHorizonte, referencia })
+      entrada: {
+        ...entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao, curva, porHorizonte, referencia }),
+        ...(momentum ? { momentum: momentum.momentum } : {})
+      }
     }
   };
 }

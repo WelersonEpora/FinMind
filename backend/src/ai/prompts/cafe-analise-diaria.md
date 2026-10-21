@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 13
+**Versão:** 14
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -59,6 +59,9 @@ v13 (2026-10-21, ADR 0137) - análise do café de 2026-10-19, item E9: o custo (
 INFORMAÇÃO, um piso de longo prazo, sem voto em nenhum horizonte; o custo de cada ano conta como conhecido 12 meses
 depois do mês dos preços da Conab (data estimada), e o fator deixa de ficar neutro por falta de histórico. O item 1
 diz como ler.
+v14 (2026-10-21, ADR 0139) - análise do café de 2026-10-19, item E10: o momentum do preço (o retorno de 5, 20 e 60
+pregões do KC de Nova York, dividido pela volatilidade) vai ao bloco 2.1 como INFORMAÇÃO, com a validação: seguir a
+tendência não funcionou no café, e os extremos de 20 pregões foram seguidos de reversão. O item 13 diz como ler.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -160,7 +163,10 @@ Para cada horizonte, separadamente:
     própria: explique as forças e reduza a confiança. Fatores economicamente ligados podem parecer se confirmar sem
     serem evidências independentes: diga quando for o caso, sem criar regra de desconto.
 13. Preço. Use o histórico (2.1) para dizer quanto do movimento já aconteceu. Um fator que acompanha o preço pode já
-    estar refletido nele. O preço é de um contrato futuro: as variações são só desse contrato, e uma variação SEM DADO
+    estar refletido nele. O momentum (2.1) diz o tamanho do movimento na régua da volatilidade: use-o para dizer se
+    a alta ou a queda recente é comum ou extrema, não como sinal de continuação (no café, seguir a tendência não
+    funcionou, e os extremos de 20 pregões foram seguidos de reversão; veja a validação no bloco). Não o liste em
+    fatoresAFavor nem em fatoresContra. O preço é de um contrato futuro: as variações são só desse contrato, e uma variação SEM DADO
     é falta de histórico do contrato, não estabilidade do preço. O preço em reais é só referência: a tendência e a
     faixa são sobre o preço em dólares. Os horizontes contam do último preço da BASE, não da data da análise: o
     IMEDIATO é o próximo pregão depois dele, e os outros terminam o número de dias depois dele (a data-alvo de cada um
@@ -238,6 +244,9 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 
 2.1 PREÇO DO CAFÉ ARÁBICA (ICF) — onde o mercado está e o que já aconteceu
 {{bloco_preco}}
+
+Momentum do preço (KC de Nova York) — INFORMAÇÃO, sem voto; não é fator:
+{{bloco_momentum}}
 
 2.2 CURVA FUTURA DO ICF — os vencimentos negociados no último pregão
 {{bloco_curva}}
