@@ -6,65 +6,63 @@ const { lerPtax: lerPtaxBase } = require("./base/ptax");
 const faixa = require("./base/decisao-por-faixa");
 const { sextaDaSemana } = require("./base/semana-de-dias");
 const { arredondar, percentil } = require("./modelos/posicao-historica");
+const { LIBRAS_POR_SACA_CENTAVOS } = require("./basis-icf-kc");
 
 // FATOR (PROPOSTA, ADR 0060): custos de produção e margem, fator "Custo de produção e preço mínimo" do FEL 1 para o
 // café, como o F5 do Motor do Café v1 (2026-10-04). Camadas A e B calculadas, C simulada.
 //
 // OBSERVÁVEL → FATOR:
 //   observáveis:
-//     B3.ICF.<VENCIMENTO>.SETTLE (observation) - o ajuste do futuro de café arábica da B3, US$/saca (ADR 0028)
+//     YAHOO.KC_CONTINUO.SETTLE (observation) - o café arábica de Nova York, 1º vencimento contínuo, US¢/lb (Yahoo, fonte
+//       não oficial e provisória, ADR 0129)
 //     USD_BRL venda (market_quote) - a PTAX de venda, para levar o preço a reais
 //     CONAB.CAFE_CUSTO.ARABICA.<MUNICIPIO>.OPERACIONAL_SACA / TOTAL_SACA (observation) - o custo operacional e o total
 //       por saca do arábica, por município de referência da Conab, R$/saca, por ano (ADR 0043)
 //   fator (calculado sob demanda, NUNCA gravado), um ponto por semana (o último pregão dela):
-//     A. o ICF no vencimento mais próximo negociado (sem emendar contratos), em US$/saca e em R$/saca (pela PTAX do
-//        dia); a MEDIANA do custo operacional e do total entre os municípios de arábica, no ano mais novo que a Conab
-//        tinha publicado (as "praças produtoras padrão" do estudo)
+//     A. o KC em US$/saca e em R$/saca (pela PTAX do dia); a MEDIANA do custo operacional e do total entre os municípios
+//        de arábica, no ano mais novo que a Conab tinha publicado (as "praças produtoras padrão" do estudo)
 //     B. a margem do preço sobre o custo operacional e sobre o total, em %; o percentil da margem total nas 260
-//        semanas anteriores (mínimo de 104)
-//     C. as regras candidatas do estudo: preço abaixo do custo operacional "por período prolongado" pesa para ALTA
-//        (margem comprimida, menos adubação e safras menores depois); margem em nível historicamente alto, para BAIXA.
-//        Calibração do FinMind: o "prolongado" = {semanasSeguidas} semanas seguidas com a margem no limiar ou abaixo
-//        (moderada sobre o custo total, forte sobre o operacional); o "historicamente alto" = margem total no percentil
-//        {percentilBaixa} ou acima do próprio histórico
+//        semanas anteriores (mínimo de 104), como contexto
+//     C. a regra por faixa de margem (v3, PROPOSTA do FinMind para a sanção do Comitê, ADR 0138), calibrada no
+//        histórico de 2004 a 2026 para o horizonte LONGO:
+//          margem operacional no limiar ({limiarMargemPct}%) ou abaixo por {semanasSeguidas} semanas -> alta forte
+//          margem total no limiar ou abaixo por {semanasSeguidas} semanas                         -> alta moderada
+//          margem total de até {margemPertoPct}% (o preço perto do custo)                          -> alta fraca
+//          margem total acima de {margemAltaPct}%                                                 -> baixa moderada
+//        As duas primeiras são as regras candidatas do estudo, como na v1; as duas últimas trocam a margem no percentil
+//        80 do próprio histórico (v1), cujo resultado se inverteu entre antes e depois de 2016. Uma faixa de baixa fraca
+//        (de 150% a 200%) foi testada e descartada: depois dela, o KC subiu em 59% das semanas em 62 pregões.
 //
-// A Conab não informa a publicação do custo. Na v1, ele só era conhecido desde a 1ª coleta (2026-10-01), e o fator ficava
-// neutro por construção. Na v2 (ADR 0137, análise do café de 2026-10-19, item E9), o custo de cada município e ano conta
-// como conhecido 12 meses depois do mês dos preços da planilha (`mesReferenciaPrecos`; sem ele, dezembro do ano), ou na
-// coleta, se for antes: uma data ESTIMADA por regra, conservadora (o de 2025, preços de out/2025, foi coletado em
-// out/2026). O fator vai ao prompt como INFORMAÇÃO, só no LONGO (metodologia-cafe.js). O estudo diz: o cafeicultor não
-// deixa de colher com o preço baixo (cultura perene); o efeito é lento (1 a 3 safras), horizonte acima de 90 dias, e o
-// custo de insumos importados não pode repetir o câmbio do F4. Propriedades: determinístico, versionado, point-in-time,
-// sem IA.
+// O preço é o KC de Nova York, não o ICF (v1 e v2): o ICF da base só começa em 2022, e a regra foi calibrada com o KC
+// desde 2004 (o ICF dá uma margem cerca de 20 p.p. menor). A Conab não informa a publicação do custo: cada município e
+// ano conta como conhecido 12 meses depois do mês dos preços da planilha (`mesReferenciaPrecos`; sem ele, dezembro do
+// ano), ou na coleta, se for antes, uma data ESTIMADA por regra (ADR 0137). O fator vai ao prompt como INFORMAÇÃO, só no
+// LONGO (metodologia-cafe.js), até o Comitê sancionar a regra. O estudo diz: o cafeicultor não deixa de colher com o
+// preço baixo (cultura perene); o efeito é lento (1 a 3 safras), horizonte acima de 90 dias, e o custo de insumos
+// importados não pode repetir o câmbio do F4. Propriedades: determinístico, versionado, point-in-time, sem IA.
 
-const FACTOR_ID = "custos_cafe_conab_icf";
-const FACTOR_VERSION = 2;
+const FACTOR_ID = "custos_cafe_conab_kc";
+const FACTOR_VERSION = 3;
 
-const PREFIXO_ICF = "B3.ICF";
+const SERIE_KC = "YAHOO.KC_CONTINUO.SETTLE";
 const PREFIXO_CUSTO = "CONAB.CAFE_CUSTO.ARABICA";
 const SEMANAS_JANELA = 260;
 const SEMANAS_MINIMAS = 104;
-const INICIO_PTAX = "2021-01-01";
+// O 1º custo da Conab é de 2003; o KC e a PTAX desde então.
+const INICIO = "2003-01-01";
 // O custo conta como conhecido este número de meses depois do mês dos preços da Conab (ADR 0137).
 const MESES_ATE_PUBLICAR = 12;
 
 const PARAMETROS_PADRAO = Object.freeze({
   limiarMargemPct: 0,
   semanasSeguidas: 4,
-  percentilBaixa: 80,
+  margemPertoPct: 15,
+  margemAltaPct: 200,
   semanasTendencia: 4,
   limiarTendenciaPp: 10
 });
 
 const ROTULOS_TENDENCIA = { SUBINDO: "Margem melhorando", CAINDO: "Margem piorando", ESTAVEL: "Estável" };
-const LETRAS = "FGHJKMNQUVXZ";
-
-// "ICFZ26" -> "2026-12": a ordem dos vencimentos.
-function vencimento(codigo) {
-  const letra = codigo.at(-3);
-  const mes = LETRAS.indexOf(letra) + 1;
-  return `20${codigo.slice(-2)}-${String(mes).padStart(2, "0")}`;
-}
 
 function mediana(valores) {
   const v = [...valores].sort((a, b) => a - b);
@@ -100,9 +98,9 @@ function custoAte(linhasCusto, campo, ate) {
   };
 }
 
-// Camada C (função pura). `historico`: as margens totais das semanas anteriores (para o percentil); `seguidas`: quantas
-// semanas seguidas, até esta, a margem operacional e a total ficaram no limiar ou abaixo.
-function decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, historico, margemAnterior }, parametros = PARAMETROS_PADRAO) {
+// Camada C (função pura), a regra por faixa de margem (v3, ADR 0138). `seguidas`: quantas semanas seguidas, até esta, a
+// margem operacional e a total ficaram no limiar ou abaixo.
+function decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, margemAnterior }, parametros = PARAMETROS_PADRAO) {
   if (margemTotalPct === null || margemTotalPct === undefined) return null;
   let tendencia = null;
   let mudancaPp = null;
@@ -111,46 +109,43 @@ function decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, his
     if (Math.abs(mudancaPp) < parametros.limiarTendenciaPp) tendencia = faixa.TENDENCIA.ESTAVEL;
     else tendencia = mudancaPp < 0 ? faixa.TENDENCIA.CAINDO : faixa.TENDENCIA.SUBINDO;
   }
-  if (seguidasOperacional >= parametros.semanasSeguidas) return { direcao: faixa.DIRECAO.ALTA, intensidade: faixa.INTENSIDADE.FORTE, tendencia, mudancaPp };
-  if (seguidasTotal >= parametros.semanasSeguidas) return { direcao: faixa.DIRECAO.ALTA, intensidade: faixa.INTENSIDADE.MODERADA, tendencia, mudancaPp };
-  if (historico.length >= SEMANAS_MINIMAS && percentil(margemTotalPct, historico) >= parametros.percentilBaixa) {
-    return { direcao: faixa.DIRECAO.BAIXA, intensidade: faixa.INTENSIDADE.MODERADA, tendencia, mudancaPp };
-  }
-  return { direcao: faixa.DIRECAO.NEUTRA, intensidade: faixa.INTENSIDADE.FRACA, tendencia, mudancaPp };
+  const leitura = (direcao, intensidade) => ({ direcao, intensidade, tendencia, mudancaPp });
+  const { ALTA, BAIXA, NEUTRA } = faixa.DIRECAO;
+  const { FORTE, MODERADA, FRACA } = faixa.INTENSIDADE;
+  if (seguidasOperacional >= parametros.semanasSeguidas) return leitura(ALTA, FORTE);
+  if (seguidasTotal >= parametros.semanasSeguidas) return leitura(ALTA, MODERADA);
+  if (margemTotalPct <= parametros.margemPertoPct) return leitura(ALTA, FRACA);
+  if (margemTotalPct > parametros.margemAltaPct) return leitura(BAIXA, MODERADA);
+  return leitura(NEUTRA, FRACA);
 }
 
-// Função PURA: os ajustes do ICF (obterAsOf), o custo (obterAsOf) e a PTAX ({ data, valor }) -> um ponto por semana.
-function derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros = PARAMETROS_PADRAO } = {}) {
+// Função PURA: o KC contínuo (obterAsOf), o custo (obterAsOf, com os metadados) e a PTAX ({ data, valor }) -> um ponto
+// por semana (o último pregão do KC nela).
+function derivarCustosCafe({ linhasKc, linhasCusto, ptax }, { parametros = PARAMETROS_PADRAO } = {}) {
   const custos = linhasCusto.map((l) => ({ ...l, observedAt: String(l.observedAt).slice(0, 10), ...disponibilidadeDoCusto(l) }));
-  const ptaxPorDia = new Map(ptax.map((p) => [p.data, p.valor]));
-  const diasPtax = ptax.map((p) => p.data).sort();
-  const ptaxAte = (dia) => {
-    if (ptaxPorDia.has(dia)) return ptaxPorDia.get(dia);
-    const anterior = diasPtax.filter((d) => d <= dia).at(-1);
-    return anterior ? ptaxPorDia.get(anterior) : null;
-  };
+  const ptaxOrdenada = [...ptax].sort((a, b) => (a.data < b.data ? -1 : 1));
 
-  // O vencimento mais próximo negociado em cada dia.
-  const porDia = new Map();
-  for (const l of linhasIcf) {
-    const codigo = l.seriesCode.split(".")[2];
-    const atual = porDia.get(l.observedAt);
-    if (!atual || vencimento(codigo) < vencimento(atual.codigo)) porDia.set(l.observedAt, { codigo, valor: l.value, publishedAt: l.publishedAt, estimado: l.publishedAtIsEstimated });
-  }
   const porSemana = new Map();
-  for (const dia of [...porDia.keys()].sort()) porSemana.set(sextaDaSemana(dia), { dia, ...porDia.get(dia) });
+  for (const l of [...linhasKc].sort((a, b) => (a.observedAt < b.observedAt ? -1 : 1))) {
+    const dia = String(l.observedAt).slice(0, 10);
+    porSemana.set(sextaDaSemana(dia), { dia, valor: l.value, publishedAt: l.publishedAt, estimado: l.publishedAtIsEstimated });
+  }
 
   const margens = [];
   const pontos = [];
   let seguidasTotal = 0;
   let seguidasOperacional = 0;
+  let p = -1;
   for (const sexta of [...porSemana.keys()].sort()) {
     const s = porSemana.get(sexta);
+    // A PTAX do dia, ou a do último dia útil antes dele.
+    while (p + 1 < ptaxOrdenada.length && ptaxOrdenada[p + 1].data <= s.dia) p += 1;
+    const dolar = p >= 0 ? ptaxOrdenada[p].valor : null;
     const disponivelEm = new Date(s.publishedAt).toISOString();
-    const dolar = ptaxAte(s.dia);
     const operacional = custoAte(custos, "OPERACIONAL_SACA", disponivelEm);
     const total = custoAte(custos, "TOTAL_SACA", disponivelEm);
-    const precoBrl = dolar ? s.valor * dolar : null;
+    const precoUsd = s.valor * LIBRAS_POR_SACA_CENTAVOS;
+    const precoBrl = dolar ? precoUsd * dolar : null;
     const margemOperacionalPct = precoBrl && operacional?.valor ? arredondar((precoBrl / operacional.valor - 1) * 100, 2) : null;
     const margemTotalPct = precoBrl && total?.valor ? arredondar((precoBrl / total.valor - 1) * 100, 2) : null;
     seguidasTotal = margemTotalPct !== null && margemTotalPct <= parametros.limiarMargemPct ? seguidasTotal + 1 : 0;
@@ -163,8 +158,8 @@ function derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros = PARA
       factorVersion: FACTOR_VERSION,
       observedAt: sexta,
       ultimoPregao: s.dia,
-      vencimento: s.codigo,
-      precoUsd: s.valor,
+      kc: s.valor,
+      precoUsd: arredondar(precoUsd, 2),
       dolar,
       precoBrl: precoBrl === null ? null : arredondar(precoBrl, 2),
       anoCusto: total?.ano ?? null,
@@ -176,7 +171,7 @@ function derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros = PARA
       margemOperacionalPct,
       margemTotalPct,
       percentilMargem: historico.length >= SEMANAS_MINIMAS && margemTotalPct !== null ? arredondar(percentil(margemTotalPct, historico), 1) : null,
-      decisao: decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, historico, margemAnterior }, parametros),
+      decisao: decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, margemAnterior }, parametros),
       disponivelEm,
       disponivelEmEhEstimado: Boolean(s.estimado) || Boolean(total?.estimado)
     });
@@ -184,72 +179,77 @@ function derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros = PARA
   return pontos;
 }
 
-function lerPtax(asOf, deps = {}) {
-  return lerPtaxBase({ desde: INICIO_PTAX, asOf }, deps);
-}
-
 async function calcularCustosCafe({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
   const repo = deps.observationRepository || observationRepository;
-  const [contratos, municipios] = await Promise.all([
-    repo.listarItens({ prefixoSerie: PREFIXO_ICF, campoReferencia: "SETTLE" }),
-    repo.listarItens({ prefixoSerie: PREFIXO_CUSTO, campoReferencia: "TOTAL_SACA" })
-  ]);
-  if (contratos.length === 0) return [];
+  const municipios = await repo.listarItens({ prefixoSerie: PREFIXO_CUSTO, campoReferencia: "TOTAL_SACA" });
   const seriesCusto = municipios.flatMap((m) => [`${PREFIXO_CUSTO}.${m.codigo}.OPERACIONAL_SACA`, `${PREFIXO_CUSTO}.${m.codigo}.TOTAL_SACA`]);
-  const [linhasIcf, linhasCusto, ptax] = await Promise.all([
-    servico.obterAsOf({ seriesCodes: contratos.map((c) => `${PREFIXO_ICF}.${c.codigo}.SETTLE`), asOf }, deps),
+  const [linhasKc, linhasCusto, ptax] = await Promise.all([
+    servico.obterAsOf({ seriesCodes: [SERIE_KC], asOf, observadoDesde: INICIO }, deps),
     // Com os metadados: o mês dos preços dá a data estimada do custo (ADR 0137).
     seriesCusto.length ? servico.obterAsOf({ seriesCodes: seriesCusto, asOf, comMetadata: true }, deps) : [],
-    lerPtax(asOf, deps)
+    lerPtaxBase({ desde: INICIO, asOf }, deps)
   ]);
-  return derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros });
+  if (linhasKc.length === 0) return [];
+  return derivarCustosCafe({ linhasKc, linhasCusto, ptax }, { parametros });
 }
 
 function explicarCustos(ponto, parametros = PARAMETROS_PADRAO) {
   const d = ponto?.decisao;
   if (!d) return [];
   const passos = [
-    `O ICF (${ponto.vencimento}) fechou a semana em US$ ${faixa.fmt(ponto.precoUsd)}/saca; pela PTAX de R$ ${faixa.fmt(ponto.dolar, 4)}, ` +
-      `R$ ${faixa.fmt(ponto.precoBrl)}/saca (A).`,
+    `O café de Nova York (KC) fechou a semana em ${faixa.fmt(ponto.kc)} US¢/lb, US$ ${faixa.fmt(ponto.precoUsd)}/saca; pela PTAX de ` +
+      `R$ ${faixa.fmt(ponto.dolar, 4)}, R$ ${faixa.fmt(ponto.precoBrl)}/saca (A).`,
+    `O custo de ${ponto.anoCusto} conta como conhecido desde ${ponto.custoConhecidoDesde.split("-").reverse().join("/")}` +
+      `${ponto.custoEstimado ? " (data estimada: 12 meses depois do mês dos preços da Conab, ADR 0137)" : ""}.`,
     `O custo do arábica na Conab (${ponto.anoCusto}, mediana de ${ponto.municipiosCusto} municípios): operacional de ` +
       `R$ ${faixa.fmt(ponto.custoOperacionalSaca)} e total de R$ ${faixa.fmt(ponto.custoTotalSaca)} por saca. Margem de ` +
       `${faixa.comSinal(ponto.margemOperacionalPct)}% sobre o operacional e ${faixa.comSinal(ponto.margemTotalPct)}% sobre o total (B).`
   ];
-  if (ponto.custoConhecidoDesde) {
-    passos.splice(
-      1,
-      0,
-      `O custo de ${ponto.anoCusto} conta como conhecido desde ${ponto.custoConhecidoDesde.split("-").reverse().join("/")}` +
-        `${ponto.custoEstimado ? " (data estimada: 12 meses depois do mês dos preços da Conab, ADR 0137)" : ""}.`
-    );
-  }
   const limiar = `${faixa.fmt(parametros.limiarMargemPct, 1)}%`;
-  if (d.direcao === faixa.DIRECAO.ALTA) {
+  const total = `${faixa.comSinal(ponto.margemTotalPct)}%`;
+  if (d.direcao === faixa.DIRECAO.ALTA && d.intensidade !== faixa.INTENSIDADE.FRACA) {
     const custo = d.intensidade === faixa.INTENSIDADE.FORTE ? "operacional" : "total";
     passos.push(`Direção: a margem sobre o custo ${custo} está em ${limiar} ou abaixo há ${parametros.semanasSeguidas} semanas ou mais: margem comprimida, menos trato da lavoura e safras menores depois → Pressão de alta.`);
+  } else if (d.direcao === faixa.DIRECAO.ALTA) {
+    passos.push(`Direção: a margem total (${total}) está em ${faixa.fmt(parametros.margemPertoPct, 0)}% ou menos: o preço está perto do custo, um piso para os meses seguintes → Pressão de alta, fraca.`);
   } else if (d.direcao === faixa.DIRECAO.BAIXA) {
-    passos.push(`Direção: a margem total está no percentil ${faixa.fmt(ponto.percentilMargem, 1)} do histórico, no ${parametros.percentilBaixa} ou acima: margem alta estimula trato e produtividade nas safras seguintes → Pressão de baixa.`);
+    passos.push(
+      `Direção: a margem total (${total}) está acima de ${faixa.fmt(parametros.margemAltaPct, 0)}%: margem muito alta estimula ` +
+        "trato e produtividade nas safras seguintes → Pressão de baixa, moderada."
+    );
   } else {
-    const baixa = ponto.percentilMargem === null ? "sem 2 anos de margem, a regra de baixa ainda não decide" : `percentil ${faixa.fmt(ponto.percentilMargem, 1)}, abaixo do ${parametros.percentilBaixa}`;
-    passos.push(`Direção: a margem não está no limiar de ${limiar} por ${parametros.semanasSeguidas} semanas seguidas, e ${baixa} → Neutra.`);
+    passos.push(`Direção: a margem total (${total}) está entre ${faixa.fmt(parametros.margemPertoPct, 0)}% e ${faixa.fmt(parametros.margemAltaPct, 0)}%, sem o preço abaixo do custo por ${parametros.semanasSeguidas} semanas → Neutra.`);
   }
   if (d.tendencia === null) passos.push(`Tendência: sem a margem de ${parametros.semanasTendencia} semanas antes, não calculada.`);
   else passos.push(`Tendência: a margem total mudou ${faixa.comSinal(d.mudancaPp)} p.p. em ${parametros.semanasTendencia} semanas → ${ROTULOS_TENDENCIA[d.tendencia]}.`);
   return passos;
 }
 
-const CENARIOS = [
-  { rotulo: "Preço abaixo do custo operacional há 4 semanas", entrada: { margemTotalPct: -20, seguidasTotal: 4, seguidasOperacional: 4, historico: [] } },
-  { rotulo: "Preço abaixo do custo total há 4 semanas, acima do operacional", entrada: { margemTotalPct: -5, seguidasTotal: 4, seguidasOperacional: 0, historico: [] } },
-  { rotulo: "Preço abaixo do custo há só 2 semanas", entrada: { margemTotalPct: -5, seguidasTotal: 2, seguidasOperacional: 2, historico: [] } },
-  { rotulo: "Margem confortável, sem 2 anos de histórico", entrada: { margemTotalPct: 120, seguidasTotal: 0, seguidasOperacional: 0, historico: [] } }
+// Os episódios do teste do ADR 0138 (uma semana de cada).
+const EPISODIOS = [
+  { data: "2013-11-15", rotulo: "Crise de margem de 2013: o preço abaixo do custo" },
+  { data: "2019-05-17", rotulo: "Margem fina de 2019" },
+  { data: "2022-02-11", rotulo: "Margem muito alta de 2021-22" },
+  { data: "2025-02-14", rotulo: "Margem muito alta de 2024-25" }
 ];
 
-function exemplosCustos(_pontosTodos, parametros = PARAMETROS_PADRAO) {
-  // Sem episódios: o ICF da base começa em 2022; a única crise de margem (2013) fica antes dele.
+const CENARIOS = [
+  { rotulo: "Preço abaixo do custo operacional há 4 semanas", entrada: { margemTotalPct: -20, seguidasTotal: 4, seguidasOperacional: 4 } },
+  { rotulo: "Preço abaixo do custo total há 4 semanas, acima do operacional", entrada: { margemTotalPct: -5, seguidasTotal: 4, seguidasOperacional: 0 } },
+  { rotulo: "Preço 10% acima do custo total", entrada: { margemTotalPct: 10, seguidasTotal: 0, seguidasOperacional: 0 } },
+  { rotulo: "Margem confortável (80%)", entrada: { margemTotalPct: 80, seguidasTotal: 0, seguidasOperacional: 0 } },
+  { rotulo: "Margem de 170% (alta, mas abaixo do limiar)", entrada: { margemTotalPct: 170, seguidasTotal: 0, seguidasOperacional: 0 } },
+  { rotulo: "Margem de 230%", entrada: { margemTotalPct: 230, seguidasTotal: 0, seguidasOperacional: 0 } }
+];
+
+function exemplosCustos(pontosTodos, parametros = PARAMETROS_PADRAO) {
+  const porData = new Map(pontosTodos.map((ponto) => [ponto.observedAt, ponto]));
   return {
-    episodios: [],
+    episodios: EPISODIOS.map(({ data, rotulo }) => {
+      const ponto = porData.get(data);
+      return { data, rotulo, valor: ponto?.margemTotalPct ?? null, decisao: ponto?.decisao ?? null };
+    }),
     cenarios: CENARIOS.map(({ rotulo, entrada }) => ({ rotulo, valor: entrada.margemTotalPct, valorAnterior: null, decisao: decidirCustos(entrada, parametros) }))
   };
 }
@@ -257,46 +257,51 @@ function exemplosCustos(_pontosTodos, parametros = PARAMETROS_PADRAO) {
 const APRESENTACAO = {
   unidade: "%",
   quadros: [
-    { camada: "A", rotulo: "ICF, vencimento mais próximo", campo: "precoUsd", casas: 2, sufixo: "US$/saca" },
-    { camada: "A", rotulo: "ICF em reais (pela PTAX)", campo: "precoBrl", casas: 2, sufixo: "R$/saca" },
+    { camada: "A", rotulo: "Café de Nova York (KC), 1º vencimento", campo: "kc", casas: 2, sufixo: "US¢/lb" },
+    { camada: "A", rotulo: "KC em reais (pela PTAX)", campo: "precoBrl", casas: 2, sufixo: "R$/saca" },
     { camada: "A", rotulo: "Custo operacional do arábica (Conab, mediana)", campo: "custoOperacionalSaca", casas: 2, sufixo: "R$/saca" },
     { camada: "A", rotulo: "Custo total do arábica (Conab, mediana)", campo: "custoTotalSaca", casas: 2, secundario: { prefixo: "R$/saca, ano", campo: "anoCusto", agrupar: false } },
     { camada: "B", rotulo: "Margem sobre o custo operacional", campo: "margemOperacionalPct", casas: 2, sinal: true, unidadeValor: "%" },
     { camada: "B", rotulo: "Margem sobre o custo total", campo: "margemTotalPct", casas: 2, sinal: true, unidadeValor: "%" },
-    { camada: "B", rotulo: "Percentil da margem total (5 anos)", campo: "percentilMargem", casas: 1 }
+    { camada: "B", rotulo: "Percentil da margem total (5 anos, contexto)", campo: "percentilMargem", casas: 1 }
   ],
   graficoAB: {
-    titulo: "ICF em reais (A) × o custo operacional e o total do arábica (A), em R$/saca",
+    titulo: "KC em reais (A) × o custo operacional e o total do arábica (A), em R$/saca",
     unidade: "R$/saca",
     casas: 2,
     exigeCampo: "custoTotalSaca",
     series: [
-      { campo: "precoBrl", rotulo: "ICF em reais (A)" },
+      { campo: "precoBrl", rotulo: "KC em reais (A)" },
       { campo: "custoTotalSaca", rotulo: "Custo total (A)" },
       { campo: "custoOperacionalSaca", rotulo: "Custo operacional (A)" }
     ]
   },
   graficoC: {
-    titulo: "Margem sobre o custo total (B) e o limiar da regra (C)",
+    titulo: "Margem sobre o custo total (B) e as faixas da regra (C)",
     campo: "margemTotalPct",
     rotulo: "Margem (B)",
-    limiares: [{ chave: "limiarMargemPct", sinal: 1, rotulo: "Limiar da margem (alta abaixo dele)" }]
+    limiares: [
+      { chave: "margemAltaPct", sinal: 1, rotulo: "Baixa moderada acima dele" },
+      { chave: "margemPertoPct", sinal: 1, rotulo: "Alta fraca abaixo dele" },
+      { chave: "limiarMargemPct", sinal: 1, rotulo: "Limiar da margem (alta moderada ou forte abaixo dele, por semanas seguidas)" }
+    ]
   },
   rotulosDecisao: { ...faixa.ROTULOS, tendencia: ROTULOS_TENDENCIA },
   parametros: [
-    { chave: "limiarMargemPct", rotulo: "Limiar da margem", unidade: "%", explicacao: "Margem igual ou abaixo deste valor conta para a regra de alta (0: o preço no custo)." },
+    { chave: "limiarMargemPct", rotulo: "Limiar da margem", unidade: "%", explicacao: "Margem igual ou abaixo deste valor, por semanas seguidas, pesa para alta: moderada sobre o custo total, forte sobre o operacional (0: o preço no custo)." },
     { chave: "semanasSeguidas", rotulo: "Período prolongado", unidade: "semanas", explicacao: "Quantas semanas seguidas a margem precisa ficar no limiar ou abaixo para pesar para alta (o \"período prolongado\" do estudo)." },
-    { chave: "percentilBaixa", rotulo: "Margem historicamente alta", unidade: "percentil", explicacao: "A margem total neste percentil do histórico, ou acima, pesa para baixa (com 2 anos de histórico ou mais)." },
+    { chave: "margemPertoPct", rotulo: "Preço perto do custo", unidade: "%", explicacao: "Margem total igual ou abaixo deste valor pesa para alta, fraca: o preço perto do piso (proposta, ADR 0138: 15)." },
+    { chave: "margemAltaPct", rotulo: "Margem muito alta", unidade: "%", explicacao: "Margem total acima deste valor pesa para baixa, moderada (proposta, ADR 0138: 200)." },
     { chave: "semanasTendencia", rotulo: "Janela da tendência", unidade: "semanas", explicacao: "Contra quantas semanas atrás a margem é comparada para dizer se está melhorando ou piorando." },
     { chave: "limiarTendenciaPp", rotulo: "Mudança mínima da tendência", unidade: "p.p.", explicacao: "Quanto a margem precisa mudar na janela para não ser considerada estável." }
   ],
   regra:
-    "pressão de alta com a margem do ICF (em reais) sobre o custo do arábica da Conab em {limiarMargemPct}% ou menos por {semanasSeguidas} semanas seguidas (moderada sobre o custo total, forte sobre o operacional); de baixa com a margem total no percentil {percentilBaixa} ou acima do histórico (com 2 anos ou mais); tendência pela margem de {semanasTendencia} semanas antes, mudança mínima de {limiarTendenciaPp} p.p.; fator lento, horizonte acima de 90 dias",
+    "proposta do FinMind, aguardando a sanção do Comitê (ADR 0138): pressão de alta com a margem do KC (em reais) sobre o custo do arábica da Conab em {limiarMargemPct}% ou menos por {semanasSeguidas} semanas seguidas (moderada sobre o custo total, forte sobre o operacional) e, fraca, com a margem total de até {margemPertoPct}%; de baixa, moderada, com a margem total acima de {margemAltaPct}%; tendência pela margem de {semanasTendencia} semanas antes, mudança mínima de {limiarTendenciaPp} p.p.; fator lento, só no horizonte LONGO",
   exemplos: { colunaValor: "Margem" },
   nota:
-    "Semanal (o último pregão da semana), não é tempo real. A Conab não informa a publicação do custo: cada ano conta " +
-    "como conhecido 12 meses depois do mês dos preços da planilha (data estimada, ADR 0137). O ICF da base começa em " +
-    "2022. Fator lento: age nas safras seguintes."
+    "Semanal (o último pregão da semana), não é tempo real. O preço é o KC de Nova York (Yahoo, fonte não oficial) em " +
+    "reais pela PTAX, sem o diferencial do físico. A Conab não informa a publicação do custo: cada ano conta como " +
+    "conhecido 12 meses depois do mês dos preços da planilha (data estimada, ADR 0137). Fator lento: age nas safras seguintes."
 };
 
 const METODOLOGIA = {
@@ -310,4 +315,4 @@ const METODOLOGIA = {
   apresentacao: APRESENTACAO
 };
 
-module.exports = { FACTOR_ID, FACTOR_VERSION, PARAMETROS_PADRAO, METODOLOGIA, vencimento, decidirCustos, derivarCustosCafe };
+module.exports = { FACTOR_ID, FACTOR_VERSION, PARAMETROS_PADRAO, METODOLOGIA, decidirCustos, derivarCustosCafe };

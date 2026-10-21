@@ -6,7 +6,7 @@ const { derivarSafraCafe, decairPelaIdade } = require("./safra-cafe.factor");
 const { derivarDemandaCafe } = require("./demanda-cafe.factor");
 const { medirEstoques, derivarEstoquesCafe, textoNivel } = require("./estoques-cafe-ice.factor");
 const { medirDolar } = require("./dolar-cafe.factor");
-const { vencimento, decidirCustos, derivarCustosCafe } = require("./custos-cafe.factor");
+const { PARAMETROS_PADRAO, decidirCustos, derivarCustosCafe } = require("./custos-cafe.factor");
 const { derivarClimaCafe, anosAntes, faseEnso } = require("./clima-cafe.factor");
 const { somarDias } = require("./base/semana-de-dias");
 const fundos = require("./fundos-cafe.factor");
@@ -232,25 +232,32 @@ test("câmbio v2 (ADR 0136): o KC em reais no último pregão até o fim da sema
 
 // --- F5 custos --------------------------------------------------------------------------------------------------
 
-test("custos: a ordem dos vencimentos do ICF e a regra da margem", () => {
-  assert.equal(vencimento("ICFZ26"), "2026-12");
-  assert.equal(vencimento("ICFH27"), "2027-03");
-  const base = { historico: [], margemAnterior: null };
-  assert.deepEqual(decidirCustos({ ...base, margemTotalPct: -20, seguidasTotal: 4, seguidasOperacional: 4 }).intensidade, "FORTE");
-  assert.deepEqual(decidirCustos({ ...base, margemTotalPct: -5, seguidasTotal: 4, seguidasOperacional: 0 }).intensidade, "MODERADA");
-  assert.equal(decidirCustos({ ...base, margemTotalPct: -5, seguidasTotal: 2, seguidasOperacional: 2 }).direcao, "NEUTRA");
-  // Margem alta: só decide com 2 anos de histórico.
-  assert.equal(decidirCustos({ ...base, margemTotalPct: 120, seguidasTotal: 0, seguidasOperacional: 0 }).direcao, "NEUTRA");
-  const historico = Array.from({ length: 104 }, (_, i) => i);
-  assert.equal(decidirCustos({ historico, margemAnterior: null, margemTotalPct: 200, seguidasTotal: 0, seguidasOperacional: 0 }).direcao, "BAIXA");
-  assert.equal(decidirCustos({ ...base, margemTotalPct: null }), null);
+test("custos v3 (ADR 0138): a regra por faixa de margem", () => {
+  const leitura = (margemTotalPct, seguidasTotal = 0, seguidasOperacional = 0) => {
+    const d = decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, margemAnterior: null });
+    return `${d.direcao} ${d.intensidade}`;
+  };
+  // Abaixo do custo por 4 semanas: forte sobre o operacional, moderada sobre o total.
+  assert.equal(leitura(-20, 4, 4), "ALTA FORTE");
+  assert.equal(leitura(-5, 4, 0), "ALTA MODERADA");
+  // Abaixo do custo há só 2 semanas, ou até 15% acima: o preço perto do custo, alta fraca.
+  assert.equal(leitura(-5, 2, 2), "ALTA FRACA");
+  assert.equal(leitura(15), "ALTA FRACA");
+  assert.equal(leitura(15.01), "NEUTRA FRACA");
+  assert.equal(leitura(200), "NEUTRA FRACA");
+  assert.equal(leitura(200.01), "BAIXA MODERADA");
+  // Os limiares são parâmetros do Comitê.
+  const d = decidirCustos({ margemTotalPct: 120, seguidasTotal: 0, seguidasOperacional: 0, margemAnterior: 100 }, { ...PARAMETROS_PADRAO, margemAltaPct: 100 });
+  assert.equal(d.direcao, "BAIXA");
+  assert.equal(d.tendencia, "SUBINDO");
+  assert.equal(decidirCustos({ margemTotalPct: null }), null);
 });
 
-test("custos: o vencimento mais próximo do dia, em reais, contra a mediana do custo publicado até a semana", () => {
+test("custos: o KC da semana, em reais, contra a mediana do custo publicado até a semana", () => {
   const pontos = derivarCustosCafe({
-    linhasIcf: [
-      v("B3.ICF.ICFZ26.SETTLE", "2026-10-02", "2026-10-02T22:00:00Z", 350, true),
-      v("B3.ICF.ICFH27.SETTLE", "2026-10-02", "2026-10-02T22:00:00Z", 340, true)
+    linhasKc: [
+      v("YAHOO.KC_CONTINUO.SETTLE", "2026-10-01", "2026-10-01T22:00:00Z", 300),
+      v("YAHOO.KC_CONTINUO.SETTLE", "2026-10-02", "2026-10-02T22:00:00Z", 264.6)
     ],
     linhasCusto: [
       v("CONAB.CAFE_CUSTO.ARABICA.A.TOTAL_SACA", "2025-01-01", "2026-10-01T00:00:00Z", 1000),
@@ -261,14 +268,18 @@ test("custos: o vencimento mais próximo do dia, em reais, contra a mediana do c
     ],
     ptax: [{ data: "2026-10-01", valor: 5 }]
   });
+  // Uma semana: o último pregão dela (02/10).
+  assert.equal(pontos.length, 1);
   const [ponto] = pontos;
-  assert.equal(ponto.vencimento, "ICFZ26");
-  // A PTAX do dia anterior, sem a do dia.
-  assert.equal(ponto.precoBrl, 1750);
+  assert.equal(ponto.ultimoPregao, "2026-10-02");
+  // 264,6 US¢/lb x 1,32277 = US$ 350,00/saca; a PTAX do dia anterior (5), sem a do dia.
+  assert.equal(ponto.precoUsd, 350);
+  assert.equal(ponto.precoBrl, 1750.02);
   // Mediana de 2025 (o ano mais novo): 1.100.
   assert.equal(ponto.custoTotalSaca, 1100);
   assert.equal(ponto.anoCusto, 2025);
   assert.equal(ponto.margemTotalPct, 59.09);
+  assert.equal(ponto.decisao.direcao, "NEUTRA");
   // Sem o mês dos preços, dezembro de 2025 + 12 meses fica depois da coleta: vale a coleta.
   assert.equal(ponto.custoConhecidoDesde, "2026-10-01");
   assert.equal(ponto.custoEstimado, false);
@@ -278,9 +289,9 @@ test("custos v2 (ADR 0137): o custo conta como conhecido 12 meses depois do mês
   const comMes = (linha, mes) => ({ ...linha, metadata: { mesReferenciaPrecos: mes } });
   const coleta = "2026-10-01T00:00:00Z";
   const pontos = derivarCustosCafe({
-    linhasIcf: [
-      v("B3.ICF.ICFH23.SETTLE", "2022-11-25", "2022-11-25T22:00:00Z", 300, true),
-      v("B3.ICF.ICFH24.SETTLE", "2023-11-24", "2023-11-24T22:00:00Z", 250, true)
+    linhasKc: [
+      v("YAHOO.KC_CONTINUO.SETTLE", "2022-11-25", "2022-11-25T22:00:00Z", 170),
+      v("YAHOO.KC_CONTINUO.SETTLE", "2023-11-24", "2023-11-24T22:00:00Z", 190)
     ],
     linhasCusto: [
       // 2021, preços de nov/2021: conhecido em 01/11/2022.

@@ -239,7 +239,7 @@ const DEFINICOES = [
   },
   {
     codigo: "CAFE_CUSTO_PRECO_MINIMO",
-    nome: "Custo de produção e margem do arábica (Conab × ICF)",
+    nome: "Custo de produção e margem do arábica (Conab × KC em reais)",
     fel1: {
       tipo: "Fundamentalista",
       direcao: "Alta com custos maiores; suporte de piso no preço mínimo",
@@ -255,37 +255,39 @@ const DEFINICOES = [
     informativo: true,
     papelDecididoPor: "do usuário",
     dados: {
-      observaveis: ["CAFE_CUSTO_ARABICA_CONAB", "ICF_PRECOS", "USD_BRL"],
+      observaveis: ["CAFE_CUSTO_ARABICA_CONAB", "KC_FUTURO_CONTINUO", "USD_BRL"],
       eventos: false,
       avaliacao: {
         suficiente: false,
         texto:
-          "Basta para a margem, não para validar uma regra. A Conab não informa a publicação do custo (14 municípios, desde 2003): desde o ADR 0137, cada ano conta como conhecido 12 meses depois do mês dos preços da planilha (data estimada), e o fator tem margem desde 2022 (o ICF da base) e percentil desde 11/2024. Na semana de 16/10/2026, o ICF em reais (R$ 1.806/saca) está 72% acima do custo total mediano de 2025 (R$ 1.051, 7 municípios) e 97% acima do operacional, no percentil 18 dos 5 anos. Teste do ADR 0137 (o KC de Nova York em reais contra a mediana do custo total, 2004 a 2026): com o preço abaixo do custo, só 2013, +72% em 120 pregões; com a margem de 0% a 25%, +34% em 250 pregões, subiu em 78% (9 anos); de 25% a 150%, perto da média; acima de 150%, −7% em 250 pregões, subiu em 28% (2005, 2021-22 e 2024-26); pelo percentil da margem (a regra de baixa), o resultado se inverte entre antes e depois de 2016. Validação histórica (ADR 0087), de 2011 a 2026, com o preço do grupo Brazilian Naturals da ICO em reais pela PTAX contra a mediana do custo da Conab do ano anterior: o preço ficou abaixo do custo operacional em 2 meses e do total em 6, todos em 2013-14, um episódio só (seguido de alta, que coincidiu com a seca de 2014); abaixo do custo variável, nunca. O fator raramente pesa, e o histórico não basta para validá-lo."
+          "Basta para a margem e para propor uma regra, com poucos episódios. A Conab não informa a publicação do custo (14 municípios, desde 2003): cada ano conta como conhecido 12 meses depois do mês dos preços da planilha (data estimada, ADR 0137). Desde a v3 (ADR 0138), o preço é o KC de Nova York em reais pela PTAX, e o fator tem margem desde 2004. Na semana de 23/10/2026, o KC em reais (R$ 2.092/saca) está 99% acima do custo total mediano de 2025 (R$ 1.051, 7 municípios) e 129% acima do operacional: neutro na regra proposta. Teste da regra proposta (ADR 0138; as semanas de 2004 a 2026 e o KC 62 pregões depois, o LONGO; base: subiu em 50%, mais de +11% em 26%, menos de −11% em 20%): alta (70 semanas, em 2008, 2010, 2012-14 e 2019) subiu em 59%, mais de +11% em 44%, e em 250 pregões subiu em 93%; baixa (106 semanas, em 2021-22 e 2024-26) subiu em 38%, menos de −11% em 35%, e em 250 pregões subiu em 16%. Uma faixa de baixa fraca (margem de 150% a 200%) foi descartada: subiu em 59%. A regra do percentil 80 da margem (v1) se inverte entre antes e depois de 2016. Validação histórica (ADR 0087), de 2011 a 2026, com o preço do grupo Brazilian Naturals da ICO em reais pela PTAX contra a mediana do custo da Conab do ano anterior: o preço ficou abaixo do custo operacional em 2 meses e do total em 6, todos em 2013-14, um episódio só (seguido de alta, que coincidiu com a seca de 2014); abaixo do custo variável, nunca. O efeito é mais forte em 1 ano do que nos 90 dias do LONGO."
       },
       lacunas: [
         "O preço mínimo do MAPA não é coletado (bloqueado por reCAPTCHA).",
         "A relação de troca café/fertilizante não é calculada (o preço do fertilizante não é coletado).",
         "A data de publicação do custo é estimada (12 meses depois do mês dos preços, ADR 0137): conservadora, mas não é a data real.",
+        "O preço é o KC de Nova York em reais (Yahoo, fonte não oficial), sem o diferencial do físico brasileiro; o ICF da base só começa em 2022 e dá uma margem cerca de 20 p.p. menor.",
         "O custo da Conab é anual e por município; o mais novo na base é de 2025, com 7 municípios. A Conab muda a lista de municípios de um ano para outro (10 com custo em 2024, 7 em 2025), o que mexe na mediana."
       ]
     },
     proposta: {
       autoria: AUTORIA,
       objetivo: "Medir se o preço cobre o custo do cafeicultor, um efeito lento sobre as safras seguintes.",
-      medida: "O ICF no vencimento mais próximo, em reais pela PTAX; a mediana do custo operacional e do total por saca do arábica entre os municípios da Conab, no ano mais novo publicado.",
-      comparacao: "A margem do preço sobre o custo operacional e sobre o total, em %; o percentil da margem total nas 260 semanas anteriores.",
+      medida: "O KC de Nova York (1º vencimento contínuo), em reais pela PTAX; a mediana do custo operacional e do total por saca do arábica entre os municípios da Conab, no ano mais novo publicado (data estimada, ADR 0137).",
+      comparacao: "A margem do preço sobre o custo operacional e sobre o total, em %; o percentil da margem total nas 260 semanas anteriores, como contexto.",
       leitura:
-        "Preço abaixo do custo por período prolongado pesa para alta (margem comprimida, menos trato da lavoura, safras menores depois); margem historicamente alta, para baixa (regras candidatas do estudo). Calibração do FinMind: o \"prolongado\" são 4 semanas seguidas com a margem em 0% ou menos (moderada sobre o custo total, forte sobre o operacional); o \"historicamente alto\", a margem total no percentil 80 ou acima (com 2 anos de histórico). Fator lento, horizonte acima de 90 dias. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
+        "REGRA PROPOSTA PELO FINMIND, AGUARDANDO A SANÇÃO DO COMITÊ (ADR 0138), só no horizonte LONGO, por faixa de margem: o preço abaixo do custo operacional por 4 semanas seguidas, alta forte; abaixo do custo total por 4 semanas, alta moderada (as duas como na v1, regras candidatas do estudo); a margem total de até 15% (o preço perto do custo), alta fraca; a margem total acima de 200%, baixa moderada; entre 15% e 200%, neutra. Troca a regra de baixa da v1 (a margem no percentil 80 do próprio histórico), que se inverteu entre os períodos. Até a sanção, o fator vai ao prompt como informação. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "Sinal de Alta: Preço de mercado operando por período prolongado abaixo do Custo Operacional Efetivo nas principais regiões, indicando compressão de margens e desincentivo ao investimento em adubação para os anos subsequentes. [Hipótese v0 — não validada; não usar para ordem].",
         baixa: "Sinal de Baixa: Preços de mercado operando em patamares que representem relação de troca favorável aos produtores em níveis historicamente elevados, estimulando tratos culturais intensivos e incrementos de produtividade futura. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
     perguntas: [
-      "Regra por faixa de margem (análise do café de 2026-10-19, item E9; ao Comitê): no teste do ADR 0137, a margem fina (0% a 25% sobre o custo total) foi seguida de alta em 250 pregões em 78% dos dias, e a muito alta (acima de 150%), de queda (subiu em 28%), em poucos episódios. O Comitê quer uma regra por faixa, com pressão no LONGO, ou o F5 fica só como informação?",
+      "SANÇÃO DA REGRA (análise do café de 2026-10-19, item E9; ao Comitê; ADR 0138): o FinMind propõe, só no LONGO, alta forte com o preço abaixo do custo operacional por 4 semanas, alta moderada abaixo do custo total por 4 semanas, alta fraca com a margem total de até 15% e baixa moderada com a margem total acima de 200%. No histórico (2004 a 2026, 62 pregões depois), a alta subiu em 59% das semanas (base 50%) e a baixa em 38%; em 250 pregões, 93% e 16%. Sancionar como está, ajustar os limiares (15%, 200%, 4 semanas) ou manter o F5 só como informação? Sancionada, o F5 volta a ter pressão no LONGO.",
       "Data estimada do custo (item E9; ao Comitê): 12 meses depois do mês dos preços da Conab, conservadora. Confirmar, ou acompanhar a página da Conab para saber a data real das próximas publicações?"
     ],
     decisoes: [
+      "Preço e regra proposta (usuário, 2026-10-21, ADR 0138): o F5 v3 mede a margem com o KC de Nova York em reais (no lugar do ICF, que só começa em 2022), e a regra por faixa de margem fica calculada na tela como proposta, para a sanção do Comitê; até lá, o fator segue como informação.",
       "Informação e data estimada (usuário, 2026-10-21, ADR 0137; análise do café de 2026-10-19, item E9): o F5 vai ao prompt como INFORMAÇÃO, um piso de longo prazo, sem pressão própria e fora de fatoresAFavor e fatoresContra; a regra continua calculada e na tela. O custo de cada ano conta como conhecido 12 meses depois do mês dos preços da planilha (data estimada), o que dá ao fator histórico desde 2022: antes, ficava neutro por construção.",
       "Só no horizonte LONGO, pela validação da resposta (usuário, 2026-10-21, ADR 0133): a regra do estudo (o par F5 x F2) já ia ao prompt como instrução; agora a resposta da IA que citar o F5 a favor ou contra fora do LONGO é recusada.",
       "Praças produtoras (usuário, 2026-10-06, ADR 0087): fica a mediana dos municípios de arábica da Conab. Só Sul de Minas e Cerrado (Guaxupé, Três Pontas e Patrocínio) dariam R$ 1.113 por saca de custo total em 2025, contra R$ 1.051 da mediana (6%): não muda nenhuma leitura com a margem de hoje.",

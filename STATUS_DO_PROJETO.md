@@ -35,7 +35,7 @@ análise para decidirmos juntos.
 | E6 | Decidir se o El Niño forte (hoje no F1 como contexto, ADR 0134) deve ter pressão de alta; o que fazer com a chuva por janela, que o teste não confirmou; e o peso do VHI. Já implementado: o RONI do NOAA CPC coletado e no F1, sem pressão |
 | E7 | Confirmar os prazos do decaimento (14 e 42 dias) e decidir como medir a surpresa contra o mercado. Já implementado: a revisão da Conab perde força com a idade (ADR 0135) |
 | E8 | Decidir se buscamos uma fonte para o preço físico do arábica (o Cepea) e se o preço em reais ganha uma regra, com o custo (o F5) como referência, juntando o F4 e o F5. Já implementado: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
-| E9 | Decidir se o F5 ganha uma regra por faixa de margem (o teste deu o sentido do estudo, com poucos episódios) e confirmar a data estimada do custo. Já implementado: o custo com a data de publicação estimada e o F5 como informação, piso de longo prazo (ADR 0137) |
+| E9 | **Sancionar (ou ajustar) a regra do F5 para o LONGO**, proposta pelo FinMind e calibrada no histórico: alta com o preço abaixo do custo ou até 15% acima dele, baixa com a margem acima de 200% (ADR 0138); e confirmar a data estimada do custo. Já implementado: a data estimada, o F5 como informação e a margem com o KC em reais (ADRs 0137 e 0138) |
 | E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos), a oferta colombiana como dado (a Federação de Cafeteiros já entrou como fonte de eventos, ADR 0130) e decidir se o basis (já calculado, como informação) vira fator |
 | E11 | Contrato por horizonte ou série contínua ajustada para todos |
 
@@ -555,19 +555,48 @@ conhecido 12 meses depois do mês dos preços; detalhe no ADR 0137):**
 
 - O sentido é o do estudo, com poucos episódios. A regra de baixa como está (o percentil 80 da margem) se inverte entre
   antes e depois de 2016.
-- **Hoje:** margem de +72% sobre o custo total de 2025 e de +97% sobre o operacional, no percentil 18 dos 5 anos: longe
-  do piso.
+- **Hoje:** margem de +99% sobre o custo total de 2025 e de +129% sobre o operacional (o KC em reais, R$ 2.092 por saca,
+  na semana de 23/10/2026): longe do piso e abaixo do teto.
 
-**Implementado (2026-10-21), por decisão do usuário (ADR 0137).**
+**Implementado (2026-10-21), por decisão do usuário (ADRs 0137 e 0138).**
 
 | Frente | O que foi feito | Onde ver |
 |---|---|---|
-| Data estimada | O custo de cada ano conta como conhecido 12 meses depois do mês dos preços da Conab (marcado como estimado): o F5 (v2) tem margem desde 2022 e percentil desde 11/2024, e deixa de ficar neutro por falta de histórico | Metodologia do café, F5 |
+| Data estimada | O custo de cada ano conta como conhecido 12 meses depois do mês dos preços da Conab (marcado como estimado): o F5 deixa de ficar neutro por falta de histórico | Metodologia do café, F5 |
 | Papel | O F5 vai ao prompt como informação, um piso de longo prazo, sem voto em nenhum horizonte e só no LONGO | Metodologia do café, F5; o prompt do café (v13, item 1) |
+| Preço | O F5 (v3) mede a margem com o KC de Nova York em reais (no lugar do ICF, que só começa em 2022): a margem tem histórico desde 2004, o mesmo preço em que a regra foi calibrada | Metodologia do café, F5 |
+| Regra proposta | A regra por faixa de margem (abaixo) calculada na tela, com os limiares ajustáveis no card C. **Não está em vigor no prompt** | Metodologia do café, F5 (camada C) |
+
+**Pedido de sanção ao Comitê: a regra do F5 para o horizonte LONGO (ADR 0138).**
+
+O documento pede o F5 como piso de longo prazo, sem sinal diário. O FinMind calibrou no histórico uma regra por faixa de
+margem do preço (o KC em reais) sobre o custo da Conab, para o Comitê sancionar ou ajustar:
+
+| Condição | Leitura no LONGO | Semanas (2004 a 2026) | KC 90 dias depois: subiu | KC 1 ano depois: subiu |
+|---|---|---|---|---|
+| Preço abaixo do custo operacional por 4 semanas seguidas | Alta forte | 3 (2013) | 100% | 100% |
+| Preço abaixo do custo total por 4 semanas seguidas | Alta moderada | 8 (2013) | 100% | 100% |
+| Margem total de até 15% (o preço perto do custo) | Alta fraca | 59 (2008, 2010, 2012-14, 2019) | 51% (subiu mais de 11% em 42%) | 92% |
+| Margem total acima de 200% | Baixa moderada | 106 (2021-22, 2024-26) | 38% (caiu mais de 11% em 35%) | 16% |
+| Entre 15% e 200% | Neutra | 975 | 51% | 54% |
+| Todas as semanas (base) | — | 1.151 | 50% | 53% |
+
+Como ler:
+
+- **As duas primeiras linhas são a regra do estudo, como já estava.** As duas faixas novas trocam a regra de baixa
+  antiga (a margem no percentil 80 do próprio histórico), que se inverteu entre antes e depois de 2016.
+- **O efeito é mais forte em 1 ano do que nos 90 dias do LONGO.** Por isso as intensidades não passam de moderada, fora o
+  preço abaixo do custo operacional, que só aconteceu em 2013.
+- **São poucos episódios:** a alta tem 2013 e algumas semanas de 2008 a 2019; a baixa, dois episódios, depois de 2016. A
+  regra é plausível, não validada.
+- **Testado e descartado:** uma baixa fraca com a margem de 150% a 200%. Depois dela, o KC subiu em 59% das semanas em 90
+  dias.
+- **Hoje** (margem de +99%), a regra dá neutra: sancioná-la não muda a leitura atual.
 
 **O que precisamos do Comitê:**
 
-- uma regra por faixa de margem (margem fina, alta; muito alta, baixa), com pressão no LONGO, ou o F5 só como informação;
+- **sancionar a regra acima**, ajustar os limiares (15%, 200% e as 4 semanas) ou manter o F5 só como informação.
+  Sancionada, o F5 volta a ter pressão, só no LONGO (uma linha na metodologia; os outros horizontes continuam recusados);
 - confirmar a data estimada (12 meses) ou acompanhar a data real das próximas publicações da Conab;
 - a junção com o F4 (ver o E8).
 
@@ -1308,6 +1337,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Regra do F5 proposta para a sanção do Comitê (E9 da análise do café) | O F5 (v3) mede a margem com o KC em reais desde 2004, e a regra por faixa de margem fica calculada na tela como proposta: alta com o preço abaixo do custo (4 semanas) ou até 15% acima; baixa moderada com a margem acima de 200%. No histórico, no LONGO, a alta subiu em 59% das semanas e a baixa em 38% (base 50%). Não está em vigor no prompt: o F5 segue como informação até a sanção | §0, E9; ADR 0138 |
 | Custo do café com a data estimada e como informação (E9 da análise do café) | O custo da Conab conta como conhecido 12 meses depois do mês dos preços (data estimada), e o F5 (v2) deixa de ficar neutro por falta de histórico; vai à IA como informação, piso de longo prazo, só no LONGO. Teste de 2004 a 2026: margem fina antes de alta (+34% em 250 pregões, 78%) e muito alta antes de queda (28%), com poucos episódios; o percentil da margem se inverte entre os períodos | §0, E9; ADR 0137 |
 | Câmbio do café como informação, com o peso Baixo (E8 da análise do café) | O F4 vai à IA sem pressão própria (ia como "alta forte"), com o peso Baixo (Médio no FEL 1) e, no F4 v2, o café de Nova York em reais e o percentil em 5 anos como contexto. Teste com o KC diário de 2008 a 2026: a pressão não separou o preço (alta 50%, baixa 48%, todas 50%), e os períodos se contradizem; o percentil do café em reais também não sustentou uma regra | §0, E8; ADR 0136 |
 | Revisão da Conab perde força com a idade (E7 da análise do café) | O F2 (v2) mantém a leitura da revisão até 14 dias depois da publicação, um nível abaixo de 15 a 42 dias e neutra depois; o texto do fator diz a idade. A revisão de 24/09 (+5,33%) passou de "baixa forte" a "baixa moderada" e fica neutra a partir de 06/11. Teste dos 11 levantamentos desde 2023: amostra pequena, sem sustentar a força por 3 meses | §0, E7; ADR 0135 |
