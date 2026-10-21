@@ -412,7 +412,7 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@9");
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@10");
   assert.equal(p.versaoConfiguracao, 5);
   assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
@@ -423,7 +423,7 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   assert.match(p.prompt, /2\.2 CURVA FUTURA DO ICF — os vencimentos negociados no último pregão\nSEM DADO: nenhum vencimento do ICF negociou até a data\./);
   assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), negocia depois da data-alvo \(31\/12\/2026\) \| US\$ 351,90 em 02\/10\/2026 \| contratos negociados: SEM DADO/);
   assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 11,0% \| T2 = 25,0%/);
-  assert.match(p.instrucaoDoSistema, /modificador de risco, sem voto próprio/);
+  assert.match(p.instrucaoDoSistema, /É INFORMAÇÃO, sem voto próprio/); // ADR 0132
   assert.match(p.instrucaoDoSistema, /não\s+passou por validação humana/);
   assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
   assert.doesNotMatch(p.prompt, /\{\{/);

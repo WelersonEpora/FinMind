@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 9
+**Versão:** 10
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -45,6 +45,10 @@ item 5 passa a dizer só como combinar os fatores, sem pontuação; o item 2 dei
 v9 (2026-10-07, ADR 0106) - os horizontes contam do último preço da BASE, e o IMEDIATO é o próximo pregão depois dele
 (antes, da data da análise, com o pregão seguinte ao último preço fora de todos os horizontes); com o preço defasado,
 da data da análise. O item do preço em "Como analisar" diz isso, e a tabela 2.4 traz a data-alvo de cada horizonte.
+v10 (2026-10-21, ADR 0132) - análise do café de 2026-10-19, item E4: os fundos (CAFE_FUNDOS) vão como INFORMAÇÃO, sem a
+pressão da leitura (o bloco do fator dizia "Pressão: alta, Intensidade: forte", que parecia um voto, contra o item 9) e
+fora de fatoresAFavor e fatoresContra; o percentil nos 10 anos anteriores vai ao lado do de 3, e o item 9 diz como ler
+os dois. No teste das três versões (2009 a 2026), nem a reversão nem seguir o fluxo se sustentaram fora da amostra.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -112,8 +116,10 @@ Para cada horizonte, separadamente:
    revisão sugere.
 8. Câmbio (CAFE_DOLAR). Mede o incentivo do produtor brasileiro a vender, não um repasse mecânico ao preço: não trate o
    câmbio como causa direta do preço em dólar. O efeito é maior no pico da colheita e da comercialização.
-9. Posicionamento dos fundos (CAFE_FUNDOS, o COT de Nova York). É modificador de risco, sem voto próprio: não conte o
-   COT como mais um voto de alta ou de baixa. Diga qual é o papel dele no horizonte: confirma a leitura dos fatores de
+9. Posicionamento dos fundos (CAFE_FUNDOS, o COT de Nova York). É INFORMAÇÃO, sem voto próprio: não conte o COT como
+   mais um voto de alta ou de baixa e não o liste em fatoresAFavor nem em fatoresContra. Leia o percentil nas duas
+   janelas: um extremo só na de 3 anos (e não na de 10) pode ser efeito de um recorde recente na janela, não um
+   posicionamento fora do comum. Diga qual é o papel dele no horizonte, em posicionamentoCot: confirma a leitura dos fatores de
    oferta, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O papel é informação:
    não baixe nem suba a confiança por causa dos fundos. No histórico do café, o extremo sozinho não mostrou reversão
    (veja a validação histórica do fator), e o catalisador de clima ou de safra que a regra do especialista pede quase

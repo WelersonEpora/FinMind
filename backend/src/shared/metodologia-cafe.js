@@ -300,15 +300,18 @@ const DEFINICOES = [
       mecanismo: "Posições de fundos e fluxo de capital amplificam tendências",
       fonte: "CFTC (COT), ICE"
     },
+    // Só informação no prompt (ADR 0132): a pressão do extremo chegava à IA como "alta forte", contra a decisão do ADR 0089.
+    informativo: true,
+    papelDecididoPor: "do usuário",
     dados: {
       observaveis: ["COT_CAFE"],
       eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o COT desagregado da CFTC traz o managed money do Coffee C toda semana desde 2006, com a publicação real desde 2022-08 (P05 do estudo já atendida). Os extremos aparecem: o recorde de venda em ago/2018 (-34,7% dos contratos em aberto) e o de compra em fev/2025 (+37,5%). Hoje (29/09/2026) os fundos estão no percentil 7,7 dos 3 anos anteriores. Validação histórica (ADR 0089), de 2009 a 2026 contra o preço mensal do arábica do FMI: o extremo sozinho não mostrou reversão. Nas semanas, os vendidos em extremo foram seguidos de alta em 3 meses em 33% (46% em todas) e os comprados, de queda em 39% (54% em todas), mas são cerca de 20 episódios de cada lado e, com uma semana por trimestre, a diferença some (sem significância). O catalisador de F1 ou F2 que a regra pede quase nunca coincidiu com o extremo."
+          "Suficiente: o COT desagregado da CFTC traz o managed money do Coffee C toda semana desde 2006, com a publicação real desde 2022-08 (P05 do estudo já atendida). Os extremos aparecem: o recorde de venda em ago/2018 (-34,7% dos contratos em aberto) e o de compra em fev/2025 (+37,5%). Validação histórica (ADR 0089), de 2009 a 2026 contra o preço mensal do arábica do FMI: o extremo sozinho não mostrou reversão. Nas semanas, os vendidos em extremo foram seguidos de alta em 3 meses em 33% (46% em todas) e os comprados, de queda em 39% (54% em todas), mas são cerca de 20 episódios de cada lado e, com uma semana por trimestre, a diferença some (sem significância). O catalisador de F1 ou F2 que a regra pede quase nunca coincidiu com o extremo. Teste das três versões da análise do café (ADR 0132), contra o KC de Nova York em 60 pregões: fora da amostra (2018 a 2026), depois do extremo vendido +5,6% e do comprado +5,4%, contra +3,8% em todas as semanas; são 4 episódios vendidos e 9 comprados em 2009 a 2026. Nem a reversão (a regra) nem seguir o fluxo se sustentam; a janela de 10 anos e a variação semanal, o mesmo. Desligado como voto é tão bom quanto as outras versões."
       },
-      lacunas: ["A posição por tipo de investidor no ICF (B3) não é coletada: o COT mede Nova York."]
+      lacunas: ["A posição por tipo de investidor no ICF (B3) não é coletada: o COT mede Nova York (fora, ADR 0132: fonte nova, e o ICF é pouco líquido)."]
     },
     proposta: {
       autoria: AUTORIA,
@@ -325,6 +328,7 @@ const DEFINICOES = [
     perguntas: [],
     decisoes: [
       "Janela de 3 anos (usuário, 2026-10-06, ADR 0089): como na v1. No histórico, as duas janelas dão o mesmo resultado; a de 3 anos, um pouco menos ruim em 6 meses.",
+      "Sem pressão no prompt e a janela de 10 anos como contexto (usuário, 2026-10-21, ADR 0132; análise do café de 2026-10-19, item E4): o fator vai à IA como INFORMAÇÃO, sem a pressão da leitura (até então ia \"Pressão: alta, Intensidade: forte\", que parecia um voto) e sem contar a favor nem contra; o percentil nos 10 anos anteriores vai ao lado do de 3. Em 13/10/2026, percentil 3,8 em 3 anos e 47,7 em 10: o extremo vendido de 3 anos vinha do recorde de compra de fev/2025 na janela.",
       "Só como informação (usuário, 2026-10-06, ADR 0089 e revisão): o extremo não muda a confiança da agregação nem da leitura da IA; o papel dele vai como informação. O catalisador de F1 ou F2 que a regra pede foi tentado e revertido: em 2009 a 2026, nenhuma semana de extremo forte teve o F1 na mesma direção, e o caminho pelo F2 nunca foi testado. O extremo sozinho não mostrou reversão."
     ]
   },

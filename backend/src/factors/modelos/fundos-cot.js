@@ -106,12 +106,15 @@ function semanasCompletas(linhasAsOf, series) {
 //   nota              a nota da tela e do prompt (periodicidade, divulgação e qual contrato)
 //   leitura           "REVERSAO" (padrão) ou "AMPLIFICA" (ver a camada C acima)
 //   anosJanela        os anos da janela do percentil (padrão 3; o milho usa 10, a proposta do David, ADR 0056)
+//   anosJanelaContexto (opcional) os anos de uma 2ª janela, só de contexto: o percentil nela vai à camada B, fora da
+//                     decisão (o café, ADR 0132: o extremo dos 3 anos dependia do recorde de compra de 2025)
 function criarFatorFundosCot(config) {
-  const { factorId, factorVersion, series, parametrosPadrao, mercado, episodios, nota, leitura = "REVERSAO", anosJanela = 3 } = config;
+  const { factorId, factorVersion, series, parametrosPadrao, mercado, episodios, nota, leitura = "REVERSAO", anosJanela = 3, anosJanelaContexto = null } = config;
   const { acimaPressiona, abaixo, acima } = LEITURAS[leitura];
   const semanasJanela = anosJanela * SEMANAS_POR_ANO;
   const semanasMinimas = Math.floor(semanasJanela * FRACAO_MINIMA);
   const janela = `${anosJanela} anos`;
+  const semanasContexto = anosJanelaContexto ? anosJanelaContexto * SEMANAS_POR_ANO : 0;
 
   // Função PURA: recebe as linhas de obterAsOf() e devolve um ponto por semana (a terça da posição).
   function derivar(linhasAsOf, { parametros = parametrosPadrao } = {}) {
@@ -139,6 +142,16 @@ function criarFatorFundosCot(config) {
       const faixaJanela = (p) => (completa ? arredondar(quantil(anteriores, p), 2) : null);
       const posicaoRelativa = pctl === null ? null : arredondar(pctl - 50, 1);
       posicoes.set(observedAt, posicaoRelativa);
+      // A 2ª janela, só de contexto (mesmo mínimo proporcional de semanas).
+      let percentilContexto = null;
+      if (semanasContexto) {
+        const doContexto = [];
+        for (let k = 1; k <= semanasContexto; k += 1) {
+          const valor = pctOiEm.get(somarDias(observedAt, -DIAS_SEMANA * k));
+          if (valor !== undefined) doContexto.push(valor);
+        }
+        if (doContexto.length >= Math.floor(semanasContexto * FRACAO_MINIMA)) percentilContexto = arredondar(percentil(pctOiEm.get(observedAt), doContexto), 1);
+      }
       const liquidaAnterior = liquidaEm.get(somarDias(observedAt, -DIAS_SEMANA));
       const anterior = posicoes.get(somarDias(observedAt, -DIAS_SEMANA * parametros.semanasTendencia));
       pontos.push({
@@ -154,6 +167,7 @@ function criarFatorFundosCot(config) {
         medianaJanela: faixaJanela(0.5),
         p90Janela: faixaJanela(0.9),
         percentilJanela: pctl,
+        ...(semanasContexto ? { percentilContexto } : {}),
         posicaoRelativa,
         decisao: faixa.decidirPorFaixa(posicaoRelativa, anterior ?? null, parametros, acimaPressiona),
         disponivelEm: semana.disponivelEm,
@@ -213,6 +227,9 @@ function criarFatorFundosCot(config) {
       },
       { camada: "A", rotulo: "Líquida / contratos em aberto", campo: "liquidaPctOi", casas: 2, sinal: true, unidadeValor: "%" },
       { camada: "B", rotulo: `Percentil nos ${janela} anteriores`, campo: "percentilJanela", casas: 1, sufixo: "0 = mais vendida, 100 = mais comprada" },
+      ...(anosJanelaContexto
+        ? [{ camada: "B", rotulo: `Percentil nos ${anosJanelaContexto} anos anteriores (contexto)`, campo: "percentilContexto", casas: 1, sufixo: "0 = mais vendida, 100 = mais comprada" }]
+        : []),
       { camada: "B", rotulo: "Posição relativa (percentil - 50)", campo: "posicaoRelativa", casas: 1, sinal: true, sufixo: "pontos" }
     ],
     graficoAB: {

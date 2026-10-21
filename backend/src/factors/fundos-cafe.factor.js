@@ -15,7 +15,9 @@ const { PARAMETROS_POSICAO } = require("./modelos/posicao-historica");
 // modificador de risco (como o COT do milho). O extremo forte (P10/P90) é calibração do FinMind.
 
 const FACTOR_ID = "fundos_cafe_cot_ice";
-const FACTOR_VERSION = 1;
+// v2 (2026-10-21): o percentil nos 10 anos anteriores, como contexto; o fator passa a ser só informação, sem pressão no
+// prompt (análise do café de 2026-10-19, item E4; decisão do usuário, ADR 0132). A janela da posição relativa segue 3 anos.
+const FACTOR_VERSION = 2;
 
 const SERIES = {
   comprados: "CFTC.COFFEE.MM_LONG",
@@ -31,6 +33,7 @@ const fator = criarFatorFundosCot({
   series: SERIES,
   parametrosPadrao: PARAMETROS_PADRAO,
   mercado: "no café arábica (ICE)",
+  anosJanelaContexto: 10,
   episodios: [
     { data: "2018-08-21", rotulo: "Fundos no recorde de venda, café abaixo de 1 US$/lb" },
     { data: "2021-07-27", rotulo: "Geadas no Brasil" },
@@ -38,7 +41,8 @@ const fator = criarFatorFundosCot({
   ],
   nota:
     "Semanal, não é tempo real: a posição é de terça e a CFTC a divulga na sexta seguinte. Fundos = managed money, só " +
-    "futuros, Coffee C da ICE (KC): mede Nova York, não a B3. O estudo trata o fator como modificador de risco, sem voto próprio."
+    "futuros, Coffee C da ICE (KC): mede Nova York, não a B3. O estudo trata o fator como modificador de risco, sem voto próprio. " +
+    "O extremo é a posição relativa abaixo de -40 ou acima de +40 pontos na janela de 3 anos; a de 10 anos vai ao lado: um extremo só em 3 anos pode ser efeito de um recorde recente."
 });
 
 module.exports = {

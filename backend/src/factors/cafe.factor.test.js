@@ -266,6 +266,23 @@ test("fundos e juros do café usam os moldes comuns, com as séries do café", (
   assert.equal(juros.METODOLOGIA.factorId, "juros_cafe_treasury_10a");
 });
 
+test("fundos (v2, ADR 0132): o percentil nos 10 anos anteriores vai como contexto, ao lado do de 3 anos que decide", () => {
+  // 560 terças: a líquida sobe devagar (0 a 399) e depois fica num recorde (1.000) por 2 anos; a última semana volta a 300.
+  // Em 3 anos, o recorde faz a semana parecer vendida em extremo; em 10, ela fica no meio.
+  const linhas = [];
+  let terca = "2015-12-29";
+  for (let i = 0; i < 560; i += 1) {
+    const liquida = i === 559 ? 300 : i < 400 ? i : 1000;
+    const pub = `${somarDias(terca, 3)}T20:00:00Z`;
+    linhas.push(v(fundos.SERIES.comprados, terca, pub, liquida + 5000), v(fundos.SERIES.vendidos, terca, pub, 5000), v(fundos.SERIES.contratosEmAberto, terca, pub, 10000));
+    terca = somarDias(terca, 7);
+  }
+  const ultimo = fundos.derivarFundosCafe(linhas).at(-1);
+  assert.ok(ultimo.percentilJanela < 10, `3 anos: ${ultimo.percentilJanela}`);
+  assert.ok(ultimo.percentilContexto > 40, `10 anos: ${ultimo.percentilContexto}`);
+  assert.ok(fundos.METODOLOGIA.apresentacao.quadros.some((q) => q.campo === "percentilContexto" && q.camada === "B"));
+});
+
 test("juros: o dólar global em 26 semanas vai como contexto, sem mudar a decisão (ADR 0090, revisão)", () => {
   // O Treasury sobe 1 p.p. em 26 semanas (de 3% a 4%), um valor por sexta; o índice do dólar, também por sexta.
   const linhas = (dolarFinal) => {

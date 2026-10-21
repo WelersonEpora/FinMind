@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, no E1, no E2 e no E3); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E4); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -30,7 +30,7 @@ análise para decidirmos juntos.
 | E1 | Aprovar a regra de rolagem da série contínua do ICF, já calculada como proposta (junto com o E11). Já implementados: a data do preço no Centro de Decisão, a série contínua (proposta) e o basis B3 × Nova York (informação) |
 | E2 | Confirmar os valores da meia-vida (4 e 25 dias) e montar a lista de eventos de referência para medir a captura. Já implementados, por decisão do usuário: NÃO VERIFICADO, o tipo SAFRA, a Federação de Cafeteiros, o Vietnã, o El Niño, a meia-vida e as fontes secundárias como alerta (ADR 0130) |
 | E3 | Decidir o sentido da regra do F3, que deu o sinal invertido em 2022 a 2026: tirar a pressão, inverter ou manter. Já implementado: o nível do estoque (percentil em 10 anos e a mínima da série) no texto do F3, como contexto (ADR 0131). A curva do ICF, testada, não antecipou o preço: sugerimos não criar fator por ora |
-| E4 | Junto com a §3 do documento: como aplicar o F7 como modificador |
+| E4 | Nada a decidir agora: o F7 já foi à IA como informação, sem pressão, com a janela de 10 anos ao lado (ADR 0132). O modificador numérico fica com a §3 do documento |
 | E5 | Confirmar o F6 só no horizonte de 90 dias |
 | E6 | A regra nova do clima (janela de chuva e limiar) e a troca do INMET pela NASA POWER |
 | E7 | Quanto tempo a revisão da Conab pesa forte depois de publicada e qual medida de surpresa testar |
@@ -261,8 +261,36 @@ extremo → alta forte"), que parece um voto. A janela do percentil é de 3 anos
 | Tirar a leitura simulada da tela e do relatório, deixando só o papel (extremo comprado ou vendido) | Baixo |
 | Posições da B3 | Fora |
 
-**O que precisamos do Comitê:** decidir, junto com a §3 do documento, como o modificador é aplicado: sobre um sinal
-calculado em código ou como orientação à IA.
+**O que o prompt mostrava (leitura do café de 2026-10-21, no servidor).** O documento tinha razão: o F7 chegava à IA
+como os fatores que votam, com "Pressão: alta / Intensidade: forte" e peso Médio, contra a decisão do ADR 0089 ("só como
+informação"). A frase "sem voto próprio" ficava escondida na nota.
+
+**A janela explica o "extremo".** Na semana de 13/10/2026, os fundos estavam **comprados** (+9,3% dos contratos em
+aberto): percentil **3,8 em 3 anos**, mas **47,7 em 10 anos**. O "vendido em extremo" vinha do recorde de compra de
+fev/2025 dentro da janela de 3 anos.
+
+**O teste das três versões** (KC de Nova York, retorno nos 60 pregões seguintes; detalhe no ADR 0132):
+
+| Janela de 3 anos | Todas as semanas | Extremo vendido (a regra diz alta) | Extremo comprado (a regra diz baixa) |
+|---|---|---|---|
+| 2009–2017 | +1,0%, subiu em 43% | −3,1%, 23% | −2,6%, 33% |
+| 2018–2026 (fora da amostra) | +3,8%, 57% | +5,6%, 56% | +5,4%, 62% |
+| Episódios, 2009–2026 | — | 4: −5,0% | 9: −1,3% |
+
+- **(a) desligado** foi tão bom quanto as outras; **(c) seguir o fluxo** aparece em 2009 a 2017 e some fora da amostra;
+  **(b) modificador** precisa de um sinal numérico que a leitura não tem (depende da §3).
+- A janela de 10 anos e a variação semanal da posição também não mostraram vantagem.
+
+**Implementado (2026-10-21), por decisão do usuário (ADR 0132).**
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| F7 só informação | O bloco do F7 vai à IA como "INFORMAÇÃO: sem pressão própria; não conta a favor nem contra", sem a pressão nem a regra. A resposta que o citar como fator a favor ou contra é recusada; o papel segue em "posicionamentoCot". Prompt do café v10 | O prompt do café, bloco do F7 e item 9 |
+| Janela de 10 anos | O percentil nos 10 anos anteriores vai ao lado do de 3 (fator v2), como contexto. A posição relativa segue em 3 anos | Metodologia do café, F7 |
+| Texto desatualizado | Saiu da validação histórica do F7 o "Hoje (29/09/2026) … percentil 7,7", fixo desde setembro | Metodologia do café, F7 |
+
+**O que precisamos do Comitê:** nada agora. O modificador numérico (`S_final = S_base × m`) depende da §3 do documento
+(os pesos), que ainda vamos analisar.
 
 </details>
 
@@ -1127,6 +1155,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Fundos só como informação (E4 da análise do café) | O F7 vai à IA como informação, sem a pressão (antes chegava "alta forte", contra o ADR 0089), com o percentil em 10 anos ao lado do de 3 (fator v2; prompt do café v10). Na semana de 13/10, 3,8 em 3 anos e 47,7 em 10: o "extremo" vinha do recorde de 2025 na janela. Teste das três versões (2009 a 2026): nenhuma supera o fator desligado | §0, E4; ADR 0132 |
 | Nível do estoque no F3 (E3 da análise do café) | O F3 (fator v4) passa a levar ao prompt o percentil do nível do estoque certificado em até 10 anos e a mínima da série, como contexto. Teste com o diário da ICE contra o KC (2017 a 2026): o nível baixo não deu o momento da alta, e a regra da variação deu o sinal invertido em 2022 a 2026; o sentido da regra foi ao Comitê. A curva do ICF (2022 a 2026), testada em duas definições, não antecipou o preço: sem fator por ora | §0, E3; ADR 0131 |
 | Eventos dos agrícolas (E2 da análise do café) | NÃO VERIFICADO no lugar do NORMAL sem o mínimo de pesquisa (os seis ativos); tipo SAFRA; a Federação de Cafeteiros de volta, o Vietnã no USDA FAS e a probabilidade do El Niño no CPC; meia-vida dos eventos (4 e 25 dias, peso mínimo 0,25) no milho, no café e na soja; Safras & Mercado, Notícias Agrícolas e Trading Economics como fontes secundárias, só alerta (o Cepea, testado, ficou fora). Prompt de eventos v15 e o da soja v3; migration dos CHECKs de nível e de tipo | §0, E2; ADR 0130 |
 
