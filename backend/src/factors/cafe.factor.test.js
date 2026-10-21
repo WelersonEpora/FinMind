@@ -269,6 +269,34 @@ test("custos: o vencimento mais próximo do dia, em reais, contra a mediana do c
   assert.equal(ponto.custoTotalSaca, 1100);
   assert.equal(ponto.anoCusto, 2025);
   assert.equal(ponto.margemTotalPct, 59.09);
+  // Sem o mês dos preços, dezembro de 2025 + 12 meses fica depois da coleta: vale a coleta.
+  assert.equal(ponto.custoConhecidoDesde, "2026-10-01");
+  assert.equal(ponto.custoEstimado, false);
+});
+
+test("custos v2 (ADR 0137): o custo conta como conhecido 12 meses depois do mês dos preços, data estimada", () => {
+  const comMes = (linha, mes) => ({ ...linha, metadata: { mesReferenciaPrecos: mes } });
+  const coleta = "2026-10-01T00:00:00Z";
+  const pontos = derivarCustosCafe({
+    linhasIcf: [
+      v("B3.ICF.ICFH23.SETTLE", "2022-11-25", "2022-11-25T22:00:00Z", 300, true),
+      v("B3.ICF.ICFH24.SETTLE", "2023-11-24", "2023-11-24T22:00:00Z", 250, true)
+    ],
+    linhasCusto: [
+      // 2021, preços de nov/2021: conhecido em 01/11/2022.
+      comMes(v("CONAB.CAFE_CUSTO.ARABICA.A.TOTAL_SACA", "2021-01-01", coleta, 600), "2021-11"),
+      // 2022, preços de nov/2022: conhecido só em 01/11/2023.
+      comMes(v("CONAB.CAFE_CUSTO.ARABICA.A.TOTAL_SACA", "2022-01-01", coleta, 800), "2022-11")
+    ],
+    ptax: [{ data: "2022-11-25", valor: 5 }, { data: "2023-11-24", valor: 5 }]
+  });
+  assert.deepEqual(
+    pontos.map((p) => [p.anoCusto, p.custoTotalSaca, p.custoConhecidoDesde, p.custoEstimado, p.disponivelEmEhEstimado]),
+    [
+      [2021, 600, "2022-11-01", true, true],
+      [2022, 800, "2023-11-01", true, true]
+    ]
+  );
 });
 
 // --- F1 clima ---------------------------------------------------------------------------------------------------

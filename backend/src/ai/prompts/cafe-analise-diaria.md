@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 12
+**Versão:** 13
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -55,6 +55,10 @@ tabela 2.3 dizem isso, o item 1 também, e a resposta que citar um deles a favor
 v12 (2026-10-21, ADR 0136) - análise do café de 2026-10-19, item E8: o câmbio (CAFE_DOLAR) vai como INFORMAÇÃO, com o
 peso Baixo (Médio no FEL 1): no KC diário de 2008 a 2026, a pressão dele não separou o preço. O bloco traz o café de
 Nova York em reais e o percentil em 5 anos, como contexto; o item 8 diz como ler.
+v13 (2026-10-21, ADR 0137) - análise do café de 2026-10-19, item E9: o custo (CAFE_CUSTO_PRECO_MINIMO) vai como
+INFORMAÇÃO, um piso de longo prazo, sem voto em nenhum horizonte; o custo de cada ano conta como conhecido 12 meses
+depois do mês dos preços da Conab (data estimada), e o fator deixa de ficar neutro por falta de histórico. O item 1
+diz como ler.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -95,10 +99,13 @@ TENDÊNCIA (a leitura para frente). A curva dos vencimentos do ICF não está na
 Para cada horizonte, separadamente:
 1. Relevância. Decida quais fatores informam aquele prazo, pela periodicidade, pela idade e pela natureza de cada um
    (a tabela 2.3 dá a idade e a situação dos dados). Um levantamento mensal ou anual com semanas de atraso diz pouco
-   sobre 1 dia; um relatório de ontem pode dizer muito. O custo de produção (CAFE_CUSTO_PRECO_MINIMO) age sobre as
-   safras seguintes, em anos, e a demanda mundial (CAFE_DEMANDA) sai duas vezes por ano e muda devagar: os dois só
-   informam o horizonte LONGO (a demanda, como peso baixo). Nos outros horizontes, liste-os só em
-   fatoresPoucoRelevantes, nunca a favor nem contra. Diga quais fatores pesaram pouco e por quê.
+   sobre 1 dia; um relatório de ontem pode dizer muito. A demanda mundial (CAFE_DEMANDA) sai duas vezes por ano e
+   muda devagar: só informa o horizonte LONGO, como peso baixo; nos outros, liste-a só em fatoresPoucoRelevantes,
+   nunca a favor nem contra. O custo de produção (CAFE_CUSTO_PRECO_MINIMO) age sobre as safras seguintes, em anos: é
+   INFORMAÇÃO, sem voto em nenhum horizonte (não o liste em fatoresAFavor nem em fatoresContra), e só serve ao LONGO,
+   como piso: a margem do preço sobre o custo diz o quanto o preço ainda pode cair antes de desestimular o trato da
+   lavoura (margem fina, perto do custo operacional, sustenta o preço adiante; margem muito alta estimula a oferta
+   futura). Diga quais fatores pesaram pouco e por quê.
 2. Pesos. O Motor do Café descartou os pesos fixos e não definiu peso novo: o peso do FEL 1 (tabela 2.3) é o único na
    BASE. Use-o como ordem de partida (os de peso Alto primeiro; os de peso Médio e Baixo confirmam ou enfraquecem a
    leitura). Nunca altere um peso nem crie um peso por mês. A validação histórica (parte D de cada

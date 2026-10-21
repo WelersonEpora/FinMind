@@ -28,20 +28,25 @@ const { arredondar, percentil } = require("./modelos/posicao-historica");
 //        (moderada sobre o custo total, forte sobre o operacional); o "historicamente alto" = margem total no percentil
 //        {percentilBaixa} ou acima do próprio histórico
 //
-// O custo da Conab só é conhecido na base desde a 1ª coleta (2026-10-01; a fonte não informa a publicação): antes, o
-// fator não tem dado (point-in-time), e a regra de baixa só decide com 2 anos de margem. O estudo diz: o cafeicultor não
+// A Conab não informa a publicação do custo. Na v1, ele só era conhecido desde a 1ª coleta (2026-10-01), e o fator ficava
+// neutro por construção. Na v2 (ADR 0137, análise do café de 2026-10-19, item E9), o custo de cada município e ano conta
+// como conhecido 12 meses depois do mês dos preços da planilha (`mesReferenciaPrecos`; sem ele, dezembro do ano), ou na
+// coleta, se for antes: uma data ESTIMADA por regra, conservadora (o de 2025, preços de out/2025, foi coletado em
+// out/2026). O fator vai ao prompt como INFORMAÇÃO, só no LONGO (metodologia-cafe.js). O estudo diz: o cafeicultor não
 // deixa de colher com o preço baixo (cultura perene); o efeito é lento (1 a 3 safras), horizonte acima de 90 dias, e o
 // custo de insumos importados não pode repetir o câmbio do F4. Propriedades: determinístico, versionado, point-in-time,
 // sem IA.
 
 const FACTOR_ID = "custos_cafe_conab_icf";
-const FACTOR_VERSION = 1;
+const FACTOR_VERSION = 2;
 
 const PREFIXO_ICF = "B3.ICF";
 const PREFIXO_CUSTO = "CONAB.CAFE_CUSTO.ARABICA";
 const SEMANAS_JANELA = 260;
 const SEMANAS_MINIMAS = 104;
 const INICIO_PTAX = "2021-01-01";
+// O custo conta como conhecido este número de meses depois do mês dos preços da Conab (ADR 0137).
+const MESES_ATE_PUBLICAR = 12;
 
 const PARAMETROS_PADRAO = Object.freeze({
   limiarMargemPct: 0,
@@ -68,12 +73,31 @@ function mediana(valores) {
   return v.length % 2 ? v[meio] : (v[meio - 1] + v[meio]) / 2;
 }
 
+// Quando o custo de uma linha conta como conhecido (ADR 0137): o 1º dia do mês dos preços + 12 meses (sem o mês,
+// dezembro do ano do custo), ou a publicação gravada (a coleta), se for antes. -> { disponivelEm (ISO), estimado }.
+function disponibilidadeDoCusto(linha) {
+  const gravada = new Date(linha.publishedAt).toISOString();
+  const mes = linha.metadata?.mesReferenciaPrecos || `${String(linha.observedAt).slice(0, 4)}-12`;
+  const [ano, m] = mes.split("-").map(Number);
+  const total = ano * 12 + (m - 1) + MESES_ATE_PUBLICAR;
+  const pelaRegra = new Date(`${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}-01T12:00:00-03:00`).toISOString();
+  return pelaRegra < gravada ? { disponivelEm: pelaRegra, estimado: true } : { disponivelEm: gravada, estimado: Boolean(linha.publishedAtIsEstimated) };
+}
+
 // O custo mais novo que a Conab tinha publicado até `ate`: a mediana entre os municípios do ano mais novo.
 function custoAte(linhasCusto, campo, ate) {
   const doCampo = linhasCusto.filter((l) => l.seriesCode.endsWith(`.${campo}`) && l.disponivelEm <= ate);
   if (doCampo.length === 0) return null;
   const ano = doCampo.map((l) => l.observedAt).sort().at(-1);
-  return { ano: Number(ano.slice(0, 4)), valor: mediana(doCampo.filter((l) => l.observedAt === ano).map((l) => l.value)), municipios: doCampo.filter((l) => l.observedAt === ano).length };
+  const doAno = doCampo.filter((l) => l.observedAt === ano);
+  return {
+    ano: Number(ano.slice(0, 4)),
+    valor: mediana(doAno.map((l) => l.value)),
+    municipios: doAno.length,
+    estimado: doAno.some((l) => l.estimado),
+    // A data mais antiga em que o custo desse ano passou a contar (o 1º município).
+    conhecidoDesde: doAno.map((l) => l.disponivelEm).sort()[0]
+  };
 }
 
 // Camada C (função pura). `historico`: as margens totais das semanas anteriores (para o percentil); `seguidas`: quantas
@@ -97,7 +121,7 @@ function decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, his
 
 // Função PURA: os ajustes do ICF (obterAsOf), o custo (obterAsOf) e a PTAX ({ data, valor }) -> um ponto por semana.
 function derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros = PARAMETROS_PADRAO } = {}) {
-  const custos = linhasCusto.map((l) => ({ ...l, disponivelEm: new Date(l.publishedAt).toISOString() }));
+  const custos = linhasCusto.map((l) => ({ ...l, observedAt: String(l.observedAt).slice(0, 10), ...disponibilidadeDoCusto(l) }));
   const ptaxPorDia = new Map(ptax.map((p) => [p.data, p.valor]));
   const diasPtax = ptax.map((p) => p.data).sort();
   const ptaxAte = (dia) => {
@@ -147,12 +171,14 @@ function derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros = PARA
       custoOperacionalSaca: operacional ? arredondar(operacional.valor, 2) : null,
       custoTotalSaca: total ? arredondar(total.valor, 2) : null,
       municipiosCusto: total?.municipios ?? null,
+      custoConhecidoDesde: total ? total.conhecidoDesde.slice(0, 10) : null,
+      custoEstimado: total ? total.estimado : null,
       margemOperacionalPct,
       margemTotalPct,
       percentilMargem: historico.length >= SEMANAS_MINIMAS && margemTotalPct !== null ? arredondar(percentil(margemTotalPct, historico), 1) : null,
       decisao: decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, historico, margemAnterior }, parametros),
-      disponivelEm: total && total.disponivelEm > disponivelEm ? total.disponivelEm : disponivelEm,
-      disponivelEmEhEstimado: Boolean(s.estimado)
+      disponivelEm,
+      disponivelEmEhEstimado: Boolean(s.estimado) || Boolean(total?.estimado)
     });
   }
   return pontos;
@@ -173,7 +199,8 @@ async function calcularCustosCafe({ asOf, parametros = PARAMETROS_PADRAO }, deps
   const seriesCusto = municipios.flatMap((m) => [`${PREFIXO_CUSTO}.${m.codigo}.OPERACIONAL_SACA`, `${PREFIXO_CUSTO}.${m.codigo}.TOTAL_SACA`]);
   const [linhasIcf, linhasCusto, ptax] = await Promise.all([
     servico.obterAsOf({ seriesCodes: contratos.map((c) => `${PREFIXO_ICF}.${c.codigo}.SETTLE`), asOf }, deps),
-    seriesCusto.length ? servico.obterAsOf({ seriesCodes: seriesCusto, asOf }, deps) : [],
+    // Com os metadados: o mês dos preços dá a data estimada do custo (ADR 0137).
+    seriesCusto.length ? servico.obterAsOf({ seriesCodes: seriesCusto, asOf, comMetadata: true }, deps) : [],
     lerPtax(asOf, deps)
   ]);
   return derivarCustosCafe({ linhasIcf, linhasCusto, ptax }, { parametros });
@@ -189,6 +216,14 @@ function explicarCustos(ponto, parametros = PARAMETROS_PADRAO) {
       `R$ ${faixa.fmt(ponto.custoOperacionalSaca)} e total de R$ ${faixa.fmt(ponto.custoTotalSaca)} por saca. Margem de ` +
       `${faixa.comSinal(ponto.margemOperacionalPct)}% sobre o operacional e ${faixa.comSinal(ponto.margemTotalPct)}% sobre o total (B).`
   ];
+  if (ponto.custoConhecidoDesde) {
+    passos.splice(
+      1,
+      0,
+      `O custo de ${ponto.anoCusto} conta como conhecido desde ${ponto.custoConhecidoDesde.split("-").reverse().join("/")}` +
+        `${ponto.custoEstimado ? " (data estimada: 12 meses depois do mês dos preços da Conab, ADR 0137)" : ""}.`
+    );
+  }
   const limiar = `${faixa.fmt(parametros.limiarMargemPct, 1)}%`;
   if (d.direcao === faixa.DIRECAO.ALTA) {
     const custo = d.intensidade === faixa.INTENSIDADE.FORTE ? "operacional" : "total";
@@ -212,7 +247,7 @@ const CENARIOS = [
 ];
 
 function exemplosCustos(_pontosTodos, parametros = PARAMETROS_PADRAO) {
-  // Sem episódios: o custo só é conhecido (point-in-time) a partir da 1ª coleta, em 2026-10-01.
+  // Sem episódios: o ICF da base começa em 2022; a única crise de margem (2013) fica antes dele.
   return {
     episodios: [],
     cenarios: CENARIOS.map(({ rotulo, entrada }) => ({ rotulo, valor: entrada.margemTotalPct, valorAnterior: null, decisao: decidirCustos(entrada, parametros) }))
@@ -259,8 +294,9 @@ const APRESENTACAO = {
     "pressão de alta com a margem do ICF (em reais) sobre o custo do arábica da Conab em {limiarMargemPct}% ou menos por {semanasSeguidas} semanas seguidas (moderada sobre o custo total, forte sobre o operacional); de baixa com a margem total no percentil {percentilBaixa} ou acima do histórico (com 2 anos ou mais); tendência pela margem de {semanasTendencia} semanas antes, mudança mínima de {limiarTendenciaPp} p.p.; fator lento, horizonte acima de 90 dias",
   exemplos: { colunaValor: "Margem" },
   nota:
-    "Semanal (o último pregão da semana), não é tempo real. O custo do arábica da Conab é conhecido na base desde a 1ª " +
-    "coleta, em 2026-10-01: antes, o fator não tem dado (point-in-time). Fator lento: age nas safras seguintes."
+    "Semanal (o último pregão da semana), não é tempo real. A Conab não informa a publicação do custo: cada ano conta " +
+    "como conhecido 12 meses depois do mês dos preços da planilha (data estimada, ADR 0137). O ICF da base começa em " +
+    "2022. Fator lento: age nas safras seguintes."
 };
 
 const METODOLOGIA = {
