@@ -1452,6 +1452,35 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- NOAA CPC - El Niño e La Niña (RONI e ONI), mensal (contexto do clima do café, ADR 0134) ---
+  {
+    instrumentCode: "NOAA_CPC_ENSO",
+    origem: "observation",
+    nome: "El Niño e La Niña - RONI e ONI (NOAA CPC)",
+    unidade: "°C (anomalia)",
+    casasDecimais: 2,
+    frequencia: "MENSAL",
+    // O trimestre centrado no mês M sai por volta do dia 14 de M+2: o último ponto fica até ~3,5 meses sem sucessor.
+    toleranciaDias: 110,
+    fonte: "NOAA CPC - Oceanic Niño Index (RONI e ONI)",
+    fonteCollectorCode: "noaa-cpc-enso",
+    series: [
+      { modalidade: "roni", seriesCode: "NOAA_CPC.ENSO.RONI" },
+      { modalidade: "oni", seriesCode: "NOAA_CPC.ENSO.ONI" }
+    ],
+    modalidadePrincipal: "roni",
+    fonteDetalhe: {
+      descricao:
+        "O índice do El Niño e da La Niña do Climate Prediction Center da NOAA: a anomalia da temperatura do mar no Pacífico equatorial (região Niño 3.4), em média móvel de 3 meses. O RONI (relativo) é o que o CPC usa desde 2026 para dizer a força do evento; o ONI é o clássico. +0,5 °C ou mais é El Niño; -0,5 °C ou menos, La Niña; a força: fraco a partir de 0,5, moderado de 1,0, forte de 1,5 e muito forte de 2,0. Vai ao fator de clima do café como contexto de regime, sem pressão própria (ADR 0134).",
+      metodologia:
+        "Um valor por trimestre móvel (DJF, JFM... NDJ), desde 1950; o dia da observação é o 1º do mês central (jul-set/2026 -> 2026-08-01). A data de disponibilidade é ESTIMADA no dia 14 do mês seguinte ao fim do trimestre (a discussão mensal do CPC sai na 2ª quinta-feira; a regra nunca antecipa). O CPC recalcula os trimestres recentes todo mês: a revisão vista numa coleta entra como versão nova, com a data da coleta. Licença: dado do governo dos EUA (domínio público).",
+      escopo:
+        "só o RONI e o ONI. Não coletados: a previsão probabilística do CPC (só em figura; a mudança relevante dela entra pela leitura diária de eventos, ADR 0130) e os outros índices (Niño 1+2, Niño 3, SOI).",
+      formatoOrigem: "Texto (arquivos .ascii.txt do CPC, sem chave)",
+      urlOficial: "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php"
+    }
+  },
+
   // --- NOAA STAR - saúde da vegetação sobre a área do milho, semanal (fator do milho "Clima e safra", ADR 0025) ---
   // Séries `NOAA_VH.MILHO.<REGIAO>.<INDICE>`: um item por país ou estado, o índice (VHI, VCI, TCI) no seletor de métrica.
   {

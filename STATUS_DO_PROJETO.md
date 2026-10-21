@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E5); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E6); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -32,7 +32,7 @@ análise para decidirmos juntos.
 | E3 | Decidir o sentido da regra do F3, que deu o sinal invertido em 2022 a 2026: tirar a pressão, inverter ou manter. Já implementado: o nível do estoque (percentil em 10 anos e a mínima da série) no texto do F3, como contexto (ADR 0131). A curva do ICF, testada, não antecipou o preço: sugerimos não criar fator por ora |
 | E4 | Nada a decidir agora: o F7 já foi à IA como informação, sem pressão, com a janela de 10 anos ao lado (ADR 0132). O modificador numérico fica com a §3 do documento |
 | E5 | Nada a decidir agora: a demanda (F6) e o custo (F5) só informam o horizonte LONGO, com a validação da resposta (ADR 0133). A regra "dado insuficiente não vota" fica para a §6 do documento |
-| E6 | A regra nova do clima (janela de chuva e limiar) e a troca do INMET pela NASA POWER |
+| E6 | Decidir se o El Niño forte (hoje no F1 como contexto, ADR 0134) deve ter pressão de alta; o que fazer com a chuva por janela, que o teste não confirmou; e o peso do VHI. Já implementado: o RONI do NOAA CPC coletado e no F1, sem pressão |
 | E7 | Quanto tempo a revisão da Conab pesa forte depois de publicada e qual medida de surpresa testar |
 | E8 | Peso Baixo para o câmbio e juntar o F4 com o F5 num fator de incentivo do produtor |
 | E9 | A data de publicação estimada do custo da Conab e o mesmo "juntar com o F4" |
@@ -374,8 +374,44 @@ temperatura mínima nem El Niño.
 | El Niño (ONI e probabilidade) | Baixo |
 | VHI com peso menor | Baixo |
 
-**O que precisamos do Comitê:** a regra nova do clima (por exemplo, a chuva dos últimos 15 a 30 dias abaixo de qual
-percentil da climatologia conta como estresse na florada) e a troca do INMET pela NASA POWER.
+**O teste (2026-10-21; detalhe no ADR 0134).** A chuva de 30 dias da NASA POWER (média de Varginha, Franca, Patrocínio e
+Venda Nova do Imigrante, contra a climatologia 1991-2020) e o El Niño (RONI do NOAA CPC), contra o KC de Nova York de
+2000 a 2026:
+
+| Janela | O documento diz | Seca (abaixo do p20) | Chuvosa (acima do p80) | Todos os dias |
+|---|---|---|---|---|
+| Florada (set a nov), 20 pregões | seca = alta | −1,5%, subiu em 39% | +3,6%, subiu em 67% | +0,9%, 51% |
+| Florada, por ano (15/out ao fim de jan) | seca = alta | 9 anos: +2,3%, 44% | 6 anos: +5,5%, 67% | 26 anos: +4,7%, 54% |
+| Colheita (mai a set), 60 pregões | chuva = alta | +5,1%, subiu em 67% | +0,2%, subiu em 52% | +1,9%, 53% |
+
+| Fase do ENSO | KC em 120 pregões | Anos |
+|---|---|---|
+| El Niño moderado ou mais forte (RONI de +1,0 ou mais) | **+14,7%, subiu em 78%** | 2002-03, 2010, 2015-16, 2023-24, 2026 |
+| Neutro | +5,2%, 53% | — |
+| La Niña | −1,0%, 40% | — |
+
+- **A regra de chuva por janela não se confirmou**: o sentido saiu o oposto nas duas janelas, com anos que se
+  contradizem (a florada seca de 2024 veio com +51%; as de 2014 e 2015, com −25% e −11%). Hoje a florada está normal
+  para chuvosa (percentil 64): a chuva também não explicaria a alta atual.
+- **A NASA POWER não vê a geada**: a de jul/2021 não aparece (a grade de ~50 km suaviza a mínima). A geada segue pela
+  leitura diária de eventos. Na consulta longa, a chuva vem multiplicada por 24 (um coletor teria de tratar isso).
+- **O El Niño é o único sinal no sentido do documento, e está ativo:** RONI de +1,69 em jul-set/2026 (forte), e o CPC
+  prevê um El Niño forte a muito forte até jan-mar/2027, possivelmente histórico. São cerca de 5 episódios.
+
+**Implementado (2026-10-21), por decisão do usuário (ADR 0134).**
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| Fonte nova | O RONI e o ONI do NOAA CPC, desde 1950 (coletor `noaa-cpc-enso`, 1.840 valores na 1ª coleta), autorizados pelo usuário só como contexto do clima do café | Dados de Mercado, card "El Niño e La Niña" |
+| El Niño no F1 | O F1 (v2) leva ao prompt o RONI conhecido na semana, com a força pela escala do CPC e o valor de 3 meses antes, como contexto de regime, **sem pressão**: a decisão do F1 continua a do VHI | Metodologia do café, F1; o prompt do café |
+| Chuva e geada | **Não coletadas**: testadas na NASA POWER, a regra por janela não se confirmou e a geada não aparece | — |
+
+**O que precisamos do Comitê:**
+
+- **o El Niño forte deve ter pressão de alta** no café, e em quais horizontes? O histórico apoia (78% de alta em 120
+  pregões), mas com cerca de 5 episódios. Hoje é só contexto;
+- **a chuva por janela**: manter o VHI como está, coletar a chuva só como contexto ou testar outra regra?
+- **o peso menor do VHI**: como reduzir, sem pesos numéricos no prompt (depende da §3 do documento).
 
 </details>
 
@@ -944,6 +980,19 @@ data, a situação ("em dia" ou "atrasada") e o histórico de cada uma estão na
 </details>
 
 <details>
+<summary>NOAA CPC — El Niño e La Niña · Café · texto · nível 5 · Dev</summary>
+
+**Acesso:** arquivos texto públicos do CPC (`RONI.ascii.txt` e `oni.ascii.txt`), sem chave. **Ressalva principal:** o CPC
+recalcula os trimestres recentes todo mês (versão nova); a previsão probabilística só existe em figura (fica com a
+leitura diária de eventos). Contexto do clima do café, sem pressão (ADR 0134).
+
+| Série | O que tem | Frequência | Desde | `published_at` | Status |
+|---|---|---|---|---|---|
+| El Niño e La Niña - RONI e ONI | A anomalia da temperatura do mar no Niño 3.4, em trimestre móvel, °C (RONI, o índice da força do evento desde 2026; ONI, o clássico) | Mensal | 1950 | Estimado (dia 14 do mês seguinte ao trimestre) | Dev (1.840 valores; no servidor, na 1ª coleta depois do deploy) |
+
+</details>
+
+<details>
 <summary>FMI — IRFCL · Ouro · API · nível 4 · Dev e servidor</summary>
 
 **Acesso:** API SDMX (JSON, sem chave). **Ressalva principal:** **Sem data de publicação nem versões**; volume em unidade errada em Brasil, Angola e Chile (marcado, não corrigido); sem total mundial; restrição a download em massa (risco aceito). **Evidência:** ADR 0036.
@@ -1157,7 +1206,7 @@ Não implementar sem autorização explícita registrada em ADR:
 
 - Qualquer ativo além de USD/BRL, Selic, ouro, milho, café e petróleo. Do café e do petróleo, só o que foi autorizado, fonte a fonte, no ADR de cada uma (café: ADR 0028 em diante; petróleo: ADR 0040 em diante). A aquisição foi encerrada em 2026-10-01 (§1).
 - CEPEA antes de 2018-06-08 (só por exportação manual do site), Conab (séries históricas e preços), PSD do milho, FAO/AMIS. (IMEA andamento, WGC e CPI foram implementados em 2026-10-01: ADRs 0039, 0037 e 0033.)
-- Clima além da NOAA STAR por cultura (milho e café): as fontes de clima do FEL 1 (NASA POWER, INMET, CPTEC/INPE, ERA5), USDA Ag in Drought, FAO ASIS, ONI, previsão do tempo e risco de geada.
+- Clima além da NOAA STAR por cultura (milho e café) e do El Niño (RONI e ONI do NOAA CPC, ADR 0134): as fontes de clima do FEL 1 (NASA POWER, testada na análise do café e não coletada; INMET, CPTEC/INPE, ERA5), USDA Ag in Drought, FAO ASIS, previsão do tempo e risco de geada.
 - Focus além das expectativas anuais de IPCA, Selic e câmbio (PIB e demais indicadores, mensais/trimestrais, Selic por reunião, inflação 12/24 meses, Top 5), fatores sobre o Focus (surpresa, variação, dispersão); das reservas do BCB, o conceito liquidez, a série mensal e a composição (ouro).
 - Série contínua de futuros, rolagem e backtest (as carteiras virtuais encerram a posição antes do vencimento, sem rolar; ADR 0127).
 - Qualquer sinal, limiar, indicador técnico ou regra de compra/venda. Exceção: as carteiras virtuais, só em simulação (ADR 0127).
@@ -1178,6 +1227,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| El Niño no clima do café (E6 da análise do café) | Fonte nova autorizada pelo usuário: o RONI e o ONI do NOAA CPC, desde 1950 (coletor `noaa-cpc-enso`, card "El Niño e La Niña"). O F1 (v2) leva o El Niño ao prompt como contexto, sem pressão (hoje +1,69, forte). Teste: o El Niño moderado ou mais forte foi seguido de alta do KC em 120 pregões em 78% dos dias (~5 episódios); a chuva por janela da NASA POWER não se confirmou (o sentido saiu o oposto) e a NASA POWER não viu a geada de 2021: não coletada | §0, E6; ADR 0134 |
 | Demanda e custo só no LONGO (E5 da análise do café) | O F6 (demanda, semestral) e o F5 (custo) só informam o horizonte LONGO: o bloco de cada um no prompt e a tabela 2.3 dizem isso, e a resposta da IA que os citar a favor ou contra em outro horizonte é recusada (mecanismo `soNosHorizontes`; prompt do café v11). Nas leituras de 05 a 21/10, o F6 pressionava para alta: a correção é de lógica, não explica a divergência. Junto, o cabeçalho dos eventos com a meia-vida (E2) | §0, E5; ADR 0133 |
 | Fundos só como informação (E4 da análise do café) | O F7 vai à IA como informação, sem a pressão (antes chegava "alta forte", contra o ADR 0089), com o percentil em 10 anos ao lado do de 3 (fator v2; prompt do café v10). Na semana de 13/10, 3,8 em 3 anos e 47,7 em 10: o "extremo" vinha do recorde de 2025 na janela. Teste das três versões (2009 a 2026): nenhuma supera o fator desligado | §0, E4; ADR 0132 |
 | Nível do estoque no F3 (E3 da análise do café) | O F3 (fator v4) passa a levar ao prompt o percentil do nível do estoque certificado em até 10 anos e a mínima da série, como contexto. Teste com o diário da ICE contra o KC (2017 a 2026): o nível baixo não deu o momento da alta, e a regra da variação deu o sinal invertido em 2022 a 2026; o sentido da regra foi ao Comitê. A curva do ICF (2022 a 2026), testada em duas definições, não antecipou o preço: sem fator por ora | §0, E3; ADR 0131 |

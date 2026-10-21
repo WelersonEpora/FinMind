@@ -53,6 +53,7 @@ const imeaAndamentoMilhoCollector = require("./imea/imea-andamento-milho.collect
 const imeaParidadeMilhoCollector = require("./imea/imea-paridade-milho.collector");
 const { criarColetorVh } = require("./noaa/noaa-vh.collector");
 const { coletorCpc } = require("./noaa/noaa-cpc.collector");
+const noaaCpcEnsoCollector = require("./noaa/noaa-cpc-enso.collector");
 const geopoliticaIaCollector = require("./geopolitica/geopolitica-ia.collector");
 const { COLETORES_ANALISE_DIARIA } = require("./analise/analise-diaria-ia.collector");
 
@@ -143,6 +144,7 @@ function bootstrapCollectors() {
     registerCollector(criarColetorVh("cafe"));
     registerCollector(criarColetorVh("soja"));
     registerCollector(coletorCpc);
+    registerCollector(noaaCpcEnsoCollector);
 
     // O CPI e os preços do café, do milho e da soja do FMI vêm do ALFRED (versões com a data real), que só existe na API do
     // FRED (ADRs 0033, 0045, 0069 e 0110).

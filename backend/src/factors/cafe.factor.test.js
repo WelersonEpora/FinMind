@@ -7,7 +7,7 @@ const { derivarDemandaCafe } = require("./demanda-cafe.factor");
 const { medirEstoques, derivarEstoquesCafe, textoNivel } = require("./estoques-cafe-ice.factor");
 const { medirDolar } = require("./dolar-cafe.factor");
 const { vencimento, decidirCustos, derivarCustosCafe } = require("./custos-cafe.factor");
-const { derivarClimaCafe, anosAntes } = require("./clima-cafe.factor");
+const { derivarClimaCafe, anosAntes, faseEnso } = require("./clima-cafe.factor");
 const { somarDias } = require("./base/semana-de-dias");
 const fundos = require("./fundos-cafe.factor");
 const juros = require("./juros-cafe.factor");
@@ -230,7 +230,7 @@ test("clima: a mesma data anos antes, com o 29 de fevereiro", () => {
   assert.equal(anosAntes("2026-09-23", 30), "1996-09-23");
 });
 
-function climaSintetico(dataFinal, vhiFinal) {
+function climaSintetico(dataFinal, vhiFinal, versoesRoni = []) {
   const linhas = [];
   for (let k = 30; k >= 1; k -= 1) {
     const data = anosAntes(dataFinal, k);
@@ -238,7 +238,7 @@ function climaSintetico(dataFinal, vhiFinal) {
   }
   for (const uf of ["MG", "SP", "ES", "BA"]) linhas.push(v(`NOAA_VH.CAFE.BR_${uf}.VHI`, dataFinal, `${dataFinal}T23:00:00Z`, vhiFinal, true));
   const conab = ["MG", "SP", "ES", "BA"].map((uf, i) => v(`CONAB.CAFE.${uf}.PRODUCAO_ARABICA`, "2026-01-01", "2026-02-05T12:00:00Z", [70, 15, 10, 5][i]));
-  return derivarClimaCafe(linhas, conab).at(-1);
+  return derivarClimaCafe(linhas, conab, { versoesRoni }).at(-1);
 }
 
 test("clima: lavoura bem abaixo da mesma semana dos 30 anos pesa para alta na janela crítica", () => {
@@ -247,6 +247,22 @@ test("clima: lavoura bem abaixo da mesma semana dos 30 anos pesa para alta na ja
   assert.equal(ponto.pesoMgPct, 70);
   assert.equal(ponto.pesosAproximados, false);
   assert.deepEqual([ponto.decisao.direcao, ponto.decisao.intensidade], ["ALTA", "FORTE"]);
+});
+
+test("clima (v2, ADR 0134): o RONI conhecido na semana, com a força do CPC e 3 meses antes, sem mudar a decisão", () => {
+  const RONI = "NOAA_CPC.ENSO.RONI";
+  const versoes = [
+    v(RONI, "2026-04-01", "2026-06-14T23:59:59Z", 0.2, true),
+    v(RONI, "2026-07-01", "2026-09-14T23:59:59Z", 1.36, true),
+    // Publicado depois da semana de 23/09: não é conhecido nela.
+    v(RONI, "2026-08-01", "2026-10-14T23:59:59Z", 1.69, true)
+  ];
+  const ponto = climaSintetico("2026-09-23", 20, versoes);
+  assert.equal(ponto.roni, 1.36);
+  assert.equal(ponto.roniTexto, "jun-ago/2026 (JJA): El Niño moderado; 3 meses antes, +0,20 °C (neutro). Contexto de regime, sem pressão própria.");
+  assert.deepEqual([ponto.decisao.direcao, ponto.decisao.intensidade], ["ALTA", "FORTE"], "a decisão é a do VHI");
+  assert.equal(climaSintetico("2026-09-23", 20).roni, null);
+  assert.deepEqual([faseEnso(0.4), faseEnso(-0.6), faseEnso(1.69), faseEnso(2.16)], ["neutro", "La Niña fraca", "El Niño forte", "El Niño muito forte"]);
 });
 
 test("clima: fora das janelas críticas (dezembro a maio), neutra, com a medida", () => {

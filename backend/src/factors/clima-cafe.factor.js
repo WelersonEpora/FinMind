@@ -31,7 +31,53 @@ const { PARAMETROS_POSICAO, UNIDADE, arredondar, posicaoNoHistorico, parametrosP
 // contagem). Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "clima_cafe_vhi_arabica";
-const FACTOR_VERSION = 1;
+// v2 (2026-10-21): o El Niño e a La Niña (RONI do NOAA CPC) como contexto de regime, fora da conta (análise do café
+// de 2026-10-19, item E6; decisão do usuário, ADR 0134).
+const FACTOR_VERSION = 2;
+const SERIE_RONI = "NOAA_CPC.ENSO.RONI";
+const TRIMESTRES = ["DJF", "JFM", "FMA", "MAM", "AMJ", "MJJ", "JJA", "JAS", "ASO", "SON", "OND", "NDJ"];
+const NOME_TRIMESTRE = ["dez-fev", "jan-mar", "fev-abr", "mar-mai", "abr-jun", "mai-jul", "jun-ago", "jul-set", "ago-out", "set-nov", "out-dez", "nov-jan"];
+
+// A força pela escala do CPC (o valor absoluto do RONI): neutro abaixo de 0,5; fraco, moderado, forte e muito forte a
+// partir de 0,5, 1,0, 1,5 e 2,0.
+function faseEnso(valor) {
+  const forca = Math.abs(valor);
+  if (forca < 0.5) return "neutro";
+  const nome = valor > 0 ? "El Niño" : "La Niña";
+  const feminino = valor < 0;
+  if (forca < 1) return `${nome} ${feminino ? "fraca" : "fraco"}`;
+  if (forca < 1.5) return `${nome} ${feminino ? "moderada" : "moderado"}`;
+  if (forca < 2) return `${nome} forte`;
+  return `${nome} muito forte`;
+}
+
+// O RONI conhecido em `ate` (ISO): o trimestre mais novo publicado até lá, na versão vigente; e o de 3 meses antes.
+function ensoConhecido(versoesRoni, ate) {
+  const vigente = new Map();
+  for (const v of versoesRoni) {
+    if (v.publishedAt > ate) continue;
+    const atual = vigente.get(v.observedAt);
+    if (!atual || v.publishedAt >= atual.publishedAt) vigente.set(v.observedAt, v);
+  }
+  const meses = [...vigente.keys()].sort();
+  if (meses.length === 0) return null;
+  const ultimo = vigente.get(meses.at(-1));
+  const tresAntes = vigente.get(anosAntesMeses(meses.at(-1), 3));
+  const mes = Number(ultimo.observedAt.slice(5, 7));
+  const ano = Number(ultimo.observedAt.slice(0, 4));
+  const texto =
+    `${NOME_TRIMESTRE[mes - 1]}/${ano} (${TRIMESTRES[mes - 1]}): ${faseEnso(ultimo.value)}` +
+    (tresAntes ? `; 3 meses antes, ${faixa.comSinal(tresAntes.value, 2)} °C (${faseEnso(tresAntes.value)})` : "") +
+    ". Contexto de regime, sem pressão própria.";
+  return { roni: ultimo.value, roniTexto: texto };
+}
+
+// "AAAA-MM-01" menos `n` meses.
+function anosAntesMeses(mesIso, n) {
+  const d = new Date(`${mesIso}T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() - n);
+  return d.toISOString().slice(0, 10);
+}
 
 const UFS = ["MG", "SP", "ES", "BA"];
 const SERIES_VHI = Object.fromEntries(UFS.map((uf) => [uf, `NOAA_VH.CAFE.BR_${uf}.VHI`]));
@@ -74,7 +120,10 @@ function pesosAte(versoesConab, ate) {
 }
 
 // Função PURA: as linhas do VHI (obterAsOf) e as versões da Conab (obterVersoesAsOf) -> um ponto por semana.
-function derivarClimaCafe(linhasVhi, versoesConab, { parametros = PARAMETROS_PADRAO } = {}) {
+function derivarClimaCafe(linhasVhi, versoesConab, { parametros = PARAMETROS_PADRAO, versoesRoni = [] } = {}) {
+  const roni = versoesRoni
+    .filter((v) => v.seriesCode === SERIE_RONI)
+    .map((v) => ({ observedAt: v.observedAt, value: v.value, publishedAt: new Date(v.publishedAt).toISOString() }));
   const ufDaSerie = Object.fromEntries(UFS.map((uf) => [SERIES_VHI[uf], uf]));
   const series = Object.fromEntries(UFS.map((uf) => [uf, new Map()]));
   const publicacao = new Map();
@@ -144,6 +193,9 @@ function derivarClimaCafe(linhasVhi, versoesConab, { parametros = PARAMETROS_PAD
       p90Ponderado: ponderar("p90"),
       posicaoRelativa,
       decisao,
+      roni: null,
+      roniTexto: null,
+      ...ensoConhecido(roni, disponivelEm),
       disponivelEm,
       disponivelEmEhEstimado: estimado
     });
@@ -153,11 +205,12 @@ function derivarClimaCafe(linhasVhi, versoesConab, { parametros = PARAMETROS_PAD
 
 async function calcularClimaCafe({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
-  const [linhasVhi, versoesConab] = await Promise.all([
+  const [linhasVhi, versoesConab, versoesRoni] = await Promise.all([
     servico.obterAsOf({ seriesCodes: Object.values(SERIES_VHI), asOf }, deps),
-    servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES_CONAB), asOf }, deps)
+    servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES_CONAB), asOf }, deps),
+    servico.obterVersoesAsOf({ seriesCodes: [SERIE_RONI], asOf }, deps)
   ]);
-  return derivarClimaCafe(linhasVhi, versoesConab, { parametros });
+  return derivarClimaCafe(linhasVhi, versoesConab, { parametros, versoesRoni });
 }
 
 const TEXTOS = {
@@ -207,7 +260,9 @@ const APRESENTACAO = {
     { camada: "A", rotulo: "VHI de Minas Gerais", campo: "vhiMg", casas: 1, secundario: { prefixo: "peso de MG:", campo: "pesoMgPct", casas: 1, sufixo: "%" } },
     { camada: "A", rotulo: "VHI de São Paulo", campo: "vhiSp", casas: 1 },
     { camada: "B", rotulo: "Mediana da mesma semana em 30 anos (ponderada)", campo: "medianaPonderada", casas: 1 },
-    { camada: "B", rotulo: "Posição relativa ponderada (percentil - 50)", campo: "posicaoRelativa", casas: 1, sinal: true, sufixo: "pontos" }
+    { camada: "B", rotulo: "Posição relativa ponderada (percentil - 50)", campo: "posicaoRelativa", casas: 1, sinal: true, sufixo: "pontos" },
+    // ADR 0134: o regime, fora da conta.
+    { camada: "B", rotulo: "El Niño / La Niña (RONI do NOAA CPC, contexto)", campo: "roni", casas: 2, sinal: true, unidadeValor: " °C", detalhe: "roniTexto" }
   ],
   graficoAB: {
     titulo: "VHI ponderado pelo arábica (A) × a faixa da mesma semana em 30 anos (B)",
@@ -242,4 +297,4 @@ const METODOLOGIA = {
   apresentacao: APRESENTACAO
 };
 
-module.exports = { FACTOR_ID, FACTOR_VERSION, PARAMETROS_PADRAO, METODOLOGIA, derivarClimaCafe, anosAntes };
+module.exports = { FACTOR_ID, FACTOR_VERSION, PARAMETROS_PADRAO, SERIE_RONI, METODOLOGIA, derivarClimaCafe, anosAntes, faseEnso };

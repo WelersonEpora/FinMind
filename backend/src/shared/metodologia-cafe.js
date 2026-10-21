@@ -51,15 +51,17 @@ const DEFINICOES = [
       fonte: "Conab, USDA, Somar Meteorologia"
     },
     dados: {
-      observaveis: ["NOAA_VH_CAFE", "CONAB_CAFE"],
+      observaveis: ["NOAA_VH_CAFE", "CONAB_CAFE", "NOAA_CPC_ENSO"],
       eventos: false,
       avaliacao: {
         suficiente: false,
         texto:
-          "Basta para a saúde da vegetação, não para a regra inteira: o VHI da NOAA sobre o café é semanal desde 1982, por UF, e os episódios aparecem (a seca de set/2024, posição de -48 pontos, pressão de alta forte; a seca de jan-fev/2014, -44 pontos). As variáveis que o estudo pede (chuva quinzenal, temperatura mínima, horas de frio, balanço hídrico) são do INMET, que não é coletado. A geada não aparece no VHI na semana em que acontece (jul/2021: -24 pontos): ela vem da leitura diária de eventos. A seca de 2014 cai fora das janelas críticas do estudo (junho a novembro) e fica neutra."
+          "Basta para a saúde da vegetação, não para a regra inteira: o VHI da NOAA sobre o café é semanal desde 1982, por UF, e os episódios aparecem (a seca de set/2024, posição de -48 pontos, pressão de alta forte; a seca de jan-fev/2014, -44 pontos). As variáveis que o estudo pede (chuva quinzenal, temperatura mínima, horas de frio, balanço hídrico) são do INMET, que não é coletado. A geada não aparece no VHI na semana em que acontece (jul/2021: -24 pontos): ela vem da leitura diária de eventos. A seca de 2014 cai fora das janelas críticas do estudo (junho a novembro) e fica neutra. O El Niño e a La Niña (RONI do NOAA CPC, desde 1950) vão como contexto de regime, fora da conta (ADR 0134): no KC de Nova York (2000 a 2026), com o RONI em +1,0 ou mais (moderado ou mais forte), o preço subiu em 120 pregões em 78% dos dias (+14,7% em média), contra 53% no neutro e 40% na La Niña; são cerca de 5 episódios (2002-03, 2009-10, 2015-16, 2023-24, 2026). Na análise do café de 2026-10-19 (item E6), a chuva de 30 dias da NASA POWER (4 pontos do café, 1991 a 2026) não confirmou a regra por janela: na florada, a chuvosa foi seguida de alta mais vezes que a seca (67% contra 39% em 20 pregões); na colheita, a seca mais que a chuvosa. A NASA POWER também não viu a geada de jul/2021 (a grade de ~50 km suaviza a mínima)."
       },
       lacunas: [
         "INMET (chuva, temperatura mínima, duração do frio, ponto de orvalho, balanço hídrico): fonte nova, pedida pelo estudo; depois da v1 (ADR 0083).",
+        "Chuva e temperatura mínima pela NASA POWER: testadas na análise do café de 2026-10-19 (ADR 0134), não coletadas; a regra por janela não se confirmou e a geada não aparece na grade.",
+        "A previsão probabilística do El Niño (CPC) só existe em figura: a mudança relevante dela entra pela leitura diária de eventos (ADR 0130).",
         "O Paraná não tem região de café na NOAA: fica fora da ponderação (cerca de 1,5% do arábica em 2026).",
         "Os pesos por UF vêm da Conab desde jan/2023; antes, a aproximação pelos pesos do 1º levantamento na base."
       ]
@@ -75,8 +77,14 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Regularidade de precipitação dentro ou moderadamente acima das médias históricas, associada à ausência de alertas de estresse térmico durante as fases de floração e pegamento da safra brasileira. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [],
+    // A análise do café de 2026-10-19, item E6 (ADR 0134): o que segue com o Comitê.
+    perguntas: [
+      "El Niño com pressão própria (E6): o RONI forte (hoje +1,69) deve pesar para alta no café, e em quais horizontes? No KC (2000 a 2026), com o RONI em +1,0 ou mais, o preço subiu em 120 pregões em 78% dos dias, mas são cerca de 5 episódios. Hoje é só contexto.",
+      "Chuva por janela (E6): a regra do documento (florada seca = alta; colheita chuvosa = alta) não se confirmou na chuva da NASA POWER (o sentido saiu o oposto, com poucos anos). Manter o VHI como está, coletar a chuva só como contexto ou testar outra regra?",
+      "Peso do VHI (E6): o documento pede peso menor. O F1 continua com a pressão do VHI nas janelas críticas; reduzir, e como, sem pesos numéricos no prompt (a §3 do documento)?"
+    ],
     decisoes: [
+      "El Niño como contexto (usuário, 2026-10-21, ADR 0134; análise do café de 2026-10-19, item E6): o RONI do NOAA CPC conhecido em cada semana vai ao F1 (v2) com a força pela escala do CPC e o valor de 3 meses antes, sem pressão própria; a decisão do F1 continua a do VHI.",
       "Medida da v1 (usuário, 2026-10-06, ADR 0083): o VHI da NOAA sobre a área de arábica, sem o INMET; a geada vem da leitura diária de eventos.",
       "Janelas críticas (usuário, 2026-10-06, ADR 0083): ficam as do estudo, junho a novembro; o enchimento (dezembro a março) não entra. No preço do arábica do FMI (2002 a 2026), a pressão de alta de junho a novembro foi seguida de alta em 3 meses em 78% das semanas (56% em todas as semanas da janela); a de dezembro a março, em 44% (46% em todas): não acrescenta. A seca de verão, como a de 2014, quando o preço subiu durante a seca, chega pelos eventos.",
       "INMET (usuário, 2026-10-06, ADR 0083): fica para depois da v1, como os fatores ausentes do milho (ADR 0080); volta com uma demanda e uma autorização próprias, e o índice (geada ou balanço hídrico) se decide então."
