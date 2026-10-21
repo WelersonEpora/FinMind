@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { SITUACAO, montarFatores, montarMetodologia } = require("./metodologia-base");
+const { SITUACAO, montarFatores, montarMetodologia, textoPeso } = require("./metodologia-base");
 const { obterMetodologiaPetroleo } = require("./metodologia-petroleo");
 const { obterMetodologiaOuro } = require("./metodologia-ouro");
 
@@ -131,4 +131,18 @@ test("ajustes ao FEL 1: partem do texto original (do fel1 ou, no peso, do catál
   assert.throws(() => montarFatores("OURO", [comAjustes([{ campo: "Fonte", noFel1: "LBMA", ajuste: "y", origem: "z" }])]), /não parte do texto/);
   assert.throws(() => montarFatores("OURO", [comAjustes([{ campo: "Peso", noFel1: "Médio", ajuste: "y", origem: "z" }])]), /não parte do texto/);
   assert.throws(() => montarFatores("OURO", [comAjustes([{ campo: "Fonte", noFel1: "FRED", ajuste: "y" }])]), /origem/);
+});
+
+test("ajuste de peso que vai ao prompt (ADR 0136): vira o peso do fator, com o do FEL 1 e quem decidiu; só um peso conhecido", () => {
+  const comAjuste = (ajuste) => ({ ...definicao("OURO_DOLAR"), ajustesFel1: [{ campo: "Peso", noFel1: "Alto", origem: "Usuário, ADR X", ...ajuste }] });
+  const [ajustado] = montarFatores("OURO", [comAjuste({ ajuste: "Baixo", noPrompt: "pelo usuário" })]);
+  assert.equal(ajustado.peso, "Baixo");
+  assert.deepEqual(ajustado.pesoAjustado, { noFel1: "Alto", decididoPor: "pelo usuário" });
+  assert.equal(textoPeso(ajustado), "peso Baixo, decidido pelo usuário; Alto no FEL 1");
+  // Sem `noPrompt`, o ajuste fica só na tela (o milho).
+  const [soNaTela] = montarFatores("OURO", [comAjuste({ ajuste: "Baixo" })]);
+  assert.equal(soNaTela.peso, "Alto");
+  assert.equal(soNaTela.pesoAjustado, null);
+  assert.equal(textoPeso(soNaTela), "peso Alto");
+  assert.throws(() => montarFatores("OURO", [comAjuste({ ajuste: "Mínimo", noPrompt: "pelo usuário" })]), /só um peso conhecido/);
 });

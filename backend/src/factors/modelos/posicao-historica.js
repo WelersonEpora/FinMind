@@ -60,7 +60,8 @@ const ROTULOS_DECISAO_BASE = faixa.ROTULOS;
 //   semanasJanela, minimo   o histórico de comparação (as semanas anteriores com medida) e o mínimo delas
 //   acimaPressiona          o lado que a medida alta (percentil alto) pressiona
 //   textos                  { primeiroPasso(ponto), abaixo, acima, subindo, caindo, rotulosTendencia }
-//   apresentacao            { quadrosA, rotuloMedida, unidadeMedida, casasMedida, tituloAB, nota }
+//   apresentacao            { quadrosA, quadrosB (opcional: os de contexto, depois do percentil), rotuloMedida,
+//                             unidadeMedida, casasMedida, tituloAB, nota }
 //   episodios, cenarios, parametrosPadrao (padrão: PARAMETROS_POSICAO)
 function criarFatorPosicaoSemanal(config) {
   const { factorId, factorVersion, carregar, medir, semanasJanela, minimo, acimaPressiona, episodios, cenarios } = config;
@@ -125,7 +126,8 @@ function criarFatorPosicaoSemanal(config) {
     quadros: [
       ...a.quadrosA,
       { camada: "B", rotulo: `Percentil nos ${janela} anteriores`, campo: "percentilJanela", casas: 1, sufixo: "0 = o menor, 100 = o maior" },
-      { camada: "B", rotulo: "Posição relativa (percentil - 50)", campo: "posicaoRelativa", casas: 1, sinal: true, sufixo: "pontos" }
+      { camada: "B", rotulo: "Posição relativa (percentil - 50)", campo: "posicaoRelativa", casas: 1, sinal: true, sufixo: "pontos" },
+      ...(a.quadrosB || [])
     ],
     graficoAB: {
       titulo: `${a.tituloAB} (A) × a faixa dos ${janela} anteriores (B)`,

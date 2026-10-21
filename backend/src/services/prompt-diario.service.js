@@ -5,6 +5,7 @@ const { carregarPrompt } = require("../ai/carregar-prompt");
 const { configuracaoDoAtivo } = require("../shared/analise-diaria");
 const { REFERENCIA_HORIZONTES, dataAlvoDoHorizonte } = require("../shared/analise-diaria-base");
 const metodologiaAtivoService = require("./metodologia-ativo.service");
+const { textoPeso } = require("../shared/metodologia-base");
 const centroDecisaoService = require("./centro-decisao.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
 
@@ -211,7 +212,7 @@ function situacaoDoFator(fator, dataAnalise) {
 
 // Um fator de CONTEXTO (metodologia-base.js, `contextoDe`) diz de qual fator é contexto; um SÓ DE INFORMAÇÃO
 // (`informativo`) diz isso: nenhum dos dois tem leitura própria. Uma REGRA (a soja, ADR 0116) não tem peso.
-const pesoNaCobertura = (f) => (f.regra ? `regra ${f.regra.sigla}, sem peso` : `peso ${f.peso}`);
+const pesoNaCobertura = (f) => (f.regra ? `regra ${f.regra.sigla}, sem peso` : textoPeso(f));
 function blocoCobertura(fatores, dataAnalise) {
   return fatores
     .map(
@@ -436,6 +437,7 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
       fator: f.codigo,
       tipo: f.tipo,
       peso: f.peso,
+      ...(f.pesoAjustado ? { pesoAjustado: f.pesoAjustado } : {}),
       tipoFel1: f.tipoFel1,
       situacaoRegra: f.situacaoRegra,
       ...(f.contextoDe ? { contextoDe: f.contextoDe } : {}),

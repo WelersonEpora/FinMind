@@ -1,9 +1,11 @@
 "use strict";
 
+const pointInTimeService = require("../services/point-in-time.service");
 const { lerPtax } = require("./base/ptax");
+const { LIBRAS_POR_SACA_CENTAVOS } = require("./basis-icf-kc");
 const faixa = require("./base/decisao-por-faixa");
-const { sextaDaSemana } = require("./base/semana-de-dias");
-const { criarFatorPosicaoSemanal, arredondar } = require("./modelos/posicao-historica");
+const { sextaDaSemana, somarDias } = require("./base/semana-de-dias");
+const { criarFatorPosicaoSemanal, arredondar, posicaoNoHistorico } = require("./modelos/posicao-historica");
 
 // FATOR (PROPOSTA, ADR 0060): câmbio, fator "Dólar (USDBRL)" do FEL 1 para o café, como o F4 do Motor do Café v1
 // (2026-10-04): o câmbio como incentivo à comercialização do produtor brasileiro. Camadas A e B calculadas, C simulada.
@@ -22,21 +24,55 @@ const { criarFatorPosicaoSemanal, arredondar } = require("./modelos/posicao-hist
 // da regra de baixa de o preço em reais estar em patamar recorde no pico da safra. O estudo pede não tratar o efeito
 // como causal e mecânico: o repasse depende da retenção do produtor e da base física. O ICF é cotado em dólar: o efeito
 // é sobre o fluxo de venda, não uma conversão. Propriedades: determinístico, versionado, point-in-time, sem IA.
+//
+// v2 (ADR 0136, análise do café de 2026-10-19, item E8): o café de Nova York em reais (o KC contínuo do Yahoo x a
+// PTAX, em R$/saca) e o percentil dele nas 260 semanas anteriores, como contexto (o "preço real" possível sem o Cepea do
+// arábica, que não tem fonte automatizável). O fator vai ao prompt como INFORMAÇÃO (metodologia-cafe.js): a regra
+// acima continua calculada e na tela, mas sem pressão no prompt.
 
 const FACTOR_ID = "dolar_cafe_ptax_10_pregoes";
-const FACTOR_VERSION = 1;
+const FACTOR_VERSION = 2;
 
 const PREGOES = 10;
 const INICIO = "2005-01-01";
+const SERIE_KC = "YAHOO.KC_CONTINUO.SETTLE";
+// O histórico do preço em reais: as mesmas 260 semanas (5 anos) da regra, com o mínimo de 200.
+const SEMANAS_PRECO = 260;
+const MINIMO_PRECO = 200;
 
-// A PTAX de venda até o dia de `asOf` (sai à tarde do próprio dia; o market_quote não guarda a publicação).
-function carregar(asOf, deps = {}) {
-  return lerPtax({ desde: INICIO, asOf }, deps);
+// A PTAX de venda até o dia de `asOf` (sai à tarde do próprio dia; o market_quote não guarda a publicação) e o KC
+// contínuo conhecido em `asOf` (point-in-time).
+async function carregar(asOf, deps = {}) {
+  const obterAsOf = deps.obterAsOf || pointInTimeService.obterAsOf;
+  const [ptax, kc] = await Promise.all([
+    lerPtax({ desde: INICIO, asOf }, deps),
+    obterAsOf({ seriesCodes: [SERIE_KC], asOf, observadoDesde: INICIO }, deps)
+  ]);
+  return { ptax, kc: kc.map((l) => ({ data: String(l.observedAt).slice(0, 10), valor: l.value })) };
 }
 
 // Função PURA: a PTAX diária ({ data, valor }) -> um registro por semana (o último dia útil), com a variação contra 10
-// pregões antes.
-function medirDolar(ptax) {
+// pregões antes. Com o KC (`kc`, { data, valor } em US¢/lb), o café em reais no último pregão de Nova York até esse
+// dia (R$/saca) e o percentil dele nas semanas anteriores (contexto, ADR 0136).
+function medirDolar(ptax, kc = []) {
+  const semanas = medirPtax(ptax);
+  const kcOrdenado = [...kc].sort((a, b) => (a.data < b.data ? -1 : 1));
+  const precos = [];
+  let k = -1;
+  for (const semana of semanas) {
+    while (k + 1 < kcOrdenado.length && kcOrdenado[k + 1].data <= semana.ultimoDia) k += 1;
+    // Um KC de mais de uma semana antes (o Yahoo sem dado) não vale como o preço da semana.
+    const kcDia = k >= 0 && somarDias(kcOrdenado[k].data, 7) >= semana.ultimoDia ? kcOrdenado[k] : null;
+    const preco = kcDia ? arredondar(kcDia.valor * LIBRAS_POR_SACA_CENTAVOS * semana.dolar, 2) : null;
+    semana.kcData = kcDia ? kcDia.data : null;
+    semana.kcReais = preco;
+    semana.percentilKcReais = preco === null ? null : posicaoNoHistorico(preco, precos.slice(-SEMANAS_PRECO), MINIMO_PRECO).percentil;
+    if (preco !== null) precos.push(preco);
+  }
+  return semanas;
+}
+
+function medirPtax(ptax) {
   const ordenada = [...ptax].sort((a, b) => (a.data < b.data ? -1 : 1));
   const porSemana = new Map();
   ordenada.forEach((dia, i) => porSemana.set(sextaDaSemana(dia.data), { dia, i }));
@@ -60,7 +96,7 @@ const fator = criarFatorPosicaoSemanal({
   factorId: FACTOR_ID,
   factorVersion: FACTOR_VERSION,
   carregar,
-  medir: medirDolar,
+  medir: (entradas) => medirDolar(entradas.ptax, entradas.kc),
   semanasJanela: 260,
   minimo: 200,
   acimaPressiona: faixa.DIRECAO.BAIXA,
@@ -77,7 +113,11 @@ const fator = criarFatorPosicaoSemanal({
   apresentacao: {
     quadrosA: [
       { camada: "A", rotulo: "Dólar (PTAX de venda)", campo: "dolar", casas: 4, sufixo: "R$/US$" },
-      { camada: "A", rotulo: "Variação em 10 pregões", campo: "medida", casas: 2, sinal: true, unidadeValor: "%" }
+      { camada: "A", rotulo: "Variação em 10 pregões", campo: "medida", casas: 2, sinal: true, unidadeValor: "%" },
+      { camada: "A", rotulo: "Café de Nova York em reais (KC × PTAX, contexto)", campo: "kcReais", casas: 0, sufixo: "R$/saca" }
+    ],
+    quadrosB: [
+      { camada: "B", rotulo: "Preço em reais: percentil nos 5 anos anteriores (contexto)", campo: "percentilKcReais", casas: 1, sufixo: "0 = o menor, 100 = o maior" }
     ],
     rotuloMedida: "Variação em 10 pregões",
     unidadeMedida: "%",
@@ -85,7 +125,8 @@ const fator = criarFatorPosicaoSemanal({
     tituloAB: "Variação da PTAX em 10 pregões",
     nota:
       "Semanal, não é tempo real: a PTAX de venda do último dia útil da semana (BCB). O ICF é cotado em dólar: o câmbio " +
-      "age pelo incentivo do produtor a vender, não por conversão do preço."
+      "age pelo incentivo do produtor a vender, não por conversão do preço. O café em reais é o KC de Nova York (Yahoo, " +
+      "fonte não oficial) do último pregão até esse dia, convertido pela PTAX, sem o diferencial do físico."
   },
   episodios: [
     { data: "2020-03-13", rotulo: "Pandemia: o real despenca" },

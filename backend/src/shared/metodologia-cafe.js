@@ -190,16 +190,29 @@ const DEFINICOES = [
       mecanismo: "Café é commodity cotada em US$; câmbio afeta receita do produtor e preço local",
       fonte: "Cepea, BCB"
     },
+    // Só informação no prompt, com o peso Baixo (ADR 0136): no KC diário, a pressão não separou o preço.
+    informativo: true,
+    papelDecididoPor: "do usuário",
+    ajustesFel1: [
+      {
+        campo: "Peso",
+        noFel1: "Médio",
+        ajuste: "Baixo",
+        noPrompt: "pelo usuário",
+        origem: "O usuário, em 2026-10-21, pela análise do café de 2026-10-19 (item E8), com o mesmo poder de decisão do David (ADR 0136)."
+      }
+    ],
     dados: {
-      observaveis: ["USD_BRL", "CAFE_CECAFE_EMBARQUES"],
+      observaveis: ["USD_BRL", "KC_FUTURO_CONTINUO", "CAFE_CECAFE_EMBARQUES"],
       eventos: false,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para a medida da regra: a PTAX de venda (BCB) está na base desde o Plano Real (P01 do estudo já atendida). O ritmo de comercialização das cooperativas, que o estudo usa na leitura, não tem fonte estruturada; os embarques do Cecafé são o mais próximo, por mês. Validação histórica (ADR 0086), de 2005 a 2026 contra o preço mensal do arábica do FMI: o fator não separa o preço. Depois da pressão de baixa, o preço caiu em 1 mês em 52% das semanas (48% em todas) e em 3 meses em 51% (53% em todas); depois da de alta, subiu em 3 meses em 47% (47% em todas). O teste é grosseiro para um fluxo de 10 pregões (o preço do FMI é a média do mês): não dê ao câmbio mais peso do que isso sustenta."
+          "Suficiente para a medida da regra: a PTAX de venda (BCB) está na base desde o Plano Real (P01 do estudo já atendida). O ritmo de comercialização das cooperativas, que o estudo usa na leitura, não tem fonte estruturada; os embarques do Cecafé são o mais próximo, por mês. Validação histórica (ADR 0086), de 2005 a 2026 contra o preço mensal do arábica do FMI: o fator não separa o preço. Depois da pressão de baixa, o preço caiu em 1 mês em 52% das semanas (48% em todas) e em 3 meses em 51% (53% em todas); depois da de alta, subiu em 3 meses em 47% (47% em todas). Refeito com o KC diário de Nova York (ADR 0136, 2008 a 2026, 933 semanas): depois da pressão de alta, o KC subiu em 20 pregões em 50% das semanas; depois da de baixa, em 48%; em todas, 50%. Os períodos se contradizem: de 2008 a 2015, a alta foi seguida de queda (subiu em 40%); de 2016 a 2026, as duas pressões foram seguidas de alta (56% e 52%). Por isso o fator vai ao prompt como informação, com o peso Baixo. O café em reais (KC × PTAX) no percentil de 5 anos também não sustenta regra: abaixo do p20, +20% em 120 pregões (77% de alta), mas em 3 episódios só (2013 e 2018-19); acima do p80, o sinal se inverte entre os períodos (subiu em 60 pregões em 42% de 2004 a 2015 e em 59% de 2016 a 2026). Vai como contexto."
       },
       lacunas: [
         "O ritmo de comercialização física do produtor (cooperativas) não é coletado.",
+        "O preço físico do arábica (Indicador CEPEA/ESALQ) não tem fonte automatizável (o site bloqueia automação; o arquivo `Indic` da B3 não traz o café, ADR 0028): o preço em reais é o KC de Nova York convertido pela PTAX, sem o diferencial do físico.",
         "A condição da regra de baixa (preço em reais em patamar recorde no pico da safra) não entra na conta, por decisão (ADR 0086); a PTAX e o preço do ICF já vão ao prompt."
       ]
     },
@@ -214,8 +227,12 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Depreciação intensa do BRL que eleve as cotações em moeda corrente nacional em patamares recordes, destravando fluxos expressivos de fixação por parte de cooperativas e exportadores durante o pico da safra. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    perguntas: [],
+    perguntas: [
+      "Preço físico (análise do café de 2026-10-19, item E8; ao Comitê): a análise pede o arábica do Cepea em reais contra o ICF em reais. O Cepea não tem fonte automatizável; vale buscar outra (a exportação manual do site, ou uma assinatura) para medir o diferencial do físico?",
+      "Regra do preço em reais (item E8; ao Comitê): \"preço em reais caindo em relação ao custo de oportunidade, o produtor segura a oferta\". O percentil do KC em reais não sustentou uma regra (ADR 0136). O Comitê quer uma regra com o custo de produção (o F5) como referência do custo de oportunidade, ou o preço em reais fica só como contexto?"
+    ],
     decisoes: [
+      "Papel e peso (usuário, 2026-10-21, ADR 0136; análise do café de 2026-10-19, item E8): o F4 vai ao prompt como INFORMAÇÃO, sem pressão própria e fora de fatoresAFavor e fatoresContra, com o peso Baixo (Médio no FEL 1). A regra continua calculada e na tela. O café de Nova York em reais (KC × PTAX, R$/saca) e o percentil dele em 5 anos entram como contexto: na semana de 16/10/2026, R$ 1.940 por saca, no percentil 65,8.",
       "Regra de baixa o ano todo (usuário, 2026-10-06, ADR 0086): como na v1. Só no pico da safra (maio a outubro), a pressão de baixa foi seguida de queda do preço em 1 mês em 47% das semanas, contra 49% em todas as semanas do pico: restringir não melhora e corta metade dos sinais.",
       "Preço em reais recorde (usuário, 2026-10-06, ADR 0086): não entra como condição da baixa. Com o arábica do FMI em reais acima do percentil 90 de 5 anos, a pressão de baixa foi seguida de queda em 1 mês em 45% das semanas e em 3 meses em 56%; sem ele, 62% e 53%: o resultado se contradiz. A PTAX e o preço do ICF já vão ao prompt."
     ]

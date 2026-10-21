@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 11
+**Versão:** 12
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -52,6 +52,9 @@ os dois. No teste das três versões (2009 a 2026), nem a reversão nem seguir o
 v11 (2026-10-21, ADR 0133) - análise do café de 2026-10-19, item E5: a demanda (CAFE_DEMANDA, semestral) e o custo
 (CAFE_CUSTO_PRECO_MINIMO) só informam o horizonte LONGO; a demanda conta ali como peso baixo. O bloco de cada um e a
 tabela 2.3 dizem isso, o item 1 também, e a resposta que citar um deles a favor ou contra em outro horizonte é recusada.
+v12 (2026-10-21, ADR 0136) - análise do café de 2026-10-19, item E8: o câmbio (CAFE_DOLAR) vai como INFORMAÇÃO, com o
+peso Baixo (Médio no FEL 1): no KC diário de 2008 a 2026, a pressão dele não separou o preço. O bloco traz o café de
+Nova York em reais e o percentil em 5 anos, como contexto; o item 8 diz como ler.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -118,8 +121,12 @@ Para cada horizonte, separadamente:
 7. Revisão da safra. A revisão da Conab é medida contra o levantamento anterior, sem a expectativa do mercado (que não
    está na BASE): o mercado pode já ter esperado a revisão. Dê a ela menos firmeza direcional do que o tamanho da
    revisão sugere.
-8. Câmbio (CAFE_DOLAR). Mede o incentivo do produtor brasileiro a vender, não um repasse mecânico ao preço: não trate o
-   câmbio como causa direta do preço em dólar. O efeito é maior no pico da colheita e da comercialização.
+8. Câmbio (CAFE_DOLAR). É INFORMAÇÃO, sem voto próprio: não o liste em fatoresAFavor nem em fatoresContra. Mede o
+   incentivo do produtor brasileiro a vender, não um repasse mecânico ao preço: não trate o câmbio como causa direta do
+   preço em dólar. No histórico, a pressão dele não separou o preço (veja a validação histórica do fator). O café em
+   reais, com o percentil em 5 anos, diz se o preço que o produtor recebe está alto ou baixo para ele; use-o para
+   explicar a oferta brasileira (retenção ou venda), não como sinal. O efeito é maior no pico da colheita e da
+   comercialização.
 9. Posicionamento dos fundos (CAFE_FUNDOS, o COT de Nova York). É INFORMAÇÃO, sem voto próprio: não conte o COT como
    mais um voto de alta ou de baixa e não o liste em fatoresAFavor nem em fatoresContra. Leia o percentil nas duas
    janelas: um extremo só na de 3 anos (e não na de 10) pode ser efeito de um recorde recente na janela, não um

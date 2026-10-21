@@ -181,6 +181,10 @@ function linhaDoPeso(fator) {
   if (fator.regra) return `Regra ${fator.regra.sigla}: sem peso e sem direção própria.`;
   // Fora do FEL 1 (a soja, o dólar), o peso é fixo, igual em todos os horizontes (a relevância por horizonte é outra coisa).
   if (fator.origem) return `Peso: ${fator.peso}, fixo, ${pesoDecididoPor(fator)} (${fator.origem}; não é calculado).`;
+  // Um peso do FEL 1 ajustado por quem decide (o câmbio do café, ADR 0136): o novo, com o do FEL 1 ao lado.
+  if (fator.pesoAjustado) {
+    return `Peso: ${fator.peso}, decidido ${fator.pesoAjustado.decididoPor} (${fator.pesoAjustado.noFel1} no FEL 1; não é calculado).`;
+  }
   return `Peso: ${fator.peso}, do especialista (não é calculado).`;
 }
 
@@ -257,6 +261,7 @@ async function calcularFator(ativo, codigoFator, { desde, data, ...opcoes } = {}
       factorVersion: calculo.factorVersion,
       situacao: fator.proposta.situacao,
       peso: fator.peso,
+      pesoAjustado: fator.pesoAjustado,
       // Fora do FEL 1 (a soja, ADR 0116; o dólar, ADR 0126), o peso não é do especialista: diz de quem é.
       pesoDoComite: Boolean(fator.origem),
       pesoDecididoPor: pesoDecididoPor(fator),
@@ -381,6 +386,8 @@ async function simularFatores(ativo, { data } = {}, deps = {}) {
         codigo: fator.codigo,
         nome: fator.nome,
         peso: fator.peso,
+        // O peso do FEL 1 ajustado (ADR 0136): o prompt diz quem decidiu e o original.
+        ...(fator.pesoAjustado ? { pesoAjustado: fator.pesoAjustado } : {}),
         tipoFel1: fator.fel1.tipo,
         situacaoRegra: fator.proposta.situacao,
         observaveis: fator.dados.observaveis,

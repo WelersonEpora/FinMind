@@ -116,6 +116,13 @@ test("fator só de informação (ADR 0094): como o de contexto, sem fator-pai, c
   assert.match(t, /\nC — Papel na análise:\n- INFORMAÇÃO, por decisão do usuário: sem pressão própria; não conta a favor nem contra\.\n- Tendência: Estável\n/);
 });
 
+test("peso do FEL 1 ajustado (ADR 0136): o novo, quem decidiu e o do FEL 1 no título", () => {
+  const fator = { ...FATOR, peso: "Baixo", pesoAjustado: { noFel1: "Médio", decididoPor: "pelo usuário" } };
+  const calculo = { apresentacao: APRESENTACAO, periodicidade: "SEMANAL", parametros: PARAMETROS, origemParametros: null, simulacao: false };
+  const t = montarTextoPrompt({ ativo: "CAFE", fator, calculo, ponto: PONTO });
+  assert.match(t, /^FATOR — Estoques — CAFÉ \(peso Baixo, decidido pelo usuário; Médio no FEL 1\)\n/);
+});
+
 test("leitura que perde força com a idade (ADR 0135): a linha da idade depois da tendência", () => {
   const calculo = { apresentacao: APRESENTACAO, periodicidade: "SEMANAL", parametros: PARAMETROS, origemParametros: null, simulacao: false };
   const ponto = { ...PONTO, decisao: { ...PONTO.decisao, decaimento: "publicada há 27 dias (de 15 a 42): um nível abaixo do levantamento" } };

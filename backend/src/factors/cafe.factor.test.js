@@ -199,6 +199,35 @@ test("câmbio: a variação da PTAX em 10 pregões, no último dia útil da sema
   assert.equal(ultima.dolar10PregoesAntes, 5);
   assert.equal(ultima.medida, 2);
   assert.equal(semanas[0].medida, null);
+  // Sem o KC, sem o preço em reais.
+  assert.equal(ultima.kcReais, null);
+});
+
+test("câmbio v2 (ADR 0136): o KC em reais no último pregão até o fim da semana e o percentil nas semanas anteriores", () => {
+  const ptax = [];
+  const kc = [];
+  let dia = "2020-01-06";
+  // ~5 anos de dias úteis: PTAX fixa em 5; o KC sobe 0,05 US¢/lb por dia.
+  while (ptax.length < 1400) {
+    if (![0, 6].includes(new Date(`${dia}T00:00:00Z`).getUTCDay())) {
+      ptax.push({ data: dia, valor: 5 });
+      kc.push({ data: dia, valor: 100 + kc.length * 0.05 });
+    }
+    dia = somarDias(dia, 1);
+  }
+  const semanas = medirDolar(ptax, kc);
+  const ultima = semanas.at(-1);
+  // US¢/lb x 1,32277 = US$/saca (132,277 lb); x PTAX = R$/saca.
+  const kcUltimo = kc.at(-1).valor;
+  assert.equal(ultima.kcData, kc.at(-1).data);
+  assert.equal(ultima.kcReais, Math.round(kcUltimo * 1.32277 * 5 * 100) / 100);
+  // O preço só sobe: o maior das 260 semanas anteriores.
+  assert.equal(ultima.percentilKcReais, 100);
+  // Antes de 200 semanas com preço, sem percentil.
+  assert.equal(semanas[150].percentilKcReais, null);
+  // Um KC velho (mais de 7 dias antes do fim da semana) não vale.
+  const semKcRecente = medirDolar(ptax, kc.slice(0, 10));
+  assert.equal(semKcRecente.at(-1).kcReais, null);
 });
 
 // --- F5 custos --------------------------------------------------------------------------------------------------

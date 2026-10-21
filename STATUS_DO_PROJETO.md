@@ -20,7 +20,7 @@ Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind in
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
 fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E7); o resto é a
+serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E8); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -34,7 +34,7 @@ análise para decidirmos juntos.
 | E5 | Nada a decidir agora: a demanda (F6) e o custo (F5) só informam o horizonte LONGO, com a validação da resposta (ADR 0133). A regra "dado insuficiente não vota" fica para a §6 do documento |
 | E6 | Decidir se o El Niño forte (hoje no F1 como contexto, ADR 0134) deve ter pressão de alta; o que fazer com a chuva por janela, que o teste não confirmou; e o peso do VHI. Já implementado: o RONI do NOAA CPC coletado e no F1, sem pressão |
 | E7 | Confirmar os prazos do decaimento (14 e 42 dias) e decidir como medir a surpresa contra o mercado. Já implementado: a revisão da Conab perde força com a idade (ADR 0135) |
-| E8 | Peso Baixo para o câmbio e juntar o F4 com o F5 num fator de incentivo do produtor |
+| E8 | Decidir se buscamos uma fonte para o preço físico do arábica (o Cepea) e se o preço em reais ganha uma regra, com o custo (o F5) como referência, juntando o F4 e o F5. Já implementado: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
 | E9 | A data de publicação estimada do custo da Conab e o mesmo "juntar com o F4" |
 | E10 | Incluir o momentum (o sistema passa a seguir tendência, não só fundamentos), a oferta colombiana como dado (a Federação de Cafeteiros já entrou como fonte de eventos, ADR 0130) e decidir se o basis (já calculado, como informação) vira fator |
 | E11 | Contrato por horizonte ou série contínua ajustada para todos |
@@ -489,7 +489,35 @@ o preço (52% contra 48%). O indicador do café do Cepea não está na base.
 | Juntar o F4 e o F5 num fator de incentivo do produtor (ICF em R$ contra o custo) | Médio |
 | Indicador do Cepea | Depois |
 
-**O que precisamos do Comitê:** o peso Baixo e a junção do F4 com o F5.
+**O teste (2026-10-21; o KC de Nova York, diário, a partir do pregão seguinte à semana; detalhe no ADR 0136):**
+
+| Pressão do F4 (2008 a 2026) | KC subiu em 20 pregões | De 2008 a 2015 | De 2016 a 2026 |
+|---|---|---|---|
+| Alta | 50% das semanas | 40% | 56% |
+| Baixa | 48% | 44% | 52% |
+| Todas | 50% | 46% | 52% |
+
+- O F4 não separa o preço, e os períodos se contradizem: confirma o ADR 0086 com um preço diário. **O caso atual:** a
+  PTAX caiu 3,9% em 10 pregões, e o F4 ia à IA como "alta forte".
+- **O café em reais** (KC × PTAX) no percentil de 5 anos também não sustenta uma regra: abaixo do p20, +20% em 120
+  pregões, mas em 3 episódios só (2013 e 2018-19); acima do p80, o sinal se inverte entre os períodos. Hoje, R$ 1.940 por
+  saca, no percentil 65,8.
+- O Cepea do café segue sem fonte automatizável (o site bloqueia; a B3 não o publica, ADR 0028).
+
+**Implementado (2026-10-21), por decisão do usuário (ADR 0136).**
+
+| Frente | O que foi feito | Onde ver |
+|---|---|---|
+| Papel | O F4 vai ao prompt como informação, sem pressão própria e fora dos fatores a favor e contra (a resposta que o citar é recusada), como o F7 | Metodologia do café, F4; o prompt do café (v12, item 8) |
+| Peso | De Médio para Baixo, no prompt e na tela, com o do FEL 1 ao lado | Metodologia do café, F4 |
+| Preço em reais | O F4 (v2) leva o café de Nova York em reais (KC × PTAX, R$/saca) e o percentil em 5 anos, como contexto | Metodologia do café, F4 (quadros A e B) |
+
+**O que precisamos do Comitê:**
+
+- o preço físico: buscar uma fonte para o Cepea do arábica (exportação manual do site ou assinatura) ou seguir com o KC
+  em reais;
+- a regra do preço em reais: com o custo de produção (o F5) como o custo de oportunidade, o que junta o F4 e o F5 (ver o
+  E9), ou só como contexto, como está.
 
 </details>
 
@@ -1254,6 +1282,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Câmbio do café como informação, com o peso Baixo (E8 da análise do café) | O F4 vai à IA sem pressão própria (ia como "alta forte"), com o peso Baixo (Médio no FEL 1) e, no F4 v2, o café de Nova York em reais e o percentil em 5 anos como contexto. Teste com o KC diário de 2008 a 2026: a pressão não separou o preço (alta 50%, baixa 48%, todas 50%), e os períodos se contradizem; o percentil do café em reais também não sustentou uma regra | §0, E8; ADR 0136 |
 | Revisão da Conab perde força com a idade (E7 da análise do café) | O F2 (v2) mantém a leitura da revisão até 14 dias depois da publicação, um nível abaixo de 15 a 42 dias e neutra depois; o texto do fator diz a idade. A revisão de 24/09 (+5,33%) passou de "baixa forte" a "baixa moderada" e fica neutra a partir de 06/11. Teste dos 11 levantamentos desde 2023: amostra pequena, sem sustentar a força por 3 meses | §0, E7; ADR 0135 |
 | El Niño no clima do café (E6 da análise do café) | Fonte nova autorizada pelo usuário: o RONI e o ONI do NOAA CPC, desde 1950 (coletor `noaa-cpc-enso`, card "El Niño e La Niña"). O F1 (v2) leva o El Niño ao prompt como contexto, sem pressão (hoje +1,69, forte). Teste: o El Niño moderado ou mais forte foi seguido de alta do KC em 120 pregões em 78% dos dias (~5 episódios); a chuva por janela da NASA POWER não se confirmou (o sentido saiu o oposto) e a NASA POWER não viu a geada de 2021: não coletada | §0, E6; ADR 0134 |
 | Demanda e custo só no LONGO (E5 da análise do café) | O F6 (demanda, semestral) e o F5 (custo) só informam o horizonte LONGO: o bloco de cada um no prompt e a tabela 2.3 dizem isso, e a resposta da IA que os citar a favor ou contra em outro horizonte é recusada (mecanismo `soNosHorizontes`; prompt do café v11). Nas leituras de 05 a 21/10, o F6 pressionava para alta: a correção é de lógica, não explica a divergência. Junto, o cabeçalho dos eventos com a meia-vida (E2) | §0, E5; ADR 0133 |

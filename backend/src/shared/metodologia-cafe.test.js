@@ -136,3 +136,11 @@ test("o custo e a demanda só informam o LONGO (ADR 0133); os outros fatores, to
     ["CAFE_DEMANDA", ["LONGO"]]
   ]);
 });
+
+test("câmbio (ADR 0136): informação, com o peso Baixo decidido pelo usuário e o Médio do FEL 1 ao lado", () => {
+  const f4 = obterMetodologiaCafe().fatores.find((f) => f.codigo === "CAFE_DOLAR");
+  assert.equal(f4.informativo, true);
+  assert.equal(f4.papelDecididoPor, "do usuário");
+  assert.equal(f4.peso, "Baixo");
+  assert.deepEqual(f4.pesoAjustado, { noFel1: "Médio", decididoPor: "pelo usuário" });
+});

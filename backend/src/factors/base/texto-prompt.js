@@ -13,6 +13,8 @@
 //   D — Validação histórica: a relação do fator com o preço no histórico (a avaliação do dado do catálogo). Separada
 //       de propósito: contextualiza a qualidade da relação e não entra na leitura atual.
 
+const { textoPeso } = require("../../shared/metodologia-base");
+
 const ROTULO_ATIVO = { PETROLEO: "PETRÓLEO", OURO: "OURO", MILHO: "MILHO", CAFE: "CAFÉ", SOJA: "SOJA", DOLAR: "DÓLAR" };
 
 function numero(valor, casas, agrupar = true) {
@@ -147,7 +149,7 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
   const { apresentacao } = calculo;
   const titulo = fator.regra
     ? `REGRA ${fator.regra.sigla} — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (sem peso)`
-    : `FATOR — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (peso ${fator.peso})`;
+    : `FATOR — ${fator.nome} — ${ROTULO_ATIVO[ativo] || ativo} (${textoPeso(fator)})`;
   const linhas = [titulo, linhaIdentificacao(fator, calculo)];
   if (!ponto) {
     // Numa simulação, o comum é a publicação registrada do dado ser posterior à data (ex.: o histórico do JODI tem a

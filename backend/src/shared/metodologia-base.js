@@ -48,7 +48,9 @@ const { ATIVOS_COM_MEIA_VIDA } = require("./eventos-mercado");
 //   ajustesFel1 - (opcional) o que muda na tabela do FEL 1 sem reescrever o `fel1` (o milho, ADR 0082): cada um
 //              { campo, noFel1, ajuste, origem }; `campo` é um dos de CAMPOS_FEL1, `noFel1` o texto como está (conferido
 //              contra o `fel1` ou, no peso, o catálogo: a tela nunca mostra um "de" que não existe) e `origem` quem
-//              decidiu, quando e o ADR. Só na tela: não vai ao prompt.
+//              decidiu, quando e o ADR. Só na tela: não vai ao prompt. A exceção é o PESO com `noPrompt` (quem decidiu,
+//              ex.: "pelo usuário"): ele passa a ser o peso do fator, no prompt e na tela, com o do FEL 1 ao lado (o
+//              câmbio do café, ADR 0136; no milho, o calendário de pesos é que vai ao prompt).
 //   regra    - (opcional) { sigla, afeta, dimensao, quando }: uma REGRA, e não um fator (a soja, ADR 0116). Calculada
 //              como um fator (o cálculo fica em `factors/`), mas sem peso, sem pressão e fora do catálogo do FEL 1: o
 //              `nome` vem da definição. `sigla` (R1, R2...), `afeta` (os códigos dos fatores do ativo que ela muda, ou
@@ -127,8 +129,25 @@ function montarAjustesFel1(fator, definicao) {
     if (ajuste.noFel1 !== original(fator, definicao.fel1)) {
       throw new Error(`${fator.codigo}: o ajuste de "${ajuste.campo}" não parte do texto do FEL 1: ${ajuste.noFel1}`);
     }
-    return { campo: ajuste.campo, noFel1: ajuste.noFel1, ajuste: ajuste.ajuste, origem: ajuste.origem };
+    if (ajuste.noPrompt && (ajuste.campo !== "Peso" || !PESOS.includes(ajuste.ajuste))) {
+      throw new Error(`${fator.codigo}: só um peso conhecido vai ao prompt (${ajuste.campo}: ${ajuste.ajuste})`);
+    }
+    return { campo: ajuste.campo, noFel1: ajuste.noFel1, ajuste: ajuste.ajuste, origem: ajuste.origem, ...(ajuste.noPrompt ? { noPrompt: ajuste.noPrompt } : {}) };
   });
+}
+
+// O peso que vale para o fator: o do FEL 1 ou, com um ajuste de peso que vai ao prompt, o ajustado, com o do FEL 1 e
+// quem decidiu em `pesoAjustado`.
+function pesoDoFator(fator, ajustes) {
+  const ajuste = ajustes.find((a) => a.campo === "Peso" && a.noPrompt);
+  return ajuste ? { peso: ajuste.ajuste, pesoAjustado: { noFel1: fator.peso, decididoPor: ajuste.noPrompt } } : { peso: fator.peso, pesoAjustado: null };
+}
+
+// O peso como o prompt e a tela o dizem: "peso Médio" ou, ajustado, "peso Baixo, decidido pelo usuário; Médio no FEL 1".
+function textoPeso(fator) {
+  return fator.pesoAjustado
+    ? `peso ${fator.peso}, decidido ${fator.pesoAjustado.decididoPor}; ${fator.pesoAjustado.noFel1} no FEL 1`
+    : `peso ${fator.peso}`;
 }
 
 const DIMENSOES_REGRA = ["APLICABILIDADE", "INTENSIDADE", "INFORMACAO"];
@@ -193,11 +212,12 @@ function montarFatores(ativo, definicoes, validacao = null) {
       throw new Error(`${definicao.codigo}: soNosHorizontes sem os horizontes ou o motivo`);
     }
     if (definicao.janelaEventos && definicao.evento) throw new Error(`${definicao.codigo}: fator de evento não tem janela na seção de eventos da base`);
+    const ajustesFel1 = montarAjustesFel1(fator, definicao);
     return {
       codigo: fator.codigo,
       nome: definicao.nome || fator.nome,
       nomeFel1: fator.nome,
-      peso: fator.peso,
+      ...pesoDoFator(fator, ajustesFel1),
       regra: null,
       // Fora do FEL 1 (a soja): de onde o fator vem (o ADR); null num fator da planilha.
       origem: fator.origem || null,
@@ -206,7 +226,7 @@ function montarFatores(ativo, definicoes, validacao = null) {
       proposta: { ...situacao, ...definicao.proposta },
       perguntas: definicao.perguntas,
       decisoes: definicao.decisoes || [],
-      ajustesFel1: montarAjustesFel1(fator, definicao),
+      ajustesFel1,
       evento: definicao.evento || null,
       janelaEventos: definicao.janelaEventos || null,
       contextoDe: definicao.contextoDe || null,
@@ -401,4 +421,4 @@ function montarMetodologia({ ativo, nome, versao, dataVersao, doAtivo, fatores, 
   };
 }
 
-module.exports = { SITUACAO, VALIDACAO_MOTORES, VALIDACAO_SOJA, VALIDACAO_DOLAR, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, PESO_REGRA, montarFatores, montarMetodologia };
+module.exports = { SITUACAO, VALIDACAO_MOTORES, VALIDACAO_SOJA, VALIDACAO_DOLAR, SITUACAO_AGREGACAO, JANELA_EVENTOS_PADRAO, PESO_REGRA, montarFatores, montarMetodologia, textoPeso };
