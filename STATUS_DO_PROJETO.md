@@ -19,8 +19,8 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 Resposta do FinMind ao documento "ANÁLISE CAFÉ 19out26" (*Por que o FinMind indica baixa e o café está em alta?*).
 O documento aponta 11 erros (E1 a E11) e propõe ajustes nos fatores e nos dados do café. Para cada erro, abaixo:
 a nossa avaliação, o que o FinMind tem hoje, cada pedido com a viabilidade, o resumo com a sugestão e o esforço e, por
-fim, **o que precisamos do Comitê**. As seções 3 a 6 do documento (pesos, teste de inversão, plano e governança) ainda
-serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10; o E11 é uma proposta para sanção); o resto é a
+fim, **o que precisamos do Comitê**. As seções 3 e 4 do documento (pesos e teste de inversão) estão no fim da lista (ADR 0141); a 5 e a 6 (plano e
+governança) ainda serão analisadas. O que já foi implementado está no próprio item, em "Implementado" (até agora, do E1 ao E10; o E11 é uma proposta para sanção); o resto é a
 análise para decidirmos juntos.
 
 **Decisões pedidas ao Comitê, em uma tabela:**
@@ -37,6 +37,7 @@ análise para decidirmos juntos.
 | E8 | Decidir se buscamos uma fonte para o preço físico do arábica (o Cepea) e se o preço em reais ganha uma regra, com o custo (o F5) como referência, juntando o F4 e o F5. Já implementado: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
 | E9 | **Sancionar (ou ajustar) a regra do F5 para o LONGO**, proposta pelo FinMind e calibrada no histórico: alta com o preço abaixo do custo ou até 15% acima dele, baixa com a margem acima de 200% (ADR 0138); e confirmar a data estimada do custo. Já implementado: a data estimada, o F5 como informação e a margem com o KC em reais (ADRs 0137 e 0138) |
 | E10 | Decidir se o momentum ganha uma regra: seguir a tendência não funcionou no café, e os extremos foram seguidos de reversão, o contrário do que o documento supõe; e se o basis (já calculado, como informação) vira fator. Já implementado: o momentum no prompt como informação. Testadas e não adotadas: a sazonalidade e a produção colombiana (ADR 0139) |
+| §3 e §4 | Decidir o que fazer com os fatores de IC indistinguível de zero (pela regra da §4, rebaixar o peso ou desligar) e se o F7, com o IC negativo no LONGO, pede revisão da lógica. Os pesos da §3 foram testados e não criam sinal: não adotados (ADR 0141) |
 | E11 | **Sancionar (ou ajustar) a série contínua ajustada do ICF em todos os horizontes**, proposta pelo FinMind com a medição no histórico: hoje, de 12% a 20% dos dias são medidos num contrato sem negócio na semana, e em 76% dos dias o LONGO usa outro contrato que o IMEDIATO (ADR 0140). Junto, aprovar a regra de rolagem do E1. Nada muda na leitura até a sanção |
 
 O KC de Nova York pelo Yahoo (fonte não oficial e provisória, como o Brent futuro), necessário para o E1, o E3 e o E10,
@@ -722,6 +723,46 @@ pela regra de hoje (um contrato por horizonte, até o dia 15) e pela série cont
 
 </details>
 
+<details>
+<summary>§3 e §4. Pesos por horizonte e inversão de sinal</summary>
+
+**O que o documento pede:** na §3, pesos por horizonte para 13 fatores (curto, médio e longo, cada um somando 100%), como
+hipóteses para backtest; na §4, o IC de cada fator (Spearman entre o escore e o retorno futuro em 1, 5, 20 e 60 dias),
+em janelas de 12 meses e com bootstrap em blocos, e a regra: IC negativo e estável, revisar a lógica; indistinguível de
+zero, rebaixar o peso ou desligar.
+
+**O teste (2026-10-21; cada fator no histórico inteiro, contra o KC de Nova York; detalhe no ADR 0141):**
+
+| Fator | Desde | 1 pregão | 5 | 21 | 62 |
+|---|---|---|---|---|---|
+| F1 Clima | 2002 | −0,06 | 0,00 | +0,01 | +0,10 |
+| F4 Câmbio | 2008 | −0,06 | −0,01 | −0,02 | −0,01 |
+| F5 Custo (a regra proposta) | 2004 | −0,04 | 0,00 | +0,03 | +0,14 |
+| F7 Fundos | 2009 | −0,01 | −0,02 | −0,07 | **−0,14** (o único com o intervalo excluindo o zero) |
+| F8 Juros | 2000 | +0,02 | +0,02 | 0,00 | +0,01 |
+| Momentum (seguir a tendência) | 2000 | +0,02 | −0,02 | −0,05 | +0,01 |
+
+- Sem histórico para o IC: o F2 (11 levantamentos), o F3 (o diário da ICE só está no servidor; o E3 deu a regra
+  invertida em 2022 a 2026) e o F6 (2 pontos).
+- **Os pesos da §3 não criam sinal:** sobre os fatores que votam, o composto tem IC de 0,00 no curto, +0,01 no médio e
+  +0,06 no longo, e acerta o lado em 47% a 50% das semanas. Os pesos não criam sinal que os fatores não têm; a agregação
+  com pesos do ADR 0066 já não tinha superado o "sempre lateral".
+- **Inversão:** só o F7 no LONGO (o fluxo dos fundos tende a continuar, não a reverter), e de forma instável; ele já é só
+  informação (E4). Os demais têm IC indistinguível de zero; o F1 e o F5 no LONGO ficam perto de um sinal positivo, sem
+  significância.
+
+**Decidido pelo usuário (2026-10-21, ADR 0141):** os pesos da §3 não são adotados (a IA segue combinando os fatores pelo
+prompt, com os papéis do E3 ao E10). O IC fica registrado e é refeito pelo comando `npm run ic:cafe`, a revisão mensal da
+§6 (no servidor, mede também o F3).
+
+**O que precisamos do Comitê:**
+
+- os fatores de IC indistinguível de zero: rebaixar o peso ou desligar, como a §4 manda, ou manter enquanto o histórico
+  é curto;
+- o F7 no LONGO: revisar a lógica (o fluxo continua, não reverte) ou deixar como está, sem voto.
+
+</details>
+
 </details>
 
 <details>
@@ -1390,6 +1431,7 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| Pesos e IC dos fatores do café (§3 e §4 da análise do café) | Os pesos por horizonte do documento, testados sobre os fatores que votam, não criam sinal (IC de 0,00 a +0,06; acerto do lado de 47% a 50%): não adotados. O IC de cada fator contra o KC: indistinguível de zero na maioria; só o F7 no LONGO é negativo com significância (já é informação). Comando novo, `npm run ic:cafe`, para a revisão mensal | §0, §3 e §4; ADR 0141 |
 | Série contínua nos horizontes do café proposta para a sanção do Comitê (E11 da análise do café) | Medição de 2022 a 2026: a regra de hoje mede o horizonte num contrato sem negócio na semana em 12% a 20% dos dias, e o LONGO usa outro contrato que o IMEDIATO em 76%; a série contínua muda a faixa do realizado em 8% a 15% dos dias. Proposta registrada, sem mudar a leitura | §0, E11; ADR 0140 |
 | Momentum do café como informação e fatores ausentes testados (E10 da análise do café) | O prompt do café traz o momentum do KC (o retorno de 5, 20 e 60 pregões ÷ a volatilidade), sem voto. Teste de 2000 a 2026: seguir a tendência acertou de 45% a 50%, e os extremos foram seguidos de reversão. A sazonalidade (44% de acerto) e a produção colombiana da Federação de Cafeteiros (sinal oposto ao esperado) foram testadas e não adotadas | §0, E10; ADR 0139 |
 | Regra do F5 proposta para a sanção do Comitê (E9 da análise do café) | O F5 (v3) mede a margem com o KC em reais desde 2004, e a regra por faixa de margem fica calculada na tela como proposta: alta com o preço abaixo do custo (4 semanas) ou até 15% acima; baixa moderada com a margem acima de 200%. No histórico, no LONGO, a alta subiu em 59% das semanas e a baixa em 38% (base 50%). Não está em vigor no prompt: o F5 segue como informação até a sanção | §0, E9; ADR 0138 |
