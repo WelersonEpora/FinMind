@@ -49,12 +49,12 @@ precisamos do Comitê**. As seções 3 a 6 do documento estão no fim da lista.
 | E5 | **Decidido (Comitê, 2026-10-22):** "dado insuficiente não vota" sem exceção. Implementado em 2026-10-23, nos seis ativos (ADR 0142, adendo): o fator sem dado, sem a leitura do motor ou, se de evento, sem leitura diária não vota; no dólar, também o horizonte sem leitura. **Para o Comitê confirmar a nossa leitura:** entendemos o "dado insuficiente" da §6 do documento, não a nossa marca de cobertura (no café, ela tiraria o voto do F1, F2 e F6, e só o F8 votaria, o que anularia o que o Comitê aprovou no E6, E7 e E9). A marca passou a se chamar "cobertura parcial". Já implementado antes: a demanda (F6) e o custo (F5) só no LONGO (ADR 0133) |
 | E6 | **Decidido (Comitê, 2026-10-22):** a pressão do El Niño no LONGO aprovada como proposta, a chuva por janela não adotada e o peso do VHI reduzido. Implementado em 2026-10-23 (ADR 0143, adendo): o F1 (v3) soma, só no LONGO, uma pressão de alta fraca com o RONI publicado de +1,0 ou mais (hoje, +1,69: ligada), ao lado da leitura do VHI; o peso do F1 passa de Alto a Médio (o nível, decisão do usuário). Já implementado antes: o RONI no F1 como contexto (ADR 0134) |
 | E7 | **Decidido (Comitê, 2026-10-22):** o decaimento de 14 e 42 dias aprovado. Feito em 2026-10-23 (ADR 0135, adendo): **a fonte de consenso é o USDA (PSD)**, o arábica do Brasil na mesma safra, já coletado (outra estimativa oficial, não o consenso do mercado, que é pago); a diferença da Conab contra ele vai ao F2 como contexto (hoje, +1,5%). **O ponto de atenção dos 42 dias, medido:** o F2 tem direção em 40% dos dias (força cheia em 15%), o efeito do decaimento aprovado. O F2 deixou de sair como "dado vencido" depois de 42 dias: fica neutro, com a revisão como contexto. Se o Comitê quiser o F2 com voto por mais tempo, a opção está no ADR |
-| E8 | **Decidido (Comitê, 2026-10-22):** o Cepea aprovado como fonte; a regra F4 + F5 só depois de um backtest. Feito em 2026-10-23 (ADR 0146): o Indicador do Café Arábica CEPEA/ESALQ na base, de 1996 em diante, pela planilha exportada à mão e importada na tela do card (funciona igual no servidor), e o diário pela página do Notícias Agrícolas que o republica, com a conferência no código (a busca pela IA, testada, fica de fora). **Falta:** a regra F4 + F5 com o teste pré-registrado. Já implementado antes: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
-| E9 | **Sancionar (ou ajustar) a regra do F5 para o LONGO**, proposta pelo FinMind e calibrada no histórico: alta com o preço abaixo do custo ou até 15% acima dele, baixa com a margem acima de 200% (ADR 0138); e confirmar a data estimada do custo. Já implementado: a data estimada, o F5 como informação e a margem com o KC em reais (ADRs 0137 e 0138) |
-| E10 | Decidir se o momentum ganha uma regra: seguir a tendência não funcionou no café, e os extremos foram seguidos de reversão, o contrário do que o documento supõe; e se o basis (já calculado, como informação) vira fator. Já implementado: o momentum no prompt como informação. Testadas e não adotadas: a sazonalidade e a produção colombiana (ADR 0139) |
+| E8 | **Decidido (Comitê, 2026-10-22):** o Cepea aprovado como fonte; a regra F4 + F5 só depois de um backtest. Feito em 2026-10-23 (ADR 0146): o Indicador do Café Arábica CEPEA/ESALQ na base, de 1996 em diante, pela planilha exportada à mão e importada na tela do card (funciona igual no servidor), e o diário pela página do Notícias Agrícolas que o republica, com a conferência no código (a busca pela IA, testada, fica de fora). O backtest pré-registrado (ADR 0147): a regra do físico abaixo do custo por 4 semanas (R1) **passou** (alta em 66% a 74% das semanas, contra 49% a 54% sem sinal; 5 episódios, os que pesam são 2010, 2013-14 e 2019). **Para o Comitê decidir:** a R1 como a regra do fator F4 + F5, só alta, só no LONGO, com peso Baixo (hoje neutra: a margem física é de +54%), ou como informação. Já implementado antes: o F4 como informação, com o peso Baixo e o café em reais como contexto (ADR 0136) |
+| E9 | **Decidido (Comitê, 2026-10-22):** a regra do F5 só depois de um backtest; a baixa acima de 200% se apoia num episódio só. Feito em 2026-10-23, no mesmo teste pré-registrado do E8 (ADR 0147): **não passou** (a alta, +7 a +9 p.p., abaixo dos 10 pedidos; a baixa, 2 episódios). Recomendação: não adotar; a alta do F5 passaria a ser a R1 do E8. Ainda em aberto: confirmar a data estimada do custo. Já implementado: a data estimada, o F5 como informação e a margem com o KC em reais (ADRs 0137 e 0138) |
+| E10 | **Decidido (Comitê, 2026-10-22):** o momentum não vira regra (segue como informação, ADR 0139, adendo); o basis fica como informação até um teste. Feito em 2026-10-23 (ADR 0148): o desvio (z) do basis e a lista dos desvios acima de 2 desvios padrão a justificar, na tela; o teste de convergência pré-registrado, que só roda com 3 episódios de cada lado (hoje, 2 e 3; deve levar de 1 a 2 anos). Já implementado: o momentum no prompt como informação. Testadas e não adotadas: a sazonalidade e a produção colombiana (ADR 0139) |
 | E11 | **Decidido (Comitê, 2026-10-22):** a série contínua ajustada em todos os horizontes, aprovada. Implementado em 2026-10-23: o ICF-CA é o preço dos quatro horizontes, do realizado e do Centro de Decisão do café, com o contrato do dia ao lado (prompt v16, configuração v8; ADR 0140, adendo) |
-| §3 e §4 | Decidir o que fazer com os fatores de IC indistinguível de zero (pela regra da §4, rebaixar o peso ou desligar) e se o F7, com o IC negativo no LONGO, pede revisão da lógica. Os pesos da §3 foram testados e não criam sinal: não adotados (ADR 0141) |
-| §5 e §6 | Decidir a confirmação obrigatória (é da execução: nas carteiras virtuais, seria uma trava da Cartilha) e a revisão imediata com evento de magnitude 3. Já implementado: o dado vencido e o insuficiente não votam, com o limite da safra em 42 dias (ADR 0142) |
+| §3 e §4 | **Decidido (Comitê, 2026-10-22):** os pesos não adotados; o fator com IC indistinguível de zero rebaixado ou desligado; o F7 com a lógica revista, sem inversão automática. Feito em 2026-10-23 (ADR 0141, adendo): o F8 desligado (informação); o F1 com o peso Baixo e o voto só no LONGO; o F2 e o F6 mantidos (sem histórico para o IC); o F7 lido como risco de posição concentrada, sem sentido (metodologia v21, prompt v20). Com isso, no IMEDIATO, no CURTO e no MEDIO, só o F2 vota no café |
+| §5 e §6 | **Decidido (Comitê, 2026-10-22):** a revisão imediata com evento de magnitude 3 aprovada; a confirmação obrigatória só nas carteiras virtuais, até a validação. Feito em 2026-10-23 (ADR 0149): no café, a entrada vendida das trilhas automáticas é bloqueada (`CONFIRMACAO_OBRIGATORIA`) com o z de 20 pregões do KC positivo e o ICF em backwardation, e o operador é a revisão; a seção "Revisões pendentes" na Metodologia do café, com os eventos aceitos de grau ALTA e o botão Revisado (tabela `revisao_evento`). No servidor, nenhum evento do café foi aceito de 02/10 a 23/10. Já implementado: o dado vencido e o insuficiente não votam, com o limite da safra em 42 dias (ADR 0142) |
 
 O KC de Nova York pelo Yahoo (fonte não oficial e provisória, como o Brent futuro), necessário para o E1, o E3 e o E10,
 foi **autorizado pelo usuário em 2026-10-20** e já é coletado (ADR 0129).
@@ -654,10 +654,27 @@ o preço (52% contra 48%). O indicador do café do Cepea não está na base.
 | A busca pela IA, testada e não adotada | Em 6 buscas do Gemini, os 30 valores bateram ao centavo com a planilha, mas o pregão mais recente nunca veio: a busca lê a cópia da página guardada pelo Google, de um dia antes. A leitura direta traz o dia certo, sem a IA no meio |
 | O que ficou de fora | O conilon (só serviria ao F6, em que a arbitragem não entrou na regra) e o LBMA do ouro (a referência é o GLD; não muda nenhuma decisão) |
 
-**Falta (próximo passo):**
+**O backtest da regra F4 + F5 (2026-10-23, ADR 0147).** Pré-registrado antes de rodar, num teste só para o E8 e o E9
+(o mesmo custo, o mesmo período). A regra do E8 (R1) é a hipótese do estudo, sem limiar ajustado: o físico do Cepea abaixo
+do custo total da Conab por 4 semanas seguidas, sinal de alta. O limite declarado antes: não há período fora da amostra
+no tempo (o custo só vale de 2004 em diante, o mesmo da calibração do F5); o que é novo é o preço.
 
-- **a regra F4 + F5:** definida pelo FinMind, com o critério pré-registrado, testada com o KC em reais e com o Cepea. Até
-  lá, o F4 e o F5 seguem como informação.
+| Regra (alta, 62 pregões) | Preço medido | Com sinal: subiu | Sem sinal | A favor | Episódios | Veredito |
+|---|---|---|---|---|---|---|
+| R1, o Cepea abaixo do custo (E8) | KC | 66% | 49% | +17 p.p. | 5 | **Passa** |
+| R1 (E8) | Cepea | 74% | 54% | +20 p.p. | 5 | **Passa** |
+| F5, o KC em reais (E9) | KC | 59% | 51% | +7 p.p. | 4 | Inconclusivo |
+
+- A R1 fica do mesmo lado nos dois períodos (2004 a 2015 e 2016 a 2026), e o resultado não depende de 2013 (sem ele, a
+  diferença sobe). A fragilidade: os episódios de 2008 e 2009 têm 2 e 3 semanas; os que pesam são 2010, 2013-14 (com a
+  seca de 2014 no meio) e 2019.
+- Hoje, o físico a R$ 1.619,85 contra o custo total de R$ 1.050,74: margem de +54%, R1 neutra. Um sinal pediria uma queda
+  de cerca de 35%.
+
+**O que precisamos do Comitê:**
+
+- **a R1** como a regra do fator F4 + F5 (o incentivo do produtor): só alta, só no LONGO, com peso Baixo, com a sombra
+  acompanhando (1ª avaliação em 2027-04-23); ou seguir como informação. Adotá-la não muda a leitura de hoje.
 
 </details>
 
@@ -740,6 +757,14 @@ Como ler:
 - confirmar a data estimada (12 meses) ou acompanhar a data real das próximas publicações da Conab;
 - a junção com o F4 (ver o E8).
 
+**Decisão do Comitê (2026-10-22):** a regra aprovada só depois de um backtest; "a regra de venda com a margem acima de 200%
+se apoia num único episódio".
+
+**O backtest (2026-10-23, ADR 0147, no mesmo teste do E8):** a regra acima **não passou**. A alta subiu em 59% das semanas,
+contra 51% sem sinal (+7 p.p., abaixo dos 10 pedidos): a "alta fraca" (margem até 15%) dilui o sinal. A baixa ficou do
+lado certo (+13 p.p.), mas com 2 episódios (2021 e 2024), o que confirma o que o Comitê disse. **Recomendação:** não
+adotar; a alta do F5 passa a ser a R1 do E8, e a baixa fica fora até haver episódios.
+
 </details>
 
 <details>
@@ -797,6 +822,17 @@ Ordem natural: série contínua (E1) → KC do Yahoo → Federação de Cafeteir
 - o momentum: ficar como informação ou ganhar uma regra. Se ganhar, o histórico do café aponta para a reversão nos
   extremos, não para seguir a tendência que o documento propõe;
 - se o basis B3 × Nova York vira fator (hoje, informação na tela).
+
+**Decisão do Comitê (2026-10-22):** "E10: o momentum não é adotado como regra; o basis fica como informação até ser
+testado."
+
+**Feito (2026-10-23), por decisão do usuário (ADR 0148):**
+
+| Frente | O que foi feito |
+|---|---|
+| Momentum | Nada muda: segue no prompt como informação, sem voto (ADR 0139, adendo) |
+| O desvio do basis | O z do basis contra todo o histórico anterior e a lista dos desvios acima de 2 desvios padrão (um por episódio), na Metodologia do café, "Preço de referência": o critério de aceite do E1 do documento ("justificativa para cada desvio"). Hoje, z de +0,03 |
+| O teste | O documento não diz o sentido do basis. A hipótese pré-registrada é a convergência: o ICF barato contra Nova York tende a subir, e caro, a cair, medida no ICF-CA em 21 pregões, por episódio. Só roda com 3 episódios de cada lado: hoje são 2 com o ICF barato (07/2022 e 11/2025) e 3 com ele caro (12/2022, 04/2025 e 03/2026). Comando `npm run validacao:basis` |
 
 </details>
 
@@ -897,6 +933,21 @@ prompt, com os papéis do E3 ao E10). O IC fica registrado e é refeito pelo com
   é curto;
 - o F7 no LONGO: revisar a lógica (o fluxo continua, não reverte) ou deixar como está, sem voto.
 
+**Decisão do Comitê (2026-10-22):** os pesos não adotados; "fatores com IC indistinguível de zero devem ser rebaixados
+ou desligados"; para o F7, "revisar a lógica sem inversão automática".
+
+**Feito (2026-10-23), por decisão do usuário (ADR 0141, adendo):**
+
+| Fator | O que mudou |
+|---|---|
+| F8 Juros | Desligado: informação, sem voto (o IC é zero em todos os prazos, de 2000 a 2026) |
+| F1 Clima | Peso Baixo e voto só no LONGO, onde o IC é positivo (+0,10, sem significância) e está o El Niño do E6; o clima de curto prazo chega pelos eventos |
+| F2 e F6 | Mantidos: sem histórico para o IC (11 levantamentos e 2 pontos); `npm run ic:cafe` mede quando houver |
+| F7 Fundos | Lido como risco de posição concentrada, sem sentido: nem reversão (IC −0,14 no LONGO) nem continuação (instável) |
+
+**A consequência:** no IMEDIATO, no CURTO e no MEDIO, só o F2 vota no café, além dos eventos e do preço como informação; a
+leitura curta deve sair mais vezes LATERAL ou INSUFICIENTE.
+
 </details>
 
 <details>
@@ -932,6 +983,17 @@ tira o voto quando a coleta falha.
 
 - a confirmação obrigatória como trava das carteiras virtuais, ou não;
 - a revisão imediata com evento de magnitude 3: o que revisar e quem dispara.
+
+**Decisão do Comitê (2026-10-22):** aprovada a revisão imediata em caso de evento de magnitude 3; a confirmação
+obrigatória somente nas carteiras virtuais, até a validação.
+
+**Feito (2026-10-23), por decisão do usuário (ADR 0149):**
+
+| Frente | O que foi feito |
+|---|---|
+| Confirmação obrigatória | Nas carteiras virtuais, só no café: a entrada vendida das trilhas IA, Determinística e Persistência é bloqueada com o motivo `CONFIRMACAO_OBRIGATORIA` quando, no pregão de D−1, o z de 20 pregões do KC (a medida do prompt) está acima de 0 e o 1º vencimento negociado do ICF está acima do 2º (backwardation). O operador é a revisão manual: recebe o aviso e decide. Sem botão de confirmar, para não misturar a pessoa à trilha que mede a IA. Em dev, a regra exigiria a revisão em 14/10/2026 |
+| Revisão com magnitude 3 | A magnitude 3 é o grau ALTA da leitura de eventos. A Metodologia do café ganhou a seção "Revisões pendentes": os eventos aceitos de grau ALTA desde 22/10/2026, com o botão **Revisado** (admin) e uma observação. É uma revisão de governança; a leitura da IA não é refeita |
+| O volume | No servidor, de 02/10 a 23/10 (53 leituras), nenhum evento do café foi aceito, em nenhum grau: a revisão deve disparar pouco, e o dado reforça a crítica do E2, que a Captura de eventos vai medir |
 
 </details>
 
@@ -1603,6 +1665,10 @@ Registro histórico, recolhido para não ocupar espaço: clique para expandir.
 
 | Entrega | Resultado | Onde |
 |---|---|---|
+| A confirmação obrigatória e a revisão com evento de magnitude 3 (§5 e §6 da análise do café, decididos pelo Comitê) | Nas carteiras virtuais, no café, a venda automática contra o momentum de 20 pregões e com backwardation é bloqueada, e o operador é a revisão. A Metodologia do café mostra os eventos aceitos de grau ALTA para revisar, com o botão Revisado (tabela `revisao_evento`, GLOBAL) | §0, §5 e §6; ADR 0149 |
+| Os fatores do café pelo IC (§3 e §4 da análise do café, decididos pelo Comitê) | O F8 desligado (informação); o F1 com o peso Baixo e o voto só no LONGO; o F2 e o F6 mantidos, sem histórico para o IC; o F7 lido como risco de posição concentrada, sem sentido. Metodologia do café v21 e prompt v20; corrigida a frase do prompt que dizia que a curva do ICF não estava na BASE | §0, §3 e §4; ADR 0141, adendo |
+| O basis com o desvio e o teste pré-registrado (E10 da análise do café, decidido pelo Comitê) | O z do basis B3 × Nova York e a lista dos desvios acima de 2 desvios padrão a justificar, na tela, como informação. O teste de convergência pré-registrado, que só roda com 3 episódios de cada lado (hoje, 2 e 3). O momentum segue como informação | §0, E10; ADRs 0139 (adendo) e 0148 |
+| O backtest da regra F4 + F5 e da regra do F5 (E8 e E9 da análise do café, pedidos pelo Comitê) | Pré-registrado antes de rodar (o limite da amostra declarado). O físico do Cepea abaixo do custo por 4 semanas (R1) passou: alta em 66% a 74% das semanas, contra 49% a 54% sem sinal, estável nos dois períodos, com 5 episódios. A regra do F5 com o KC não passou. Recomendação ao Comitê: a R1 como a regra do F4 + F5, só alta, no LONGO, peso Baixo; nada muda no prompt até a decisão. Comando `npm run validacao:f4f5` | §0, E8 e E9; ADR 0147 |
 | O Indicador do Café Arábica do Cepea (E8 da análise do café, aprovado pelo Comitê) | O preço físico do arábica na base, de 02/09/1996 a 22/10/2026 (7.506 pregões), pela planilha exportada à mão do site do Cepea, que bloqueia a coleta automática. Importação pelo botão no card (admin), a mesma em dev e no servidor; o desenho veio do AgroMind. O diário pela página do Notícias Agrícolas que o republica, com a conferência contra a base (a busca pela IA, testada, traz o dado com um dia a mais de atraso). A regra F4 + F5 fica para o próximo passo | §0, E8; ADR 0146 |
 | A fonte de consenso da safra e o ponto de atenção dos 42 dias (E7 da análise do café) | A fonte é o USDA (PSD), já coletado: a diferença da Conab contra ele vai ao F2 como contexto (hoje, +1,5%). O F2 tem direção em 40% dos dias, o efeito do decaimento aprovado, e deixou de sair como "dado vencido" depois de 42 dias | §0, E7; ADR 0135, adendo |
 | A pressão do El Niño e o peso do VHI (E6 da análise do café, aprovados pelo Comitê) | O F1 soma, só no LONGO, a pressão de alta fraca do El Niño com o RONI de +1,0 ou mais (hoje ligada), ao lado da leitura do VHI, e o peso dele passa de Alto a Médio. A chuva por janela não é adotada | §0, E6; ADR 0143, adendo |

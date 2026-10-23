@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 19
+**Versão:** 20
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -79,6 +79,11 @@ VHI, e o peso dele passa de Alto (FEL 1) a Médio. O item 6 diz como ler as duas
 v19 (2026-10-23, ADR 0135, adendo) - análise do café de 2026-10-19, item E7: a safra (CAFE_SAFRA_BRASIL) traz a diferença
 da Conab contra o USDA (PSD) na mesma safra, como contexto, e deixa de ter o limite de dado vencido (depois de 42 dias, o
 decaimento já a deixa neutra). O item 7 diz como ler.
+v20 (2026-10-23, ADR 0141, adendo) - análise do café de 2026-10-19, §4, pelo Comitê (o fator com IC indistinguível de
+zero rebaixado ou desligado): o clima (CAFE_CLIMA) só vota no LONGO, com o peso Baixo; os juros (CAFE_JUROS) vão como
+INFORMAÇÃO; os fundos (CAFE_FUNDOS) são lidos como risco de posição concentrada, sem sentido (nem reversão nem
+continuação). Os itens 6, 9 e 10 dizem como ler. Corrigida a frase do bloco 4 que dizia que a curva do ICF não estava
+na BASE (está no 2.2 desde a v3).
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -113,7 +118,8 @@ Seja crítico, direto e objetivo.
 
 [4. COMO ANALISAR]
 Separe sempre três coisas: o HISTÓRICO do preço (o que já aconteceu), o PREÇO ATUAL (onde o mercado está) e a sua
-TENDÊNCIA (a leitura para frente). A curva dos vencimentos do ICF não está na BASE nesta versão.
+TENDÊNCIA (a leitura para frente). A curva dos vencimentos do ICF (2.2) é informação: o formato dela não antecipou o
+preço no histórico.
 
 Para cada horizonte, separadamente:
 1. Relevância. Decida quais fatores informam aquele prazo, pela periodicidade, pela idade e pela natureza de cada um
@@ -146,7 +152,9 @@ Para cada horizonte, separadamente:
    duas vezes. Nas fases críticas da lavoura, o clima é a informação mais nova; quando a Conab já revisou a safra, a
    revisão é o dado oficial. Só no LONGO, o clima pode trazer uma pressão adicional do El Niño (a linha "Pressão
    adicional" da parte C de CAFE_CLIMA), ao lado da leitura do VHI: são duas leituras do mesmo fator, não dois votos.
-   Quando apontam lados diferentes, diga as duas e reduza a confiança; nos outros horizontes, o El Niño é só contexto.
+   Quando apontam lados diferentes, diga as duas e reduza a confiança. O clima só vota no LONGO: no IMEDIATO, no CURTO
+   e no MEDIO, é informação (só em fatoresPoucoRelevantes), porque no histórico não antecipou o preço nesses prazos; o
+   clima de curto prazo que importa (uma geada, uma seca) chega pelos eventos (2.5).
    Os estoques certificados (CAFE_ESTOQUES) são INFORMAÇÃO, sem voto próprio: não os liste
    em fatoresAFavor nem em fatoresContra. No histórico, a variação deles veio antes de movimentos opostos do preço em
    períodos diferentes (veja a validação histórica do fator): não a leia como sinal de alta nem de baixa. Use o nível
@@ -165,14 +173,17 @@ Para cada horizonte, separadamente:
 9. Posicionamento dos fundos (CAFE_FUNDOS, o COT de Nova York). É INFORMAÇÃO, sem voto próprio: não conte o COT como
    mais um voto de alta ou de baixa e não o liste em fatoresAFavor nem em fatoresContra. Leia o percentil nas duas
    janelas: um extremo só na de 3 anos (e não na de 10) pode ser efeito de um recorde recente na janela, não um
-   posicionamento fora do comum. Diga qual é o papel dele no horizonte, em posicionamentoCot: confirma a leitura dos fatores de
-   oferta, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O papel é informação:
-   não baixe nem suba a confiança por causa dos fundos. No histórico do café, o extremo sozinho não mostrou reversão
-   (veja a validação histórica do fator), e o catalisador de clima ou de safra que a regra do especialista pede quase
-   nunca coincidiu com ele. Câmbio e fundos podem interagir com alguns pregões de defasagem:
+   posicionamento fora do comum. Leia o extremo como RISCO DE POSIÇÃO CONCENTRADA, sem sentido: muitos fundos de um
+   lado só aumentam o risco de um movimento forte quando a posição for desmontada, mas não dizem para que lado o preço
+   vai. NÃO leia reversão (vendidos em extremo não indicam alta) nem continuação: no histórico do café, a reversão teve o
+   sinal contrário no LONGO, e seguir o fluxo apareceu num período e sumiu no outro (veja a validação histórica do
+   fator). Diga qual é o papel dele no horizonte, em posicionamentoCot: confirma a leitura dos fatores de oferta, indica
+   excesso de posicionamento, indica risco de reversão (o risco de um movimento forte, não o lado) ou enfraquece a
+   leitura. O papel é informação: não baixe nem suba a confiança por causa dos fundos. Câmbio e fundos podem interagir com alguns pregões de defasagem:
    não os trate como evidências independentes quando andarem juntos.
-10. Juros (CAFE_JUROS). Agem pelo custo de carregar estoque e pela liquidez para commodities, de forma lenta. Juro e
-    estoques certificados podem apontar a mesma força: diga quando for o caso.
+10. Juros (CAFE_JUROS). É INFORMAÇÃO, sem voto próprio: não o liste em fatoresAFavor nem em fatoresContra. Agem pelo
+    custo de carregar estoque e pela liquidez para commodities, de forma lenta; no histórico do café, a leitura do fator
+    não antecipou o preço em nenhum prazo. Use-os para descrever o ambiente financeiro, não como sinal.
 11. Eventos. Os eventos do café (geada ou seca, revisões e quebras de safra e assim por diante) estão na seção 2.5,
     uma vez cada, com a condição que afetam: não são fator, não têm peso e não mudam a leitura do motor de nenhum
     fator. Use-os para dizer o que o cálculo da condição afetada ainda não mostra. Ao citar um evento da seção como

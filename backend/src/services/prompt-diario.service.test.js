@@ -430,7 +430,7 @@ test("café (ADRs 0062, 0066 e 0140): o ICF-CA com o contrato do dia e o preço 
 
   assert.deepEqual(d.chamadas.preco, ["ICF_CA", "2026-10-03"]);
   assert.equal(d.chamadas.alvos, undefined);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@19");
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@20");
   // O F3 como informação até a validação fora da amostra (ADR 0145).
   assert.match(p.instrucaoDoSistema, /Os estoques certificados \(CAFE_ESTOQUES\) são INFORMAÇÃO, sem voto próprio/);
   assert.equal(p.versaoConfiguracao, 8);

@@ -16,6 +16,7 @@ const qualidadeIaRoutes = require("./qualidade-ia.routes");
 const carteiraRoutes = require("./carteira.routes");
 const capturaEventosRoutes = require("./captura-eventos.routes");
 const cepeaRoutes = require("./cepea.routes");
+const revisaoEventoRoutes = require("./revisao-evento.routes");
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use("/api/v1", qualidadeIaRoutes);
 router.use("/api/v1", carteiraRoutes);
 router.use("/api/v1", capturaEventosRoutes);
 router.use("/api/v1", cepeaRoutes);
+router.use("/api/v1", revisaoEventoRoutes);
 
 module.exports = router;

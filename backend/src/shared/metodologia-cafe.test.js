@@ -129,10 +129,11 @@ test("preço de referência do café (análise de 2026-10-19, E1): a série cont
   assert.deepEqual([basis.ultimo.contratoIcf, basis.ultimo.contratoKc, basis.ultimo.kcSaca, basis.ultimo.basis, basis.ultimo.basisPct], ["ICFU26", "KCU26", 423.29, -20.09, -4.75]);
 });
 
-test("o custo e a demanda só informam o LONGO (ADR 0133); os outros fatores, todos os horizontes", () => {
+test("o clima (ADR 0141, adendo), o custo e a demanda só informam o LONGO (ADR 0133); os outros fatores, todos os horizontes", () => {
   const { fatores } = obterMetodologiaCafe();
   const restritos = fatores.filter((f) => f.soNosHorizontes).map((f) => [f.codigo, f.soNosHorizontes.horizontes]);
   assert.deepEqual(restritos, [
+    ["CAFE_CLIMA", ["LONGO"]],
     ["CAFE_CUSTO_PRECO_MINIMO", ["LONGO"]],
     ["CAFE_DEMANDA", ["LONGO"]]
   ]);
@@ -154,9 +155,22 @@ test("estoques (ADR 0145): informação até a validação fora da amostra, sem 
   assert.ok(f3.decisoes.some((d) => d.includes("NÃO PASSOU no desenho A")));
 });
 
-test("clima (ADR 0143, adendo): o peso Médio pelo Comitê, com o Alto do FEL 1 ao lado, e sem pergunta aberta", () => {
+test("clima (ADRs 0143 e 0141, adendos): o peso Baixo pelo Comitê, com o Alto do FEL 1 ao lado, e sem pergunta aberta", () => {
   const f1 = obterMetodologiaCafe().fatores.find((f) => f.codigo === "CAFE_CLIMA");
-  assert.equal(f1.peso, "Médio");
+  assert.equal(f1.peso, "Baixo");
   assert.deepEqual(f1.pesoAjustado, { noFel1: "Alto", decididoPor: "pelo Comitê" });
   assert.deepEqual(f1.perguntas, []);
+});
+
+test("juros (ADR 0141, adendo): informação, pelo Comitê, com o IC de 2000 a 2026 nas decisões", () => {
+  const f8 = obterMetodologiaCafe().fatores.find((f) => f.codigo === "CAFE_JUROS");
+  assert.equal(f8.informativo, true);
+  assert.equal(f8.papelDecididoPor, "do Comitê");
+  assert.ok(f8.decisoes.some((d) => d.includes("IC indistinguível de zero")));
+});
+
+test("fundos (ADR 0141, adendo): a leitura de risco de posição concentrada, sem sentido", () => {
+  const f7 = obterMetodologiaCafe().fatores.find((f) => f.codigo === "CAFE_FUNDOS");
+  assert.match(f7.proposta.leitura, /sem sentido/);
+  assert.ok(f7.decisoes[0].includes("sem inversão automática"));
 });

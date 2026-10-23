@@ -64,3 +64,10 @@ próprio preço estimula. Não coletada.
   de que, no café, ele não indica continuação.
 - O momentum usa o KC do Yahoo, fonte não oficial e provisória (ADR 0129); sem 121 pregões até a data, o bloco diz SEM
   DADO.
+
+## Adendo (2026-10-23): a decisão do Comitê
+
+O Comitê, na resposta de 2026-10-22: "E10: o momentum não é adotado como regra; o basis fica como informação até ser
+testado." O momentum fica como está: informação no prompt do café, sem voto. O basis ganhou o desvio (z) e a lista dos
+desvios acima de 2 desvios padrão a justificar, e o teste de convergência foi pré-registrado para quando houver 3 episódios
+de cada lado (ADR 0148).

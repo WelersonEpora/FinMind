@@ -9,6 +9,7 @@ const { CONFIGURACOES } = require("../shared/analise-diaria");
 const { ESPECIFICACOES, valorDoPonto } = require("../carteiras/especificacoes");
 const { calcularAtr } = require("../carteiras/atr");
 const { somarDias, somarDiasUteis } = require("../carteiras/calendario");
+const { calcularMomentumKc } = require("../factors/momentum-kc");
 
 // O mercado das carteiras virtuais (ADR 0127): só dado GLOBAL, nunca do espaço (ADR 0007, §7). Lê as séries que já
 // existem: os futuros por vencimento (observation, point-in-time), a PTAX e a Selic (market_quote).
@@ -39,6 +40,12 @@ const FUTUROS = Object.freeze({
   OURO: { prefixo: "B3.GLD", contratos: true },
   PETROLEO: { prefixo: "YAHOO.BZ", contratos: false }
 });
+
+// A confirmação obrigatória (§6 da análise do café de 2026-10-19; o Comitê, 2026-10-22: "somente nas carteiras virtuais,
+// até a validação"; ADR 0149): no café, uma entrada vendida das trilhas automáticas pede revisão manual com o momentum de
+// 20 pregões positivo (o z do KC, a medida do prompt, ADR 0139) e a curva em backwardation (o 1º vencimento negociado
+// acima do 2º), os dois no pregão de D−1. Só o café: a regra veio da análise do café.
+const CONFIRMACAO_OBRIGATORIA = Object.freeze({ CAFE: true });
 
 // Janela de busca da decisão: o ATR(14) pede 15 pregões e a variação, 30 dias corridos.
 const DIAS_DE_HISTORICO = 60;
@@ -78,6 +85,29 @@ function variacao30d(pontos) {
   return base ? (ultimo.valor / base.valor - 1) * 100 : null;
 }
 
+// A confirmação do café em D: o momentum (o z de 20 pregões do KC até D−1) e os dois primeiros vencimentos negociados
+// (contratos > 0) no último pregão. Sem um dos dois, não exige (o dado não basta para pedir a revisão).
+// -> { momentumZ20, vencimentos: [{ ticker, ajuste }], backwardation, exigeNaBaixa }
+async function confirmacaoDoCafe({ data, ultimoPregao, vencimentos: abertos, prefixo, asOf }, repo, deps) {
+  const { momentum } = await (deps.calcularMomentumKc || calcularMomentumKc)({ data: somarDias(data, -1) }, deps);
+  const momentumZ20 = momentum?.janelas?.find((j) => j.pregoes === 20)?.z ?? null;
+  const primeiros = abertos.slice(0, 4);
+  const serie = (c, campo) => `${prefixo}.${c.ticker}.${campo}`;
+  const linhas = await repo.buscarAsOf({
+    seriesCodes: primeiros.flatMap((c) => [serie(c, "SETTLE"), serie(c, "CONTRACTS")]),
+    asOf,
+    observadoDesde: ultimoPregao,
+    observadoAte: ultimoPregao
+  });
+  const series = linhasPorSerie(linhas);
+  const vencimentos = primeiros
+    .filter((c) => (series.get(serie(c, "CONTRACTS"))?.get(ultimoPregao) ?? 0) > 0 && series.get(serie(c, "SETTLE"))?.has(ultimoPregao))
+    .slice(0, 2)
+    .map((c) => ({ ticker: c.ticker, ajuste: series.get(serie(c, "SETTLE")).get(ultimoPregao) }));
+  const backwardation = vencimentos.length === 2 ? vencimentos[0].ajuste > vencimentos[1].ajuste : null;
+  return { momentumZ20, vencimentos, backwardation, exigeNaBaixa: momentumZ20 !== null && momentumZ20 > 0 && backwardation === true };
+}
+
 // O mercado de um ativo para a decisão de D. -> { contrato, atr, ajuste, dataAjuste, variacao30dPct, valorDoPonto } ou
 // null, com o motivo em `semMercado`.
 async function lerAtivoParaDecisao(ativo, { data, conta, parametros, asOf, cambio }, deps) {
@@ -86,12 +116,12 @@ async function lerAtivoParaDecisao(ativo, { data, conta, parametros, asOf, cambi
   const ate = somarDias(data, -1);
   const regra = parametros.ativos[ativo];
   const limiteMinimo = somarDiasUteis(data, regra.diasUteisMinimosAteOLimite);
-  const candidatos = (await repo.listarUltimasDatasItens({ prefixoSerie: futuro.prefixo, campoReferencia: "SETTLE" }))
+  const todos = (await repo.listarUltimasDatasItens({ prefixoSerie: futuro.prefixo, campoReferencia: "SETTLE" }))
     .map((item) => decodificarFuturoB3(item.codigo))
     .filter(Boolean)
     .map((c) => ({ ...c, limite: limiteDoVencimento(c) }))
-    .filter((c) => c.limite > limiteMinimo)
     .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+  const candidatos = todos.filter((c) => c.limite > limiteMinimo);
   if (candidatos.length === 0) return { semMercado: "SEM_CONTRATO" };
 
   const campos = futuro.contratos ? ["SETTLE", "HIGH", "LOW", "CONTRACTS"] : ["SETTLE", "HIGH", "LOW"];
@@ -132,7 +162,16 @@ async function lerAtivoParaDecisao(ativo, { data, conta, parametros, asOf, cambi
     variacao30dPct: futuro.variacaoPela
       ? variacao30d((await precoMarketQuote.buscarLinhas(futuro.variacaoPela, { asOf, observadoDesde: somarDias(data, -DIAS_DE_HISTORICO), observadoAte: ate }, deps)).map((l) => ({ data: String(l.observed_at).slice(0, 10), valor: Number(l.value) })))
       : variacao30d(barras.map((b) => ({ data: b.data, valor: b.ajuste }))),
-    valorDoPonto: valorDoPonto(ativo, conta, cambio)
+    valorDoPonto: valorDoPonto(ativo, conta, cambio),
+    ...(CONFIRMACAO_OBRIGATORIA[ativo]
+      ? {
+          confirmacao: await confirmacaoDoCafe(
+            { data, ultimoPregao, vencimentos: todos.filter((c) => c.limite >= ultimoPregao), prefixo: futuro.prefixo, asOf },
+            repo,
+            deps
+          )
+        }
+      : {})
   };
 }
 
@@ -254,4 +293,4 @@ async function lerMercadoParaLiquidacao({ data, tickers, conta = "B3", agora = n
   return { barras, cambio: dia.cambio, taxaCaixaDia: taxa ?? 0, diaUtil: dia.util };
 }
 
-module.exports = { FUTUROS, lerMercadoParaDecisao, lerMercadoParaLiquidacao, t1DoMedio, ESPECIFICACOES };
+module.exports = { CONFIRMACAO_OBRIGATORIA, confirmacaoDoCafe, FUTUROS, lerMercadoParaDecisao, lerMercadoParaLiquidacao, t1DoMedio, ESPECIFICACOES };

@@ -58,3 +58,30 @@ vencimento ajustada). Entre colchetes, o intervalo de 90% do bootstrap em blocos
 
 - Nenhuma mudança no prompt nem no Centro de Decisão.
 - A §4 do documento fica respondida com o IC; a revisão mensal da §6 tem um comando.
+
+## Adendo (2026-10-23): a decisão do Comitê e o que mudou
+
+O Comitê, na resposta de 2026-10-22: os pesos da §3 não são adotados; "fatores com IC indistinguível de zero devem ser
+rebaixados ou desligados"; e, para o F7, "revisar a lógica sem inversão automática".
+
+**Quem decidiu como aplicar:** o usuário (Welerson), em 2026-10-23, com o mesmo poder de decisão do David (`CLAUDE.md`),
+sobre a recomendação do FinMind. Os fatores que ainda votavam no café eram o F1, o F2, o F6 e o F8.
+
+| Fator | IC (1 / 5 / 21 / 62 pregões) | O que mudou |
+|---|---|---|
+| F8 Juros | +0,02 / +0,02 / 0,00 / +0,01 (2000 a 2026) | **Desligado:** vai à IA como INFORMAÇÃO (`informativo`, papel decidido pelo Comitê). É a maior amostra, com o IC zero em todos os prazos |
+| F1 Clima | −0,06 / 0,00 / +0,01 / +0,10 (2002 a 2026) | **Rebaixado:** peso Baixo (Alto no FEL 1; Médio desde o E6) e voto **só no LONGO** (`soNosHorizontes`), onde o IC é positivo (sem significância) e está o El Niño aprovado no E6. Nos outros horizontes, a resposta que o citar a favor ou contra é recusada; o clima de curto prazo chega pelos eventos |
+| F2 Safra | Sem histórico para o IC (11 levantamentos) | Mantido, com o decaimento aprovado (E7). A regra não se aplica sem IC; `npm run ic:cafe` mede quando houver dado |
+| F6 Demanda | Sem histórico para o IC (2 pontos) | Mantido, já só no LONGO |
+
+**O F7, revisto sem inversão automática:** o F7 já não votava (ADR 0132). A leitura de reversão (vendidos em extremo,
+alta) teve o IC de −0,14 no LONGO; seguir o fluxo, a inversão, também não se sustentou (ADR 0132). O F7 passa a ser lido
+como **risco de posição concentrada, sem sentido**: muitos fundos de um lado só aumentam o risco de um movimento forte
+quando a posição for desmontada, sem dizer o lado. Nenhum teste novo: as duas direções já foram testadas.
+
+**Onde:** a metodologia do café v21 e o prompt do café v20 (itens 6, 9 e 10; no mesmo prompt, corrigida a frase que dizia
+que a curva do ICF não estava na BASE).
+
+**A consequência:** no IMEDIATO, no CURTO e no MEDIO, só o F2 vota no café, além dos eventos e do preço como informação. A
+leitura curta deve sair mais vezes LATERAL ou INSUFICIENTE. Nenhum fator mostrou poder no curto prazo, e a Qualidade da IA
+já mostrava que o "sempre lateral" não era batido.

@@ -57,6 +57,8 @@ const numero = (v, casas = 2) =>
 const sinal = (v, casas = 2) => (v === null || v === undefined ? '-' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${numero(Math.abs(v), casas)}`)
 const pct = (razao) => `${sinal((razao - 1) * 100)}%`
 // Fora da faixa de 90% do histórico (abaixo do percentil 5 ou acima do 95): o "fora do normal" do documento.
+// Acima de 2 desvios padrão do histórico (o critério de aceite do E1 do documento; ADR 0148).
+const desvioAlto = computed(() => ultimoBasis.value?.z != null && Math.abs(ultimoBasis.value.z) > 2)
 const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ultimoBasis.value.percentil < 5 || ultimoBasis.value.percentil > 95))
 </script>
 
@@ -75,9 +77,12 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
         </ul>
       </div>
       <div>
-        <p class="preco-ref__estado-titulo preco-ref__estado-titulo--falta"><i class="bi bi-hourglass-split"></i> Aguardando o Comitê</p>
+        <p class="preco-ref__estado-titulo preco-ref__estado-titulo--falta"><i class="bi bi-hourglass-split"></i> Aguardando o teste</p>
         <ul>
-          <li>Decidir se o basis vira fator (E10): até um teste, segue como informação, fora do prompt e do Centro de Decisão.</li>
+          <li>
+            O basis segue como informação até um teste (Comitê, 2026-10-22, item E10), fora do prompt e do Centro de Decisão. O
+            teste da convergência está pré-registrado (ADR 0148) e só roda com 3 desvios ou mais de cada lado.
+          </li>
         </ul>
       </div>
     </div>
@@ -180,6 +185,11 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
             <strong>{{ sinal(ultimoBasis.basisPct) }}%</strong>
             <small>{{ ultimoBasis.contratoKc }} a {{ numero(ultimoBasis.kcCentavos) }} US¢/lb</small>
           </div>
+          <div class="preco-ref__quadro" :class="{ 'preco-ref__quadro--alerta': desvioAlto }">
+            <span>Desvio (z) contra o histórico</span>
+            <strong>{{ ultimoBasis.z == null ? '-' : sinal(ultimoBasis.z) }}</strong>
+            <small>{{ desvioAlto ? 'acima de 2 desvios padrão: a justificar' : 'dentro de 2 desvios padrão' }}</small>
+          </div>
           <div class="preco-ref__quadro" :class="{ 'preco-ref__quadro--alerta': foraDoNormal }">
             <span>Posição no histórico</span>
             <strong>{{ ultimoBasis.percentil == null ? '-' : `percentil ${numero(ultimoBasis.percentil, 0)}` }}</strong>
@@ -192,6 +202,23 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
           </div>
         </div>
         <LineChart :pontos="resumo.linhas" unidade="%" :casas-decimais="2" :series-labels="{ basis: 'Basis B3 × NY (%)' }" />
+        <div v-if="basis.desvios?.length" class="preco-ref__desvios">
+          <p class="preco-ref__texto mb-1">
+            <strong>Desvios acima de 2 desvios padrão</strong> (um por episódio; o documento pede uma justificativa para cada um):
+          </p>
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Data</th><th>Contrato</th><th>Basis</th><th>z</th><th>Lado</th></tr></thead>
+            <tbody>
+              <tr v-for="d in basis.desvios" :key="d.data">
+                <td>{{ formatarData(d.data) }}</td>
+                <td>{{ d.contratoIcf }}</td>
+                <td>{{ sinal(d.basisPct) }}%</td>
+                <td>{{ sinal(d.z) }}</td>
+                <td>{{ d.lado === 'ACIMA' ? 'ICF caro contra Nova York' : 'ICF barato contra Nova York' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <p class="preco-ref__nota">
           Os dois ajustes saem com cerca de 1h30 de diferença (Nova York às 13:30 locais; a B3 no fim do pregão). O
           histórico começa com o ICF (03/2022) e tem o buraco de 2023 do Boletim Diário da B3. O café de Nova York vem do
@@ -203,6 +230,11 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
 </template>
 
 <style scoped>
+.preco-ref__desvios {
+  margin-top: 0.75rem;
+  overflow-x: auto;
+}
+
 .preco-ref {
   display: flex;
   flex-direction: column;

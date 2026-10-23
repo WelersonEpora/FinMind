@@ -65,7 +65,8 @@ decidiu e quando. O assistente propõe; não decide por nenhum dos dois.
   **Exceção das carteiras virtuais (ADR 0127), só em simulação:** a recomendação diária da IA (entrar, manter, reduzir,
   zerar; sem preço, stop nem quantidade), a execução *virtual* das trilhas IA e Determinística (lançamentos no razão da
   carteira, nunca uma ordem real; nenhum adaptador de corretora) e o ATR, o stop, os alvos e as travas da Cartilha como
-  parâmetros versionados por carteira. O motor de risco roda antes e por cima da IA. Fora de `backend/src/carteiras/` e
+  parâmetros versionados por carteira. O motor de risco roda antes e por cima da IA; no café, a confirmação obrigatória
+  do Comitê bloqueia a venda automática contra o momentum com backwardation, e o operador é a revisão (ADR 0149). Fora de `backend/src/carteiras/` e
   das telas de carteira, a regra acima vale como está.
 - **IA nunca é a fonte de verdade de um dado** quando existe fonte
   estruturada oficial confiável (ver ADR 0001) — e uma resposta de IA nunca
@@ -211,6 +212,10 @@ cd backend && npm run backfill:b3-milho-esalq
 # Indicador do Café Arábica CEPEA/ESALQ: a planilha exportada à mão do site do Cepea (que bloqueia a coleta), desde 1996 (ADR 0146);
 # no servidor, pelo botão "Importar planilha" do card (admin); em dev, o mesmo service:
 cd backend && npm run importar:cepea-cafe -- --arquivo=<planilha.xls>
+# backtest pré-registrado do E8 e do E9 do café (a regra F4 + F5 e a do F5; ADR 0147); a sombra, com --sombra (1ª avaliação em 2027-04-23):
+cd backend && npm run validacao:f4f5
+# teste de convergência do basis B3 × Nova York do café (ADR 0148): só roda com 3 desvios de cada lado; antes, só conta os episódios:
+cd backend && npm run validacao:basis
 # expectativas do Focus (BCB) de IPCA, Selic, câmbio e resultado primário por ano, uma observação por boletim, desde 2000 (4 requisições, ~1 min: sem $select, ADR 0121):
 cd backend && npm run backfill:bcb-focus
 # reservas internacionais do BCB (SGS 13621, total diário), desde 1998-09-01 (3 janelas de 10 anos):

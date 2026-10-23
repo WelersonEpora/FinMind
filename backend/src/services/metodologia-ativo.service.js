@@ -476,7 +476,7 @@ async function obterPrecoReferencia(ativo, deps = {}) {
       pontos: continua.pontos.map(({ data, ticker, valor, ajustado }) => ({ data, ticker, valor, ajustado: Math.round(ajustado * 100) / 100 })),
       trocas: continua.trocas
     },
-    basis: { ...comum, nome: config.basis.nome, unidade: config.basis.unidade, situacao: "INFORMACAO", pontos: basis.pontos, ultimo: basis.ultimo }
+    basis: { ...comum, nome: config.basis.nome, unidade: config.basis.unidade, situacao: "INFORMACAO", pontos: basis.pontos, ultimo: basis.ultimo, desvios: basis.desvios ?? [] }
   };
 }
 

@@ -44,7 +44,10 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 // não é adotada (análise do café de 2026-10-19, item E6; ADR 0143, adendo).
 // v20 (2026-10-23): o F2 com a Conab contra o USDA como contexto e sem o limite de dado vencido; o decaimento de 14 e 42
 // dias aprovado (item E7; ADR 0135, adendo).
-const VERSAO = 20;
+// v21 (2026-10-23): pela §4 da análise (o Comitê: o fator com IC indistinguível de zero rebaixado ou desligado), o F1
+// com o peso Baixo e o voto só no LONGO, o F8 como INFORMAÇÃO e a leitura do F7 como posição concentrada, sem sentido
+// (ADR 0141, adendo).
+const VERSAO = 21;
 const DATA_VERSAO = "2026-10-23";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
@@ -60,16 +63,22 @@ const DEFINICOES = [
       mecanismo: "Quebra de safra reduz oferta; clima bom eleva produção",
       fonte: "Conab, USDA, Somar Meteorologia"
     },
-    // O peso menor do VHI (o Comitê, 2026-10-22, item E6): um nível abaixo do FEL 1.
+    // O peso menor do VHI (o Comitê, 2026-10-22, item E6) e, pelo IC (§4), mais um nível abaixo.
     ajustesFel1: [
       {
         campo: "Peso",
         noFel1: "Alto",
-        ajuste: "Médio",
+        ajuste: "Baixo",
         noPrompt: "pelo Comitê",
-        origem: "O Comitê, em 2026-10-22 (\"reduzir o peso do VHI\"), pela análise do café de 2026-10-19 (item E6); o nível (um abaixo do Alto) decidido pelo usuário em 2026-10-23 (ADR 0143, adendo)."
+        origem: "O Comitê, em 2026-10-22: \"reduzir o peso do VHI\" (item E6; Médio, decidido pelo usuário, ADR 0143, adendo) e, pela §4, rebaixar o fator com IC indistinguível de zero; Baixo, decidido pelo usuário em 2026-10-23 (ADR 0141, adendo)."
       }
     ],
+    // Só o LONGO (§4 da análise; ADR 0141, adendo): o IC do F1 é zero ou levemente negativo no curto e +0,10 no LONGO, onde
+    // está a pressão do El Niño aprovada no E6.
+    soNosHorizontes: {
+      horizontes: ["LONGO"],
+      motivo: "No histórico (2002 a 2026), o IC do clima é zero ou levemente negativo até 21 pregões e +0,10 em 62 (sem significância); a geada e o clima de curto prazo chegam pelos eventos"
+    },
     // Dado vencido não vota (ADR 0142; clima: 14 dias, o limite da §6).
     idadeMaximaVotoDias: { dias: 14, origem: "o usuário, em 2026-10-21, pela §6 da análise do café de 2026-10-19 (ADR 0142)" },
     dados: {
@@ -101,6 +110,7 @@ const DEFINICOES = [
     },
     perguntas: [],
     decisoes: [
+      "Voto só no LONGO e peso Baixo (o Comitê, 2026-10-22, pela §4 da análise do café: o fator com IC indistinguível de zero rebaixado ou desligado; o rebaixamento decidido pelo usuário em 2026-10-23, ADR 0141, adendo): o IC do clima contra o KC, de 2002 a 2026, é −0,06 em 1 pregão, 0,00 em 5, +0,01 em 21 e +0,10 em 62 (de −0,01 a +0,24). Nos outros horizontes, o fator é informação (a resposta que o citar a favor ou contra é recusada); a geada e o clima de curto prazo chegam pelos eventos.",
       "Pressão do El Niño no LONGO (Comitê, 2026-10-22, aprovada como proposta; ADR 0143, adendo; item E6): com o RONI publicado de +1,0 ou mais, o F1 (v3) soma uma pressão de alta fraca só no horizonte LONGO, ao lado da leitura do VHI e o ano todo; abaixo disso e nos outros horizontes, o RONI fica como contexto. No KC (2000 a 2026, semanas), com o RONI de +1,0 ou mais, o preço subiu em 62 pregões em 68% das semanas (base 49%); IC +0,10 (intervalo de 90%: +0,02 a +0,19), 4 episódios completos. Em 2026-10, com +1,69, a pressão está ligada.",
       "Peso do VHI (Comitê, 2026-10-22: \"reduzir o peso do VHI\"; o nível decidido pelo usuário em 2026-10-23, ADR 0143, adendo; item E6): o F1 passa de Alto (FEL 1) a Médio, no prompt e na tela. Um nível: o Baixo, somado aos fatores que já não votam (F3, F4, F5 e F7), esvaziaria a leitura do café.",
       "Chuva por janela (Comitê, 2026-10-22; item E6): não é adotada, porque o teste não a confirmou (na NASA POWER, o sentido saiu o oposto, com poucos anos; ADR 0134). A chuva não é coletada.",
@@ -387,17 +397,17 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente: o COT desagregado da CFTC traz o managed money do Coffee C toda semana desde 2006, com a publicação real desde 2022-08 (P05 do estudo já atendida). Os extremos aparecem: o recorde de venda em ago/2018 (-34,7% dos contratos em aberto) e o de compra em fev/2025 (+37,5%). Validação histórica (ADR 0089), de 2009 a 2026 contra o preço mensal do arábica do FMI: o extremo sozinho não mostrou reversão. Nas semanas, os vendidos em extremo foram seguidos de alta em 3 meses em 33% (46% em todas) e os comprados, de queda em 39% (54% em todas), mas são cerca de 20 episódios de cada lado e, com uma semana por trimestre, a diferença some (sem significância). O catalisador de F1 ou F2 que a regra pede quase nunca coincidiu com o extremo. Teste das três versões da análise do café (ADR 0132), contra o KC de Nova York em 60 pregões: fora da amostra (2018 a 2026), depois do extremo vendido +5,6% e do comprado +5,4%, contra +3,8% em todas as semanas; são 4 episódios vendidos e 9 comprados em 2009 a 2026. Nem a reversão (a regra) nem seguir o fluxo se sustentam; a janela de 10 anos e a variação semanal, o mesmo. Desligado como voto é tão bom quanto as outras versões."
+          "Suficiente: o COT desagregado da CFTC traz o managed money do Coffee C toda semana desde 2006, com a publicação real desde 2022-08 (P05 do estudo já atendida). Os extremos aparecem: o recorde de venda em ago/2018 (-34,7% dos contratos em aberto) e o de compra em fev/2025 (+37,5%). Validação histórica (ADR 0089), de 2009 a 2026 contra o preço mensal do arábica do FMI: o extremo sozinho não mostrou reversão. Nas semanas, os vendidos em extremo foram seguidos de alta em 3 meses em 33% (46% em todas) e os comprados, de queda em 39% (54% em todas), mas são cerca de 20 episódios de cada lado e, com uma semana por trimestre, a diferença some (sem significância). O catalisador de F1 ou F2 que a regra pede quase nunca coincidiu com o extremo. Teste das três versões da análise do café (ADR 0132), contra o KC de Nova York em 60 pregões: fora da amostra (2018 a 2026), depois do extremo vendido +5,6% e do comprado +5,4%, contra +3,8% em todas as semanas; são 4 episódios vendidos e 9 comprados em 2009 a 2026. Nem a reversão (a regra) nem seguir o fluxo se sustentam; a janela de 10 anos e a variação semanal, o mesmo. Desligado como voto é tão bom quanto as outras versões. O IC da leitura de reversão contra o KC (ADR 0141): −0,14 em 62 pregões, o único fator do café com o intervalo excluindo o zero, ou seja, o sinal contrário ao da regra, mas instável entre os períodos: por isso o fator é lido como risco de posição concentrada, sem sentido."
       },
       lacunas: ["A posição por tipo de investidor no ICF (B3) não é coletada: o COT mede Nova York (fora, ADR 0132: fonte nova, e o ICF é pouco líquido)."]
     },
     proposta: {
       autoria: AUTORIA,
-      objetivo: "Medir o posicionamento dos fundos em Nova York, como modificador de risco, sem voto próprio.",
+      objetivo: "Medir o posicionamento dos fundos em Nova York como risco de posição concentrada, sem voto próprio e sem sentido.",
       medida: "Posição líquida do managed money (compradas − vendidas), em contratos e em % dos contratos em aberto, e a variação semanal.",
       comparacao: "O percentil da posição em % dos contratos em aberto nos 3 anos anteriores (o COT Index de 3 anos do estudo).",
       leitura:
-        "Vendidos em extremo pesam para alta; comprados em extremo, para baixa (as regras candidatas, leitura de reversão). A faixa neutra é a do estudo (percentis 20 a 80); o extremo forte (10 e 90) é calibração do FinMind. O catalisador de F1 ou F2 que as regras pedem cruza fatores e fica para a agregação. O estudo diz que o fator não vota: modifica o risco. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
+        "Desde a v21 (ADR 0141, adendo), a leitura é de risco, sem sentido: muitos fundos de um lado só aumentam o risco de um movimento forte quando a posição for desmontada, sem dizer para que lado o preço vai. A leitura de reversão das regras candidatas (vendidos em extremo pesam para alta; comprados, para baixa) teve IC de −0,14 no LONGO, e seguir o fluxo, a inversão, também não se sustentou (ADR 0132): nenhuma das duas é aplicada. Texto anterior: A faixa neutra é a do estudo (percentis 20 a 80); o extremo forte (10 e 90) é calibração do FinMind. O catalisador de F1 ou F2 que as regras pedem cruza fatores e fica para a agregação. O estudo diz que o fator não vota: modifica o risco. Parâmetros ajustáveis pelo Comitê no card C. Decidir.",
       regrasEspecialista: {
         alta: "Sinal de Alta: Posição vendida líquida de fundos atingindo níveis de sobrevenda histórica (percentil inferior a [CALIBRAR COM DADOS POINT-IN-TIME]%), desde que acompanhada por um catalisador fundamental altista confirmado nos módulos de oferta (F1 ou F2). [Hipótese v0 — não validada; não usar para ordem].",
         baixa: "Sinal de Baixa: Posição comprada líquida de fundos em patamares recordes (percentil superior a [CALIBRAR COM DADOS POINT-IN-TIME]%), desde que confirmada por divergência baixista nos balanços de safra ou recomposição de estoques. [Hipótese v0 — não validada; não usar para ordem]."
@@ -405,6 +415,7 @@ const DEFINICOES = [
     },
     perguntas: [],
     decisoes: [
+      "A lógica revista sem inversão automática (o Comitê, 2026-10-22, pela §4 da análise do café; usuário, 2026-10-23, ADR 0141, adendo): o extremo deixa de ser lido como reversão (o IC de −0,14 no LONGO, o único com o intervalo excluindo o zero) e também não passa a ser lido como continuação (instável: apareceu em 2009 a 2017 e sumiu em 2018 a 2026, ADR 0132). O F7 descreve o risco de posição concentrada, sem sentido.",
       "Janela de 3 anos (usuário, 2026-10-06, ADR 0089): como na v1. No histórico, as duas janelas dão o mesmo resultado; a de 3 anos, um pouco menos ruim em 6 meses.",
       "Sem pressão no prompt e a janela de 10 anos como contexto (usuário, 2026-10-21, ADR 0132; análise do café de 2026-10-19, item E4): o fator vai à IA como INFORMAÇÃO, sem a pressão da leitura (até então ia \"Pressão: alta, Intensidade: forte\", que parecia um voto) e sem contar a favor nem contra; o percentil nos 10 anos anteriores vai ao lado do de 3. Em 13/10/2026, percentil 3,8 em 3 anos e 47,7 em 10: o extremo vendido de 3 anos vinha do recorde de compra de fev/2025 na janela.",
       "Só como informação (usuário, 2026-10-06, ADR 0089 e revisão): o extremo não muda a confiança da agregação nem da leitura da IA; o papel dele vai como informação. O catalisador de F1 ou F2 que a regra pede foi tentado e revertido: em 2009 a 2026, nenhuma semana de extremo forte teve o F1 na mesma direção, e o caminho pelo F2 nunca foi testado. O extremo sozinho não mostrou reversão."
@@ -419,6 +430,10 @@ const DEFINICOES = [
       mecanismo: "Custo de carregamento e apetite por risco",
       fonte: "Fed, BCB"
     },
+    // Só informação (§4 da análise: o fator com IC indistinguível de zero desligado; ADR 0141, adendo): o IC é zero em
+    // todos os prazos, de 2000 a 2026.
+    informativo: true,
+    papelDecididoPor: "do Comitê",
     dados: {
       observaveis: ["TREASURY_10A", "META_FED", "DOLAR_AMPLO_FED"],
       eventos: false,
@@ -447,6 +462,7 @@ const DEFINICOES = [
     perguntas: [],
     decisoes: [
       "Dólar global como contexto (usuário, 2026-10-06, ADR 0090 e revisão): o índice amplo do Fed em 26 semanas vai ao texto do fator, fora da decisão. A condição só na baixa foi tentada e revertida no mesmo dia: por episódio, a diferença não tem significância, e aplicá-la só onde ajudava era ajuste ao dado (a regra de alta do estudo também cita o dólar).",
+      "Só como informação (o Comitê, 2026-10-22, pela §4 da análise do café: o fator com IC indistinguível de zero rebaixado ou desligado; desligar, decidido pelo usuário em 2026-10-23, ADR 0141, adendo): o IC contra o KC de 2000 a 2026 é +0,02 em 1 e em 5 pregões, 0,00 em 21 e +0,01 em 62, a maior amostra entre os fatores do café. O fator vai à IA sem pressão própria e fora dos fatores a favor e contra.",
       "Juro nominal (usuário, 2026-10-06, ADR 0090): fica o Treasury de 10 anos, como na v1. O juro real (DFII10) foi pior nos dois lados: alta em 3 meses em 51% das semanas e queda em 55%, contra 57% e 57% do nominal."
     ]
   }

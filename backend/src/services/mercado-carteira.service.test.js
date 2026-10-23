@@ -180,3 +180,29 @@ test("liquidação na conta internacional: o dia útil pelo Brent contínuo, o c
   const feriado = await lerMercadoParaLiquidacao({ ...pedido, hoje: "2026-10-15", agora: new Date("2026-10-15T09:30:00Z") }, comPosterior);
   assert.deepEqual([feriado.diaUtil, feriado.taxaCaixaDia], [false, 0]);
 });
+
+test("confirmacaoDoCafe (ADR 0149): o z de 20 pregões do KC e os dois primeiros vencimentos negociados no último pregão", async () => {
+  const { confirmacaoDoCafe } = require("./mercado-carteira.service");
+  const dia = "2026-10-22";
+  const linha = (ticker, campo, value) => ({ series_code: `B3.ICF.${ticker}.${campo}`, observed_at: dia, value });
+  const repo = {
+    buscarAsOf: async () => [
+      linha("ICFZ26", "SETTLE", 380),
+      linha("ICFZ26", "CONTRACTS", 900),
+      linha("ICFH27", "SETTLE", 370),
+      linha("ICFH27", "CONTRACTS", 0),
+      linha("ICFK27", "SETTLE", 365),
+      linha("ICFK27", "CONTRACTS", 40)
+    ]
+  };
+  const vencimentos = ["ICFZ26", "ICFH27", "ICFK27"].map((ticker) => ({ ticker }));
+  const comZ = (z) => ({ calcularMomentumKc: async () => ({ momentum: { janelas: [{ pregoes: 20, z }] } }) });
+
+  const r = await confirmacaoDoCafe({ data: "2026-10-23", ultimoPregao: dia, vencimentos, prefixo: "B3.ICF" }, repo, comZ(1.26));
+  // O H27 não negociou no dia: o 2º vencimento negociado é o K27.
+  assert.deepEqual(r.vencimentos.map((v) => v.ticker), ["ICFZ26", "ICFK27"]);
+  assert.equal(r.backwardation, true);
+  assert.equal(r.exigeNaBaixa, true);
+  assert.equal((await confirmacaoDoCafe({ data: "2026-10-23", ultimoPregao: dia, vencimentos, prefixo: "B3.ICF" }, repo, comZ(-0.4))).exigeNaBaixa, false);
+  assert.equal((await confirmacaoDoCafe({ data: "2026-10-23", ultimoPregao: dia, vencimentos, prefixo: "B3.ICF" }, repo, comZ(null))).exigeNaBaixa, false);
+});

@@ -82,6 +82,7 @@ const ROTULOS = {
   JA_REDUZIDA: 'Já reduzida nesta operação',
   ATIVO_FORA_DA_CARTEIRA: 'Ativo fora da carteira',
   INTENCAO_INVALIDA: 'Intenção inválida',
+  CONFIRMACAO_OBRIGATORIA: 'Confirmação obrigatória: venda contra o momentum, com backwardation (revisão do operador)',
   // Recomendação da IA.
   VALIDA: 'Válida',
   FALHA: 'Falhou',

@@ -9,6 +9,7 @@ import ResultadoSimulacao from '../components/metodologia/ResultadoSimulacao.vue
 import PromptDiario from '../components/metodologia/PromptDiario.vue'
 import PesosRelacoes from '../components/metodologia/PesosRelacoes.vue'
 import PrecoReferencia from '../components/metodologia/PrecoReferencia.vue'
+import RevisoesEvento from '../components/metodologia/RevisoesEvento.vue'
 import metodologiaAtivoService from '../services/metodologia-ativo.service.js'
 import { iconeAtivo } from '../utils/centro-decisao.js'
 import { lerAtivoPreferido, salvarAtivoPreferido } from '../utils/ativo-preferido.js'
@@ -332,9 +333,18 @@ watch(ativo, carregar, { immediate: true })
             <template v-if="metodologia.precoReferencia">
               <div class="metodologia-ativo__secao-cabecalho metodologia-ativo__secao-cabecalho--seguinte">
                 <h2 class="metodologia-ativo__secao-titulo">Preço de referência</h2>
-                <span class="metodologia-ativo__contexto-resumo">série contínua (proposta) · basis B3 × Nova York (informação)</span>
+                <span class="metodologia-ativo__contexto-resumo">série contínua (em uso) · basis B3 × Nova York (informação)</span>
               </div>
               <PrecoReferencia :ativo="metodologia.ativo" />
+            </template>
+
+            <!-- A revisão imediata com evento de magnitude 3 (§6 da análise do café; ADR 0149): só no café. -->
+            <template v-if="metodologia.ativo === 'CAFE'">
+              <div class="metodologia-ativo__secao-cabecalho metodologia-ativo__secao-cabecalho--seguinte">
+                <h2 class="metodologia-ativo__secao-titulo">Revisões pendentes</h2>
+                <span class="metodologia-ativo__contexto-resumo">eventos de magnitude 3 (grau ALTA), revisão de governança</span>
+              </div>
+              <RevisoesEvento :ativo="metodologia.ativo" />
             </template>
           </template>
         </div>

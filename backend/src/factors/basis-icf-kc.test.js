@@ -42,6 +42,26 @@ test("medirBasis: o ICF contra o KC do mesmo mês em US$/saca; o vencimento do Y
     kcSaca: 404.24,
     basis: -27.14,
     basisPct: -6.71,
-    percentil: null
+    percentil: null,
+    z: null
   });
+});
+
+test("zContra: o desvio contra todos os pregões anteriores, só com 60 ou mais", () => {
+  const { zContra } = require("./basis-icf-kc");
+  const anteriores = Array.from({ length: 60 }, (_, i) => (i % 2 ? -6 : -8));
+  assert.equal(zContra(-4, anteriores), 3);
+  assert.equal(zContra(-4, anteriores.slice(1)), null);
+});
+
+test("desviosDoBasis: um por episódio acima de 2 desvios; um novo só 20 pregões depois do último fora", () => {
+  const { desviosDoBasis } = require("./basis-icf-kc");
+  const pontos = Array.from({ length: 80 }, (_, i) => ({ data: `d${i}`, basisPct: -7, contratoIcf: "ICFZ26", z: [5, 6, 20, 50].includes(i) ? (i === 50 ? -2.5 : 2.4) : 0.3 }));
+  assert.deepEqual(
+    desviosDoBasis(pontos).map((d) => [d.data, d.lado]),
+    [
+      ["d5", "ACIMA"],
+      ["d50", "ABAIXO"]
+    ]
+  );
 });

@@ -24,10 +24,23 @@ function saida(pos, motivo, origem = null) {
   return { tipo: "SAIDA", motivo, ativo: pos.ativo, lado: pos.lado, posicaoId: pos.id, contrato: pos.contrato, quantidade: pos.quantidadeAberta, origem };
 }
 
+// A confirmação obrigatória (ADR 0149): a entrada vendida das trilhas automáticas, com o mercado de D−1 pedindo a revisão
+// manual (o momentum de 20 pregões positivo e a curva em backwardation; hoje, só no café). O operador é a revisão, e
+// comprar e segurar nunca vende.
+const TRILHAS_SEM_CONFIRMACAO = new Set(["OPERADOR", "COMPRAR_E_SEGURAR"]);
+const exigeConfirmacao = ({ lado, trilha, m }) => lado === "VENDIDO" && !TRILHAS_SEM_CONFIRMACAO.has(trilha) && m?.confirmacao?.exigeNaBaixa === true;
+
+// O momentum e a curva que pediram a revisão, em texto.
+function detalheDaConfirmacao(c) {
+  const [v1, v2] = c.vencimentos;
+  return `momentum de 20 pregões com z ${c.momentumZ20 > 0 ? "+" : ""}${c.momentumZ20} e backwardation (${v1.ticker} a ${v1.ajuste}, acima do ${v2.ticker} a ${v2.ajuste})`;
+}
+
 // A conferência de uma entrada nova contra as travas, as vagas e o mercado. -> null (pode) ou o motivo do bloqueio.
-function motivoDeBloqueioDaEntrada({ data, ativo, mercado, parametros, travas, vagas, jaTemPosicao, feriados }) {
+function motivoDeBloqueioDaEntrada({ data, ativo, lado = null, trilha = null, mercado, parametros, travas, vagas, jaTemPosicao, feriados }) {
   if (jaTemPosicao) return "JA_TEM_POSICAO";
   if (travas?.bloqueiaNovasEntradas) return "TRAVA";
+  if (exigeConfirmacao({ lado, trilha, m: mercado[ativo] })) return "CONFIRMACAO_OBRIGATORIA";
   if (vagas <= 0) return "MAX_POSICOES";
   const m = mercado[ativo];
   if (!m?.contrato) return "SEM_CONTRATO";
@@ -92,6 +105,8 @@ function decidir({ data, estado, intencoes, mercado, parametros, travas = null, 
     const motivo = motivoDeBloqueioDaEntrada({
       data,
       ativo: intencao.ativo,
+      lado: LADO_DA_ENTRADA[intencao.acao],
+      trilha: intencao.trilha,
       mercado,
       parametros,
       travas,
@@ -100,7 +115,13 @@ function decidir({ data, estado, intencoes, mercado, parametros, travas = null, 
       feriados
     });
     if (motivo) {
-      bloquear(intencao, motivo, motivo === "TRAVA" ? travas.travas.map((t) => t.codigo).join(", ") : null);
+      const detalhe =
+        motivo === "TRAVA"
+          ? travas.travas.map((t) => t.codigo).join(", ")
+          : motivo === "CONFIRMACAO_OBRIGATORIA"
+            ? `${detalheDaConfirmacao(mercado[intencao.ativo].confirmacao)}: pede revisão manual (a trilha do operador)`
+            : null;
+      bloquear(intencao, motivo, detalhe);
       continue;
     }
     const m = mercado[intencao.ativo];
@@ -326,6 +347,10 @@ function conferirEntradaDoOperador({ data, ativo, lado, entrada, stop, estado, m
     feriados
   });
   const verificacoes = [...conferencia.verificacoes, { codigo: "VAGAS_E_TRAVAS", ok: !motivo, detalhe: motivo || "Vaga livre, sem trava." }];
+  // O operador é a revisão manual da confirmação obrigatória (ADR 0149): não bloqueia, avisa.
+  if (lado === "VENDIDO" && m?.confirmacao?.exigeNaBaixa) {
+    verificacoes.push({ codigo: "CONFIRMACAO_OBRIGATORIA", ok: true, detalhe: `Revisão manual: ${detalheDaConfirmacao(m.confirmacao)}. A entrada é decisão sua.` });
+  }
   return { aprovado: verificacoes.every((v) => v.ok), verificacoes, plano: conferencia.plano };
 }
 

@@ -120,8 +120,9 @@ function decidirCustos({ margemTotalPct, seguidasTotal, seguidasOperacional, mar
 }
 
 // Função PURA: o KC contínuo (obterAsOf), o custo (obterAsOf, com os metadados) e a PTAX ({ data, valor }) -> um ponto
-// por semana (o último pregão do KC nela).
-function derivarCustosCafe({ linhasKc, linhasCusto, ptax }, { parametros = PARAMETROS_PADRAO } = {}) {
+// por semana (o último pregão do KC nela). `precoEmReais`: `linhasKc` já é um preço em R$/saca (o Cepea do backtest do
+// ADR 0147), e a PTAX não entra; o fator em uso não passa a opção.
+function derivarCustosCafe({ linhasKc, linhasCusto, ptax }, { parametros = PARAMETROS_PADRAO, precoEmReais = false } = {}) {
   const custos = linhasCusto.map((l) => ({ ...l, observedAt: String(l.observedAt).slice(0, 10), ...disponibilidadeDoCusto(l) }));
   const ptaxOrdenada = [...ptax].sort((a, b) => (a.data < b.data ? -1 : 1));
 
@@ -144,8 +145,8 @@ function derivarCustosCafe({ linhasKc, linhasCusto, ptax }, { parametros = PARAM
     const disponivelEm = new Date(s.publishedAt).toISOString();
     const operacional = custoAte(custos, "OPERACIONAL_SACA", disponivelEm);
     const total = custoAte(custos, "TOTAL_SACA", disponivelEm);
-    const precoUsd = s.valor * LIBRAS_POR_SACA_CENTAVOS;
-    const precoBrl = dolar ? precoUsd * dolar : null;
+    const precoUsd = precoEmReais ? null : s.valor * LIBRAS_POR_SACA_CENTAVOS;
+    const precoBrl = precoEmReais ? s.valor : dolar ? precoUsd * dolar : null;
     const margemOperacionalPct = precoBrl && operacional?.valor ? arredondar((precoBrl / operacional.valor - 1) * 100, 2) : null;
     const margemTotalPct = precoBrl && total?.valor ? arredondar((precoBrl / total.valor - 1) * 100, 2) : null;
     seguidasTotal = margemTotalPct !== null && margemTotalPct <= parametros.limiarMargemPct ? seguidasTotal + 1 : 0;
@@ -159,7 +160,7 @@ function derivarCustosCafe({ linhasKc, linhasCusto, ptax }, { parametros = PARAM
       observedAt: sexta,
       ultimoPregao: s.dia,
       kc: s.valor,
-      precoUsd: arredondar(precoUsd, 2),
+      precoUsd: precoUsd === null ? null : arredondar(precoUsd, 2),
       dolar,
       precoBrl: precoBrl === null ? null : arredondar(precoBrl, 2),
       anoCusto: total?.ano ?? null,

@@ -17,6 +17,11 @@ const { pregaoAntes } = require("./base/serie-continua-futuro");
 // basis = ICF − KC × 1,32277 (US$/saca; 60 kg = 132,277 lb e o KC é em centavos por libra-peso); em % = ICF ÷ (KC ×
 // 1,32277) − 1. A posição é o percentil do basis em % entre todos os pregões anteriores com par (o histórico começa em
 // 2022-03, com o ICF), em % porque o preço do café mais que dobrou no período.
+//
+// O DESVIO (análise do café, critério de aceite do E1: "basis conciliado, com justificativa para cada desvio acima de 2
+// desvios padrão"; o Comitê, no E10: o basis segue como informação até um teste, ADR 0148): o z do basis em % contra a
+// média e o desvio padrão de todos os pregões anteriores (mínimo de 60). Os desvios acima de 2 viram a lista a justificar:
+// um por episódio, o 1º pregão de cada sequência (um pregão fora volta a abrir episódio só 20 pregões depois do último).
 
 const LIBRAS_POR_SACA_CENTAVOS = 1.32277;
 const LETRAS_KC = "HKNUZ";
@@ -59,6 +64,32 @@ function percentil(valor, anteriores) {
 
 const arredondar = (v, casas) => Math.round(v * 10 ** casas) / 10 ** casas;
 
+const Z_MINIMO_PREGOES = 60;
+const Z_DESVIO = 2;
+const PREGOES_ENTRE_DESVIOS = 20;
+
+// O z de `valor` contra `anteriores` (desvio padrão populacional), ou null com menos de Z_MINIMO_PREGOES.
+function zContra(valor, anteriores) {
+  if (anteriores.length < Z_MINIMO_PREGOES) return null;
+  const media = anteriores.reduce((s, v) => s + v, 0) / anteriores.length;
+  const dp = Math.sqrt(anteriores.reduce((s, v) => s + (v - media) ** 2, 0) / anteriores.length);
+  return dp > 0 ? arredondar((valor - media) / dp, 2) : null;
+}
+
+// Puro: os pontos (com o z) -> os desvios acima de 2, um por episódio: [{ data, z, basisPct, contratoIcf, lado }].
+function desviosDoBasis(pontos) {
+  const desvios = [];
+  let ultimoFora = -Infinity;
+  pontos.forEach((p, i) => {
+    if (p.z === null || Math.abs(p.z) <= Z_DESVIO) return;
+    if (i - ultimoFora > PREGOES_ENTRE_DESVIOS) {
+      desvios.push({ data: p.data, z: p.z, basisPct: p.basisPct, contratoIcf: p.contratoIcf, lado: p.z > 0 ? "ACIMA" : "ABAIXO" });
+    }
+    ultimoFora = i;
+  });
+  return desvios;
+}
+
 // Função PURA: as linhas de buscarAsOf (ICF por vencimento, KC por vencimento e o KC=F) -> um ponto por pregão com par.
 function medirBasis(linhas) {
   const porSerie = new Map();
@@ -88,12 +119,14 @@ function medirBasis(linhas) {
     });
   }
   pontos.forEach((p, i) => {
-    p.percentil = i < 20 ? null : percentil(p.basisPct, pontos.slice(0, i).map((q) => q.basisPct));
+    const anteriores = pontos.slice(0, i).map((q) => q.basisPct);
+    p.percentil = i < 20 ? null : percentil(p.basisPct, anteriores);
+    p.z = zContra(p.basisPct, anteriores);
   });
   return pontos;
 }
 
-// O basis com o que se sabia em `asOf`. -> { pontos, ultimo }.
+// O basis com o que se sabia em `asOf`. -> { pontos, ultimo, desvios }.
 async function calcularBasisIcfKc({ asOf = new Date() } = {}, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
   const [icf, kc] = await Promise.all([
@@ -106,7 +139,7 @@ async function calcularBasisIcfKc({ asOf = new Date() } = {}, deps = {}) {
     "YAHOO.KC_CONTINUO.SETTLE"
   ];
   const pontos = medirBasis(await repo.buscarAsOf({ seriesCodes: series, asOf }));
-  return { pontos, ultimo: pontos.at(-1) || null };
+  return { pontos, ultimo: pontos.at(-1) || null, desvios: desviosDoBasis(pontos) };
 }
 
-module.exports = { LIBRAS_POR_SACA_CENTAVOS, ultimoPregaoKc, primeiroVencimentoKc, percentil, medirBasis, calcularBasisIcfKc };
+module.exports = { LIBRAS_POR_SACA_CENTAVOS, Z_DESVIO, ultimoPregaoKc, primeiroVencimentoKc, percentil, zContra, desviosDoBasis, medirBasis, calcularBasisIcfKc };

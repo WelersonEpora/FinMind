@@ -243,3 +243,38 @@ test("operador: plano, vagas e travas numa conferência só", () => {
   assert.equal(cheio.aprovado, false);
   assert.equal(cheio.verificacoes.find((v) => v.codigo === "VAGAS_E_TRAVAS").detalhe, "MAX_POSICOES");
 });
+
+// A confirmação obrigatória (ADR 0149): o momentum de 20 pregões positivo e a curva em backwardation no café.
+const CONFIRMACAO = { momentumZ20: 1.26, vencimentos: [{ ticker: "ICFZ26", ajuste: 380 }, { ticker: "ICFH27", ajuste: 365 }], backwardation: true, exigeNaBaixa: true };
+const mercadoComConfirmacao = { ...MERCADO, CAFE: { ...MERCADO.CAFE, confirmacao: CONFIRMACAO } };
+
+test("confirmação obrigatória: bloqueia a entrada vendida das trilhas automáticas no café; a comprada passa", () => {
+  const estado = { patrimonio: 10000, posicoes: [] };
+  for (const trilha of ["IA", "DETERMINISTICA", "PERSISTENCIA"]) {
+    const { ordens, bloqueios } = decidir({ data: DATA, estado, intencoes: [intencao("CAFE", "ENTRAR_VENDIDO", 1, trilha)], mercado: mercadoComConfirmacao, parametros: parametros() });
+    assert.equal(ordens.length, 0);
+    assert.equal(bloqueios[0].motivo, "CONFIRMACAO_OBRIGATORIA");
+    assert.match(bloqueios[0].detalhe, /z \+1.26 e backwardation \(ICFZ26 a 380, acima do ICFH27 a 365\): pede revisão manual/);
+  }
+  const comprada = decidir({ data: DATA, estado, intencoes: [intencao("CAFE", "ENTRAR_COMPRADO", 1, "IA")], mercado: mercadoComConfirmacao, parametros: parametros() });
+  assert.equal(comprada.ordens.length, 1);
+  const semExigir = { ...MERCADO, CAFE: { ...MERCADO.CAFE, confirmacao: { ...CONFIRMACAO, exigeNaBaixa: false } } };
+  assert.equal(decidir({ data: DATA, estado, intencoes: [intencao("CAFE", "ENTRAR_VENDIDO", 1, "IA")], mercado: semExigir, parametros: parametros() }).ordens.length, 1);
+});
+
+test("confirmação obrigatória: o operador não é bloqueado, recebe o aviso da revisão manual", () => {
+  const r = conferirEntradaDoOperador({
+    data: DATA,
+    ativo: "CAFE",
+    lado: "VENDIDO",
+    entrada: 380,
+    stop: 397,
+    estado: { patrimonio: 10000, posicoes: [] },
+    mercado: mercadoComConfirmacao,
+    parametros: parametros()
+  });
+  const aviso = r.verificacoes.find((v) => v.codigo === "CONFIRMACAO_OBRIGATORIA");
+  assert.equal(aviso.ok, true);
+  assert.match(aviso.detalhe, /Revisão manual: .*A entrada é decisão sua/);
+  assert.equal(r.verificacoes.find((v) => v.codigo === "VAGAS_E_TRAVAS").ok, true);
+});
