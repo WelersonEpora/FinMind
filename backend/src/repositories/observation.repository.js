@@ -294,4 +294,23 @@ async function resumirSeries(seriesCodes, { transaction } = {}) {
   );
 }
 
-module.exports = { TAMANHO_MAXIMO, inserirVersoes, buscarUltimasVersoes, buscarVersoes, listarSeriesEInstantes, buscarAsOf, buscarVersoesAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, listarUltimasDatasItens, resumirSeries };
+// Os dias (em São Paulo) em que cada fonte publicou alguma versão, num período: o calendário dos relatórios do teste de
+// captura dos eventos (ADR 0144). `estimada`: alguma versão do dia tem o published_at estimado por regra.
+async function listarDiasDePublicacao({ sourceCodes, dataInicio, dataFim }, { transaction } = {}) {
+  if (sourceCodes.length === 0) return [];
+  const linhas = await sequelize.query(
+    `SELECT source_code,
+            to_char((published_at AT TIME ZONE 'America/Sao_Paulo')::date, 'YYYY-MM-DD') AS dia,
+            bool_or(published_at_is_estimated) AS estimada,
+            COUNT(*) AS versoes
+       FROM observation
+      WHERE source_code IN (:sourceCodes)
+        AND (published_at AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN :dataInicio AND :dataFim
+      GROUP BY 1, 2
+      ORDER BY 2, 1`,
+    { replacements: { sourceCodes, dataInicio, dataFim }, type: QueryTypes.SELECT, transaction }
+  );
+  return linhas.map((l) => ({ sourceCode: l.source_code, dia: l.dia, estimada: Boolean(l.estimada), versoes: Number(l.versoes) }));
+}
+
+module.exports = { TAMANHO_MAXIMO, listarDiasDePublicacao, inserirVersoes, buscarUltimasVersoes, buscarVersoes, listarSeriesEInstantes, buscarAsOf, buscarVersoesAsOf, buscarMaisRecente, buscarHistoricoAtual, listarItens, listarUltimasDatasItens, resumirSeries };

@@ -33,9 +33,16 @@ const { PARAMETROS_POSICAO, UNIDADE, arredondar, posicaoNoHistorico, parametrosP
 const FACTOR_ID = "clima_cafe_vhi_arabica";
 // v2 (2026-10-21): o El Niño e a La Niña (RONI do NOAA CPC) como contexto de regime, fora da conta (análise do café
 // de 2026-10-19, item E6; decisão do usuário, ADR 0134).
-const FACTOR_VERSION = 2;
+// v3 (2026-10-23): a pressão do El Niño no LONGO, ao lado da leitura do VHI: com o RONI publicado de +1,0 ou mais, alta
+// fraca, só nesse horizonte (a regra do ADR 0143, aprovada pelo Comitê em 2026-10-22; ADR 0143, adendo). Abaixo disso e
+// nos outros horizontes, o RONI continua só como contexto. A decisão do F1 continua a do VHI.
+const FACTOR_VERSION = 3;
 const SERIE_RONI = "NOAA_CPC.ENSO.RONI";
 const TRIMESTRES = ["DJF", "JFM", "FMA", "MAM", "AMJ", "MJJ", "JJA", "JAS", "ASO", "SON", "OND", "NDJ"];
+// O El Niño que pressiona (v3, ADR 0143): o RONI publicado de +1,0 ou mais (o moderado da escala do CPC), só no LONGO,
+// com uma intensidade só, fraca (no histórico, o forte não foi melhor que o moderado). A La Niña não mostrou sentido
+// estável: fica como contexto.
+const EL_NINO = Object.freeze({ limiar: 1.0, horizonte: "LONGO", direcao: "ALTA", intensidade: "FRACA" });
 const NOME_TRIMESTRE = ["dez-fev", "jan-mar", "fev-abr", "mar-mai", "abr-jun", "mai-jul", "jun-ago", "jul-set", "ago-out", "set-nov", "out-dez", "nov-jan"];
 
 // A força pela escala do CPC (o valor absoluto do RONI): neutro abaixo de 0,5; fraco, moderado, forte e muito forte a
@@ -65,11 +72,27 @@ function ensoConhecido(versoesRoni, ate) {
   const tresAntes = vigente.get(anosAntesMeses(meses.at(-1), 3));
   const mes = Number(ultimo.observedAt.slice(5, 7));
   const ano = Number(ultimo.observedAt.slice(0, 4));
+  const pressiona = ultimo.value >= EL_NINO.limiar;
+  const periodo = `${NOME_TRIMESTRE[mes - 1]}/${ano}`;
   const texto =
-    `${NOME_TRIMESTRE[mes - 1]}/${ano} (${TRIMESTRES[mes - 1]}): ${faseEnso(ultimo.value)}` +
+    `${periodo} (${TRIMESTRES[mes - 1]}): ${faseEnso(ultimo.value)}` +
     (tresAntes ? `; 3 meses antes, ${faixa.comSinal(tresAntes.value, 2)} °C (${faseEnso(tresAntes.value)})` : "") +
-    ". Contexto de regime, sem pressão própria.";
-  return { roni: ultimo.value, roniTexto: texto };
+    (pressiona
+      ? `. Com o RONI de ${faixa.comSinal(EL_NINO.limiar, 1)} ou mais, pressão de alta fraca só no horizonte LONGO (abaixo).`
+      : `. Contexto de regime, sem pressão própria (a pressão do El Niño, só no LONGO, liga com o RONI de ${faixa.comSinal(EL_NINO.limiar, 1)} ou mais).`);
+  // A pressão adicional do El Niño (v3): uma leitura ao lado da do VHI, só no LONGO.
+  const pressoesAdicionais = pressiona
+    ? [
+        {
+          origem: "El Niño",
+          horizonte: EL_NINO.horizonte,
+          direcao: EL_NINO.direcao,
+          intensidade: EL_NINO.intensidade,
+          texto: `RONI de ${faixa.comSinal(ultimo.value, 2)} °C em ${periodo}, acima de ${faixa.comSinal(EL_NINO.limiar, 1)}`
+        }
+      ]
+    : [];
+  return { roni: ultimo.value, roniTexto: texto, pressoesAdicionais };
 }
 
 // "AAAA-MM-01" menos `n` meses.
@@ -195,6 +218,7 @@ function derivarClimaCafe(linhasVhi, versoesConab, { parametros = PARAMETROS_PAD
       decisao,
       roni: null,
       roniTexto: null,
+      pressoesAdicionais: [],
       ...ensoConhecido(roni, disponivelEm),
       disponivelEm,
       disponivelEmEhEstimado: estimado
@@ -233,6 +257,9 @@ function explicarClimaCafe(ponto, parametros = PARAMETROS_PADRAO) {
   const passos = faixa.explicarPorFaixa(ponto, parametros, TEXTOS);
   if (ponto?.decisao?.foraDaJanela) {
     passos.splice(1, 2, "Direção: fora das janelas críticas do estudo (geada de junho a agosto; florada e pegamento de setembro a novembro) → Neutra, sem intensidade.");
+  }
+  for (const p of ponto?.pressoesAdicionais || []) {
+    passos.push(`${p.origem}, só no ${p.horizonte}: ${p.texto} → pressão de alta, fraca, ao lado da leitura do VHI (ADR 0143).`);
   }
   return passos;
 }
@@ -279,7 +306,7 @@ const APRESENTACAO = {
   graficoC: { titulo: "Posição relativa ponderada (B) e as faixas da decisão (C)", campo: "posicaoRelativa", rotulo: "Posição relativa (B)", unidade: "pontos" },
   rotulosDecisao: { ...faixa.ROTULOS, tendencia: ROTULOS_TENDENCIA },
   parametros: parametrosPosicao(),
-  regraAdicional: "decide só de junho a novembro (geada; florada e pegamento); de dezembro a maio, neutra",
+  regraAdicional: "decide só de junho a novembro (geada; florada e pegamento); de dezembro a maio, neutra. No LONGO, o ano todo, o El Niño (RONI publicado de +1,0 ou mais) soma uma pressão de alta fraca ao lado da do VHI",
   exemplos: { colunaValor: "Posição relativa", unidade: "pontos" },
   nota:
     "Semanal, não é tempo real: o VHI da NOAA STAR sobre a área de café de MG, SP, ES e BA, ponderado pela produção de " +
@@ -297,4 +324,4 @@ const METODOLOGIA = {
   apresentacao: APRESENTACAO
 };
 
-module.exports = { FACTOR_ID, FACTOR_VERSION, PARAMETROS_PADRAO, SERIE_RONI, METODOLOGIA, derivarClimaCafe, anosAntes, faseEnso };
+module.exports = { FACTOR_ID, FACTOR_VERSION, PARAMETROS_PADRAO, SERIE_RONI, EL_NINO, METODOLOGIA, derivarClimaCafe, anosAntes, faseEnso };

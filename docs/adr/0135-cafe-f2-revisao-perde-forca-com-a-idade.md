@@ -55,3 +55,27 @@ Os 11 levantamentos de 2023 a 2026 e o KC de Nova York (Yahoo, `KC=F`, o dia da 
 - Em 21/10/2026 (27 dias), o F2 passa de "baixa forte" a "baixa moderada"; a partir de 06/11/2026 (43 dias), fica neutro,
   até o levantamento de dezembro.
 - Os prazos (14 e 42 dias) são calibração do FinMind, ajustáveis pelo Comitê.
+
+## Adendo (2026-10-23): a resposta do Comitê, a fonte de consenso e o limite de dado vencido
+
+**Quem decidiu:** o Comitê, na resposta à §0 do status, recebida em 2026-10-22: "E7 (decaimento de 14 e 42 dias):
+APROVADO. Para medir a surpresa, informar a fonte de consenso que será usada", com o ponto de atenção "o limite de 42
+dias para a safra (ADR 0142) pode deixar o F2 sem voto em grande parte do ciclo, porque a Conab publica cerca de a cada
+quatro meses". A fonte e a resposta ao ponto de atenção foram decididas pelo usuário (Welerson) em 2026-10-23.
+
+- **O decaimento de 14 e 42 dias fica como está.**
+- **A fonte de consenso é o USDA (PSD), o arábica do Brasil na mesma safra** (`USDA.PSD.CAFE.BR.PRODUCAO_ARABICA`, já
+  coletado; o ano 2026 do PSD é o 2026/27, a colheita de 2026). É outra estimativa oficial, não o consenso do mercado: a
+  pesquisa de analistas é paga, e as estimativas privadas só chegam pelos eventos (fontes secundárias, ADR 0130). O F2
+  (v3) traz, como contexto e sem pressão, a diferença da Conab contra o USDA conhecido quando ela publicou. Em 24/09/2026,
+  48.213 mil sacas contra 47.500: +1,5%. Uma regra com a surpresa só depois de juntar pares (o histórico de versões do
+  PSD na base começa com a coleta; antes, a data de publicação é estimada).
+- **O ponto de atenção, medido:** com os 16 levantamentos desde 2023 (de 85 a 125 dias entre eles, fora as correções), o
+  F2 tem leitura com direção em 40% dos dias, e com a força cheia em 15%. É o efeito do decaimento aprovado, e o teste
+  deste ADR não sustenta a força por mais tempo.
+- **O F2 sai do limite de dado vencido** (ADR 0142). Depois de 42 dias, ele saía como "SEM VOTO: dado vencido", e a IA
+  registrava a lacuna como DEFASADO, mas o levantamento é o mais novo que existe. Agora o decaimento o deixa neutro, com
+  a revisão como contexto e a idade no texto. A direção do F2 continua em 40% dos dias.
+- **Para o Comitê, se quiser o F2 com voto por mais tempo:** do 43º dia até o próximo levantamento, a revisão forte
+  seguiria como fraca (a moderada ficaria neutra). A evidência é fraca: com direção, o F2 acertou o lado em 3 de 5 de 10
+  a 60 pregões.

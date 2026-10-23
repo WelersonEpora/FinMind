@@ -1,6 +1,7 @@
 "use strict";
 
 const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./analise-diaria-base");
+const { PARAMETROS_PADRAO: ROLAGEM } = require("../factors/base/serie-continua-futuro");
 
 // Configuração do prompt diário de análise do café (ADR 0062), no molde da do milho (analise-diaria-milho.js, ADR 0058):
 // o que a metodologia define e o prompt só MOSTRA. Nada daqui é escrito à mão no texto do prompt
@@ -18,7 +19,10 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // faixas não mudam.
 // v5 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
 // dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
-const VERSAO = 7;
+// v8 (2026-10-23): o preço dos quatro horizontes é o ICF-CA, a série contínua ajustada do ICF (sanção do Comitê aos
+// itens E1 e E11 da análise do café, ADR 0140, adendo), no lugar de um contrato por horizonte (ADR 0078). O realizado
+// também é medido nela. A curva segue no bloco 2.2, como informação. Faixas e horizontes não mudam.
+const VERSAO = 8;
 
 // Os mesmos quatro horizontes do petróleo, do ouro e do milho, em dias corridos contados da data da análise. O estudo do
 // David conta em pregões (1, 7, 30 e 90): os dias corridos mantêm a régua dos outros ativos e a variação do Centro de
@@ -49,32 +53,33 @@ const FAIXAS = Object.freeze({
 // De onde os horizontes contam (analise-diaria-base.js::REFERENCIA_HORIZONTES; ADR 0106).
 const REFERENCIA_HORIZONTES = "DATA_DO_PRECO_RECEBIDO";
 
-// O preço de referência (aprovação do Comitê, 2026-10-05, ADR 0062): o futuro ICF da B3 (café arábica, US$/saca), o
-// vencimento mais próximo negociado (centro-decisao.service.js::lerFuturo), sem emendar contratos. O KC da ICE (Nova
-// York), que o estudo cita como referência, é pago: entra só pelo que os fatores trazem de lá (o COT e os estoques
-// certificados). O preço também em reais, pela PTAX de venda do mesmo dia, como referência (como o GLD do ouro).
+// O preço de referência (aprovação do Comitê, 2026-10-05, ADR 0062): o futuro ICF da B3 (café arábica, US$/saca). Desde
+// a v8, o ICF-CA, a série contínua ajustada (factors/serie-continua-icf.js; ADR 0140, adendo): os vencimentos emendados
+// pela liquidez, com o ajuste proporcional; o último preço é o ajuste real do contrato do dia. O KC da ICE (Nova York)
+// entra pelo momentum e pelo que os fatores trazem de lá (o COT e os estoques certificados). O preço também em reais,
+// pela PTAX de venda do mesmo dia, como referência (como o GLD do ouro).
 const PRECO = Object.freeze({
-  serie: "ICF",
+  serie: "ICF_CA",
   moeda: "US$",
   pregoesNoHistorico: 10,
-  rotulo: "café arábica (ICF)",
-  unidadeHistorico: "US$/saca",
+  rotulo: "café arábica (ICF-CA, o ICF contínuo ajustado)",
+  unidadeHistorico: "US$/saca, ajustado",
   unidadeEmReais: "por saca",
-  descricaoFaixas: "café arábica no futuro ICF da B3, no vencimento de cada horizonte (a linha \"Contrato\" de cada um)",
+  descricaoFaixas: "café arábica no ICF-CA, a série contínua ajustada do ICF (a mesma nos quatro horizontes)",
   avisos: Object.freeze([
     "Aviso: o ICF é o futuro de café arábica da B3 (US$ por saca de 60 kg). O KC da ICE (Nova York, centavos de US$ por libra-peso) entra na BASE só pelo momentum, logo abaixo, e pelos fatores (o COT e os estoques certificados são de Nova York).",
-    "Aviso: cada vencimento é uma série própria e nada é emendado: as variações usam só o histórico do contrato atual. Um contrato com pouco histórico, ou que não negociou na data de comparação, deixa a variação SEM DADO."
+    `Aviso: o ICF-CA emenda os vencimentos do ICF: a partir de ${ROLAGEM.pregoesJanela} pregões antes do vencimento, rola para o seguinte quando ele passa a ter mais contratos negociados em ${ROLAGEM.pregoesLiquidez} pregões (entre os ${ROLAGEM.candidatos} seguintes), com a trava a ${ROLAGEM.pregoesTrava} pregões do vencimento. Na troca, o passado é multiplicado pela razão novo ÷ antigo: as variações não têm o salto da troca de contrato. O último preço é o ajuste real do contrato do dia; os preços passados são ajustados, não são preços que existiram.`
   ]),
   emReais: true
 });
 
-// A curva do ICF e o vencimento de cada horizonte (decisão do usuário, 2026-10-05, ADR 0078), como no milho: cada
-// horizonte usa o vencimento mais próximo que ainda vale depois da data-alvo, e a curva vai ao bloco 2.2. Com o mais
-// próximo para todos, o contrato vencia antes da data-alvo em 78% dos dias no horizonte de 90 dias. O ICF é pouco
-// líquido: o aviso de menos de 100 contratos no dia sai em cerca de um quarto dos dias.
+// A curva do ICF (ADR 0078), no bloco 2.2, como informação: o ajuste e os contratos negociados de cada vencimento. Desde a
+// v8, sem contrato por horizonte (`porHorizonte: false`): os quatro horizontes usam o ICF-CA. O ICF é pouco líquido: o
+// aviso de menos de 100 contratos no dia sai em cerca de um quarto dos dias.
 const CURVA = Object.freeze({
   aplica: true,
-  porHorizonte: true,
+  porHorizonte: false,
+  futuro: Object.freeze({ prefixo: "B3.ICF", campo: "SETTLE" }),
   fonte: "B3 (ajuste e contratos negociados de cada vencimento do ICF)",
   liquidezMinima: 100,
   semDado: "SEM DADO: nenhum vencimento do ICF negociou até a data.",

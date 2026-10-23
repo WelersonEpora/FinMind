@@ -1,4 +1,4 @@
-# 0140 — Café: os horizontes medidos na série contínua ajustada do ICF, proposta para a sanção do Comitê
+# 0140 — Café: os horizontes medidos na série contínua ajustada do ICF (o ICF-CA), sancionada pelo Comitê
 
 ## Contexto
 
@@ -54,3 +54,52 @@ O ICF de 2022-03-21 a 2026-10-13 (954 pregões; 16 trocas na série contínua). 
 - Nada muda até a sanção: o prompt, o Centro de Decisão e a Qualidade da IA seguem o ADR 0078.
 - Sancionada: o preço de partida dos quatro horizontes passa a ser o mesmo; o preço da série é sintético (negociável só
   no contrato do dia), e o realizado de 90 dias cruza uma rolagem em três de cada quatro dias, ajustada.
+
+## Adendo (2026-10-23): sancionada pelo Comitê e implementada
+
+**Quem decidiu:** o Comitê, na resposta à §0 do status, recebida em 2026-10-22: "E1 e E11 (série contínua e rolagem):
+APROVADO. Documentar o método de ajuste e a nomenclatura da série". Entre as duas opções do pedido, o Comitê aprovou a
+série contínua em todos os horizontes, com a regra de rolagem como estava (40, 5, 3 e 10 pregões). O nome da série e a
+implementação imediata foram decididos pelo usuário (Welerson) em 2026-10-23.
+
+### Nomenclatura
+
+- **ICF-CA**, "ICF contínuo ajustado": a série contínua do ICF do FinMind, calculada na hora e nunca gravada. Em cada
+  data, vai com o contrato do dia ao lado ("ICF-CA · ICFZ26"). O contrato por vencimento continua com o nome da B3
+  (ICFZ26).
+- No código: `factors/serie-continua-icf.js::SERIE_CONTINUA_ICF`. A série `ICF_CA` do Centro de Decisão e o código
+  `FINMIND.ICF.ICF-CA.AJUSTE` gravado com cada leitura não existem na `observation`: o realizado recalcula a série.
+
+### O método de ajuste
+
+1. **Rolagem** (`factors/base/serie-continua-futuro.js`, sem olhar o futuro). A partir de 40 pregões antes do último
+   pregão do vencimento atual, a série rola para o vencimento seguinte com mais contratos negociados nos últimos 5
+   pregões, quando essa soma passa a do atual. Os candidatos são os 3 vencimentos seguintes, e os que não negociam são
+   pulados. Se a liquidez não migrar, a trava rola 10 pregões antes do último pregão. O preço do dia da troca já é o do
+   vencimento novo.
+2. **Ajuste proporcional.** Na troca, todos os preços anteriores são multiplicados pela razão entre o novo e o antigo
+   naquele pregão. Os retornos em % ficam iguais aos de cada contrato, e o trecho atual é o preço real. O nível do
+   passado ajustado muda a cada troca nova e não é um preço que existiu: só os retornos são comparáveis no tempo.
+3. **Exemplo real** (troca de 13/08/2026, do ICFU26 para o ICFZ26, por liquidez: 3.139 contra 2.922 contratos em 5
+   pregões). No dia, o ICFU26 fechou a 403,20 e o ICFZ26 a 382,30 US$/saca: razão de 0,9482 (−5,18%, curva invertida).
+   - Em 12/08, o ICFU26 fechou a 409,35; ajustado, 409,35 × 0,9482 = 388,13.
+   - Em 14/08, o ICFZ26 fechou a 384,00, que é o preço real do trecho atual.
+   - De 12/08 a 14/08, sem o ajuste, a variação seria de −6,19%, e os −5,18% da curva entrariam como movimento de
+     preço. No ICF-CA, ela é de −1,06% (384,00 ÷ 388,13): o ICFU26 caiu 1,50% até a troca, e o ICFZ26 subiu 0,44%
+     depois dela.
+
+### O que mudou
+
+| Onde | Antes (ADR 0078) | Agora |
+|---|---|---|
+| Prompt do café (v16) e configuração (v8) | Um contrato por horizonte, com a linha "Contrato" na tabela 2.4 | O ICF-CA nos quatro horizontes; o contrato do dia no bloco 2.1. A curva segue no 2.2, como informação |
+| O que fica gravado com a leitura | O contrato de cada horizonte | `precoReferencia`: a série `ICF_CA`, o código `FINMIND.ICF.ICF-CA.AJUSTE`, o contrato do dia e `serieContinua` |
+| Realizado e Qualidade da IA | No contrato de cada horizonte | Na série ajustada calculada em `agora`. A base é o ponto ajustado da data do preço recebido, e a razão entre dois pontos não muda com as trocas que vêm depois |
+| Centro de Decisão | O ICF do vencimento mais próximo | O ICF-CA como 1ª série, com o contrato do dia; o ICF por vencimento continua como opção |
+| Metodologia do café (v16) | A série contínua como proposta | O ICF-CA "em uso"; as perguntas do E1 e do E11 viram decisão |
+
+- As leituras até a configuração v7 seguem medidas no contrato gravado com cada horizonte. A versão separa os dois
+  grupos na Qualidade da IA.
+- As carteiras virtuais não mudam: operam o contrato, com a regra de saída delas (ADR 0127).
+- As faixas (T1 e T2) seguem as calibradas no ICF por vencimento (ADR 0062). A variação no ICF-CA, sem o salto da troca,
+  não foi medida contra elas: recalibrar, se for o caso, é outra decisão.

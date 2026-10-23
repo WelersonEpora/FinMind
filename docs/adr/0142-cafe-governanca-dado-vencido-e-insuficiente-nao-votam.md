@@ -48,3 +48,35 @@ voto, com o limite da safra em 42 dias (o fim do decaimento do E7, ADR 0135) no 
 
 - Uma falha de coleta deixa de virar voto velho: o fator sai da conta no dia e a leitura diz a lacuna.
 - A Qualidade da IA separa as leituras pela versão da configuração (v7).
+
+## Adendo (2026-10-23): "sem exceção", nos seis ativos
+
+**Quem decidiu:** o Comitê, na resposta à §0 do status, recebida em 2026-10-22 (E5): "Implementar 'dado insuficiente não
+vota' sem exceção." A interpretação foi decidida pelo usuário (Welerson) em 2026-10-23, com o mesmo poder de decisão do
+David.
+
+**Duas leituras possíveis.** (A) A marca "dado insuficiente" da metodologia (o dado coletado não cobre a regra inteira
+do estudo: F1, F2, F5 e F6 no café) também tira o voto. No café, só o F8 votaria. (B) O controle da §6 (sem dado ou
+histórico curto) vale sem exceção de ativo e de tipo de fator. **Escolhida a B:** na mesma resposta, o Comitê aprovou a
+pressão do El Niño no F1 (E6), o decaimento do F2 (E7) e, condicionada a backtest, uma regra para o F5 (E9), o que só faz
+sentido com esses fatores votando. A leitura está na §0 do status, para o Comitê corrigir se quis dizer a A.
+
+**O que mudou:**
+
+1. **Nos seis ativos:** `SEM_DADO_NAO_VOTA` na configuração do petróleo (v6), do ouro (v3), do milho (v5), da soja (v2) e
+   do dólar (v2), como no café. O item de relevância do prompt de cada um diz o que fazer com o fator SEM VOTO (petróleo
+   v12, ouro v5, milho v10, soja v3, dólar v2). A validação da resposta já era a mesma em todos.
+2. **O fator de evento** (petróleo, ouro, soja e dólar) sem leitura diária de eventos na janela sai SEM VOTO, no lugar de
+   ficar fora do controle.
+3. **O fator com leitura por horizonte** (o dólar, ADR 0126) só perde o voto inteiro sem leitura em nenhum horizonte. O
+   horizonte sem leitura sai como "SEM VOTO em" na tabela 2.3 (`semVotoNosHorizontes` na entrada), e a resposta que o
+   citar a favor ou contra naquele horizonte é recusada. Antes, a `decisao` da tela (30 dias) vazia tiraria o voto do
+   fator nos quatro horizontes.
+4. **A marca da metodologia** passa a se chamar "Cobertura completa" ou "Cobertura parcial" (se o dado coletado cobre a
+   regra do estudo), para não usar a palavra do controle do Comitê para outra coisa. Ela não tira o voto.
+
+O dado vencido (`idadeMaximaVotoDias`) continua definido só nos fatores do café que a §6 da análise lista (clima, safra
+e estoques).
+
+**Adendo de 2026-10-23 (ADR 0135, adendo):** a safra (F2) sai do limite de dado vencido. O levantamento vigente é o mais
+novo que existe, e o decaimento do E7 já o deixa neutro depois de 42 dias. Ficam o clima (14 dias) e os estoques (7).

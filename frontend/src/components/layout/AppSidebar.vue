@@ -31,6 +31,8 @@ const dadosMercadoLinks = [
   { to: '/dados-mercado/tradingview', label: 'TradingView', icon: 'bi-bar-chart-line', rotas: ['dados-mercado-tradingview-comparar'] },
   { to: '/dados-mercado/observaveis', label: 'Observáveis', icon: 'bi-database' },
   { to: '/dados-mercado/eventos', label: 'Eventos', icon: 'bi-globe2' },
+  // O teste de captura dos eventos dos agrícolas (ADR 0144).
+  { to: '/dados-mercado/captura-eventos', label: 'Captura de eventos', icon: 'bi-bullseye' },
   { to: '/dados-mercado/execucoes', label: 'Execuções', icon: 'bi-arrow-repeat' }
 ]
 

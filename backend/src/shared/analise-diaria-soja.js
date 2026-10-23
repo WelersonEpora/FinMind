@@ -7,7 +7,9 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // Mudar um valor = versão nova desta configuração (VERSAO), gravada com cada leitura.
 
 // v1 (2026-10-08): a primeira, com a aprovação da soja pelo Comitê, com o David (ADR 0116).
-const VERSAO = 1;
+// v2 (2026-10-23): o dado insuficiente não vota (SEM_DADO_NAO_VOTA, ADR 0142, adendo: o "sem exceção" do Comitê, nos
+// seis ativos). Horizontes e faixas não mudam.
+const VERSAO = 2;
 
 // Os mesmos quatro horizontes dos outros ativos, em dias corridos.
 const HORIZONTES = Object.freeze([
@@ -70,8 +72,14 @@ const COLETOR = "soja-analise-ia-diario";
 
 const classificarVariacao = criarClassificador(FAIXAS);
 
+// A governança da análise (§6 da análise do café, ADR 0142 e adendo): um fator sem dado até a data, sem a leitura do
+// motor ou, se de evento, sem leitura diária na janela sai como SEM VOTO na tabela 2.3, e a resposta que o citar a favor
+// ou contra é recusada.
+const SEM_DADO_NAO_VOTA = true;
+
 module.exports = {
   VERSAO,
+  SEM_DADO_NAO_VOTA,
   NOME,
   ARQUIVO_PROMPT,
   COLETOR,

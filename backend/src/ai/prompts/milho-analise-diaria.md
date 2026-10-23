@@ -1,6 +1,6 @@
 # Prompt — Análise diária do milho (leitura de tendência em quatro horizontes)
 
-**Versão:** 9
+**Versão:** 10
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0058), no molde do prompt do ouro (`ouro-analise-diaria.md`, v1;
 ADR 0054): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -56,6 +56,10 @@ v9 (2026-10-07, ADR 0106) - os horizontes contam do último preço da BASE, e o 
 (antes, da data da análise, com o pregão seguinte ao último preço fora de todos os horizontes); com o preço defasado,
 da data da análise. O item do preço em "Como analisar" diz isso, e a tabela 2.4 traz a data-alvo de cada horizonte.
 
+v10 (2026-10-23, ADR 0142, adendo) - o dado insuficiente não vota, nos seis ativos (o "sem exceção" do Comitê): o
+fator sem dado, sem a leitura do motor ou, se de evento, sem leitura diária na janela sai como SEM VOTO na tabela 2.3,
+e a resposta que o citar a favor ou contra é recusada. O item de relevância diz isso.
+
 Enviado ao Gemini uma vez por dia pelo coletor `milho-analise-ia-diario` (ADR 0058).
 
 ## Instrução do sistema
@@ -99,6 +103,9 @@ Para cada horizonte, separadamente:
    safrinha seguintes, de 6 a 12 meses depois (o bloco dele traz a data de efeito esperada), e informa pouco os
    horizontes desta leitura. Diga quais fatores pesaram
    pouco e por quê.
+   Um fator marcado SEM VOTO na tabela 2.3 (sem dado, sem a leitura do motor ou, num fator de evento, sem leitura
+   diária na janela) não vota em nenhum horizonte: liste-o só em fatoresPoucoRelevantes e registre a falta em
+   "lacunas" (SEM_DADO ou SEM_LEITURA).
 2. Peso do mês. O peso de cada fator é o da coluna do mês da data da análise, na tabela 2.5; a coluna FEL 1 é só
    referência. Comece pelos fatores de peso Alto nesse mês; os de peso Médio e Baixo confirmam ou enfraquecem a
    leitura. Uma condição ou regra de peso da tabela 2.5 só muda o peso quando a BASE mostra que ela está atendida; sem

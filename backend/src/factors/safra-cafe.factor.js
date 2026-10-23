@@ -22,13 +22,17 @@ const { arredondar } = require("./modelos/posicao-historica");
 //
 // O 1º levantamento de cada safra (janeiro) não tem revisão: sem decisão. O estudo diz: a revisão de safra causada por
 // um choque de clima já lido no F1 deve pesar menos (dupla contagem, fica para a agregação); a surpresa contra a
-// expectativa do mercado (paga) não é coletada. Propriedades: determinístico, versionado, point-in-time, sem IA.
+// expectativa do mercado (paga) não é coletada. No lugar dela, como CONTEXTO fora da conta (v3), a diferença contra a
+// estimativa do USDA (PSD) para o arábica do Brasil na mesma safra, a que era conhecida quando a Conab publicou: outra
+// estimativa oficial, não o consenso do mercado (a fonte de consenso informada ao Comitê, ADR 0135, adendo).
+// Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const FACTOR_ID = "safra_cafe_conab_arabica";
 // v2 (2026-10-21): a revisão perde força com a idade, no levantamento vigente na data da leitura (análise do café de
 // 2026-10-19, item E7; decisão do usuário, ADR 0135): até 14 dias, a leitura do levantamento; de 15 a 42, um nível
 // abaixo (forte -> moderada; moderada -> neutra); depois de 42, neutra (a revisão fica como contexto).
-const FACTOR_VERSION = 2;
+// v3 (2026-10-23): a Conab contra o USDA (PSD) na mesma safra, como contexto (item E7; ADR 0135, adendo).
+const FACTOR_VERSION = 3;
 const DIAS_FORCA_PLENA = 14;
 const DIAS_FORCA_REDUZIDA = 42;
 
@@ -36,6 +40,9 @@ const SERIES = Object.freeze({
   arabica: "CONAB.CAFE.BRASIL.PRODUCAO_ARABICA",
   conilon: "CONAB.CAFE.BRASIL.PRODUCAO_CONILON"
 });
+// O USDA (PSD): o arábica do Brasil por ano comercial, em mil sacas, como a Conab. O ano 2026 do PSD é o 2026/27 (julho a
+// junho), a colheita de 2026: a mesma safra da Conab.
+const SERIE_USDA = "USDA.PSD.CAFE.BR.PRODUCAO_ARABICA";
 
 const PARAMETROS_PADRAO = Object.freeze({
   limiarModeradoPct: 2,
@@ -57,6 +64,19 @@ function valorAte(versoes, serie, safra, ate) {
 
 const variacao = (a, b) => (a === undefined || b === undefined || !b ? null : arredondar((a / b - 1) * 100, 2));
 
+// A estimativa do USDA para a safra conhecida em `ate`: a versão mais nova publicada até lá. -> { valor, em, estimado } ou null.
+function usdaAte(versoesUsda, safra, ate) {
+  let achada = null;
+  for (const v of versoesUsda) if (v.observedAt === safra && v.publishedAt <= ate && (!achada || v.publishedAt >= achada.em)) achada = { valor: v.value, em: v.publishedAt, estimado: v.estimado };
+  return achada;
+}
+
+function textoUsda(usda, anoSafra) {
+  if (!usda) return null;
+  const mes = `${usda.em.slice(5, 7)}/${usda.em.slice(0, 4)}`;
+  return `USDA (PSD), conhecido até o levantamento: ${faixa.fmt(usda.valor, 0)} mil sacas para ${anoSafra}/${String(anoSafra + 1).slice(2)}, publicado em ${mes}${usda.estimado ? " (data estimada)" : ""}. Outra estimativa oficial, não a expectativa do mercado: contexto, sem pressão própria.`;
+}
+
 const diasEntre = (de, ate) => Math.floor((Date.parse(`${ate.slice(0, 10)}T00:00:00Z`) - Date.parse(`${de.slice(0, 10)}T00:00:00Z`)) / 864e5);
 
 // A decisão do levantamento com `idadeDias` desde a publicação (ADR 0135). Sem direção, fica como está.
@@ -75,7 +95,9 @@ function decairPelaIdade(decisao, idadeDias) {
 // `dataReferencia` (a data da leitura), o levantamento vigente nela perde força pela idade (ADR 0135); os anteriores
 // ficam com a leitura do dia em que saíram.
 function derivarSafraCafe(versoes, { parametros = PARAMETROS_PADRAO, dataReferencia = null } = {}) {
-  const ordenadas = [...versoes].map((v) => ({ ...v, publishedAt: new Date(v.publishedAt).toISOString() }));
+  const todas = [...versoes].map((v) => ({ ...v, publishedAt: new Date(v.publishedAt).toISOString() }));
+  const versoesUsda = todas.filter((v) => v.seriesCode === SERIE_USDA).map((v) => ({ ...v, estimado: Boolean(v.publishedAtIsEstimated) }));
+  const ordenadas = todas.filter((v) => v.seriesCode !== SERIE_USDA);
   ordenadas.sort((a, b) => (a.publishedAt < b.publishedAt ? -1 : 1));
   const levantamentos = [...new Set(ordenadas.map((v) => v.publishedAt))];
   const revisoes = [];
@@ -92,6 +114,7 @@ function derivarSafraCafe(versoes, { parametros = PARAMETROS_PADRAO, dataReferen
     const conilon = valorAte(ordenadas, SERIES.conilon, safra, data);
     const conilonAntes = anterior ? valorAte(ordenadas, SERIES.conilon, safra, anterior) : undefined;
     const revisao = variacao(arabica, arabicaAntes);
+    const usda = usdaAte(versoesUsda, safra, data);
     revisoes.push(revisao);
     const revisaoAnterior = revisoes.length > parametros.semanasTendencia ? revisoes.at(-1 - parametros.semanasTendencia) : null;
     pontos.push({
@@ -105,6 +128,9 @@ function derivarSafraCafe(versoes, { parametros = PARAMETROS_PADRAO, dataReferen
       conilon: conilon ?? null,
       revisaoConilonPct: variacao(conilon, conilonAntes),
       contraSafraAnteriorPct: variacao(arabica, valorAte(ordenadas, SERIES.arabica, safraAnterior, data)),
+      usdaArabica: usda?.valor ?? null,
+      contraUsdaPct: usda ? variacao(arabica, usda.valor) : null,
+      usdaTexto: textoUsda(usda, anoSafra),
       decisao: faixa.decidirPorFaixa(revisao, revisaoAnterior ?? null, parametros, faixa.DIRECAO.BAIXA),
       disponivelEm: data,
       disponivelEmEhEstimado: false
@@ -120,7 +146,7 @@ function derivarSafraCafe(versoes, { parametros = PARAMETROS_PADRAO, dataReferen
 
 async function calcularSafraCafe({ asOf, parametros = PARAMETROS_PADRAO }, deps = {}) {
   const servico = deps.pointInTimeService || pointInTimeService;
-  const versoes = await servico.obterVersoesAsOf({ seriesCodes: Object.values(SERIES), asOf }, deps);
+  const versoes = await servico.obterVersoesAsOf({ seriesCodes: [...Object.values(SERIES), SERIE_USDA], asOf }, deps);
   return derivarSafraCafe(versoes, { parametros, dataReferencia: asOf ? new Date(asOf).toISOString() : new Date().toISOString() });
 }
 
@@ -169,7 +195,9 @@ const APRESENTACAO = {
     { camada: "A", rotulo: "Conilon (Conab, contexto)", campo: "conilon", casas: 0, sufixo: "mil sacas" },
     { camada: "A", rotulo: "Arábica contra a safra anterior (contexto)", campo: "contraSafraAnteriorPct", casas: 2, sinal: true, unidadeValor: "%" },
     { camada: "B", rotulo: "Revisão do arábica", campo: "revisaoArabicaPct", casas: 2, sinal: true, unidadeValor: "%", sufixo: "contra o levantamento anterior" },
-    { camada: "B", rotulo: "Revisão do conilon (contexto)", campo: "revisaoConilonPct", casas: 2, sinal: true, unidadeValor: "%" }
+    { camada: "B", rotulo: "Revisão do conilon (contexto)", campo: "revisaoConilonPct", casas: 2, sinal: true, unidadeValor: "%" },
+    // v3 (ADR 0135, adendo): a Conab contra o USDA, fora da conta.
+    { camada: "B", rotulo: "Arábica contra o USDA na mesma safra (contexto)", campo: "contraUsdaPct", casas: 2, sinal: true, unidadeValor: "%", detalhe: "usdaTexto" }
   ],
   graficoAB: {
     titulo: "Produção de arábica estimada a cada levantamento (A)",
@@ -201,4 +229,4 @@ const METODOLOGIA = {
   apresentacao: APRESENTACAO
 };
 
-module.exports = { FACTOR_ID, FACTOR_VERSION, SERIES, PARAMETROS_PADRAO, METODOLOGIA, derivarSafraCafe, decairPelaIdade };
+module.exports = { FACTOR_ID, FACTOR_VERSION, SERIES, SERIE_USDA, PARAMETROS_PADRAO, METODOLOGIA, derivarSafraCafe, decairPelaIdade };

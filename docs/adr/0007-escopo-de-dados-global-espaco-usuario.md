@@ -101,6 +101,7 @@ Regras adicionais, todas obrigatórias:
 | `fator_parametro_versao` | GLOBAL | parâmetros da camada C de um fator em uso no sistema, uma versão por ajuste, append-only, com autor e motivo (ADR 0050); sem `workspace_id` |
 | `analise_diaria` | GLOBAL | leitura diária de tendência da IA, uma por ativo e dia, com o prompt, a resposta e as versões (ADR 0052; hoje só o petróleo); sem `workspace_id` |
 | `recomendacao_ia` | GLOBAL | a recomendação da IA das carteiras virtuais, uma chamada por combinação de ativos e dia (e a réplica semanal), compartilhada pelas carteiras, append-only (ADR 0127, adendo de 2026-10-16); sem `workspace_id` |
+| `evento_referencia` | GLOBAL | os eventos de referência do teste de captura dos eventos dos agrícolas, com a avaliação (relevante, capturado) de um admin de plataforma (ADR 0144); sem `workspace_id` |
 | `collection_execution` | GLOBAL | visibilidade hoje aberta a autenticados; restringir a admin de plataforma quando houver clientes externos |
 | `system_setting` | GLOBAL | configuração da plataforma |
 | `carteira` | PRIVADA | carteira virtual (ADR 0127): conta, moeda, capital e início fixos; `ON DELETE RESTRICT` no espaço; `UNIQUE (workspace_id, id)` como alvo das FKs compostas |

@@ -14,6 +14,8 @@ const geopoliticaRoutes = require("./geopolitica.routes");
 const metodologiaAtivoRoutes = require("./metodologia-ativo.routes");
 const qualidadeIaRoutes = require("./qualidade-ia.routes");
 const carteiraRoutes = require("./carteira.routes");
+const capturaEventosRoutes = require("./captura-eventos.routes");
+const cepeaRoutes = require("./cepea.routes");
 
 const router = Router();
 
@@ -30,5 +32,7 @@ router.use("/api/v1", geopoliticaRoutes);
 router.use("/api/v1", metodologiaAtivoRoutes);
 router.use("/api/v1", qualidadeIaRoutes);
 router.use("/api/v1", carteiraRoutes);
+router.use("/api/v1", capturaEventosRoutes);
+router.use("/api/v1", cepeaRoutes);
 
 module.exports = router;

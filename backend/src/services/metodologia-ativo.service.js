@@ -11,7 +11,7 @@ const { obterMetodologiaDolar } = require("../shared/metodologia-dolar");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const geopoliticaService = require("./geopolitica.service");
 const { montarTextoPrompt } = require("../factors/base/texto-prompt");
-const { calcularSerieContinuaIcf } = require("../factors/serie-continua-icf");
+const { SERIE_CONTINUA_ICF, calcularSerieContinuaIcf } = require("../factors/serie-continua-icf");
 const { calcularBasisIcfKc } = require("../factors/basis-icf-kc");
 const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 
@@ -86,12 +86,12 @@ const CALCULOS = {
 };
 
 // O preço de referência visto de fora da leitura (análise do café de 2026-10-19, item E1), por ora só no café: a série
-// contínua do ICF (PROPOSTA, itens E1 e E11, a validar pelo Comitê: os vencimentos emendados pela liquidez, com o ajuste
-// proporcional) e o basis B3 × Nova York (INFORMAÇÃO; como fator, decisão do Comitê, item E10). Nada é gravado e nada
-// alimenta o prompt nem o Centro de Decisão.
+// contínua do ICF (o ICF-CA, EM USO como o preço de referência do café desde 2026-10-23, ADR 0140, adendo: os
+// vencimentos emendados pela liquidez, com o ajuste proporcional) e o basis B3 × Nova York (INFORMAÇÃO; como fator,
+// decisão do Comitê, item E10). Nada é gravado; o basis não alimenta o prompt nem o Centro de Decisão.
 const PRECO_REFERENCIA = {
   CAFE: {
-    serieContinua: { contrato: "ICF", nome: "Série contínua do ICF", unidade: "US$/saca", calcular: calcularSerieContinuaIcf },
+    serieContinua: { contrato: "ICF", nome: `${SERIE_CONTINUA_ICF.nome} (${SERIE_CONTINUA_ICF.codigo})`, unidade: "US$/saca", calcular: calcularSerieContinuaIcf },
     basis: { nome: "Basis B3 × Nova York (ICF contra o KC da ICE)", unidade: "US$/saca", calcular: calcularBasisIcfKc }
   }
 };
@@ -353,6 +353,8 @@ function resumoCalculado(calculo) {
     ...(ultimo?.porHorizonte
       ? { porHorizonte: Object.fromEntries(Object.entries(ultimo.porHorizonte).map(([h, l]) => [h, { aplica: l.aplica, direcao: l.direcao, intensidade: l.intensidade, texto: l.texto }])) }
       : {}),
+    // Uma pressão a mais, só num horizonte, ao lado da decisão (o El Niño no LONGO do clima do café, ADR 0143).
+    ...(ultimo?.pressoesAdicionais?.length ? { pressoesAdicionais: ultimo.pressoesAdicionais.map(({ origem, horizonte, direcao, intensidade }) => ({ origem, horizonte, direcao, intensidade })) } : {}),
     // Uma regra (a soja, ADR 0116): o estado na data, sem decisão.
     estado: ultimo?.estado ? { ...ultimo.estado, texto: ultimo.estadoTexto, efeito: ultimo.efeitoTexto } : null,
     textoPrompt: calculo.textoPrompt,
@@ -469,7 +471,7 @@ async function obterPrecoReferencia(ativo, deps = {}) {
       contrato: config.serieContinua.contrato,
       nome: config.serieContinua.nome,
       unidade: config.serieContinua.unidade,
-      situacao: "PROPOSTA",
+      situacao: "EM_USO",
       parametros: continua.parametros,
       pontos: continua.pontos.map(({ data, ticker, valor, ajustado }) => ({ data, ticker, valor, ajustado: Math.round(ajustado * 100) / 100 })),
       trocas: continua.trocas

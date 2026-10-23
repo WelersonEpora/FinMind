@@ -186,7 +186,8 @@ test("o mapa fixo das séries de referência bate com as séries do Centro de De
     if (!doCentro) continue; // a série saiu do Centro: as leituras antigas continuam com o mapa
     assert.equal(def.observavel, doCentro.observavel, codigo);
     assert.deepEqual(def.futuro ?? null, doCentro.futuro ?? null, codigo);
-    assert.equal(def.seriesCode ?? null, doCentro.seriesCode ?? null, codigo);
+    assert.equal(def.continua ?? null, doCentro.continua ?? null, codigo);
+    assert.equal(def.seriesCode ?? null, doCentro.seriesCode ?? doCentro.continua?.seriesCode ?? null, codigo);
   }
 });
 
@@ -317,4 +318,45 @@ test("dólar (ADR 0126): a PTAX vem de market_quote, não da observation; a base
   assert.equal(horizontes[0].situacao, "APURADO");
   assert.equal(Number(horizontes[0].variacaoPct.toFixed(4)), 1);
   assert.equal(SERIES_DE_REFERENCIA.PTAX.observavel, "USD_BRL");
+});
+
+// O ICF-CA (ADR 0140, adendo): dois vencimentos, a liquidez migra do U26 para o Z26 em 03/09 com a curva invertida
+// (300 → 290), e o Z26 sobe 2% depois. Pregões de segunda a sexta, sem o 07/09.
+function repoIcfComTroca() {
+  const linhas = [];
+  for (let d = "2026-08-03"; d <= "2026-09-30"; d = somarDias(d, 1)) {
+    const dia = new Date(`${d}T00:00:00Z`).getUTCDay();
+    if (dia === 0 || dia === 6 || d === "2026-09-07") continue;
+    const depois = d >= "2026-09-03";
+    linhas.push(["B3.ICF.ICFU26.SETTLE", d, 300], ["B3.ICF.ICFZ26.SETTLE", d, d >= "2026-09-04" ? 295.8 : 290]);
+    linhas.push(depois ? ["B3.ICF.ICFZ26.CONTRACTS", d, 1000] : ["B3.ICF.ICFU26.CONTRACTS", d, 100]);
+  }
+  return {
+    async listarUltimasDatasItens() {
+      return [{ codigo: "ICFU26" }, { codigo: "ICFZ26" }];
+    },
+    async buscarAsOf(filtros) {
+      return linhas
+        .filter(([codigo, data]) => filtros.seriesCodes.includes(codigo) && (!filtros.observadoDesde || data >= filtros.observadoDesde) && (!filtros.observadoAte || data <= filtros.observadoAte))
+        .map(([codigo, data, valor]) => ({ series_code: codigo, observed_at: data, value: String(valor) }));
+    }
+  };
+}
+
+test("ICF-CA (ADR 0140, adendo): o horizonte que cruza a troca de contrato é medido na série ajustada, sem o salto da troca", async () => {
+  // A IA recebeu o ajuste real do U26 (300) em 31/08; o CURTO vai até 07/09, depois da troca.
+  const leitura = analise({ serie: "ICF_CA", seriesCode: "FINMIND.ICF.ICF-CA.AJUSTE", data: "2026-09-01", recebidoEm: "2026-08-31", valor: 300, referencia: "DATA_DO_PRECO_RECEBIDO" });
+  const realizado = await apurarRealizado(leitura, { agora: AGORA }, { observationRepository: repoIcfComTroca() });
+  assert.equal(realizado.seriesCode, "FINMIND.ICF.ICF-CA.AJUSTE");
+  // A base é o ponto ajustado de 31/08 (300 × 290/300), não o 300 recebido.
+  assert.equal(realizado.base.data, "2026-08-31");
+  assert.equal(Math.round(realizado.base.valor * 100) / 100, 290);
+  const curto = realizado.horizontes.find((h) => h.horizonte === "CURTO");
+  assert.equal(curto.situacao, "APURADO");
+  assert.equal(curto.dataPreco, "2026-09-04");
+  // +2%: o U26 parado e o Z26 de 290 a 295,8. Entre os dois contratos, sem o ajuste, seria −1,4%.
+  assert.equal(Math.round(curto.variacaoPct * 100) / 100, 2);
+  assert.equal(curto.faixa, "ALTA_LEVE");
+  // O IMEDIATO (01/09), antes da troca: o U26 parado, lateral.
+  assert.equal(Math.round(realizado.horizontes.find((h) => h.horizonte === "IMEDIATO").variacaoPct * 100) / 100, 0);
 });

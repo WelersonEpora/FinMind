@@ -63,7 +63,8 @@ function resumirEvidencias(ativo, entrada) {
     referenciaHorizontes: entrada.referenciaHorizontes || "DATA_DO_ULTIMO_PRECO",
     preco: preco
       ? {
-          serie: preco.serie,
+          // A série contínua ajustada (o ICF-CA) pelo código dela, com o contrato do dia ao lado.
+          serie: preco.serieContinua || preco.serie,
           // A moeda do preço do ativo (US$ no petróleo, no ouro e no café; R$ no milho), da configuração.
           moeda: config.PRECO.moeda || "US$",
           contrato: preco.contrato ?? null,
@@ -110,6 +111,8 @@ function leituraGravada(ativo, registro) {
           serie: preco.serie,
           seriesCode: preco.seriesCode ?? null,
           contrato: preco.contrato ?? null,
+          // A série contínua ajustada (o ICF-CA do café desde a configuração v8): `contrato` é o do dia.
+          serieContinua: preco.serieContinua ?? null,
           dataReferencia: preco.dataReferencia,
           valor: preco.valor
         }

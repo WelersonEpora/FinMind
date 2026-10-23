@@ -11,7 +11,9 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // v3 (2026-10-05): cada horizonte com o vencimento do CCM que ainda vale depois da data-alvo, e a curva no prompt (ADR 0078).
 // v4 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
 // dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
-const VERSAO = 4;
+// v5 (2026-10-23): o dado insuficiente não vota (SEM_DADO_NAO_VOTA, ADR 0142, adendo: o "sem exceção" do Comitê, nos
+// seis ativos). Horizontes e faixas não mudam.
+const VERSAO = 5;
 
 // Os mesmos quatro horizontes do petróleo e do ouro, que são também os do prompt do David (Motor do Milho v0, §6).
 const HORIZONTES = Object.freeze([
@@ -80,8 +82,14 @@ const COLETOR = "milho-analise-ia-diario";
 
 const classificarVariacao = criarClassificador(FAIXAS);
 
+// A governança da análise (§6 da análise do café, ADR 0142 e adendo): um fator sem dado até a data, sem a leitura do
+// motor ou, se de evento, sem leitura diária na janela sai como SEM VOTO na tabela 2.3, e a resposta que o citar a favor
+// ou contra é recusada.
+const SEM_DADO_NAO_VOTA = true;
+
 module.exports = {
   VERSAO,
+  SEM_DADO_NAO_VOTA,
   NOME,
   ARQUIVO_PROMPT,
   COLETOR,

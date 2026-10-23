@@ -71,7 +71,12 @@ function blocoPreco(preco, dataAnalise, config, ptax = null, referencia = REFERE
   const publicado = diaDaPublicacao(preco.publicadoEm);
   const linhas = [`Série: ${preco.nome}, ${preco.unidade} | Fonte: ${preco.fonte}`];
   // Futuro (o GLD do ouro): o contrato do preço, o vencimento mais próximo negociado (centro-decisao.service.js::lerFuturo).
-  if (preco.contrato) {
+  // Série contínua ajustada (o ICF-CA do café, ADR 0140, adendo): a série e o contrato do dia.
+  if (preco.serieContinua) {
+    linhas.push(
+      `Série contínua: ${preco.serieContinua.codigo} (${preco.serieContinua.nome}) | contrato do dia: ${preco.contrato.rotulo} (o último preço é o ajuste real dele; o histórico abaixo é ajustado)`
+    );
+  } else if (preco.contrato) {
     linhas.push(`Contrato: ${preco.contrato.rotulo}, o vencimento mais próximo negociado até a data`);
   }
   linhas.push(
@@ -211,14 +216,27 @@ function situacaoDoFator(fator, dataAnalise) {
   };
 }
 
-// A governança da análise do café (§6, ADR 0142): o fator SEM VOTO no dia, que não pode ir a favor nem contra. Vencido:
-// a idade do dado passou do limite do fator (`idadeMaximaVotoDias`). Insuficiente, só no ativo que o pede
-// (`SEM_DADO_NAO_VOTA` na configuração): sem dado até a data, ou sem a leitura do motor (o histórico não basta). Um
-// fator sem pressão própria (contexto, informação ou regra) já não vota e não entra aqui. -> { motivo, texto } ou null.
+// Os horizontes de um fator com leitura por horizonte (o dólar, ADR 0126) que se aplicam a ele e têm leitura.
+const horizontesComLeitura = (fator) => Object.entries(fator.porHorizonte || {}).filter(([, h]) => h?.aplica && h.direcao);
+
+// A governança da análise (§6, ADR 0142; nos seis ativos desde o adendo de 2026-10-23, o "sem exceção" do Comitê): o
+// fator SEM VOTO no dia, que não pode ir a favor nem contra. Vencido: a idade do dado passou do limite do fator
+// (`idadeMaximaVotoDias`). Insuficiente, no ativo com `SEM_DADO_NAO_VOTA` na configuração: sem dado até a data, sem a
+// leitura do motor (o histórico não basta) ou, num fator de evento, sem leitura diária de eventos na janela. O fator
+// com leitura por horizonte só perde o voto inteiro sem leitura em nenhum horizonte; o horizonte sem leitura fica em
+// `horizontesSemVoto`. Um fator sem pressão própria (contexto, informação ou regra) já não vota e não entra aqui.
+// -> { motivo, texto } ou null.
 function semVotoDoFator(fator, dataAnalise, config = {}) {
-  if (fator.tipo !== "CALCULADO" || fator.contextoDe || fator.informativo || fator.regra) return null;
+  if (fator.contextoDe || fator.informativo || fator.regra) return null;
+  if (fator.tipo === "EVENTO") {
+    return config.SEM_DADO_NAO_VOTA && situacaoDoFator(fator, dataAnalise).situacao === "SEM_LEITURA"
+      ? { motivo: "SEM_LEITURA", texto: "SEM VOTO: sem leitura diária de eventos na janela" }
+      : null;
+  }
+  if (fator.tipo !== "CALCULADO") return null;
   if (config.SEM_DADO_NAO_VOTA && !fator.medida) return { motivo: "SEM_DADO", texto: "SEM VOTO: sem dado até a data" };
-  if (config.SEM_DADO_NAO_VOTA && !fator.decisao) return { motivo: "SEM_LEITURA", texto: "SEM VOTO: sem a leitura do motor (o histórico não basta)" };
+  const semLeitura = fator.porHorizonte ? horizontesComLeitura(fator).length === 0 : !fator.decisao;
+  if (config.SEM_DADO_NAO_VOTA && semLeitura) return { motivo: "SEM_LEITURA", texto: "SEM VOTO: sem a leitura do motor (o histórico não basta)" };
   if (fator.idadeMaximaVotoDias && fator.medida) {
     const idade = diasEntre(fator.observedAt, dataAnalise);
     if (idade > fator.idadeMaximaVotoDias) {
@@ -228,6 +246,17 @@ function semVotoDoFator(fator, dataAnalise, config = {}) {
   return null;
 }
 
+// O fator com leitura por horizonte (o dólar) que tem leitura em algum horizonte, mas não em todos: os horizontes SEM
+// VOTO (no ativo com `SEM_DADO_NAO_VOTA`). -> [códigos] ou null.
+function horizontesSemVoto(fator, dataAnalise, config = {}) {
+  if (!config.SEM_DADO_NAO_VOTA || !fator.porHorizonte || fator.contextoDe || fator.informativo || fator.regra) return null;
+  if (semVotoDoFator(fator, dataAnalise, config)) return null;
+  const sem = Object.entries(fator.porHorizonte)
+    .filter(([, h]) => h?.aplica && !h.direcao)
+    .map(([codigo]) => codigo);
+  return sem.length ? sem : null;
+}
+
 // Um fator de CONTEXTO (metodologia-base.js, `contextoDe`) diz de qual fator é contexto; um SÓ DE INFORMAÇÃO
 // (`informativo`) diz isso: nenhum dos dois tem leitura própria. Uma REGRA (a soja, ADR 0116) não tem peso.
 const pesoNaCobertura = (f) => (f.regra ? `regra ${f.regra.sigla}, sem peso` : textoPeso(f));
@@ -235,12 +264,14 @@ function blocoCobertura(fatores, dataAnalise, config = {}) {
   return fatores
     .map((f, i) => {
       const semVoto = semVotoDoFator(f, dataAnalise, config);
+      const semVotoEm = horizontesSemVoto(f, dataAnalise, config);
       return (
         `${i + 1}. ${f.codigo} — ${f.nome} (${pesoNaCobertura(f)})` +
         `${f.contextoDe ? ` | CONTEXTO de ${f.contextoDe}, sem leitura própria` : ""}${f.informativo ? " | INFORMAÇÃO, sem leitura própria" : ""}` +
         `${f.soNosHorizontes ? ` | só no horizonte ${f.soNosHorizontes.join(" e ")}` : ""}` +
         ` | ${situacaoDoFator(f, dataAnalise).texto}` +
-        `${semVoto ? ` | ${semVoto.texto}` : ""}`
+        `${semVoto ? ` | ${semVoto.texto}` : ""}` +
+        `${semVotoEm ? ` | SEM VOTO em ${semVotoEm.join(" e ")}: sem a leitura do motor nesse horizonte` : ""}`
       );
     })
     .join("\n");
@@ -395,7 +426,9 @@ function leituraDoFator(f) {
     tendencia: f.decisao?.tendencia ?? null,
     ...(f.decisao?.foraDaJanela ? { foraDaJanela: true } : {}),
     // Uma leitura por horizonte (o dólar, ADR 0126): a de cada um, como foi ao prompt.
-    ...(f.porHorizonte ? { porHorizonte: f.porHorizonte } : {})
+    ...(f.porHorizonte ? { porHorizonte: f.porHorizonte } : {}),
+    // A pressão a mais, só num horizonte (o El Niño no LONGO do café, ADR 0143), como foi ao prompt.
+    ...(f.pressoesAdicionais ? { pressoesAdicionais: f.pressoesAdicionais } : {})
   };
 }
 
@@ -437,6 +470,8 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
           // A série exata no banco: o realizado e a avaliação a usam sem depender da configuração futura (ADR 0064).
           ...(preco.seriesCode ? { seriesCode: preco.seriesCode } : {}),
           ...(preco.contrato ? { contrato: preco.contrato } : {}),
+          // A série contínua ajustada (o ICF-CA): `contrato` é o do dia.
+          ...(preco.serieContinua ? { serieContinua: preco.serieContinua.codigo } : {}),
           dataReferencia: preco.dataReferencia,
           valor: preco.valor,
           publicadoEm: preco.publicadoEm,
@@ -465,6 +500,7 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
       ...(f.informativo ? { informativo: true } : {}),
       ...(f.soNosHorizontes ? { soNosHorizontes: f.soNosHorizontes } : {}),
       ...(semVotoDoFator(f, dataAnalise, config) ? { semVoto: semVotoDoFator(f, dataAnalise, config).motivo } : {}),
+      ...(horizontesSemVoto(f, dataAnalise, config) ? { semVotoNosHorizontes: horizontesSemVoto(f, dataAnalise, config) } : {}),
       ...(f.regra ? { regra: f.regra.sigla } : {}),
       ...situacaoDoFator(f, dataAnalise),
       ...(f.tipo === "CALCULADO"
@@ -563,5 +599,6 @@ module.exports = {
   agregacaoParaEntrada,
   situacaoDoFator,
   semVotoDoFator,
+  horizontesSemVoto,
   lerPtax
 };

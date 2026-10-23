@@ -158,10 +158,11 @@ function linhasDosOutrosHorizontes(precos, linhas, { principal, horizontes, jane
   return outras
 }
 
-// O nome curto de uma série de preço, para a legenda: a fonte e o contrato ("Yahoo BZZ26", "B3 CCMX26").
+// O nome curto de uma série de preço, para a legenda: a fonte e o contrato ("Yahoo BZZ26", "B3 CCMX26", "FinMind ICF-CA").
 export function rotuloDaSerie(seriesCode) {
   const contrato = contratoDaSerie(seriesCode)
-  const fonte = { B3: 'B3', YAHOO: 'Yahoo' }[String(seriesCode || '').split('.')[0]]
+  // FINMIND: a série calculada pelo FinMind (o ICF-CA do café, FINMIND.ICF.ICF-CA.AJUSTE -> "FinMind ICF-CA").
+  const fonte = { B3: 'B3', YAHOO: 'Yahoo', FINMIND: 'FinMind' }[String(seriesCode || '').split('.')[0]]
   if (contrato && fonte) return `${fonte} ${contrato}`
   return { 'BCB.PTAX.VENDA': 'BCB PTAX', 'EIA.PETROLEO_PRECOS.BRENT': 'EIA Brent', 'EIA.PETROLEO_PRECOS.WTI': 'EIA WTI' }[seriesCode] || seriesCode
 }

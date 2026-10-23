@@ -34,6 +34,7 @@ const { criarColetorCot } = require("./cftc/cftc-cot.collector");
 const usdaCropProgressCollector = require("./usda/usda-crop-progress.collector");
 const { criarColetorFuturoB3 } = require("./b3/b3-futuro.collector");
 const b3MilhoEsalqCollector = require("./b3/b3-milho-esalq.collector");
+const noticiasAgricolasCepeaCafeCollector = require("./noticias-agricolas/cepea-cafe-arabica.collector");
 const { criarColetorComexExportacao } = require("./comex/comex-exportacao.collector");
 const wasdeCollector = require("./wasde/wasde.collector");
 const usdaAreaPlantadaCollector = require("./usda/usda-area-plantada.collector");
@@ -100,6 +101,8 @@ function bootstrapCollectors() {
     registerCollector(criarColetorFuturoB3("wdo"));
     registerCollector(criarColetorFuturoB3("di1"));
     registerCollector(b3MilhoEsalqCollector);
+    // O diário do Cepea do café arábica, pela republicação do Notícias Agrícolas (ADR 0146, §2); o histórico vem da planilha.
+    registerCollector(noticiasAgricolasCepeaCafeCollector);
     registerCollector(criarColetorComexExportacao("milho"));
     registerCollector(criarColetorComexExportacao("cafe"));
     registerCollector(criarColetorComexExportacao("milho-destino"));

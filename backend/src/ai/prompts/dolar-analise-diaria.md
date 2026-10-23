@@ -1,6 +1,6 @@
 # Prompt — Análise diária do dólar (leitura de tendência em quatro horizontes)
 
-**Versão:** 1
+**Versão:** 2
 
 Histórico: v1 (2026-10-09) - formato inicial (ADR 0126), no molde do prompt da soja (`soja-analise-diaria.md`, v2): os
 blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do sistema; os que
@@ -13,6 +13,11 @@ régua de intensidade POR HORIZONTE (cada horizonte na janela dele); a regra R1 
 pela regra linear, com a ressalva do choque de oferta. Os eventos vão ao prompt sem validação humana: os de política e
 de calendário no F8 (fator de evento) e os demais na seção 2.5 da base. Os números das faixas e dos horizontes NÃO são
 escritos aqui: vêm da configuração (`shared/analise-diaria-dolar.js`), no bloco 2.4.
+
+v2 (2026-10-23, ADR 0142, adendo) - o dado insuficiente não vota, nos seis ativos (o "sem exceção" do Comitê): o
+fator sem dado, sem a leitura do motor ou, se de evento, sem leitura diária na janela sai como SEM VOTO na tabela 2.3,
+e a resposta que o citar a favor ou contra é recusada. Num fator com leitura por horizonte, o horizonte sem leitura sai como "SEM
+VOTO em" e vale do mesmo jeito. O item de relevância diz isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `dolar-analise-ia-diario` (ADR 0126).
 
@@ -77,6 +82,10 @@ Para cada horizonte, separadamente:
    - F8: 1 dia, relevância alta; 7 dias, relevância alta; 30 dias, relevância média; 90 dias, relevância baixa (média
      se a medida for duradoura).
    Use também a idade e a situação dos dados (tabela 2.3). Diga quais fatores pesaram pouco e por quê.
+   Um fator marcado SEM VOTO na tabela 2.3 (sem dado, sem a leitura do motor ou, num fator de evento, sem leitura
+   diária na janela) não vota em nenhum horizonte: liste-o só em fatoresPoucoRelevantes e registre a falta em
+   "lacunas" (SEM_DADO ou SEM_LEITURA).
+   Um fator marcado "SEM VOTO em" um horizonte não vota nesse horizonte, do mesmo jeito.
 3. Pesos. O peso de cada fator está na tabela 2.3 (Alto, Médio ou Baixo), por categoria, a partir dos pesos do relatório
    do Comitê: é fixo, o mesmo em todos os horizontes. Use-o como ordem de partida (os de peso Alto primeiro; os de peso
    Médio e Baixo confirmam ou enfraquecem a leitura) e ajuste o que cada um conta naquele horizonte pela relevância do

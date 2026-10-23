@@ -48,6 +48,8 @@
     "agregacao:cafe": "node scripts/agregacao-cafe-historico.js",
     "agregacao:milho": "node scripts/agregacao-milho-historico.js",
     "ic:cafe": "node scripts/ic-fatores-cafe.js",
+    "validacao:f3": "node scripts/validacao-f3-cafe.js",
+    "importar:cepea-cafe": "node scripts/importar-cepea-cafe.js",
     "backfill:imea-andamento": "node scripts/backfill-imea-andamento.js",
     "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",
     "backfill:imea-paridade": "node scripts/backfill-imea-paridade.js",

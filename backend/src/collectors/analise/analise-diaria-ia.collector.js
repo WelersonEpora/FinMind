@@ -48,7 +48,9 @@ function opcoesDeValidacao(promptDiario, config) {
     // Os fatores que só informam alguns horizontes (ADR 0133): { CAFE_DEMANDA: ["LONGO"] }.
     soNosHorizontes: Object.fromEntries(fatores.filter((f) => f.soNosHorizontes).map((f) => [f.fator, f.soNosHorizontes])),
     // Os fatores SEM VOTO no dia (ADR 0142): { CAFE_CLIMA: "VENCIDO" }.
-    semVoto: Object.fromEntries(fatores.filter((f) => f.semVoto).map((f) => [f.fator, f.semVoto]))
+    semVoto: Object.fromEntries(fatores.filter((f) => f.semVoto).map((f) => [f.fator, f.semVoto])),
+    // Os horizontes SEM VOTO de um fator com leitura por horizonte (o dólar; ADR 0142, adendo): { DOLAR_FLUXO: ["LONGO"] }.
+    semVotoNosHorizontes: Object.fromEntries(fatores.filter((f) => f.semVotoNosHorizontes).map((f) => [f.fator, f.semVotoNosHorizontes]))
   };
 }
 

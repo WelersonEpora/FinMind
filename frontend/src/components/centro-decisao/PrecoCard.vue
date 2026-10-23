@@ -44,7 +44,14 @@ const ICONE_DIRECAO = { alta: 'bi-arrow-up', queda: 'bi-arrow-down', estavel: 'b
     </header>
 
     <template v-if="preco.disponivel">
-      <p v-if="preco.contrato" class="preco-card__contrato" title="Vencimento mais próximo que negociou no último pregão até a data">
+      <p
+        v-if="preco.serieContinua"
+        class="preco-card__contrato"
+        title="Série contínua ajustada: os vencimentos emendados pela liquidez; o contrato do dia é o do último preço"
+      >
+        {{ preco.serieContinua.codigo }} · contrato do dia {{ preco.contrato.rotulo }}
+      </p>
+      <p v-else-if="preco.contrato" class="preco-card__contrato" title="Vencimento mais próximo que negociou no último pregão até a data">
         Vencimento {{ preco.contrato.rotulo }}
       </p>
 
@@ -67,7 +74,11 @@ const ICONE_DIRECAO = { alta: 'bi-arrow-up', queda: 'bi-arrow-down', estavel: 'b
           </span>
         </li>
       </ul>
-      <p v-if="preco.contrato" class="preco-card__nota">
+      <p v-if="preco.serieContinua" class="preco-card__nota">
+        {{ preco.serieContinua.nome }}: na troca de vencimento, o passado é ajustado pela razão entre os contratos, e as
+        variações não têm o salto da troca. O último preço é o real; os anteriores do gráfico são ajustados.
+      </p>
+      <p v-else-if="preco.contrato" class="preco-card__nota">
         Variações dentro do mesmo vencimento: os contratos não são emendados numa série contínua.
       </p>
 

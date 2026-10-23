@@ -211,6 +211,14 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
         ...(d.decaimento ? [`- Idade: ${d.decaimento}.`] : [])
       );
     }
+    // Uma pressão a mais, só num horizonte, ao lado da leitura do fator (o El Niño no LONGO do clima do café, ADR 0143).
+    if (!fator.regra && !semPressao) {
+      for (const p of ponto.pressoesAdicionais || []) {
+        linhas.push(
+          `- Pressão adicional, só no horizonte ${p.horizonte} (${p.origem}): ${PRESSAO[p.direcao]}, intensidade ${apresentacao.rotulosDecisao.intensidade[p.intensidade].toLowerCase()} (${p.texto}). É uma leitura ao lado da acima, não somada a ela; nos outros horizontes, não vale.`
+        );
+      }
+    }
     if (fator.efeitoDefasado) linhas.push(linhaEfeitoDefasado(fator.efeitoDefasado, ponto.observedAt));
     // Só alguns horizontes (ADR 0133): nos outros, o fator é pouco relevante e não conta a favor nem contra.
     if (fator.soNosHorizontes) {

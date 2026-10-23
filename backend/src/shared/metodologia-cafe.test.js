@@ -91,7 +91,7 @@ test("agregação do FinMind (ADR 0066): na tela, vinda do agregador, separada d
   assert.ok(a.regras.filter((r) => r.origem === "DAVID").every((r) => !/\d,\d|\d%/.test(r.regra)));
 });
 
-test("preço de referência do café (análise de 2026-10-19, E1): a série contínua do ICF (proposta) e o basis B3 × NY (informação)", async () => {
+test("preço de referência do café (análise de 2026-10-19, E1): a série contínua do ICF (o ICF-CA, em uso, ADR 0140) e o basis B3 × NY (informação)", async () => {
   const { obterPrecoReferencia } = require("../services/metodologia-ativo.service");
   assert.equal(obterMetodologiaAtivo("CAFE").metodologia.precoReferencia, true);
   assert.equal(obterMetodologiaAtivo("MILHO").metodologia.precoReferencia, false);
@@ -115,7 +115,8 @@ test("preço de referência do café (análise de 2026-10-19, E1): a série cont
     buscarAsOf: async ({ seriesCodes }) => linhas.filter((l) => seriesCodes.includes(l.series_code))
   };
   const { serieContinua, basis } = await obterPrecoReferencia("cafe", { observationRepository, agora: new Date("2026-10-20T12:00:00Z") });
-  assert.equal(serieContinua.situacao, "PROPOSTA");
+  assert.equal(serieContinua.situacao, "EM_USO");
+  assert.equal(serieContinua.nome, "ICF contínuo ajustado (ICF-CA)");
   assert.equal(serieContinua.unidade, "US$/saca");
   assert.deepEqual(serieContinua.trocas.map((t) => [t.data, t.de, t.para, t.motivo]), [["2026-08-13", "ICFU26", "ICFZ26", "LIQUIDEZ"]]);
   // O U26 ajustado pela razão da troca (382,30 / 403,20): 400 × 0,9482 = 379,27.
@@ -143,4 +144,19 @@ test("câmbio (ADR 0136): informação, com o peso Baixo decidido pelo usuário 
   assert.equal(f4.papelDecididoPor, "do usuário");
   assert.equal(f4.peso, "Baixo");
   assert.deepEqual(f4.pesoAjustado, { noFel1: "Médio", decididoPor: "pelo usuário" });
+});
+
+test("estoques (ADR 0145): informação até a validação fora da amostra, sem pergunta aberta, com o resultado do desenho A", () => {
+  const f3 = obterMetodologiaCafe().fatores.find((f) => f.codigo === "CAFE_ESTOQUES");
+  assert.equal(f3.informativo, true);
+  assert.equal(f3.papelDecididoPor, "do usuário");
+  assert.deepEqual(f3.perguntas, []);
+  assert.ok(f3.decisoes.some((d) => d.includes("NÃO PASSOU no desenho A")));
+});
+
+test("clima (ADR 0143, adendo): o peso Médio pelo Comitê, com o Alto do FEL 1 ao lado, e sem pergunta aberta", () => {
+  const f1 = obterMetodologiaCafe().fatores.find((f) => f.codigo === "CAFE_CLIMA");
+  assert.equal(f1.peso, "Médio");
+  assert.deepEqual(f1.pesoAjustado, { noFel1: "Alto", decididoPor: "pelo Comitê" });
+  assert.deepEqual(f1.perguntas, []);
 });

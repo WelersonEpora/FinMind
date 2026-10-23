@@ -1,6 +1,6 @@
 # Prompt — Análise diária do café (leitura de tendência em quatro horizontes)
 
-**Versão:** 15
+**Versão:** 19
 
 Histórico: v1 (2026-10-05) - formato inicial (ADR 0062), no molde do prompt do milho (`milho-analise-diaria.md`, v1;
 ADR 0058): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na instrução do
@@ -65,6 +65,20 @@ tendência não funcionou no café, e os extremos de 20 pregões foram seguidos 
 v15 (2026-10-21, ADR 0142) - análise do café de 2026-10-19, §6 (governança): o dado vencido e o insuficiente não votam.
 O fator com o dado acima do limite de idade (clima 14 dias, safra 42, estoques 7), sem dado ou sem a leitura do motor
 sai como SEM VOTO na tabela 2.3; a resposta que o citar a favor ou contra é recusada. O item 1 diz isso.
+v16 (2026-10-23, ADR 0140, adendo) - análise do café de 2026-10-19, itens E1 e E11, sancionados pelo Comitê: o preço
+dos quatro horizontes é o ICF-CA, a série contínua ajustada do ICF (rolagem pela liquidez e ajuste proporcional), com o
+contrato do dia no bloco 2.1, no lugar de um contrato por horizonte (v3). A curva continua no bloco 2.2, como
+informação. Mudam o parágrafo dos contratos do bloco 1 e o item 13; a configuração passou à v8.
+v17 (2026-10-23, ADR 0145) - análise do café de 2026-10-19, item E3: os estoques certificados (CAFE_ESTOQUES) vão
+como INFORMAÇÃO até a validação fora da amostra da regra proposta, sem voto e fora dos fatores a favor e contra. A
+regra de hoje deu o sinal invertido em 2022 a 2026, e a proposta não passou no histórico da ICO de 2015 a 2019. O item
+6 diz como ler.
+v18 (2026-10-23, ADR 0143, adendo) - análise do café de 2026-10-19, item E6, aprovado pelo Comitê: o clima
+(CAFE_CLIMA) traz, só no LONGO, a pressão de alta fraca do El Niño (RONI publicado de +1,0 ou mais), ao lado da leitura do
+VHI, e o peso dele passa de Alto (FEL 1) a Médio. O item 6 diz como ler as duas leituras.
+v19 (2026-10-23, ADR 0135, adendo) - análise do café de 2026-10-19, item E7: a safra (CAFE_SAFRA_BRASIL) traz a diferença
+da Conab contra o USDA (PSD) na mesma safra, como contexto, e deixa de ter o limite de dado vencido (depois de 42 dias, o
+decaimento já a deixa neutra). O item 7 diz como ler.
 
 Enviado ao Gemini uma vez por dia pelo coletor `cafe-analise-ia-diario` (ADR 0062).
 
@@ -86,11 +100,10 @@ leituras diferentes entre horizontes são esperadas e válidas. Não faça sínt
 Para cada horizonte, responda: para que lado tende o preço do café no ICF nesse prazo, em que faixa de variação da
 tabela 2.4 e com que confiança.
 
-Cada horizonte tem o seu contrato (a linha "Contrato" de cada horizonte na tabela 2.4): o vencimento mais
-próximo que ainda negocia depois da data-alvo. Leia a tendência do café arábica nesse contrato, com as variações dele, e
-não as do contrato do bloco 2.1 quando forem diferentes. A curva (2.2) é só referência do preço de cada vencimento:
-não a trate como previsão e não crie preço-alvo com ela. Um contrato com POUCA LIQUIDEZ tem preço menos confiável:
-reduza a confiança desse horizonte.
+O preço dos quatro horizontes é o mesmo: o ICF-CA do bloco 2.1, a série contínua ajustada do ICF, com o contrato do
+dia informado. Leia a tendência do café arábica nessa série, com as variações dela. A curva (2.2) é só referência do
+preço de cada vencimento: não a trate como previsão e não crie preço-alvo com ela. Se o contrato do dia tiver POUCA
+LIQUIDEZ na curva, o preço é menos confiável: reduza a confiança.
 
 Você produz leitura de tendência, não recomendação. Não diga para comprar, vender, manter, entrar, sair, proteger ou
 montar posição, nem nada equivalente, e não dê stop, alvo nem tamanho de posição. A leitura vai para pessoas que
@@ -131,11 +144,18 @@ Para cada horizonte, separadamente:
    medem o mesmo choque em momentos diferentes: o clima afeta a lavoura, a Conab quantifica a perda semanas ou meses
    depois e os estoques refletem o balanço depois disso. O mesmo choque nos três é UM argumento, não três: não o conte
    duas vezes. Nas fases críticas da lavoura, o clima é a informação mais nova; quando a Conab já revisou a safra, a
-   revisão é o dado oficial. Os estoques confirmam a safra: uma revisão confirmada pelos estoques ganha firmeza;
-   contradita por eles, perde.
+   revisão é o dado oficial. Só no LONGO, o clima pode trazer uma pressão adicional do El Niño (a linha "Pressão
+   adicional" da parte C de CAFE_CLIMA), ao lado da leitura do VHI: são duas leituras do mesmo fator, não dois votos.
+   Quando apontam lados diferentes, diga as duas e reduza a confiança; nos outros horizontes, o El Niño é só contexto.
+   Os estoques certificados (CAFE_ESTOQUES) são INFORMAÇÃO, sem voto próprio: não os liste
+   em fatoresAFavor nem em fatoresContra. No histórico, a variação deles veio antes de movimentos opostos do preço em
+   períodos diferentes (veja a validação histórica do fator): não a leia como sinal de alta nem de baixa. Use o nível
+   e a variação para descrever o aperto da bolsa de Nova York.
 7. Revisão da safra. A revisão da Conab é medida contra o levantamento anterior, sem a expectativa do mercado (que não
    está na BASE): o mercado pode já ter esperado a revisão. Dê a ela menos firmeza direcional do que o tamanho da
-   revisão sugere.
+   revisão sugere. A diferença contra o USDA na mesma safra (parte B de CAFE_SAFRA_BRASIL) é contexto: o USDA é outra
+   estimativa oficial, não o consenso do mercado; use-a para dizer se a Conab está acima ou abaixo da outra referência,
+   não como sinal.
 8. Câmbio (CAFE_DOLAR). É INFORMAÇÃO, sem voto próprio: não o liste em fatoresAFavor nem em fatoresContra. Mede o
    incentivo do produtor brasileiro a vender, não um repasse mecânico ao preço: não trate o câmbio como causa direta do
    preço em dólar. No histórico, a pressão dele não separou o preço (veja a validação histórica do fator). O café em
@@ -171,8 +191,8 @@ Para cada horizonte, separadamente:
     estar refletido nele. O momentum (2.1) diz o tamanho do movimento na régua da volatilidade: use-o para dizer se
     a alta ou a queda recente é comum ou extrema, não como sinal de continuação (no café, seguir a tendência não
     funcionou, e os extremos de 20 pregões foram seguidos de reversão; veja a validação no bloco). Não o liste em
-    fatoresAFavor nem em fatoresContra. O preço é de um contrato futuro: as variações são só desse contrato, e uma variação SEM DADO
-    é falta de histórico do contrato, não estabilidade do preço. O preço em reais é só referência: a tendência e a
+    fatoresAFavor nem em fatoresContra. O preço é a série contínua ajustada do ICF: as variações atravessam a troca de
+    contrato sem o salto dela, e uma variação SEM DADO é falta de histórico, não estabilidade do preço. O preço em reais é só referência: a tendência e a
     faixa são sobre o preço em dólares. Os horizontes contam do último preço da BASE, não da data da análise: o
     IMEDIATO é o próximo pregão depois dele, e os outros terminam o número de dias depois dele (a data-alvo de cada um
     está na tabela 2.4). Os eventos posteriores ao último preço ainda não estão nele e podem mover já o próximo
@@ -247,7 +267,7 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 
 [2. BASE — montada pelo motor, sem IA]
 
-2.1 PREÇO DO CAFÉ ARÁBICA (ICF) — onde o mercado está e o que já aconteceu
+2.1 PREÇO DO CAFÉ ARÁBICA (ICF-CA, o ICF contínuo ajustado) — onde o mercado está e o que já aconteceu
 {{bloco_preco}}
 
 Momentum do preço (KC de Nova York) — INFORMAÇÃO, sem voto; não é fator:

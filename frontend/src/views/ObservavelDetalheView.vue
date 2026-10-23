@@ -6,13 +6,18 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import AppShell from '../components/layout/AppShell.vue'
 import StatusBadge from '../components/StatusBadge.vue'
+import ImportacaoPlanilhaDialog from '../components/ImportacaoPlanilhaDialog.vue'
 import LineChart from '../components/charts/LineChart.vue'
 import observaveisService from '../services/observaveis.service.js'
+import { useAuthStore } from '../stores/auth.js'
 import { descreverPublicacao, formatarValor } from '../utils/observaveis-format.js'
 import { baixarArquivo, nomeArquivoExportacao } from '../utils/baixar-arquivo.js'
 import { OPCOES_PERIODO_GRAFICO, periodoPadraoDias } from '../utils/periodo-grafico.js'
 
 const route = useRoute()
+const auth = useAuthStore()
+// Série que chega por planilha (o Cepea do café, ADR 0146): o botão de importação, só para o admin.
+const importacaoAberta = ref(false)
 
 const OPCOES_LINHAS_POR_PAGINA = [20, 50, 100, 200]
 const CAMPO_PARA_ORDENACAO = { dataReferencia: 'referenceDate', valor: 'value' }
@@ -280,6 +285,12 @@ async function carregarTudo() {
   }
 }
 
+// Depois de uma importação: sem o `loading`, que desmontaria o diálogo com o resumo.
+async function recarregarDepoisDaImportacao() {
+  await carregarObservavel()
+  await Promise.all([carregarHistorico(), carregarGrafico()])
+}
+
 onMounted(carregarTudo)
 </script>
 
@@ -299,8 +310,24 @@ onMounted(carregarTudo)
             <h1 class="observavel-detalhe__titulo">{{ observavel.nome }}</h1>
             <p v-if="observavel.cotacaoAtual?.fonte" class="observavel-detalhe__subtitulo">{{ observavel.cotacaoAtual.fonte }}</p>
           </div>
-          <StatusBadge :status="observavel.situacao" />
+          <div class="d-flex align-items-center gap-2">
+            <Button
+              v-if="observavel.importacao && auth.state.user?.role === 'admin'"
+              label="Importar planilha"
+              icon="pi pi-upload"
+              size="small"
+              outlined
+              @click="importacaoAberta = true"
+            />
+            <StatusBadge :status="observavel.situacao" />
+          </div>
         </header>
+        <ImportacaoPlanilhaDialog
+          v-if="observavel.importacao"
+          v-model:visivel="importacaoAberta"
+          :importacao="observavel.importacao"
+          @importado="recarregarDepoisDaImportacao"
+        />
 
         <div class="observavel-detalhe__destaques">
           <div class="observavel-detalhe__destaque">

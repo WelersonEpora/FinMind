@@ -17,7 +17,9 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // prompt e as faixas recalibradas no futuro (decisão do usuário, ADR 0052, adendo de 2026-10-07).
 // v5 (2026-10-07): os horizontes contam do último preço que a IA recebeu, e o IMEDIATO é o próximo pregão depois
 // dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
-const VERSAO = 5;
+// v6 (2026-10-23): o dado insuficiente não vota (SEM_DADO_NAO_VOTA, ADR 0142, adendo: o "sem exceção" do Comitê, nos
+// seis ativos). Horizontes e faixas não mudam.
+const VERSAO = 6;
 
 // Os quatro horizontes, cada um analisado separadamente (decisão do usuário, 2026-10-03). `variacao`: a janela do
 // Centro de Decisão com o mesmo prazo (centro-decisao.service.js::VARIACOES), a que o bloco de preço mostra.
@@ -98,8 +100,14 @@ const COLETOR = "petroleo-analise-ia-diario";
 // A faixa de uma variação realizada (%), para comparar depois com a faixa da leitura (analise-diaria-base.js).
 const classificarVariacao = criarClassificador(FAIXAS);
 
+// A governança da análise (§6 da análise do café, ADR 0142 e adendo): um fator sem dado até a data, sem a leitura do
+// motor ou, se de evento, sem leitura diária na janela sai como SEM VOTO na tabela 2.3, e a resposta que o citar a favor
+// ou contra é recusada.
+const SEM_DADO_NAO_VOTA = true;
+
 module.exports = {
   VERSAO,
+  SEM_DADO_NAO_VOTA,
   NOME,
   ARQUIVO_PROMPT,
   COLETOR,

@@ -33,7 +33,7 @@ function lerJson(texto) {
 // Por que um fator está SEM VOTO no dia (ADR 0142), como a mensagem de recusa o diz.
 const MOTIVOS_SEM_VOTO = Object.freeze({ VENCIDO: "dado vencido", SEM_DADO: "sem dado", SEM_LEITURA: "sem a leitura do motor" });
 
-function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidencia, codigosContexto, horizonte, soNosHorizontes, semVoto }, erros) {
+function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidencia, codigosContexto, horizonte, soNosHorizontes, semVoto, semVotoNosHorizontes }, erros) {
   if (lista === undefined) return;
   if (!Array.isArray(lista)) {
     erros.push(`${prefixo}: "${campo}" deve ser uma lista.`);
@@ -53,13 +53,17 @@ function validarListaDeFatores(lista, campo, prefixo, { codigosFator, idsEvidenc
     else if (semVoto?.[item.fator]) {
       erros.push(`${onde}: "${item.fator}" está SEM VOTO hoje (${MOTIVOS_SEM_VOTO[semVoto[item.fator]] || semVoto[item.fator]}); use fatoresPoucoRelevantes e diga a lacuna.`);
     }
+    // Sem a leitura do motor só neste horizonte (o fator com leitura por horizonte, ADR 0142, adendo).
+    else if (semVotoNosHorizontes?.[item.fator]?.includes(horizonte)) {
+      erros.push(`${onde}: "${item.fator}" está SEM VOTO em ${horizonte} (sem a leitura do motor nesse horizonte); use fatoresPoucoRelevantes e diga a lacuna.`);
+    }
     for (const id of item?.evidencias || []) {
       if (!idsEvidencia.has(id)) erros.push(`${onde}: cita a evidência "${id}", que não está em "evidencias".`);
     }
   });
 }
 
-function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosContexto, soNosHorizontes, semVoto }, erros) {
+function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosContexto, soNosHorizontes, semVoto, semVotoNosHorizontes }, erros) {
   const prefixo = `leituras[${horizonteEsperado}]`;
   if (!leitura || typeof leitura !== "object") {
     erros.push(`${prefixo}: ausente.`);
@@ -101,7 +105,7 @@ function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosConte
     }
   });
 
-  const votos = { codigosFator, idsEvidencia, codigosContexto, horizonte: horizonteEsperado, soNosHorizontes, semVoto };
+  const votos = { codigosFator, idsEvidencia, codigosContexto, horizonte: horizonteEsperado, soNosHorizontes, semVoto, semVotoNosHorizontes };
   validarListaDeFatores(leitura.fatoresAFavor, "fatoresAFavor", prefixo, votos, erros);
   validarListaDeFatores(leitura.fatoresContra, "fatoresContra", prefixo, votos, erros);
   validarListaDeFatores(leitura.fatoresPoucoRelevantes, "fatoresPoucoRelevantes", prefixo, { codigosFator, idsEvidencia }, erros);
@@ -120,13 +124,14 @@ function validarLeitura(leitura, horizonteEsperado, { codigosFator, codigosConte
 // `texto`: a resposta da IA. `horizontes`: os da configuração do ativo, na ordem. `codigosFator`: os códigos dos
 // fatores que foram no prompt; `codigosContexto`: os dos fatores de contexto entre eles; `soNosHorizontes`: os que só
 // informam alguns horizontes ({ codigo: [horizontes] }, ADR 0133); `semVoto`: os sem voto no dia ({ codigo: motivo }, ADR
-// 0142). -> { leituras, erros }: com algum erro, `leituras` é null.
-function validarRespostaAnalise(texto, { horizontes, codigosFator, codigosContexto = [], soNosHorizontes = {}, semVoto = {} }) {
+// 0142); `semVotoNosHorizontes`: os sem voto só em alguns horizontes ({ codigo: [horizontes] }, ADR 0142, adendo).
+// -> { leituras, erros }: com algum erro, `leituras` é null.
+function validarRespostaAnalise(texto, { horizontes, codigosFator, codigosContexto = [], soNosHorizontes = {}, semVoto = {}, semVotoNosHorizontes = {} }) {
   const json = lerJson(texto);
   if (json.erroDeLeitura) return { leituras: null, erros: [json.erroDeLeitura] };
 
   const erros = [];
-  const codigos = { codigosFator: new Set(codigosFator), codigosContexto: new Set(codigosContexto), soNosHorizontes, semVoto };
+  const codigos = { codigosFator: new Set(codigosFator), codigosContexto: new Set(codigosContexto), soNosHorizontes, semVoto, semVotoNosHorizontes };
   if (!Array.isArray(json.leituras)) return { leituras: null, erros: ['A resposta não tem a lista "leituras".'] };
   if (json.leituras.length !== horizontes.length) {
     erros.push(`São ${horizontes.length} leituras, uma por horizonte; vieram ${json.leituras.length}.`);

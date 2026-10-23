@@ -118,7 +118,7 @@ test("os blocos fixos (1, 4, 5 e 6) vão na instrução do sistema; a base e a l
   for (const bloco of ["[2. BASE", "2.1 PREÇO DO BRENT", "2.2 CURVA FUTURA", "2.3 SITUAÇÃO DOS DADOS", "2.4 HORIZONTES E FAIXAS", "[3. LEITURA DO MOTOR"]) {
     assert.ok(p.prompt.includes(bloco), bloco);
   }
-  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@11");
+  assert.equal(p.versaoPrompt, "petroleo-analise-diaria@12");
   assert.equal(p.versaoMetodologia, "petroleo-v1 (2026-10-02)");
   assert.equal(p.versaoConfiguracao, config.VERSAO);
   assert.match(p.hashEntrada, /^[0-9a-f]{64}$/);
@@ -269,7 +269,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
 
   assert.deepEqual(d.chamadas.preco, ["GLD", "2026-10-03"]);
   assert.equal(ptaxPedidas[0].dataFim, "2026-10-02");
-  assert.equal(p.versaoPrompt, "ouro-analise-diaria@4");
+  assert.equal(p.versaoPrompt, "ouro-analise-diaria@5");
   assert.match(p.prompt, /Contrato: GLDZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Em reais: R\$ 22\.558,50 por onça, pela PTAX de venda de 02\/10\/2026 \(R\$ 5,4000 por US\$\)/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/onça\)/);
@@ -329,7 +329,7 @@ test("milho (ADRs 0058, 0078 e 0095): o CCM em reais, sem PTAX, com o contrato d
   const { promptDiario: p } = await montarPromptDiario("MILHO", { data: "2026-10-03" }, d);
 
   assert.deepEqual(d.chamadas.preco, ["CCM", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "milho-analise-diaria@9");
+  assert.equal(p.versaoPrompt, "milho-analise-diaria@10");
   // Os eventos numa seção só da base (ADR 0095), antes da leitura do motor, e o que foi gravado com a leitura.
   assert.match(p.prompt, /2\.6 EVENTOS DO ATIVO[^\n]*\nEVENTOS DO ATIVO DE TESTE\n[\s\S]*\[3\. LEITURA DO MOTOR/);
   assert.deepEqual(p.entrada.eventosDoAtivo, { janelaDias: 7, janelaPorFator: {}, eventos: 1, ultimaLeitura: { data: "2026-10-03", nivel: "ATENCAO" } });
@@ -392,18 +392,33 @@ test("pesos (ADR 0065): o mês não definido sai com o FEL 1 e *, o fator sem pe
   assert.match(texto, /\* mês que a proposta não define: vale o peso do FEL 1\./);
 });
 
-test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais por saca, o contrato de cada horizonte, sem a leitura agregada do motor", async () => {
-  const precoIcf = {
+test("café (ADRs 0062, 0066 e 0140): o ICF-CA com o contrato do dia e o preço em reais por saca, um preço só nos quatro horizontes, a curva como informação, sem a leitura agregada do motor", async () => {
+  const precoIcfCa = {
     ...PRECO,
-    nome: "Futuro B3 (ICF)",
+    nome: "ICF contínuo ajustado (ICF-CA)",
     unidade: "US$/saca",
     fonte: "B3 - Up2Data",
+    seriesCode: "FINMIND.ICF.ICF-CA.AJUSTE",
     contrato: { ticker: "ICFZ26", rotulo: "ICFZ26 (dez/2026)" },
+    serieContinua: { codigo: "ICF-CA", nome: "ICF contínuo ajustado" },
     valor: 351.9,
     dataReferencia: "2026-10-02",
     diasSemDado: 1
   };
-  const d = deps({ fatores: [{ ...CALCULADO, codigo: "CAFE_FUNDOS", textoPrompt: "FATOR — Fundos" }], preco: precoIcf });
+  const d = deps({
+    fatores: [{ ...CALCULADO, codigo: "CAFE_FUNDOS", textoPrompt: "FATOR — Fundos" }],
+    preco: precoIcfCa,
+    precoPorAlvo: () => {
+      throw new Error("sem contrato por horizonte desde a v8");
+    },
+    curva: {
+      dataReferencia: "2026-10-02",
+      vencimentos: [
+        { ticker: "ICFZ26", rotulo: "ICFZ26 (dez/2026)", vencimento: "2026-12", seriesCode: "B3.ICF.ICFZ26.SETTLE", preco: 351.9, contratosNegociados: 420 },
+        { ticker: "ICFH27", rotulo: "ICFH27 (mar/2027)", vencimento: "2027-03", seriesCode: "B3.ICF.ICFH27.SETTLE", preco: 340.1, contratosNegociados: 15 }
+      ]
+    }
+  });
   d.marketQuoteRepository = {
     async buscarHistorico() {
       return { registros: [{ reference_date: "2026-10-02", value: "5.2000" }], total: 1 };
@@ -413,25 +428,39 @@ test("café (ADRs 0062, 0066 e 0078): o ICF com o contrato e o preço em reais p
   d.calcularMomentumKc = async ({ data }) => ({ momentum: { data: "2026-10-02", janelas: [] }, texto: `MOMENTUM até ${data}` });
   const { promptDiario: p } = await montarPromptDiario("CAFE", { data: "2026-10-03" }, d);
 
-  assert.deepEqual(d.chamadas.preco, ["ICF", "2026-10-03"]);
-  assert.equal(p.versaoPrompt, "cafe-analise-diaria@15");
-  assert.equal(p.versaoConfiguracao, 7);
+  assert.deepEqual(d.chamadas.preco, ["ICF_CA", "2026-10-03"]);
+  assert.equal(d.chamadas.alvos, undefined);
+  assert.equal(p.versaoPrompt, "cafe-analise-diaria@19");
+  // O F3 como informação até a validação fora da amostra (ADR 0145).
+  assert.match(p.instrucaoDoSistema, /Os estoques certificados \(CAFE_ESTOQUES\) são INFORMAÇÃO, sem voto próprio/);
+  assert.equal(p.versaoConfiguracao, 8);
   assert.match(p.prompt, /Momentum do preço \(KC de Nova York\) — INFORMAÇÃO, sem voto; não é fator:\nMOMENTUM até 2026-10-03\n/);
   assert.deepEqual(p.entrada.momentum, { data: "2026-10-02", janelas: [] });
-  assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF\)/);
-  assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
+  assert.match(p.prompt, /2\.1 PREÇO DO CAFÉ ARÁBICA \(ICF-CA, o ICF contínuo ajustado\)/);
+  assert.match(p.prompt, /Série contínua: ICF-CA \(ICF contínuo ajustado\) \| contrato do dia: ICFZ26 \(dez\/2026\)/);
+  assert.doesNotMatch(p.prompt, /o vencimento mais próximo negociado/);
+  assert.match(p.prompt, /Aviso: o ICF-CA emenda os vencimentos do ICF: a partir de 40 pregões antes do vencimento/);
   assert.match(p.prompt, /Último preço: US\$ 351,90 em 02\/10\/2026/);
   assert.match(p.prompt, /Em reais: R\$ 1\.829,88 por saca, pela PTAX de venda de 02\/10\/2026/);
-  assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/saca\)/);
-  // Sem curva na base: SEM DADO, e a liquidez de cada horizonte também.
-  assert.match(p.prompt, /2\.2 CURVA FUTURA DO ICF — os vencimentos negociados no último pregão\nSEM DADO: nenhum vencimento do ICF negociou até a data\./);
-  assert.match(p.prompt, /Contrato: ICFZ26 \(dez\/2026\), negocia depois da data-alvo \(31\/12\/2026\) \| US\$ 351,90 em 02\/10\/2026 \| contratos negociados: SEM DADO/);
+  assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/saca, ajustado\)/);
+  // A curva (ADR 0078) segue como informação, pelo ICF da B3; sem a linha "Contrato" em cada horizonte.
+  assert.deepEqual(d.chamadas.curva, ["B3.ICF", "2026-10-03"]);
+  assert.match(p.prompt, /ICFH27 \(mar\/2027\): US\$ 340,10 \| 15 contratos negociados \(POUCA LIQUIDEZ: menos de 100\)/);
+  assert.doesNotMatch(p.prompt, /^ {3}Contrato:/m);
+  assert.match(p.prompt, /Variação do café arábica no ICF-CA, a série contínua ajustada do ICF \(a mesma nos quatro horizontes\)/);
   assert.match(p.prompt, /LONGO \(Longo, 90 dias\): T1 = 11,0% \| T2 = 25,0%/);
+  assert.match(p.instrucaoDoSistema, /O preço dos quatro horizontes é o mesmo: o ICF-CA/);
+  assert.doesNotMatch(p.instrucaoDoSistema, /Cada horizonte tem o seu contrato/);
   assert.match(p.instrucaoDoSistema, /É INFORMAÇÃO, sem voto próprio/); // ADR 0132
   assert.match(p.instrucaoDoSistema, /não\s+passou por validação humana/);
   assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
   assert.doesNotMatch(p.prompt, /\{\{/);
-  assert.equal(p.entrada.precoReferencia.serie, "ICF");
+  // O que fica gravado: a série contínua, o contrato do dia, e nenhum contrato por horizonte (a avaliação usa o ICF-CA).
+  assert.equal(p.entrada.precoReferencia.serie, "ICF_CA");
+  assert.equal(p.entrada.precoReferencia.seriesCode, "FINMIND.ICF.ICF-CA.AJUSTE");
+  assert.equal(p.entrada.precoReferencia.serieContinua, "ICF-CA");
+  assert.equal(p.entrada.precoReferencia.contrato.ticker, "ICFZ26");
+  assert.ok(p.entrada.horizontes.every((h) => h.seriesCode === undefined && h.contrato === undefined));
   assert.deepEqual(p.entrada.precoReferencia.ptax, { data: "2026-10-02", valor: 5.2 });
   // A leitura agregada do motor saiu do prompt e da entrada (ADR 0066, adendo de 2026-10-07): fica só na tela.
   assert.doesNotMatch(p.prompt, /LEITURA AGREGADA DO MOTOR/);
@@ -462,4 +491,30 @@ test("§6 (ADR 0142): o fator SEM VOTO no dia — vencido pelo limite de idade, 
   assert.equal(semVotoDoFator({ ...CALCULADO, decisao: null }, "2026-10-03", { SEM_DADO_NAO_VOTA: true }).motivo, "SEM_LEITURA");
   // Um fator sem pressão própria já não vota: não entra.
   assert.equal(semVotoDoFator({ ...vencido, informativo: true }, "2026-10-03"), null);
+});
+
+test("§6 sem exceção (ADR 0142, adendo): o fator de evento sem leitura e o fator por horizonte, nos ativos com SEM_DADO_NAO_VOTA", () => {
+  const { horizontesSemVoto } = require("./prompt-diario.service");
+  const opcoes = { SEM_DADO_NAO_VOTA: true };
+  // Evento: sem leitura diária na janela, sem voto; com leitura, vota; sem a configuração, fora do controle.
+  const semLeitura = { ...EVENTO, primeiraLeitura: null, ultimaLeitura: null };
+  assert.deepEqual(semVotoDoFator(semLeitura, "2026-10-03", opcoes), { motivo: "SEM_LEITURA", texto: "SEM VOTO: sem leitura diária de eventos na janela" });
+  assert.equal(semVotoDoFator(EVENTO, "2026-10-03", opcoes), null);
+  assert.equal(semVotoDoFator(semLeitura, "2026-10-03"), null);
+
+  // Por horizonte (o dólar): a `decisao` da tela (30 dias) vazia não tira o voto dos outros horizontes.
+  const h = (direcao) => ({ aplica: true, direcao, intensidade: direcao ? "FRACA" : null, texto: "" });
+  const porHorizonte = { ...CALCULADO, decisao: null, porHorizonte: { IMEDIATO: h("ALTA"), CURTO: h("ALTA"), MEDIO: h(null), LONGO: h(null) } };
+  assert.equal(semVotoDoFator(porHorizonte, "2026-10-03", opcoes), null);
+  assert.deepEqual(horizontesSemVoto(porHorizonte, "2026-10-03", opcoes), ["MEDIO", "LONGO"]);
+  // Sem leitura em nenhum horizonte: sem voto inteiro, e nenhum horizonte à parte.
+  const nenhum = { ...porHorizonte, porHorizonte: { IMEDIATO: h(null), CURTO: h(null), MEDIO: h(null), LONGO: { aplica: false } } };
+  assert.equal(semVotoDoFator(nenhum, "2026-10-03", opcoes).motivo, "SEM_LEITURA");
+  assert.equal(horizontesSemVoto(nenhum, "2026-10-03", opcoes), null);
+  assert.equal(horizontesSemVoto(porHorizonte, "2026-10-03"), null);
+});
+
+test("§6 sem exceção (ADR 0142, adendo): os seis ativos com o dado insuficiente fora do voto", () => {
+  const { configuracaoDoAtivo } = require("../shared/analise-diaria");
+  for (const ativo of ["PETROLEO", "OURO", "MILHO", "CAFE", "SOJA", "DOLAR"]) assert.equal(configuracaoDoAtivo(ativo).SEM_DADO_NAO_VOTA, true, ativo);
 });

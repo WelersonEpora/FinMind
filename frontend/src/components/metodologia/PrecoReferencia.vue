@@ -4,9 +4,9 @@ import LineChart from '../charts/LineChart.vue'
 import metodologiaAtivoService from '../../services/metodologia-ativo.service.js'
 import { PERIODOS_CALCULO, desdeDoPeriodo, linhasSerieContinua, resumoBasis } from '../../utils/metodologia.js'
 
-// O preço de referência visto de fora da leitura (análise do café de 2026-10-19, item E1): a série contínua do ICF
-// (PROPOSTA, itens E1 e E11, a validar pelo Comitê) e o basis B3 × Nova York (INFORMAÇÃO; como fator, item E10).
-// Calculados na hora, sem gravar nada; nenhum dos dois vai ao prompt nem ao Centro de Decisão.
+// O preço de referência visto de fora da leitura (análise do café de 2026-10-19, item E1): a série contínua do ICF (o
+// ICF-CA, EM USO desde 2026-10-23 nos horizontes da leitura, no realizado e no Centro de Decisão, itens E1 e E11, ADR
+// 0140, adendo) e o basis B3 × Nova York (INFORMAÇÃO; como fator, item E10). Calculados na hora, sem gravar nada.
 const props = defineProps({
   ativo: { type: String, required: true }
 })
@@ -64,19 +64,20 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
   <section class="preco-ref">
     <div class="preco-ref__estado">
       <div>
-        <p class="preco-ref__estado-titulo"><i class="bi bi-check2-circle"></i> Implementado (2026-10-20)</p>
+        <p class="preco-ref__estado-titulo"><i class="bi bi-check2-circle"></i> Implementado (2026-10-20 e 2026-10-23)</p>
         <ul>
-          <li>A série contínua do ICF, como <strong>proposta</strong>: o cálculo, o gráfico e as trocas abaixo.</li>
+          <li>
+            O <strong>ICF-CA</strong>, a série contínua do ICF, em uso desde 23/10/2026 (aprovada pelo Comitê, ADR 0140): o
+            preço dos quatro horizontes da leitura, do realizado e do Centro de Decisão, com o contrato do dia ao lado.
+          </li>
           <li>O basis B3 × Nova York, como <strong>informação</strong>, com o KC da ICE coletado pelo Yahoo (ADR 0129).</li>
-          <li>No Centro de Decisão, cada horizonte mostra o contrato, o preço de partida e a data-alvo.</li>
+          <li>No Centro de Decisão, cada horizonte mostra a série, o contrato do dia, o preço de partida e a data-alvo.</li>
         </ul>
       </div>
       <div>
         <p class="preco-ref__estado-titulo preco-ref__estado-titulo--falta"><i class="bi bi-hourglass-split"></i> Aguardando o Comitê</p>
         <ul>
-          <li>Aprovar a regra de rolagem (E1) e decidir se a série contínua substitui o contrato por horizonte (E11).</li>
-          <li>Decidir se o basis e a estrutura a termo viram fatores (E10).</li>
-          <li>Até lá, nada desta seção vai ao prompt nem ao Centro de Decisão.</li>
+          <li>Decidir se o basis vira fator (E10): até um teste, segue como informação, fora do prompt e do Centro de Decisão.</li>
         </ul>
       </div>
     </div>
@@ -97,11 +98,12 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
     <div v-if="loading" class="text-muted">Calculando...</div>
     <div v-else-if="errorMessage" class="alert alert-danger mb-0">{{ errorMessage }}</div>
     <template v-else-if="serie">
-      <article class="preco-ref__card preco-ref__card--proposta">
-        <h3>{{ serie.nome }} <span class="preco-ref__selo preco-ref__selo--proposta">Proposta</span></h3>
+      <article class="preco-ref__card">
+        <h3>{{ serie.nome }} <span class="preco-ref__selo preco-ref__selo--em-uso">Em uso</span></h3>
         <p class="preco-ref__texto">
           Os vencimentos emendados num preço só, para comparar horizontes e medir tendência sem os saltos da troca de
-          contrato (itens E1 e E11 da análise do café de 19/10/2026).
+          contrato (itens E1 e E11 da análise do café de 19/10/2026). É o preço de referência do café: em cada data, a
+          série vai com o contrato do dia ao lado (ex.: "ICF-CA · ICFZ26").
         </p>
         <ul class="preco-ref__regra">
           <li>
@@ -122,7 +124,7 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
           :pontos="linhas"
           :unidade="serie.unidade"
           :casas-decimais="2"
-          :series-labels="{ ajustado: 'Contínua ajustada (proposta)', real: 'Ajuste do contrato do dia (salta na troca)' }"
+          :series-labels="{ ajustado: 'ICF-CA (contínua ajustada)', real: 'Ajuste do contrato do dia (salta na troca)' }"
         />
 
         <p class="preco-ref__titulo-tabela">Trocas de vencimento no período</p>
@@ -254,10 +256,6 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
   background: var(--p-content-background);
 }
 
-.preco-ref__card--proposta {
-  border: 1px dashed rgba(211, 154, 23, 0.6);
-}
-
 .preco-ref__card h3 {
   margin: 0;
   font-size: 1rem;
@@ -275,9 +273,9 @@ const foraDoNormal = computed(() => ultimoBasis.value?.percentil != null && (ult
   vertical-align: middle;
 }
 
-.preco-ref__selo--proposta {
-  background: rgba(211, 154, 23, 0.15);
-  color: #8a5f00;
+.preco-ref__selo--em-uso {
+  background: rgba(20, 108, 67, 0.12);
+  color: #146c43;
 }
 
 .preco-ref__texto,

@@ -10,6 +10,7 @@ import ObservaveisView from '../views/ObservaveisView.vue'
 import ObservavelDetalheView from '../views/ObservavelDetalheView.vue'
 import ExecucoesView from '../views/ExecucoesView.vue'
 import EventosView from '../views/EventosView.vue'
+import CapturaEventosView from '../views/CapturaEventosView.vue'
 import TradingViewView from '../views/TradingViewView.vue'
 import TradingViewCompararView from '../views/TradingViewCompararView.vue'
 import MetodologiaAtivoView from '../views/MetodologiaAtivoView.vue'
@@ -45,6 +46,7 @@ const router = createRouter({
     },
     { path: '/dados-mercado/execucoes', name: 'dados-mercado-execucoes', component: ExecucoesView },
     { path: '/dados-mercado/eventos', name: 'dados-mercado-eventos', component: EventosView },
+    { path: '/dados-mercado/captura-eventos', name: 'dados-mercado-captura-eventos', component: CapturaEventosView },
     { path: '/dados-mercado/metodologia/:ativo?', name: 'dados-mercado-metodologia', component: MetodologiaAtivoView },
     // Tudo que é privado a um espaço vive sob /e/:workspaceId/... (futuras
     // rotas de carteira etc. entram como filhas/irmãs desta) - o guard abaixo

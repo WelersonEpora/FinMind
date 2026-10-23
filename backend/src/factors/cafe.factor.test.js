@@ -336,7 +336,7 @@ test("clima: lavoura bem abaixo da mesma semana dos 30 anos pesa para alta na ja
   assert.deepEqual([ponto.decisao.direcao, ponto.decisao.intensidade], ["ALTA", "FORTE"]);
 });
 
-test("clima (v2, ADR 0134): o RONI conhecido na semana, com a força do CPC e 3 meses antes, sem mudar a decisão", () => {
+test("clima (v3, ADRs 0134 e 0143): o RONI conhecido na semana, com a força do CPC e 3 meses antes; com +1,0 ou mais, a pressão do El Niño só no LONGO, sem mudar a decisão", () => {
   const RONI = "NOAA_CPC.ENSO.RONI";
   const versoes = [
     v(RONI, "2026-04-01", "2026-06-14T23:59:59Z", 0.2, true),
@@ -346,9 +346,23 @@ test("clima (v2, ADR 0134): o RONI conhecido na semana, com a força do CPC e 3 
   ];
   const ponto = climaSintetico("2026-09-23", 20, versoes);
   assert.equal(ponto.roni, 1.36);
-  assert.equal(ponto.roniTexto, "jun-ago/2026 (JJA): El Niño moderado; 3 meses antes, +0,20 °C (neutro). Contexto de regime, sem pressão própria.");
+  assert.equal(
+    ponto.roniTexto,
+    "jun-ago/2026 (JJA): El Niño moderado; 3 meses antes, +0,20 °C (neutro). Com o RONI de +1,0 ou mais, pressão de alta fraca só no horizonte LONGO (abaixo)."
+  );
+  assert.deepEqual(ponto.pressoesAdicionais, [
+    { origem: "El Niño", horizonte: "LONGO", direcao: "ALTA", intensidade: "FRACA", texto: "RONI de +1,36 °C em jun-ago/2026, acima de +1,0" }
+  ]);
   assert.deepEqual([ponto.decisao.direcao, ponto.decisao.intensidade], ["ALTA", "FORTE"], "a decisão é a do VHI");
+  // Fora da janela do VHI (fevereiro), a pressão do El Niño continua: vale o ano todo no LONGO.
+  assert.equal(climaSintetico("2027-02-10", 20, versoes).pressoesAdicionais.length, 1);
+
+  // Abaixo do limiar: só contexto.
+  const fraco = climaSintetico("2026-09-23", 20, [v(RONI, "2026-07-01", "2026-09-14T23:59:59Z", 0.8, true)]);
+  assert.deepEqual(fraco.pressoesAdicionais, []);
+  assert.match(fraco.roniTexto, /Contexto de regime, sem pressão própria \(a pressão do El Niño, só no LONGO, liga com o RONI de \+1,0 ou mais\)\.$/);
   assert.equal(climaSintetico("2026-09-23", 20).roni, null);
+  assert.deepEqual(climaSintetico("2026-09-23", 20).pressoesAdicionais, []);
   assert.deepEqual([faseEnso(0.4), faseEnso(-0.6), faseEnso(1.69), faseEnso(2.16)], ["neutro", "La Niña fraca", "El Niño forte", "El Niño muito forte"]);
 });
 
@@ -407,4 +421,28 @@ test("juros: o dólar global em 26 semanas vai como contexto, sem mudar a decis�
   assert.match(juros.METODOLOGIA.explicar(caindo)[0], /contexto, fora da decisão/);
   const semIndice = juros.derivarJurosCafe(linhas(126).filter((l) => l.seriesCode !== "FRED.DTWEXBGS")).at(-1);
   assert.equal(semIndice.variacaoDolar26Semanas, null);
+});
+
+test("safra (v3, ADR 0135, adendo): a Conab contra o USDA (PSD) da mesma safra, o conhecido quando ela publicou, como contexto", () => {
+  const A = "CONAB.CAFE.BRASIL.PRODUCAO_ARABICA";
+  const U = "USDA.PSD.CAFE.BR.PRODUCAO_ARABICA";
+  const versoes = [
+    v(A, "2026-01-01", "2026-05-21T12:00:00Z", 45772.8),
+    v(A, "2026-01-01", "2026-09-24T12:00:00Z", 48213),
+    v(U, "2026-01-01", "2026-06-30T12:00:00Z", 46000, true),
+    // Publicado depois do levantamento de 24/09: não é o que se sabia nele.
+    v(U, "2026-01-01", "2026-12-15T12:00:00Z", 49000)
+  ];
+  const [maio, setembro] = derivarSafraCafe(versoes);
+  assert.equal(maio.observedAt, "2026-05-21");
+  assert.equal(maio.contraUsdaPct, null, "o USDA de 2026/27 ainda não existia em maio");
+  assert.equal(setembro.usdaArabica, 46000);
+  assert.equal(setembro.contraUsdaPct, 4.81);
+  assert.equal(
+    setembro.usdaTexto,
+    "USDA (PSD), conhecido até o levantamento: 46.000 mil sacas para 2026/27, publicado em 06/2026 (data estimada). Outra estimativa oficial, não a expectativa do mercado: contexto, sem pressão própria."
+  );
+  // O USDA não vira levantamento nem muda a revisão.
+  assert.equal(derivarSafraCafe(versoes).length, 2);
+  assert.equal(setembro.revisaoArabicaPct, 5.33);
 });

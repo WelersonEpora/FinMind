@@ -153,4 +153,7 @@ test('precoDoHorizonte: o contrato, o preço recebido com a data e a data-alvo d
   // Sem contrato próprio, o da leitura.
   assert.equal(precoDoHorizonte({ dataAlvo: '2026-10-19' }, referencia, formatarData, formatarValor), 'ICFZ26 · 377,10 em 16/10/2026 → até 19/10/2026')
   assert.equal(precoDoHorizonte({}, referencia, formatarData, formatarValor), null)
+  // A série contínua ajustada (o ICF-CA, ADR 0140): a série e o contrato do dia, o mesmo nos quatro horizontes.
+  const continua = { ...referencia, serieContinua: 'ICF-CA' }
+  assert.equal(precoDoHorizonte({ dataAlvo: '2027-01-14' }, continua, formatarData, formatarValor), 'ICF-CA · ICFZ26 · 377,10 em 16/10/2026 → até 14/01/2027')
 })

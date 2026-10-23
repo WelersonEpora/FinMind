@@ -34,8 +34,18 @@ const { resumoParaTela } = require("../factors/agregacao/agregacao-cafe");
 // v13 (2026-10-07): os eventos saem dos 8 fatores e vão a uma seção da base do prompt (ADR 0095).
 // v14 (2026-10-07): a agregação em código sai do prompt (ADR 0066, adendo); as perguntas do ativo viram decisões.
 // v15 (2026-10-08): o motor validado pelo Comitê, com o David, em 2026-10-07; os fatores saem como validados (ADR 0108).
-const VERSAO = 15;
-const DATA_VERSAO = "2026-10-08";
+// v16 (2026-10-23): o preço de referência é o ICF-CA, a série contínua ajustada do ICF, nos quatro horizontes; as perguntas
+// da rolagem (E1) e da série nos horizontes (E11) viram decisão do Comitê (ADR 0140, adendo).
+// v17 (2026-10-23): as perguntas da meia-vida e da lista de referência dos eventos (E2) viram decisão do Comitê (ADR
+// 0130, adendo; a lista, ADR 0144).
+// v18 (2026-10-23): o F3 como INFORMAÇÃO até a validação fora da amostra da regra proposta; o desenho A (a ICO, 2015 a
+// 2019) não passou (ADR 0145).
+// v19 (2026-10-23): o F1 com a pressão do El Niño no LONGO e o peso Médio (Alto no FEL 1), pelo Comitê; a chuva por janela
+// não é adotada (análise do café de 2026-10-19, item E6; ADR 0143, adendo).
+// v20 (2026-10-23): o F2 com a Conab contra o USDA como contexto e sem o limite de dado vencido; o decaimento de 14 e 42
+// dias aprovado (item E7; ADR 0135, adendo).
+const VERSAO = 20;
+const DATA_VERSAO = "2026-10-23";
 const AUTORIA = "Motor do Café v1, relatório enviado pelo David (2026-10-04, ADR 0060)";
 const CALIBRACAO =
   "O limiar é calibração do FinMind (o estudo deixa \"[CALIBRAR COM DADOS POINT-IN-TIME]\"): a posição da medida no próprio histórico, neutra do percentil 20 ao 80 (a faixa que o estudo usa no COT), forte abaixo do 10 ou acima do 90.";
@@ -50,6 +60,16 @@ const DEFINICOES = [
       mecanismo: "Quebra de safra reduz oferta; clima bom eleva produção",
       fonte: "Conab, USDA, Somar Meteorologia"
     },
+    // O peso menor do VHI (o Comitê, 2026-10-22, item E6): um nível abaixo do FEL 1.
+    ajustesFel1: [
+      {
+        campo: "Peso",
+        noFel1: "Alto",
+        ajuste: "Médio",
+        noPrompt: "pelo Comitê",
+        origem: "O Comitê, em 2026-10-22 (\"reduzir o peso do VHI\"), pela análise do café de 2026-10-19 (item E6); o nível (um abaixo do Alto) decidido pelo usuário em 2026-10-23 (ADR 0143, adendo)."
+      }
+    ],
     // Dado vencido não vota (ADR 0142; clima: 14 dias, o limite da §6).
     idadeMaximaVotoDias: { dias: 14, origem: "o usuário, em 2026-10-21, pela §6 da análise do café de 2026-10-19 (ADR 0142)" },
     dados: {
@@ -58,7 +78,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: false,
         texto:
-          "Basta para a saúde da vegetação, não para a regra inteira: o VHI da NOAA sobre o café é semanal desde 1982, por UF, e os episódios aparecem (a seca de set/2024, posição de -48 pontos, pressão de alta forte; a seca de jan-fev/2014, -44 pontos). As variáveis que o estudo pede (chuva quinzenal, temperatura mínima, horas de frio, balanço hídrico) são do INMET, que não é coletado. A geada não aparece no VHI na semana em que acontece (jul/2021: -24 pontos): ela vem da leitura diária de eventos. A seca de 2014 cai fora das janelas críticas do estudo (junho a novembro) e fica neutra. O El Niño e a La Niña (RONI do NOAA CPC, desde 1950) vão como contexto de regime, fora da conta (ADR 0134): no KC de Nova York (2000 a 2026), com o RONI em +1,0 ou mais (moderado ou mais forte), o preço subiu em 120 pregões em 78% dos dias (+14,7% em média), contra 53% no neutro e 40% na La Niña; são cerca de 5 episódios (2002-03, 2009-10, 2015-16, 2023-24, 2026). Na análise do café de 2026-10-19 (item E6), a chuva de 30 dias da NASA POWER (4 pontos do café, 1991 a 2026) não confirmou a regra por janela: na florada, a chuvosa foi seguida de alta mais vezes que a seca (67% contra 39% em 20 pregões); na colheita, a seca mais que a chuvosa. A NASA POWER também não viu a geada de jul/2021 (a grade de ~50 km suaviza a mínima)."
+          "Basta para a saúde da vegetação, não para a regra inteira: o VHI da NOAA sobre o café é semanal desde 1982, por UF, e os episódios aparecem (a seca de set/2024, posição de -48 pontos, pressão de alta forte; a seca de jan-fev/2014, -44 pontos). As variáveis que o estudo pede (chuva quinzenal, temperatura mínima, horas de frio, balanço hídrico) são do INMET, que não é coletado. A geada não aparece no VHI na semana em que acontece (jul/2021: -24 pontos): ela vem da leitura diária de eventos. A seca de 2014 cai fora das janelas críticas do estudo (junho a novembro) e fica neutra. O El Niño e a La Niña (RONI do NOAA CPC, desde 1950) vão como contexto de regime (ADR 0134) e, desde 2026-10-23, o RONI de +1,0 ou mais também como pressão de alta fraca só no LONGO (ADR 0143): no KC de Nova York (2000 a 2026), com o RONI em +1,0 ou mais (moderado ou mais forte), o preço subiu em 120 pregões em 78% dos dias (+14,7% em média), contra 53% no neutro e 40% na La Niña; são cerca de 5 episódios (2002-03, 2009-10, 2015-16, 2023-24, 2026). Na análise do café de 2026-10-19 (item E6), a chuva de 30 dias da NASA POWER (4 pontos do café, 1991 a 2026) não confirmou a regra por janela: na florada, a chuvosa foi seguida de alta mais vezes que a seca (67% contra 39% em 20 pregões); na colheita, a seca mais que a chuvosa. A NASA POWER também não viu a geada de jul/2021 (a grade de ~50 km suaviza a mínima)."
       },
       lacunas: [
         "INMET (chuva, temperatura mínima, duração do frio, ponto de orvalho, balanço hídrico): fonte nova, pedida pelo estudo; depois da v1 (ADR 0083).",
@@ -73,19 +93,17 @@ const DEFINICOES = [
       objetivo: "Medir o estresse da lavoura de arábica nas fases críticas do ciclo (geada no inverno; florada e pegamento na primavera).",
       medida: "O VHI (saúde da vegetação, 0 a 100) sobre a área de café de MG, SP, ES e BA, ponderado pela produção de arábica de cada UF na safra mais nova da Conab.",
       comparacao: "Cada UF contra a mesma semana dos 30 anos anteriores (a \"média climatológica de 30 anos\" do estudo), em percentil; a posição relativa ponderada pelos mesmos pesos.",
-      leitura: `Lavoura mais estressada que o normal da semana pesa para alta; mais saudável, para baixa; dentro da faixa, neutra (regras candidatas do estudo). ${CALIBRACAO} Só decide nas janelas críticas do estudo: junho a agosto (geada) e setembro a novembro (florada e pegamento); de dezembro a maio, neutra. Parâmetros ajustáveis pelo Comitê no card C. Decidir.`,
+      leitura: `Lavoura mais estressada que o normal da semana pesa para alta; mais saudável, para baixa; dentro da faixa, neutra (regras candidatas do estudo). ${CALIBRACAO} Só decide nas janelas críticas do estudo: junho a agosto (geada) e setembro a novembro (florada e pegamento); de dezembro a maio, neutra. No horizonte LONGO, o ano todo, o El Niño (RONI publicado de +1,0 ou mais) soma uma pressão de alta fraca, ao lado da do VHI (ADR 0143). Parâmetros ajustáveis pelo Comitê no card C. Decidir.`,
       regrasEspecialista: {
         alta: "Sinal de Alta: Queda expressiva de precipitação no período de desenvolvimento floral/chumbinho por período superior a [CALIBRAR COM DADOS POINT-IN-TIME] semanas consecutivas acompanhada de balanço hídrico negativo, ou registro oficial por estações do INMET de temperaturas foliares negativas com vento calmo e ponto de orvalho favorável a congelamento celular em polos representativos. [Hipótese v0 — não validada; não usar para ordem].",
         baixa: "Sinal de Baixa: Regularidade de precipitação dentro ou moderadamente acima das médias históricas, associada à ausência de alertas de estresse térmico durante as fases de floração e pegamento da safra brasileira. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    // A análise do café de 2026-10-19, item E6 (ADR 0134): o que segue com o Comitê.
-    perguntas: [
-      "SANÇÃO DA PRESSÃO DO EL NIÑO (análise do café de 2026-10-19, item E6; ao Comitê; ADR 0143): o FinMind propõe, só no LONGO, uma pressão de alta fraca com o RONI publicado de +1,0 ou mais, ao lado da leitura do VHI; abaixo disso e nos outros horizontes, só contexto. No KC (2000 a 2026, semanas), com o RONI de +1,0 ou mais, o preço subiu em 62 pregões em 68% das semanas (base 49%) e em 120 pregões em 79%; IC +0,10 em 62 pregões (intervalo de 90%: +0,02 a +0,19). A força não escala (o forte não foi melhor que o moderado), e são 4 episódios completos (2002-03 contra; 2010, 2015-16 e 2023-24 a favor). Hoje, +1,69: daria alta fraca no LONGO. Sancionar, ajustar (o limiar, a intensidade, o horizonte) ou manter só como contexto?",
-      "Chuva por janela (E6): a regra do documento (florada seca = alta; colheita chuvosa = alta) não se confirmou na chuva da NASA POWER (o sentido saiu o oposto, com poucos anos). Manter o VHI como está, coletar a chuva só como contexto ou testar outra regra?",
-      "Peso do VHI (E6): o documento pede peso menor. O F1 continua com a pressão do VHI nas janelas críticas; reduzir, e como, sem pesos numéricos no prompt (a §3 do documento)?"
-    ],
+    perguntas: [],
     decisoes: [
+      "Pressão do El Niño no LONGO (Comitê, 2026-10-22, aprovada como proposta; ADR 0143, adendo; item E6): com o RONI publicado de +1,0 ou mais, o F1 (v3) soma uma pressão de alta fraca só no horizonte LONGO, ao lado da leitura do VHI e o ano todo; abaixo disso e nos outros horizontes, o RONI fica como contexto. No KC (2000 a 2026, semanas), com o RONI de +1,0 ou mais, o preço subiu em 62 pregões em 68% das semanas (base 49%); IC +0,10 (intervalo de 90%: +0,02 a +0,19), 4 episódios completos. Em 2026-10, com +1,69, a pressão está ligada.",
+      "Peso do VHI (Comitê, 2026-10-22: \"reduzir o peso do VHI\"; o nível decidido pelo usuário em 2026-10-23, ADR 0143, adendo; item E6): o F1 passa de Alto (FEL 1) a Médio, no prompt e na tela. Um nível: o Baixo, somado aos fatores que já não votam (F3, F4, F5 e F7), esvaziaria a leitura do café.",
+      "Chuva por janela (Comitê, 2026-10-22; item E6): não é adotada, porque o teste não a confirmou (na NASA POWER, o sentido saiu o oposto, com poucos anos; ADR 0134). A chuva não é coletada.",
       "El Niño como contexto (usuário, 2026-10-21, ADR 0134; análise do café de 2026-10-19, item E6): o RONI do NOAA CPC conhecido em cada semana vai ao F1 (v2) com a força pela escala do CPC e o valor de 3 meses antes, sem pressão própria; a decisão do F1 continua a do VHI.",
       "Medida da v1 (usuário, 2026-10-06, ADR 0083): o VHI da NOAA sobre a área de arábica, sem o INMET; a geada vem da leitura diária de eventos.",
       "Janelas críticas (usuário, 2026-10-06, ADR 0083): ficam as do estudo, junho a novembro; o enchimento (dezembro a março) não entra. No preço do arábica do FMI (2002 a 2026), a pressão de alta de junho a novembro foi seguida de alta em 3 meses em 78% das semanas (56% em todas as semanas da janela); a de dezembro a março, em 44% (46% em todas): não acrescenta. A seca de verão, como a de 2014, quando o preço subiu durante a seca, chega pelos eventos.",
@@ -101,8 +119,8 @@ const DEFINICOES = [
       mecanismo: "Brasil é maior produtor; ciclo bienal alterna anos de alta e baixa produção",
       fonte: "Conab, ICO"
     },
-    // Dado vencido não vota (ADR 0142; safra: 42 dias, o fim do decaimento do E7 (ADR 0135), no lugar dos 30 da §6).
-    idadeMaximaVotoDias: { dias: 42, origem: "o usuário, em 2026-10-21, pela §6 da análise do café de 2026-10-19 (ADR 0142)" },
+    // Sem o limite de dado vencido desde 2026-10-23 (ADR 0135, adendo): o levantamento vigente é o mais novo que existe, não
+    // um dado atrasado. Depois de 42 dias, o decaimento do E7 já o deixa neutro, com a revisão como contexto.
     dados: {
       observaveis: ["CONAB_CAFE", "USDA_PSD_CAFE"],
       eventos: false,
@@ -130,11 +148,10 @@ const DEFINICOES = [
       }
     },
     // A análise do café de 2026-10-19, item E7 (ADR 0135): o que segue com o Comitê.
-    perguntas: [
-      "Surpresa contra o mercado (E7): o consenso de analistas é pago. Testar a Conab contra a estimativa do USDA para o Brasil (cerca de 5 pares desde 2023, pouco para um teste) ou só acompanhar as estimativas privadas pelos eventos (Safras & Mercado e Notícias Agrícolas, fontes secundárias, ADR 0130)?",
-      "Prazo do decaimento (E7): ficam os 14 e os 42 dias (forte nas 2 primeiras semanas, um nível abaixo até 6 semanas, depois neutra), ou outro prazo?"
-    ],
+    perguntas: [],
     decisoes: [
+      "Decaimento e fonte de consenso (Comitê, 2026-10-22: o decaimento de 14 e 42 dias aprovado, e \"informar a fonte de consenso que será usada\"; a fonte e o nome do limite decididos pelo usuário em 2026-10-23, ADR 0135, adendo; item E7): a fonte é o USDA (PSD), o arábica do Brasil na mesma safra, já coletado; é outra estimativa oficial, não o consenso do mercado (a pesquisa de analistas é paga). A diferença da Conab contra o USDA conhecido quando ela publicou vai ao F2 (v3) como contexto, sem pressão; uma regra com ela só depois de juntar pares. Em 24/09/2026, a Conab estimou 48.213 mil sacas, contra 47.500 do USDA para 2026/27: +1,5%.",
+      "Sem o limite de dado vencido (usuário, 2026-10-23, ADR 0135, adendo; o ponto de atenção do Comitê, item E7): depois de 42 dias, o F2 saía como \"SEM VOTO: dado vencido\", e a IA registrava a lacuna como DEFASADO, mas o levantamento é o mais novo que existe. Agora o decaimento o deixa neutro, com a revisão como contexto. Com os 16 levantamentos desde 2023 (de 85 a 125 dias entre eles), o F2 tem leitura com direção em 40% dos dias e com a força cheia em 15%: o efeito do decaimento aprovado.",
       "A revisão perde força com a idade (usuário, 2026-10-21, ADR 0135; análise do café de 2026-10-19, item E7): no levantamento vigente na data da leitura, até 14 dias a leitura do levantamento; de 15 a 42 dias, um nível abaixo (forte vira moderada; moderada vira neutra); depois de 42, neutra, e a revisão fica como contexto. O texto do fator diz a idade. Nos 11 levantamentos de 2023 a 2026 contra o KC, com direção, o F2 acertou o lado em 4 de 6 nas 2 primeiras semanas e em 3 de 5 de 10 a 60 pregões: amostra pequena; a de maio/2026 (baixa moderada) foi seguida de +54,5% de 10 a 60 pregões.",
       "Limiares (usuário, 2026-10-06, ADR 0084): a faixa neutra de 2% e o forte de 5% ficam como ponto de partida, até o backtest. Nas 11 revisões da base, as duas fortes com preço depois (set/2024, -5,99%; mai/2025, +6,61%) foram seguidas do movimento esperado no arábica do FMI em 3 meses (+23,4% e -8,0%); as moderadas se dividiram. São episódios, não validação.",
       "Bienalidade (usuário, 2026-10-06, ADR 0084): fica como contexto, fora da decisão, como o estudo deixa. Na safra de arábica do USDA (PSD, 1992 a 2025, valor final), a queda de 10% ou mais contra a safra anterior foi seguida de preço médio de -2,1% em 12 meses (alta em 5 de 14 anos) e a alta de 10% ou mais, de +16,8% (7 de 13): o ciclo é previsível (o sinal trocou em 28 de 33 anos) e o mercado o precifica; o que move o preço é a revisão."
@@ -149,6 +166,10 @@ const DEFINICOES = [
       mecanismo: "Nível de inventário indica aperto ou folga de oferta",
       fonte: "ICO, ICE"
     },
+    // Só informação no prompt até a validação fora da amostra (ADR 0145): a regra de hoje deu o sinal invertido em 2022
+    // a 2026, e a proposta não passou no histórico da ICO.
+    informativo: true,
+    papelDecididoPor: "do usuário",
     // Dado vencido não vota (ADR 0142; estoques: 7 dias, o limite da §6).
     idadeMaximaVotoDias: { dias: 7, origem: "o usuário, em 2026-10-21, pela §6 da análise do café de 2026-10-19 (ADR 0142)" },
     dados: {
@@ -157,7 +178,7 @@ const DEFINICOES = [
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente para a regra do estoque certificado: o relatório diário da ICE (o \"Report 42\" do estudo, ADR 0032) está na base por origem e no total, no servidor desde 2016 (no banco de dev, só desde ago/2026: o fator não decide em dev). A série confirma a ordem de grandeza que o estudo marcou como não confirmada: em ago/2026, o estoque foi de 260,7 mil a 224,0 mil sacas. Validação histórica (ADR 0085), no estoque certificado de Nova York do relatório mensal da ICO (2012 a 2026) contra o preço do arábica do FMI: o estoque não antecipa o preço. Depois de uma queda fora do normal, o preço subiu em 3 meses em 40% dos meses (43% em todos); com o estoque perto da mínima de 5 anos, também em 40%. Ele tende a cair junto com a alta (o café sai da bolsa quando o mercado aperta): confirma, não antecipa."
+          "Suficiente para a regra do estoque certificado: o relatório diário da ICE (o \"Report 42\" do estudo, ADR 0032) está na base por origem e no total, no servidor desde 2016 (no banco de dev, só desde ago/2026: o fator não decide em dev). A série confirma a ordem de grandeza que o estudo marcou como não confirmada: em ago/2026, o estoque foi de 260,7 mil a 224,0 mil sacas. Validação histórica (ADR 0085), no estoque certificado de Nova York do relatório mensal da ICO (2012 a 2026) contra o preço do arábica do FMI: o estoque não antecipa o preço. Depois de uma queda fora do normal, o preço subiu em 3 meses em 40% dos meses (43% em todos); com o estoque perto da mínima de 5 anos, também em 40%. Ele tende a cair junto com a alta (o café sai da bolsa quando o mercado aperta): confirma, não antecipa. Validação fora da amostra da regra proposta (ADR 0145, desenho A, a ICO mensal de 2015 a 2019, antes da calibração): depois da queda abaixo do percentil 20, o KC subiu em 62 pregões em 75% dos 12 meses, contra 31% dos 36 sem sinal; IC −0,32, 4 episódios. O sentido saiu o oposto do de 2022 a 2026: a variação do estoque não tem um lado estável."
       },
       lacunas: [
         "As sacas aguardando classificação (pending grading), que a regra de alta cita, vão ao prompt como contexto, fora da decisão (ADR 0085).",
@@ -175,11 +196,10 @@ const DEFINICOES = [
         baixa: "Sinal de Baixa: Injeção contínua e expressiva de novas sacas aprovadas na certificação da ICE associada à elevação dos estoques portuários europeus apurados pela ECF. [Hipótese v0 — não validada; não usar para ordem]."
       }
     },
-    // A regra da variação deu o sinal invertido em 2022 a 2026 (ADR 0131): segue com o Comitê.
-    perguntas: [
-      "SANÇÃO DO SENTIDO DO F3 (análise do café de 2026-10-19, item E3; ao Comitê; ADRs 0131 e 0143): a regra de hoje deu o sinal invertido. O FinMind propõe, só no LONGO, a queda do estoque fora do normal pesando para BAIXA (moderada abaixo do percentil 10 da variação em 4 semanas, fraca do 10 ao 20); a entrada fora do normal e o meio, neutros; nos outros horizontes, o F3 como contexto. No diário da ICE contra o KC (12/2019 a 10/2026, 357 semanas), depois da queda abaixo do percentil 20 o KC subiu em 62 pregões em 41% das semanas, contra 73% nas outras; IC da leitura invertida +0,27 em 62 pregões (intervalo de 90%: +0,15 a +0,43), nas duas metades; em 5 e 21 pregões, sem sinal firme. A entrada fora do normal não deu retorno maior que o do meio. Sancionar, ajustar (os percentis 10 e 20, o horizonte) ou tirar a pressão do F3? Até a sanção, a regra de hoje continua."
-    ],
+    perguntas: [],
     decisoes: [
+      "Sentido do F3 e validação (Comitê, 2026-10-22: aprovado condicionado à validação fora da amostra; desenho, critério e papel decididos pelo usuário em 2026-10-23, ADR 0145): o F3 vai ao prompt como INFORMAÇÃO, sem pressão própria e fora de fatoresAFavor e fatoresContra, até a validação. A regra proposta (só no LONGO, queda abaixo do percentil 10 = baixa moderada, do 10 ao 20 = baixa fraca) NÃO PASSOU no desenho A (a ICO mensal de 2015 a 2019): o KC subiu depois do sinal em 75% dos meses, contra 31% sem sinal (IC −0,32, 4 episódios). Não é adotada. O desenho C (o diário da ICE depois de 23/10/2026, `npm run validacao:f3 -- --desenho=C`) segue como acompanhamento, com a 1ª avaliação em 23/04/2027; adotar uma regra depois dele é decisão nova do Comitê. A regra de hoje continua calculada na tela.",
+      "Fator de curva (Comitê, 2026-10-22; item E3): não criar por ora. A curva do ICF segue no prompt como informação.",
       "Queda sustentada (usuário, 2026-10-06, ADR 0085): fica a variação em 4 semanas contra o próprio histórico (a v1). No dado mensal da ICO (2012 a 2026), 3 meses seguidos de queda tiveram leve vantagem só em 6 meses (alta em 61%, contra 49% em todos), e meses seguidos não são as sessões do estudo; o teste com o dado diário da ICE fica para o servidor.",
       "Nível do estoque (usuário, 2026-10-06, ADR 0085): não dá direção, fica como contexto (o valor da camada A). Com o estoque abaixo do percentil 20 de 5 anos, o preço subiu em 3 meses em 40% dos meses, contra 43% em todos.",
       "Pendentes e portos europeus (usuário, 2026-10-06, ADR 0085): vão ao prompt como contexto, fora da regra. O sentido do estudo aparece (com a ECF subindo, a queda do certificado foi seguida de alta em 25% dos meses; com a ECF caindo, em 40%), mas com 12 e 15 meses, pouco para condicionar a regra.",
@@ -441,8 +461,9 @@ const DO_ATIVO = {
   decisoes: [
     `Aprovação do Motor do Café v1 como está na tela, com os limiares calibrados pelo FinMind (a posição no próprio histórico) como ponto de partida; ajustes daqui em diante pelos parâmetros. O café entra no prompt diário, na leitura de tendência da IA e no Centro de Decisão. ${DECISAO_COMITE}.`,
     `Formato da leitura da IA: tendência por horizonte, com as faixas calibradas (como nos outros ativos), não recomendação de compra ou venda. ${DECISAO_COMITE}.`,
-    `Preço de referência no prompt e no Centro de Decisão: o ICF da B3 (US$/saca), o vencimento mais próximo negociado, sem emendar contratos; o KC da ICE fica fora (pago). ${DECISAO_COMITE}.`,
-    "Vencimento de cada horizonte: o mais próximo que ainda negocia depois da data-alvo (vale até o dia 15 do mês de vencimento), e a leitura e a avaliação do horizonte usam esse contrato; a curva vai ao prompt. Com o mais próximo para todos, o contrato vencia antes da data-alvo em 78% dos dias no horizonte de 90 dias. Liquidez mínima de 100 contratos negociados no dia, só com aviso: no ICF, pouco líquido, o aviso sai em cerca de um quarto dos dias. Usuário (Welerson), 2026-10-05 (ADR 0078).",
+    `Preço de referência no prompt e no Centro de Decisão: o ICF da B3 (US$/saca), o vencimento mais próximo negociado, sem emendar contratos; o KC da ICE fica fora (pago). ${DECISAO_COMITE}. Desde 2026-10-23, o ICF-CA, a série contínua (abaixo).`,
+    "Vencimento de cada horizonte: o mais próximo que ainda negocia depois da data-alvo (vale até o dia 15 do mês de vencimento), e a leitura e a avaliação do horizonte usam esse contrato; a curva vai ao prompt. Com o mais próximo para todos, o contrato vencia antes da data-alvo em 78% dos dias no horizonte de 90 dias. Liquidez mínima de 100 contratos negociados no dia, só com aviso: no ICF, pouco líquido, o aviso sai em cerca de um quarto dos dias. Usuário (Welerson), 2026-10-05 (ADR 0078). Substituído em 2026-10-23 pelo ICF-CA (a decisão abaixo).",
+    "Série contínua nos horizontes (itens E1 e E11 da análise do café de 2026-10-19): o preço dos quatro horizontes, do realizado e do Centro de Decisão é o ICF-CA, \"ICF contínuo ajustado\", com o contrato do dia informado (ex.: \"ICF-CA · ICFZ26\"). Rolagem pela liquidez: a partir de 40 pregões antes do vencimento, para o seguinte com mais contratos negociados em 5 pregões, entre os 3 seguintes; trava a 10 pregões. Ajuste proporcional: na troca, o passado é multiplicado pela razão novo ÷ antigo; os retornos ficam iguais aos de cada contrato, o último preço é o real e o passado ajustado não é um preço que existiu. Comitê, aprovado como proposto, implementado em 2026-10-23 por decisão do usuário (ADR 0140, adendo). A curva segue no prompt como informação; a configuração do café passou à v8.",
     "Faixas da leitura da IA: ficam as calibradas no próprio ICF (percentis 40 e 80 da variação, por horizonte), não as 6 classes fixas do prompt do David (1, 3, 5, 7 e 10%): no ICF, em 90 dias 60% das variações seriam \"excepcional\", e em 1 dia 85% caem nas duas primeiras classes, enquanto as calibradas dão cerca de 40% lateral, 40% leve e 20% forte em todos os horizontes. Usuário (Welerson), 2026-10-05 (ADR 0079).",
     `Horizontes em dias corridos (1, 7, 30 e 90), contados da data da análise, como nos outros ativos (o estudo conta em pregões). ${DECISAO_COMITE}.`,
     `Eventos sem validação humana, por ora, com a janela de 7 dias (30 nos marcados com a demanda). ${DECISAO_COMITE}.`,
@@ -451,16 +472,13 @@ const DO_ATIVO = {
     "Fontes novas do estudo: o Comitê autorizou em 2026-10-04 as sacas pendentes de classificação da ICE, o relatório mensal da ICO e os portos europeus da ECF, só como dado (ADR 0061). O INMET fica para depois da v1 (usuário, 2026-10-06, ADR 0083); o diário de Londres, orçamento e licença (o do KC veio depois, pelo Yahoo, ADR 0129); o diferencial FOB não tem fonte pública.",
     "Agregação em código (usuário, 2026-10-07, ADR 0066, adendo): sai do prompt e do Centro de Decisão e fica na tela de metodologia como referência, com o script `npm run agregacao:cafe -- --acerto` para medir de novo. No histórico do ICF (dev, 2022 a 2026), não supera o \"sempre lateral\" em faixa exata e distância em nenhum horizonte, e fora do lateral erra a direção na maior parte das vezes (18% a 37% de acerto). A IA segue combinando os fatores pelo prompt, com as regras do estudo como orientação.",
     "A mesma régua no milho (usuário, 2026-10-07): já aplicada; a agregação em código do milho foi medida no histórico e ficou fora do prompt (ADR 0081).",
-    "O KC de Nova York (usuário, 2026-10-20, ADR 0129): coletado pelo Yahoo, fonte não oficial e provisória como o Brent, para o basis B3 × Nova York, a curva de Nova York e o histórico longo pedidos pela análise do café de 2026-10-19 (item E1). Só dado: o basis e a série contínua do ICF estão na seção \"Preço de referência\" desta tela, sem ir ao prompt nem ao Centro de Decisão.",
+    "O KC de Nova York (usuário, 2026-10-20, ADR 0129): coletado pelo Yahoo, fonte não oficial e provisória como o Brent, para o basis B3 × Nova York, a curva de Nova York e o histórico longo pedidos pela análise do café de 2026-10-19 (item E1). Só dado: o basis está na seção \"Preço de referência\" desta tela, sem ir ao prompt nem ao Centro de Decisão (a série contínua do ICF, também lá, é o preço de referência desde 2026-10-23).",
+    "Meia-vida dos eventos e lista de referência (Comitê, 2026-10-22, ADR 0130, adendo; item E2): ficam os 4 dias (fatos pontuais) e os 25 dias (medidas que seguem valendo e safra). A lista de eventos de referência é obrigatória para o critério de captura (80% dos relevantes num período de 30 dias): a tela Captura de eventos, com os candidatos gerados sem a IA de eventos e a avaliação do usuário (decisão do usuário, 2026-10-23, ADR 0144).",
     "Eventos dos agrícolas (usuário, 2026-10-21, ADR 0130; análise do café de 2026-10-19, item E2): o NORMAL sem o mínimo de pesquisa vira NÃO VERIFICADO; o tipo SAFRA (Colômbia, Vietnã); a Federação de Cafeteiros de volta, o relatório do Vietnã no USDA FAS e a mudança de probabilidade do El Niño no CPC; Safras & Mercado, Notícias Agrícolas e Trading Economics como fontes secundárias, só alerta (confiança baixa, não cumprem o piso); e a meia-vida no lugar da janela fixa: 4 dias nos fatos pontuais e 25 nas medidas que seguem valendo e na safra, com o evento no prompt enquanto o peso for de pelo menos 0,25."
   ],
   // A análise do café de 2026-10-19 (STATUS_DO_PROJETO.md, §0): o que segue com o Comitê (preço de referência e eventos).
   perguntas: [
-    "Regra de rolagem da série contínua do ICF (E1): a proposta da seção \"Preço de referência\" (a partir de 40 pregões antes do vencimento, para o seguinte com mais negócios em 5 pregões, entre os 3 seguintes; trava a 10 pregões; ajuste proporcional). Aprovar ou ajustar os números.",
-    "SANÇÃO DA SÉRIE CONTÍNUA NOS HORIZONTES (E11, com a regra de rolagem do E1; ADR 0140): o FinMind propõe medir todos os horizontes do café na série contínua ajustada do ICF (a rolagem por liquidez da tela, com o ajuste proporcional), no lugar de um contrato por horizonte com a regra do \"dia 15\" (ADR 0078), informando o contrato do dia. No histórico (2022 a 2026), a regra de hoje mede o horizonte num contrato sem negócio na semana em 12% a 20% dos dias, e em 76% dos dias o LONGO usa outro contrato que o IMEDIATO; a troca muda a faixa do realizado em 8% a 15% dos dias. Sancionar, ajustar a rolagem (40, 5, 3 e 10 pregões) ou manter um contrato por horizonte (com a liquidez no lugar do dia 15)?",
-    "Basis B3 × Nova York e estrutura a termo como fatores (E10): hoje são só informação na tela.",
-    "Meia-vida dos eventos (E2): confirmar ou ajustar os 4 dias (fatos pontuais) e os 25 dias (medidas que seguem valendo e safra), já em uso.",
-    "Teste de captura de eventos (E2): montar a lista de eventos de referência (o gabarito) para medir, daqui para frente, se a leitura captura 80% dos relevantes em 30 dias."
+    "Basis B3 × Nova York e estrutura a termo como fatores (E10): hoje são só informação na tela."
   ]
 };
 

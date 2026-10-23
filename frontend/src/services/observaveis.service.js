@@ -31,4 +31,15 @@ async function exportarHistoricoCsv(codigo, { modality, campo, itens } = {}) {
   return data
 }
 
-export default { listarObservaveis, getObservavelDetalhe, getObservavelHistorico, exportarHistoricoCsv }
+// Planilha de um observável sem coleta automática (ADR 0146): a rota vem do catálogo (`observavel.importacao.rota`).
+// Timeout maior: 30 anos de pregões são lidos e gravados na hora.
+const TIMEOUT_IMPORTACAO_MS = 120000
+
+async function importarPlanilha(rota, arquivos) {
+  const formData = new FormData()
+  for (const arquivo of arquivos) formData.append('arquivos', arquivo)
+  const { data } = await http.post(rota, formData, { timeout: TIMEOUT_IMPORTACAO_MS })
+  return data
+}
+
+export default { listarObservaveis, getObservavelDetalhe, getObservavelHistorico, exportarHistoricoCsv, importarPlanilha }

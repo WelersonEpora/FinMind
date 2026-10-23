@@ -2022,6 +2022,40 @@ const CATALOGO_OBSERVAVEIS = [
     }
   },
 
+  // --- Indicador do Café Arábica CEPEA/ESALQ (ADR 0146): o histórico pela planilha exportada à mão do site do Cepea (o
+  // botão de importação, admin, pelo campo `importacao`) e o diário pela republicação do Notícias Agrícolas ---
+  {
+    instrumentCode: "CAFE_CEPEA_ESALQ",
+    origem: "observation",
+    nome: "Café - Indicador do Arábica CEPEA/ESALQ",
+    unidade: "R$/saca",
+    casasDecimais: 2,
+    frequencia: "DIARIA",
+    toleranciaDias: 4,
+    fonte: "Cepea (planilha do site e, no diário, a republicação do Notícias Agrícolas)",
+    fonteCollectorCode: "noticias-agricolas-cepea-cafe",
+    porCampo: { prefixoSerie: "CEPEA.CAFE_ARABICA" },
+    campoPrincipal: "AVISTA_BRL",
+    campos: [
+      { codigo: "AVISTA_BRL", nome: "À vista (R$)", unidade: "R$/saca", casasDecimais: 2 },
+      { codigo: "AVISTA_USD", nome: "À vista (US$)", unidade: "US$/saca", casasDecimais: 2 }
+    ],
+    importacao: {
+      rota: "/api/v1/cepea/cafe/importacao",
+      aceita: ".xls",
+      instrucao:
+        "No site do Cepea, abra o Indicador do Café Arábica (Consultas ao banco de dados > Gerar Excel), exporte a série diária e envie o arquivo .xls. Os dias já importados são ignorados; um valor que o Cepea tenha mudado vira revisão."
+    },
+    fonteDetalhe: {
+      descricao:
+        "Indicador do Café Arábica CEPEA/ESALQ: saca de 60 kg líquido, bica corrida, tipo 6, bebida dura para melhor, à vista (descontado o prazo de pagamento pela taxa NPR), posto na cidade de São Paulo, em R$ e em US$. É o preço físico do arábica no Brasil, o que o produtor recebe, aprovado pelo Comitê para o câmbio e o custo do café (F4 e F5, análise do café de 2026-10-19, item E8).",
+      metodologia:
+        "Um valor por dia útil, desde 02/09/1996, como o Cepea publica. O site do Cepea bloqueia a coleta automática (Cloudflare; robots.txt contra agentes de IA) e a B3 não divulga o café no arquivo de indicadores: o histórico vem da planilha que o usuário exporta no site e importa nesta tela, nunca de uma requisição do FinMind ao Cepea. O diário (só o R$) vem da página do Notícias Agrícolas que republica o indicador, uma fonte NÃO oficial: um valor só entra se os dias da página já na série baterem ao centavo e se a variação contra o dia anterior ficar em até 8%; a próxima planilha confirma o valor ou o corrige (revisão). A origem de cada valor fica na versão (Cepea ou Notícias Agrícolas). A data de publicação é ESTIMADA (fim do dia do pregão em Brasília). Um valor que mude numa exportação posterior vira revisão. O valor em US$ usa o câmbio do próprio Cepea (na exportação de 2026-10-23, a 0,23% da PTAX na mediana). Licença: dado do Cepea (CC BY-NC 4.0); uso interno (ADR 0146).",
+      formatoOrigem: "XLS exportado à mão do site do Cepea (Consultas ao banco de dados > Gerar Excel)",
+      urlOficial: "https://www.cepea.org.br/br/indicador/cafe.aspx"
+    }
+  },
+
   // --- FMI - preço mensal do milho americano, pelo ALFRED, com todas as versões (ADR 0069) ---
   {
     instrumentCode: "MILHO_PRECO_FMI",
@@ -2741,6 +2775,8 @@ async function obterDetalheObservavel(codigo, deps = {}) {
       // Só cards por vencimento/região: seletores de campo e de item da tela.
       ...(dimensoes ? { ...dimensoes, itemPrincipal: destaque ?? null } : {}),
       fonteDetalhe: item.fonteDetalhe ?? null,
+      // Só a série que chega por planilha (o Cepea do café, ADR 0146): a tela mostra o botão de importação ao admin.
+      importacao: item.importacao ?? null,
       ultimaColeta: ultimaExecucao
         ? {
             status: ultimaExecucao.status,

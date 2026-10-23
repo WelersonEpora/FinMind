@@ -62,3 +62,15 @@ as páginas do site que a pesquisa de fato leu (grounding).
   mão; o teste honesto é daqui para frente (refazer datas passadas com a busca de hoje é otimista). A lista e os valores
   da meia-vida ficam com o Comitê (`STATUS_DO_PROJETO.md`, §0, E2).
 - Leitura não reproduzível, como antes: vale da 1ª coleta com a v15 em diante.
+
+## Adendo (2026-10-23): a meia-vida e a lista de referência aprovadas pelo Comitê
+
+**Quem decidiu:** o Comitê, na resposta à §0 do status, recebida em 2026-10-22: "E2 (meias-vidas 4 e 25 dias e lista de
+referência): APROVADO. A lista de eventos é obrigatória para o critério de captura de 80%."
+
+- **Meia-vida:** ficam os 4 dias (fatos pontuais) e os 25 dias (medidas que seguem valendo e SAFRA), já em uso. Nada
+  muda no código.
+- **Lista de referência:** obrigatória. Como ela é montada e conferida foi decidido pelo usuário em 2026-10-23 e está no
+  ADR 0144 (a tela Captura de eventos). Corrige a consequência acima: o teste não precisa ser só daqui para frente. As
+  leituras de eventos estão gravadas dia a dia (ADR 0047), então um período passado mede a leitura como ela foi na
+  época, sem otimismo. O otimista é só refazer a leitura com a busca de hoje.

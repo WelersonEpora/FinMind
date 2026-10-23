@@ -86,3 +86,27 @@ versão de hoje, revisada; 1.399 semanas, 2000 a 2026):
 - O Comitê recebe duas regras com os números para sancionar ou ajustar (os percentis 10 e 20 do F3; o limiar de +1,0 do
   RONI e o horizonte), no lugar de perguntas abertas.
 - As duas regras são plausíveis, não validadas: o F3 tem 7 anos de semanas sobrepostas, e o El Niño, 4 episódios.
+
+## Adendo (2026-10-23): a resposta do Comitê
+
+**Quem decidiu:** o Comitê, na resposta à §0 do status, recebida em 2026-10-22, e o usuário (Welerson), em 2026-10-23,
+no que o Comitê deixou em aberto.
+
+### E3 (o F3)
+
+"APROVADO CONDICIONADO a validação fora da amostra." O teste foi pré-registrado e rodado no ADR 0145: a regra **não
+passou** no histórico da ICO de 2015 a 2019 (o sentido saiu o oposto). Não é adotada, e o F3 vai ao prompt como
+informação.
+
+### E6 (o El Niño, a chuva e o peso do VHI)
+
+- **El Niño no LONGO, aprovado como proposto:** "(El Niño no LONGO, RONI ≥ 1,0): APROVADO." O F1 (v3) soma, só no
+  horizonte LONGO e o ano todo, uma pressão de alta fraca com o RONI publicado de +1,0 ou mais, ao lado da leitura do VHI
+  (`pressoesAdicionais` do ponto, a linha "Pressão adicional" da parte C no prompt). A decisão do F1 continua a do VHI: a
+  IA recebe as duas leituras, não uma soma, e o prompt do café (v18, item 6) manda dizer as duas e reduzir a confiança
+  quando apontam lados diferentes. Se o F1 ficar SEM VOTO (o VHI vencido), a pressão do El Niño sai com ele. Em 2026-10,
+  com o RONI de +1,69, a pressão está ligada.
+- **Chuva por janela:** "Não adotar a regra de chuva por janela, porque o teste não a confirmou." A chuva não é coletada.
+- **O peso do VHI:** "Reduzir o peso do VHI." O usuário decidiu o nível: o F1 passa de **Alto** (FEL 1) a **Médio**, no
+  prompt e na tela (`ajustesFel1`, metodologia do café v19). O Baixo foi descartado porque, somado aos fatores que já não
+  votam (F3, F4, F5 e F7), esvaziaria a leitura do café.

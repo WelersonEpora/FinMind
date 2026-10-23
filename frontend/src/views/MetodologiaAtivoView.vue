@@ -269,14 +269,17 @@ watch(ativo, carregar, { immediate: true })
                   <p class="metodologia-ativo__objetivo">{{ fator.fel1.direcao }}</p>
 
                   <div class="metodologia-ativo__marcas">
-                    <!-- Dado insuficiente em vermelho, como etiqueta: é um alerta, não uma marca como as outras. -->
+                    <!-- A cobertura parcial em vermelho, como etiqueta: é um alerta, não uma marca como as outras. É se o dado
+                         coletado cobre a regra inteira do estudo (`dados.avaliacao.suficiente`), não o "dado insuficiente" da
+                         governança, que é o SEM VOTO do dia no prompt (ADR 0142, adendo). -->
                     <span
                       v-if="fator.dados.avaliacao"
                       class="metodologia-ativo__calculado"
                       :class="{ 'metodologia-ativo__insuficiente': !fator.dados.avaliacao.suficiente }"
+                      title="Se o dado coletado cobre a regra inteira do estudo. Não tira o voto: quem tira é o SEM VOTO do dia (sem dado ou sem leitura), no prompt."
                     >
                       <i class="bi" :class="fator.dados.avaliacao.suficiente ? 'bi-check-circle' : 'bi-exclamation-circle'"></i>
-                      {{ fator.dados.avaliacao.suficiente ? 'Dado suficiente' : 'Dado insuficiente' }}
+                      {{ fator.dados.avaliacao.suficiente ? 'Cobertura completa' : 'Cobertura parcial' }}
                     </span>
                     <span v-if="fator.calculado" class="metodologia-ativo__calculado"><i class="bi bi-graph-up"></i> {{ fator.proposta.situacao === 'VALIDADA' ? 'Calculado' : 'Proposta calculada' }}</span>
                     <span v-if="fator.deEvento" class="metodologia-ativo__calculado"><i class="bi bi-broadcast"></i> Fator de evento</span>
@@ -399,7 +402,7 @@ watch(ativo, carregar, { immediate: true })
               class="metodologia-ativo__avaliacao"
               :class="fatorSelecionado.dados.avaliacao.suficiente ? 'metodologia-ativo__avaliacao--ok' : 'metodologia-ativo__avaliacao--falta'"
             >
-              <strong>{{ fatorSelecionado.dados.avaliacao.suficiente ? 'O dado basta.' : 'O dado não basta.' }}</strong>
+              <strong>{{ fatorSelecionado.dados.avaliacao.suficiente ? 'Cobre a regra do estudo.' : 'Cobre a regra do estudo em parte.' }}</strong>
               {{ fatorSelecionado.dados.avaliacao.texto }}
             </p>
             <template v-if="fatorSelecionado.dados.lacunas.length">

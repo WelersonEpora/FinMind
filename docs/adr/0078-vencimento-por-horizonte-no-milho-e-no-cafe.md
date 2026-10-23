@@ -60,3 +60,10 @@ café v3, metodologia do milho v14 e do café v2.
   da leitura (sem contrato por horizonte na entrada) e ficam separadas pela versão da configuração na Qualidade da IA.
 - O ouro (GLD) usa a mesma leitura do vencimento mais próximo e não foi medido aqui. Se tiver o mesmo problema, a mesma
   configuração (`CURVA.porHorizonte`) resolve, com uma decisão própria.
+
+## Adendo (2026-10-23): no café, substituído pela série contínua
+
+No café, o contrato por horizonte deu lugar ao ICF-CA, a série contínua ajustada do ICF, nos quatro horizontes e no
+realizado, com a sanção do Comitê aos itens E1 e E11 da análise do café de 2026-10-19 (ADR 0140, adendo; configuração do
+café v8). A curva continua no prompt, como informação. Nos outros ativos com contrato por horizonte (milho, petróleo e
+soja), nada muda.

@@ -4,6 +4,7 @@ const observationRepository = require("../repositories/observation.repository");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const { classificarNaFaixa } = require("../shared/analise-diaria-base");
 const precoMarketQuote = require("../shared/preco-market-quote");
+const { SERIE_CONTINUA_ICF } = require("../factors/serie-continua-icf");
 
 // O realizado de uma leitura diária de tendência (ADR 0063 e adendo): para cada horizonte, em que faixa o preço DE FATO
 // caiu, ao lado da faixa que a IA leu. Só mede e classifica, com as faixas gravadas com a leitura; quem compara com a
@@ -25,8 +26,12 @@ const precoMarketQuote = require("../shared/preco-market-quote");
 //     que a tolerância da série, porque um contrato vencido nunca terá dado depois dela;
 //   - preço longe da data (mais que a tolerância) não serve: SEM_BASE na base, SEM_PRECO no alvo (num futuro, o
 //     contrato venceu ou não negociou); nenhum preço novo depois da base (feriado, fim de semana): SEM_PREGAO;
-//   - um horizonte com contrato próprio (o milho e o café desde a configuração v3, ADR 0078) é apurado nele, com a base
-//     dele; cada horizonte devolve a série e a base que usou.
+//   - um horizonte com contrato próprio (o milho e, da configuração v3 à v7, o café, ADR 0078) é apurado nele, com a base
+//     dele; cada horizonte devolve a série e a base que usou;
+//   - numa série contínua ajustada (o ICF-CA do café desde a v8, ADR 0140, adendo), a base e o preço realizado são os
+//     pontos AJUSTADOS da série calculada em `agora`: a razão entre dois pontos é o retorno encadeado dos contratos e não
+//     muda com as trocas que vêm depois. A base é o ponto ajustado na data do preço recebido (a IA recebeu o ajuste
+//     real do contrato do dia, que é o mesmo número só até a próxima troca).
 
 const SITUACOES = Object.freeze(["APURADO", "A_APURAR", "AGUARDANDO_DADO", "SEM_PRECO", "SEM_PREGAO", "SEM_BASE"]);
 
@@ -43,6 +48,8 @@ const SERIES_DE_REFERENCIA = Object.freeze({
   GLD: { observavel: "GLD_PRECOS", futuro: { prefixo: "B3.GLD", campo: "SETTLE" } },
   CCM: { observavel: "CCM_PRECOS", futuro: { prefixo: "B3.CCM", campo: "SETTLE" } },
   ICF: { observavel: "ICF_PRECOS", futuro: { prefixo: "B3.ICF", campo: "SETTLE" } },
+  // O ICF-CA (o café desde a configuração v8, ADR 0140, adendo): a série contínua ajustada, calculada, nunca gravada.
+  ICF_CA: { observavel: "ICF_PRECOS", seriesCode: SERIE_CONTINUA_ICF.seriesCode, continua: SERIE_CONTINUA_ICF },
   // A soja (ADR 0116): o SJC da B3.
   SJC: { observavel: "SJC_PRECOS", futuro: { prefixo: "B3.SJC", campo: "SETTLE" } },
   // O dólar (ADR 0126): a PTAX de venda, em market_quote (shared/preco-market-quote.js).
@@ -67,7 +74,12 @@ function resolverSerie(precoReferencia) {
   const derivado = def.futuro ? (ticker ? `${def.futuro.prefixo}.${ticker}.${def.futuro.campo}` : null) : def.seriesCode;
   const seriesCode = precoReferencia.seriesCode || derivado;
   if (!seriesCode) return null;
-  return { seriesCode, futuro: Boolean(def.futuro), tolerancia: buscarNoCatalogo(def.observavel)?.toleranciaDias ?? TOLERANCIA_PADRAO_DIAS };
+  return {
+    seriesCode,
+    futuro: Boolean(def.futuro),
+    continua: def.continua || null,
+    tolerancia: buscarNoCatalogo(def.observavel)?.toleranciaDias ?? TOLERANCIA_PADRAO_DIAS
+  };
 }
 
 // A base da avaliação (pontos em ordem crescente). -> { data, valor, naDataDaAnalise, confirmada } ou null (sem preço até
@@ -145,21 +157,31 @@ async function apurarRealizadosComPontos(analises, { agora = new Date(), diasDeP
     .map((a) => a.precoReferencia.dataReferencia)
     .reduce((menor, d) => (d < menor ? d : menor), new Date(Date.parse(`${hoje}T00:00:00Z`) - diasDePreco * 86400000).toISOString().slice(0, 10));
   const repo = deps.observationRepository || observationRepository;
-  // A PTAX (o dólar) vem de market_quote; o resto, da observation.
-  const daObservation = codigos.filter((c) => !precoMarketQuote.ehMarketQuote(c));
+  // A PTAX (o dólar) vem de market_quote; a série contínua (o ICF-CA), do cálculo dela, com o preço ajustado; o resto, da
+  // observation.
+  const continuas = new Map(seriesDosHorizontes.flat().concat(series).filter((s) => s?.continua).map((s) => [s.seriesCode, s.continua]));
+  const daObservation = codigos.filter((c) => !precoMarketQuote.ehMarketQuote(c) && !continuas.has(c));
   const daMarketQuote = codigos.filter((c) => precoMarketQuote.ehMarketQuote(c));
+  const linhasDaContinua = async (seriesCode, continua) =>
+    (await continua.calcular({ asOf: agora }, deps)).pontos
+      .filter((p) => p.data >= desde && p.data <= hoje)
+      .map((p) => ({ series_code: seriesCode, observed_at: p.data, value: p.ajustado }));
   const linhas = [
     ...(daObservation.length ? await repo.buscarAsOf({ seriesCodes: daObservation, asOf: agora, observadoDesde: desde, observadoAte: hoje }) : []),
-    ...(await Promise.all(daMarketQuote.map((c) => precoMarketQuote.buscarLinhas(c, { asOf: agora, observadoDesde: desde, observadoAte: hoje }, deps)))).flat()
+    ...(await Promise.all(daMarketQuote.map((c) => precoMarketQuote.buscarLinhas(c, { asOf: agora, observadoDesde: desde, observadoAte: hoje }, deps)))).flat(),
+    ...(await Promise.all([...continuas].map(([c, continua]) => linhasDaContinua(c, continua)))).flat()
   ];
   const pontosPorSerie = new Map(codigos.map((c) => [c, []]));
   for (const l of linhas) pontosPorSerie.get(l.series_code)?.push({ data: String(l.observed_at).slice(0, 10), valor: Number(l.value) });
   for (const pontos of pontosPorSerie.values()) pontos.sort((a, b) => a.data.localeCompare(b.data));
 
   // A base e os pontos de uma série, a partir do preço que a IA recebeu nela.
+  // Na série contínua, o preço recebido vira o ponto ajustado da mesma data (sem ele, o recebido).
   const contextoDa = (analise, serie, recebido) => {
     const pontos = pontosPorSerie.get(serie.seriesCode).filter((p) => p.data >= recebido.dataReferencia);
-    const base = baseDaAvaliacao(analise, pontos, { tolerancia: serie.tolerancia, hoje, futuro: serie.futuro, recebido });
+    const ajustado = serie.continua ? pontos.find((p) => p.data === recebido.dataReferencia) : null;
+    const naSerie = ajustado ? { ...recebido, valor: ajustado.valor } : recebido;
+    const base = baseDaAvaliacao(analise, pontos, { tolerancia: serie.tolerancia, hoje, futuro: serie.futuro, recebido: naSerie });
     return { base, pontos, hoje, tolerancia: serie.tolerancia, futuro: serie.futuro };
   };
 

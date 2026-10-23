@@ -1,6 +1,6 @@
 # Prompt — Análise diária do ouro (leitura de tendência em quatro horizontes)
 
-**Versão:** 4
+**Versão:** 5
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0054), no molde do prompt do petróleo (`petroleo-analise-diaria.md`,
 v2; ADRs 0051 e 0052): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na
@@ -18,6 +18,10 @@ médio, ids que não estavam na lista daquele horizonte.
 v4 (2026-10-07, ADR 0106) - os horizontes contam do último preço da BASE, e o IMEDIATO é o próximo pregão depois dele
 (antes, da data da análise, com o pregão seguinte ao último preço fora de todos os horizontes); com o preço defasado,
 da data da análise. O item do preço em "Como analisar" diz isso, e a tabela 2.4 traz a data-alvo de cada horizonte.
+
+v5 (2026-10-23, ADR 0142, adendo) - o dado insuficiente não vota, nos seis ativos (o "sem exceção" do Comitê): o
+fator sem dado, sem a leitura do motor ou, se de evento, sem leitura diária na janela sai como SEM VOTO na tabela 2.3,
+e a resposta que o citar a favor ou contra é recusada. O item de relevância diz isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `ouro-analise-ia-diario` (ADR 0054).
 
@@ -48,6 +52,9 @@ Para cada horizonte, separadamente:
 1. Relevância. Decida quais fatores informam aquele prazo, pela periodicidade, pela idade e pela natureza de cada um
    (a tabela 2.3 dá a idade e a situação dos dados). Um dado trimestral com meses de atraso diz pouco sobre 1 dia; um
    evento de ontem pode dizer muito. Diga quais fatores pesaram pouco e por quê.
+   Um fator marcado SEM VOTO na tabela 2.3 (sem dado, sem a leitura do motor ou, num fator de evento, sem leitura
+   diária na janela) não vota em nenhum horizonte: liste-o só em fatoresPoucoRelevantes e registre a falta em
+   "lacunas" (SEM_DADO ou SEM_LEITURA).
 2. Pesos do FEL 1. Comece pelos fatores de peso Alto; os de peso Médio e Baixo confirmam ou enfraquecem a leitura.
    Nunca altere um peso. A validação histórica (parte D de cada fator) qualifica a confiança na evidência; ela não muda
    o peso, a pressão nem a intensidade de nenhum fator.

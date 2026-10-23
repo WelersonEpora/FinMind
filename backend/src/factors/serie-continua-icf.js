@@ -4,9 +4,11 @@ const observationRepository = require("../repositories/observation.repository");
 const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
 const { PARAMETROS_PADRAO, montarSerieContinua, pregaoAntes } = require("./base/serie-continua-futuro");
 
-// Série contínua do ICF da B3 (café arábica, US$/saca), PROPOSTA da análise do café de 2026-10-19 (itens E1 e E11), a
-// validar pelo Comitê: a regra de rolagem e o ajuste estão em base/serie-continua-futuro.js. Calculada sob demanda,
-// NUNCA gravada; ainda não alimenta nenhum fator, o prompt nem o Centro de Decisão.
+// Série contínua do ICF da B3 (café arábica, US$/saca): o ICF-CA, "ICF contínuo ajustado" (análise do café de
+// 2026-10-19, itens E1 e E11; sancionada pelo Comitê com a regra de rolagem como estava, ADR 0140, adendo). A regra de
+// rolagem e o ajuste estão em base/serie-continua-futuro.js. Calculada sob demanda, NUNCA gravada: o código da série
+// (SERIE_CONTINUA_ICF.seriesCode) não existe na observation. É o preço de referência do café desde a configuração v8:
+// os quatro horizontes da leitura, o realizado e o Centro de Decisão.
 //
 // O que o histórico do ICF mostrou (2022-03 a 2026-10, banco de dev):
 //   - O mercado gira em H, U e Z (março, setembro e dezembro); o K (maio) às vezes negocia e o N (julho) quase nunca:
@@ -38,7 +40,8 @@ function agruparPorTicker(linhas) {
   return porTicker;
 }
 
-// A série contínua do ICF com o que se sabia em `asOf`. -> { pontos, trocas, parametros }.
+// A série contínua do ICF com o que se sabia em `asOf`. -> { pontos, trocas, parametros }; cada ponto com a publicação
+// do ajuste do contrato do dia (`publicadoEm`, `estimado`).
 async function calcularSerieContinuaIcf({ asOf = new Date(), parametros = PARAMETROS_PADRAO } = {}, deps = {}) {
   const repo = deps.observationRepository || observationRepository;
   const contratos = (await repo.listarUltimasDatasItens({ prefixoSerie: PREFIXO, campoReferencia: CAMPO_AJUSTE }))
@@ -54,7 +57,22 @@ async function calcularSerieContinuaIcf({ asOf = new Date(), parametros = PARAME
     { contratos, ajustes: agruparPorTicker(ajustes), negociados: agruparPorTicker(negociados), feriados: FERIADOS_FIXOS },
     parametros
   );
-  return { ...resultado, parametros: { ...PARAMETROS_PADRAO, ...parametros } };
+  const publicacao = new Map(ajustes.map((l) => [`${l.series_code.split(".")[2]}|${l.observed_at}`, l]));
+  const pontos = resultado.pontos.map((p) => {
+    const linha = publicacao.get(`${p.ticker}|${p.data}`);
+    return { ...p, publicadoEm: linha?.published_at ?? null, estimado: Boolean(Number(linha?.published_at_is_estimated)) };
+  });
+  return { ...resultado, pontos, parametros: { ...PARAMETROS_PADRAO, ...parametros } };
 }
 
-module.exports = { FERIADOS_FIXOS, ultimoPregaoIcf, calcularSerieContinuaIcf };
+// O nome e o código da série (ADR 0140, adendo). Ao lado, em cada data, vai o contrato do dia (ex.: "ICF-CA · ICFZ26");
+// o contrato por vencimento continua com o nome da B3.
+const SERIE_CONTINUA_ICF = Object.freeze({
+  codigo: "ICF-CA",
+  nome: "ICF contínuo ajustado",
+  seriesCode: "FINMIND.ICF.ICF-CA.AJUSTE",
+  campo: CAMPO_AJUSTE,
+  calcular: calcularSerieContinuaIcf
+});
+
+module.exports = { FERIADOS_FIXOS, SERIE_CONTINUA_ICF, ultimoPregaoIcf, calcularSerieContinuaIcf };

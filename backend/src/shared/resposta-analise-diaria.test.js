@@ -152,3 +152,11 @@ test("fator SEM VOTO no dia (ADR 0142): a favor ou contra é recusado em todos o
   const certa = respostaValida({ IMEDIATO: fora, CURTO: fora, MEDIO: fora, LONGO: fora });
   assert.deepEqual(validarRespostaAnalise(JSON.stringify(certa), opcoes).erros, []);
 });
+
+test("fator SEM VOTO só em alguns horizontes (ADR 0142, adendo): a favor ou contra é recusado só neles", () => {
+  const opcoes = { horizontes: HORIZONTES, codigosFator: CODIGOS, semVotoNosHorizontes: { PETROLEO_REFINO: ["LONGO"] } };
+  const { erros } = validarRespostaAnalise(JSON.stringify(respostaValida()), opcoes);
+  assert.deepEqual(erros, [
+    'leituras[LONGO].fatoresContra[0]: "PETROLEO_REFINO" está SEM VOTO em LONGO (sem a leitura do motor nesse horizonte); use fatoresPoucoRelevantes e diga a lacuna.'
+  ]);
+});

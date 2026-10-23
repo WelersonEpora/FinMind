@@ -219,7 +219,7 @@ test("leitura de tendência da IA (ADRs 0052, 0054, 0058 e 0062): nos quatro ati
 
   const { centroDecisao: petroleo } = await obterCentroDecisao({ ativo: "PETROLEO", data: "2026-10-02" }, deps);
   assert.equal(petroleo.analise.disponivel, true);
-  assert.deepEqual(petroleo.analise.precoReferencia, { serie: "WTI", seriesCode: null, contrato: null, dataReferencia: "2026-09-29", valor: 96.16 });
+  assert.deepEqual(petroleo.analise.precoReferencia, { serie: "WTI", seriesCode: null, contrato: null, serieContinua: null, dataReferencia: "2026-09-29", valor: 96.16 });
   // O realizado (ADR 0063) vem na série que a leitura gravou (o WTI, antes do Brent), pelo mapa fixo das séries de
   // referência (a leitura antiga não tem o seriesCode).
   assert.equal(petroleo.analise.realizado.seriesCode, "EIA.PETROLEO_PRECOS.WTI");
@@ -323,4 +323,34 @@ test("dólar (ADR 0126): a PTAX de venda vem de market_quote, com 4 casas; a PTA
   // Às 14h, já saiu.
   const tarde = await lerPreco(ptax, { data: "2026-10-09", agora: new Date("2026-10-09T17:00:00Z") }, { marketQuoteRepository });
   assert.equal(tarde.valor, 5.35);
+});
+
+test("café (ADR 0140, adendo): o ICF-CA é a 1ª série, com o preço ajustado no gráfico e nas variações e o contrato do dia", async () => {
+  const { lerPreco } = require("./centro-decisao.service");
+  const cafe = ATIVOS.find((a) => a.codigo === "CAFE");
+  assert.equal(cafe.series[0].codigo, "ICF_CA");
+  assert.equal(cafe.series[0].continua.seriesCode, "FINMIND.ICF.ICF-CA.AJUSTE");
+  // Uma troca em 03/09 (U26 a 300, Z26 a 290 e, depois, 295,8): a série continua sem o salto.
+  const continua = {
+    ...cafe.series[0].continua,
+    calcular: async ({ asOf }) => {
+      assert.ok(asOf instanceof Date);
+      return {
+        pontos: [
+          { data: "2026-09-02", ticker: "ICFU26", valor: 300, ajustado: 290, publicadoEm: "2026-09-03T01:00:00Z", estimado: false },
+          { data: "2026-09-03", ticker: "ICFZ26", valor: 290, ajustado: 290, publicadoEm: "2026-09-04T01:00:00Z", estimado: false },
+          { data: "2026-09-04", ticker: "ICFZ26", valor: 295.8, ajustado: 295.8, publicadoEm: "2026-09-05T01:00:00Z", estimado: false }
+        ]
+      };
+    }
+  };
+  const preco = await lerPreco({ ...cafe.series[0], continua }, { data: "2026-09-04", agora: AGORA }, {});
+  assert.equal(preco.seriesCode, "FINMIND.ICF.ICF-CA.AJUSTE");
+  assert.deepEqual(preco.serieContinua, { codigo: "ICF-CA", nome: "ICF contínuo ajustado" });
+  assert.deepEqual(preco.contrato, { ticker: "ICFZ26", rotulo: decodificarFuturoB3("ICFZ26").rotulo });
+  assert.equal(preco.valor, 295.8);
+  assert.equal(preco.unidade, "US$/saca");
+  assert.deepEqual(preco.pontos.map((p) => p.valor), [290, 290, 295.8]);
+  // 1 dia: +2% (290 → 295,8), não o −1,4% entre os dois contratos.
+  assert.equal(Math.round(preco.variacoes.d1.percentual * 100) / 100, 2);
 });

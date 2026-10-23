@@ -7,6 +7,7 @@ const realizadoAnaliseService = require("./realizado-analise.service");
 const { buscarNoCatalogo } = require("./observaveis.service");
 const precoMarketQuote = require("../shared/preco-market-quote");
 const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
+const { SERIE_CONTINUA_ICF } = require("../factors/serie-continua-icf");
 const { somarDias } = require("../shared/utils/date-utils");
 const { ValidationError } = require("../shared/errors");
 
@@ -57,6 +58,9 @@ const ATIVOS = [
     codigo: "CAFE",
     nome: "Café",
     series: [
+      // O ICF-CA primeiro: a série contínua ajustada do ICF, o preço de referência desde a configuração v8 (sanção do
+      // Comitê, ADR 0140, adendo). O ICF por vencimento continua como opção.
+      { codigo: "ICF_CA", nome: "ICF contínuo ajustado (ICF-CA)", observavel: "ICF_PRECOS", continua: SERIE_CONTINUA_ICF },
       { codigo: "ICF", nome: "Futuro B3 (ICF)", observavel: "ICF_PRECOS", futuro: { prefixo: "B3.ICF", campo: "SETTLE" } },
       { codigo: "FMI", nome: "FMI mensal (arábica)", observavel: "CAFE_PRECO_FMI", seriesCode: "FRED.PCOFFOTMUSDM" }
     ]
@@ -234,10 +238,26 @@ async function lerFuturo(futuro, { data, asOf, desde, vencimentoApos = null }, r
   return { linhas: linhas.filter((l) => l.series_code === seriesCode), seriesCode, contrato: { ticker: contrato.ticker, rotulo: contrato.rotulo } };
 }
 
+// Série contínua ajustada de um futuro (o ICF-CA do café, ADR 0140, adendo): os pregões do período com o preço ajustado,
+// no formato das linhas da observation, e o contrato do dia (o do último pregão; o último preço é o ajuste real dele).
+// Calculada com o que se sabia em `asOf`.
+async function lerContinua(continua, { data, asOf, desde }, deps) {
+  const { pontos } = await continua.calcular({ asOf }, deps);
+  const doPeriodo = pontos.filter((p) => p.data >= desde && p.data <= data);
+  if (doPeriodo.length === 0) return null;
+  const doDia = doPeriodo[doPeriodo.length - 1].ticker;
+  return {
+    linhas: doPeriodo.map((p) => ({ observed_at: p.data, value: p.ajustado, published_at: p.publicadoEm, published_at_is_estimated: p.estimado })),
+    seriesCode: continua.seriesCode,
+    contrato: { ticker: doDia, rotulo: decodificarFuturoB3(doDia)?.rotulo ?? doDia },
+    serieContinua: { codigo: continua.codigo, nome: continua.nome }
+  };
+}
+
 async function lerPreco(serie, { data, agora, vencimentoApos = null }, deps) {
   const repo = deps.observationRepository || observationRepository;
   const catalogo = buscarNoCatalogo(serie.observavel);
-  const campo = catalogo.campos?.find((c) => c.codigo === (serie.futuro?.campo || serie.seriesCode.split(".").pop()));
+  const campo = catalogo.campos?.find((c) => c.codigo === (serie.futuro?.campo || serie.continua?.campo || serie.seriesCode.split(".").pop()));
   const frequencia = catalogo.frequencia;
   const janela = JANELAS[frequencia] || JANELAS.DIARIA;
   const asOf = instanteDaData(data, agora);
@@ -248,9 +268,11 @@ async function lerPreco(serie, { data, agora, vencimentoApos = null }, deps) {
     precoMarketQuote.ehMarketQuote(serie.seriesCode)
       ? precoMarketQuote.buscarLinhas(serie.seriesCode, { asOf, observadoDesde: desde, observadoAte: data }, deps)
       : repo.buscarAsOf({ seriesCodes: [serie.seriesCode], asOf, observadoDesde: desde, observadoAte: data });
-  const lido = serie.futuro
-    ? await lerFuturo(serie.futuro, { data, asOf, desde, vencimentoApos }, repo)
-    : { linhas: await lerSerie(), seriesCode: serie.seriesCode, contrato: null };
+  const lido = serie.continua
+    ? await lerContinua(serie.continua, { data, asOf, desde }, deps)
+    : serie.futuro
+      ? await lerFuturo(serie.futuro, { data, asOf, desde, vencimentoApos }, repo)
+      : { linhas: await lerSerie(), seriesCode: serie.seriesCode, contrato: null };
 
   const base = {
     codigo: serie.codigo,
@@ -279,6 +301,8 @@ async function lerPreco(serie, { data, agora, vencimentoApos = null }, deps) {
     // A série exata do preço (num futuro, a do contrato): a leitura de tendência a grava (ADR 0064).
     seriesCode: lido.seriesCode,
     contrato: lido.contrato,
+    // A série contínua ajustada (o ICF-CA): o contrato é o do dia, e os preços passados são ajustados.
+    ...(lido.serieContinua ? { serieContinua: lido.serieContinua } : {}),
     valor: ultimo.valor,
     dataReferencia: ultimo.data,
     publicadoEm: ultimo.publicadoEm,

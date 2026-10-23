@@ -1,6 +1,6 @@
 # Prompt — Análise diária da soja (leitura de tendência em quatro horizontes)
 
-**Versão:** 2
+**Versão:** 3
 
 Histórico: v2 (2026-10-08) - os pesos aprovados pelo Comitê, com o David (ADR 0116, adendo): fixos por fator (F1 e F2
 Alto, F3 Médio, F4 Baixo), na tabela 2.3 como nos outros ativos. O item 2 do bloco 4 passa a orientar pelo peso (ordem
@@ -19,6 +19,10 @@ sobreposição (§2.11). Nenhum fator tem peso: os pesos e a agregação ficaram
 eventos vão ao prompt sem validação humana: os de política no F4 (fator de evento) e os demais na seção 2.5 da base. Os
 números das faixas e dos horizontes NÃO são escritos aqui: vêm da configuração (`shared/analise-diaria-soja.js`), no
 bloco 2.4.
+
+v3 (2026-10-23, ADR 0142, adendo) - o dado insuficiente não vota, nos seis ativos (o "sem exceção" do Comitê): o
+fator sem dado, sem a leitura do motor ou, se de evento, sem leitura diária na janela sai como SEM VOTO na tabela 2.3,
+e a resposta que o citar a favor ou contra é recusada. O item de relevância diz isso.
 
 Enviado ao Gemini uma vez por dia pelo coletor `soja-analise-ia-diario` (ADR 0116).
 
@@ -80,6 +84,9 @@ Para cada horizonte, separadamente:
    Os meses entre parênteses só valem com o fator na janela da safra (R1, item 4). Use também a idade e a situação dos
    dados (tabela 2.3): um relatório mensal de semanas atrás diz pouco sobre 1 dia; um de ontem pode dizer muito. Diga
    quais fatores pesaram pouco e por quê.
+   Um fator marcado SEM VOTO na tabela 2.3 (sem dado, sem a leitura do motor ou, num fator de evento, sem leitura
+   diária na janela) não vota em nenhum horizonte: liste-o só em fatoresPoucoRelevantes e registre a falta em
+   "lacunas" (SEM_DADO ou SEM_LEITURA).
 2. Pesos. O peso de cada fator está na tabela 2.3 (Alto, Médio ou Baixo), aprovado pelo Comitê: é fixo, o mesmo em
    todos os horizontes. Use-o como ordem de partida (os de peso Alto primeiro; os de peso Médio e Baixo confirmam ou
    enfraquecem a leitura) e ajuste o que cada um conta naquele horizonte pela relevância do item 1. Nunca altere um
