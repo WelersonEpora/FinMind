@@ -75,11 +75,18 @@ const PRECO = {
 };
 
 // `precoPorAlvo(dataAlvo)`: o preço do contrato de um horizonte (ADR 0078; null = o mesmo `preco`); `curva`: a de lerCurva.
-function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = null, precoPorAlvo = null, curva = null, eventosDoAtivo = null } = {}) {
+// A volatilidade das faixas do ouro (ADR 0152): σ de 1% ao dia dá as faixas fixas de antes no IMEDIATO (0,4 / 1,2%).
+const VOLATILIDADE = { volatilidadeDiariaPct: 1, pregoes: 60, desde: "2026-07-07", ate: "2026-10-02" };
+
+function deps({ fatores = [EVENTO, CALCULADO, SEM_DADO], preco = PRECO, pesos = null, precoPorAlvo = null, curva = null, eventosDoAtivo = null, volatilidade = VOLATILIDADE } = {}) {
   const chamadas = {};
   return {
     chamadas,
     agora: new Date("2026-10-03T15:00:00Z"),
+    async calcularVolatilidadeFuturo(opcoes) {
+      chamadas.volatilidade = opcoes;
+      return volatilidade;
+    },
     metodologiaAtivoService: {
       async simularFatores(ativo, opcoes) {
         chamadas.simular = [ativo, opcoes.data];
@@ -277,6 +284,11 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   assert.match(p.prompt, /2\.2 CURVA FUTURA — não se aplica ao ouro/);
   assert.doesNotMatch(p.prompt, /SEM DADO: não há fonte da curva/);
   assert.match(p.prompt, /IMEDIATO \(Imediato, 1 dia\): T1 = 0,4% \| T2 = 1,2%/);
+  // As faixas do dia (ADR 0152): da volatilidade do GLD até o último preço, gravadas com a leitura.
+  assert.deepEqual(d.chamadas.volatilidade, { prefixo: "B3.GLD", data: "2026-10-03", ate: "2026-10-02", pregoes: 60 });
+  assert.match(p.prompt, /proporcionais à volatilidade/);
+  assert.deepEqual(p.entrada.faixasPorVolatilidade, VOLATILIDADE);
+  assert.deepEqual(p.entrada.horizontes.find((h) => h.codigo === "LONGO"), { codigo: "LONGO", dias: 90, t1: 4.3, t2: 10.2 });
   assert.match(p.prompt, /1\. OURO_INFLACAO — .* \| CONTEXTO de OURO_JUROS_REAIS, sem leitura própria \|/);
   assert.match(p.instrucaoDoSistema, /Nunca os liste em\s+"fatoresAFavor" nem em "fatoresContra"/);
   assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);

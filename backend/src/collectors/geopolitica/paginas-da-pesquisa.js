@@ -58,4 +58,25 @@ function paginasDoTrecho(trecho, grounding) {
     .map((pagina) => ({ site: String(pagina.web.title || "").toLowerCase(), url: pagina.web.urlFinal }));
 }
 
-module.exports = { resolverLinks, paginasDoTrecho };
+// A data de publicação escrita no endereço da página, quando há (item E8 da análise do ouro de 2026-11-01, ADR 0153):
+// "/2026/10/28/", "2026-10-28", "october-282026" (as páginas ao vivo da AP) ou "20261029" (os avisos do UKMTO).
+// -> "AAAA-MM-DD" ou null. Sem a data no endereço, nada se conclui.
+const MESES_EN = { january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
+function dataDaUrl(url) {
+  const u = String(url || "").toLowerCase();
+  const montar = (a, m, d) =>
+    a >= 2000 && a <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31 ? `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
+  const padroes = [
+    [/\/(20\d{2})\/(\d{1,2})\/(\d{1,2})(?:\/|$)/, (m) => montar(+m[1], +m[2], +m[3])],
+    [/(?:^|\D)(20\d{2})-(\d{2})-(\d{2})(?:\D|$)/, (m) => montar(+m[1], +m[2], +m[3])],
+    [/(january|february|march|april|may|june|july|august|september|october|november|december)-(\d{1,2})-?(20\d{2})/, (m) => montar(+m[3], MESES_EN[m[1]], +m[2])],
+    [/(?:^|\D)(20\d{2})(\d{2})(\d{2})(?:\D|$)/, (m) => montar(+m[1], +m[2], +m[3])]
+  ];
+  for (const [regex, data] of padroes) {
+    const m = regex.exec(u);
+    if (m && data(m)) return data(m);
+  }
+  return null;
+}
+
+module.exports = { resolverLinks, paginasDoTrecho, dataDaUrl };

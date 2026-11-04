@@ -69,7 +69,7 @@ const emit = defineEmits(['ver-ia'])
           >
             sustenta o evento
           </span>
-          <template v-else-if="fonte.origem !== 'pesquisa'">
+          <template v-else-if="fonte.origem === 'citada'">
             <span
               v-if="fonte.fonteAutorizada && fonte.confirmadaNaPesquisa"
               class="fonte-tag"
@@ -96,6 +96,15 @@ const emit = defineEmits(['ver-ia'])
           >
             <i class="bi bi-box-arrow-up-right"></i> {{ fonte.url }}
           </a>
+          <span v-if="fonte.dataPagina && fonte.origem === 'pesquisa'" class="fonte-tag" title="A data de publicação no endereço da página">
+            página de {{ fonte.dataPagina.split('-').reverse().join('/') }}
+          </span>
+          <template v-if="fonte.origem === 'antiga'">
+            <span class="fonte-tag" title="Página com a data no endereço mais de 7 dias antes da leitura: não sustenta um fato novo (ADR 0153)">
+              página antiga, de {{ fonte.dataPagina.split('-').reverse().join('/') }}
+            </span>
+            <span class="evento-detalhe__fonte-url">{{ fonte.url }}</span>
+          </template>
         </li>
       </ul>
       <p v-else>Nenhuma fonte citada.</p>

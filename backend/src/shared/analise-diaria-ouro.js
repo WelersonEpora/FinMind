@@ -11,7 +11,9 @@ const { CODIGOS_FAIXA, TENDENCIA_DA_FAIXA, criarClassificador } = require("./ana
 // dele (DATA_DO_PRECO_RECEBIDO, ADR 0106); com o preço defasado, da data da análise. Faixas e horizontes não mudam.
 // v3 (2026-10-23): o dado insuficiente não vota (SEM_DADO_NAO_VOTA, ADR 0142, adendo: o "sem exceção" do Comitê, nos
 // seis ativos). Horizontes e faixas não mudam.
-const VERSAO = 3;
+// v4 (2026-11-04): as faixas proporcionais à volatilidade (FAIXAS_POR_VOLATILIDADE, ADR 0152; item E6 da análise do
+// ouro de 2026-11-01); as fixas (FAIXAS) ficam como reserva, quando a volatilidade não pode ser calculada.
+const VERSAO = 4;
 
 // Os mesmos quatro horizontes do petróleo, cada um analisado separadamente.
 const HORIZONTES = Object.freeze([
@@ -32,6 +34,23 @@ const FAIXAS = Object.freeze({
   CURTO: { t1: 1, t2: 2.5 },
   MEDIO: { t1: 2, t2: 6 },
   LONGO: { t1: 4, t2: 10 }
+});
+
+// As faixas do dia (ADR 0152): T = k × σ × √n, com σ o desvio padrão dos retornos diários dos últimos 60 pregões do GLD
+// (o vencimento mais próximo com ajuste nos dois pregões de cada retorno, factors/volatilidade-futuro.js) e n os pregões
+// do horizonte (1, 5, 21 e 62). Os k são os quantis 40 e 80 de |variação| ÷ (σ × √n) no ouro da LBMA de 2010 a 2019: com
+// eles, de 2020 a 2026 cada ano fica perto de 40% LATERAL, 40% LEVE e 20% FORTE, enquanto as faixas fixas chegaram a 19%
+// LATERAL e 45% FORTE no IMEDIATO de 2026 (a volatilidade do ouro dobrou). Com σ de 1%, o IMEDIATO fica em 0,4 / 1,2%, as
+// fixas de antes.
+const FAIXAS_POR_VOLATILIDADE = Object.freeze({
+  serie: { prefixo: "B3.GLD", rotulo: "GLD" },
+  pregoesVolatilidade: 60,
+  horizontes: Object.freeze({
+    IMEDIATO: { k1: 0.43, k2: 1.22, pregoes: 1 },
+    CURTO: { k1: 0.51, k2: 1.24, pregoes: 5 },
+    MEDIO: { k1: 0.52, k2: 1.3, pregoes: 21 },
+    LONGO: { k1: 0.55, k2: 1.29, pregoes: 62 }
+  })
 });
 
 // Da data da análise, como no petróleo desde o adendo do ADR 0052.
@@ -77,6 +96,7 @@ module.exports = {
   COLETOR,
   HORIZONTES,
   FAIXAS,
+  FAIXAS_POR_VOLATILIDADE,
   CODIGOS_FAIXA,
   TENDENCIA_DA_FAIXA,
   REFERENCIA_HORIZONTES,

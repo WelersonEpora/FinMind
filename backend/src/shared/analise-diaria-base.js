@@ -33,6 +33,20 @@ function criarClassificador(faixas) {
   };
 }
 
+// As faixas proporcionais à volatilidade (o ouro, ADR 0152; item E6 da análise do ouro de 2026-11-01): em cada
+// horizonte, T = k × σ × √n, com σ o desvio diário recente do preço (em %) e n os pregões do horizonte. Os k vêm da
+// configuração do ativo. Arredondadas a 0,1 p.p., como o prompt as mostra; sem σ, null (vale a faixa fixa).
+function faixasPorVolatilidade(volatilidadeDiariaPct, regra) {
+  if (!(volatilidadeDiariaPct > 0)) return null;
+  const um = (x) => Math.max(0.1, Math.round(x * 10) / 10);
+  return Object.fromEntries(
+    Object.entries(regra.horizontes).map(([codigo, { k1, k2, pregoes }]) => {
+      const escala = volatilidadeDiariaPct * Math.sqrt(pregoes);
+      return [codigo, { t1: um(k1 * escala), t2: um(k2 * escala) }];
+    })
+  );
+}
+
 // De onde os horizontes contam, gravado com cada leitura (`entrada.referenciaHorizontes`):
 //   - DATA_DO_PRECO_RECEBIDO (ADR 0106, desde 2026-10-07): do último preço que a IA recebeu (o pregão anterior à
 //     leitura, que roda de madrugada). A base da avaliação é esse preço e a data-alvo é a data dele + os dias, nunca
@@ -71,6 +85,7 @@ function dataAlvoDoHorizonte(tipo, { dataAnalise, dataPreco, dias }) {
 }
 
 module.exports = {
+  faixasPorVolatilidade,
   CODIGOS_FAIXA,
   TENDENCIA_DA_FAIXA,
   REFERENCIA_HORIZONTES,

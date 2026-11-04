@@ -6,7 +6,7 @@ const geminiSearch = require("../../ai/gemini-search.provider");
 const { carregarPrompt } = require("../../ai/carregar-prompt");
 const geopoliticaRepository = require("../../repositories/geopolitica.repository");
 const { parsearBoletim } = require("./geopolitica-boletim.parser");
-const { resolverLinks, paginasDoTrecho } = require("./paginas-da-pesquisa");
+const { resolverLinks, paginasDoTrecho, dataDaUrl } = require("./paginas-da-pesquisa");
 const { FONTES, fonteDaUrl, paginaEspecifica, classificarFonte, fontesDaPesquisa, listaParaPrompt, sugestoesDeBusca } = require("./fontes-autorizadas");
 const { ATIVOS, NOME_ATIVO, ROTULO_ATIVO, TIPOS, tiposDaLeitura, LEITURAS, TODAS_AS_FRENTES, leituraDoAtivo } = require("../../shared/eventos-mercado");
 const { FATORES } = require("../../shared/fatores-fel1");
@@ -323,15 +323,33 @@ function descreverFonte(fonte) {
 // - "citada": o que a IA escreveu em "Fontes:", só para exibir. `fonteAutorizada` = código da fonte (ou null) e
 //   `confirmadaNaPesquisa` = alguma página dessa fonte foi lida nesta pesquisa (não necessariamente sobre este evento).
 //   Uma citação da mesma fonte de uma página "pesquisa" não se repete.
-function montarFontes(evento, fontesLidas, grounding, leitura) {
+// Uma página com a data no endereço mais de DIAS_PAGINA_ANTIGA antes da leitura não sustenta o evento (ADR 0153): a
+// leitura registra o fato novo das últimas 24 a 48 horas. No histórico até 2026-11-04, nenhuma página aceita passou de 2
+// dias; a folga cobre um boletim agrícola de alguns dias antes.
+const DIAS_PAGINA_ANTIGA = 7;
+
+function montarFontes(evento, fontesLidas, grounding, leitura, dataReferencia = null) {
   const daPesquisa = [];
+  const antigas = [];
   for (const pagina of paginasDoTrecho(evento.trecho, grounding)) {
     // Página de autor, de tag ou listagem não sustenta o fato (ADR 0049, item 15).
     const codigo = paginaEspecifica(pagina.url) ? fonteDaUrl(pagina.url, leitura) : null;
     // "…/sb0644" e "…/sb0644/" são a mesma página.
     const mesmaPagina = (url) => url.replace(/\/+$/, "") === pagina.url.replace(/\/+$/, "");
     if (codigo && !daPesquisa.some((fonte) => mesmaPagina(fonte.url))) {
-      const entrada = { nome: FONTES[codigo].nome, url: pagina.url, fonteAutorizada: codigo, confirmadaNaPesquisa: true, origem: "pesquisa" };
+      const dataPagina = dataDaUrl(pagina.url);
+      const entrada = {
+        nome: FONTES[codigo].nome,
+        url: pagina.url,
+        fonteAutorizada: codigo,
+        confirmadaNaPesquisa: true,
+        origem: "pesquisa",
+        ...(dataPagina ? { dataPagina } : {})
+      };
+      if (dataPagina && dataReferencia && dataPagina < diasAntes(dataReferencia, DIAS_PAGINA_ANTIGA)) {
+        antigas.push({ ...entrada, origem: "antiga" });
+        continue;
+      }
       daPesquisa.push(FONTES[codigo].secundaria ? { ...entrada, secundaria: true } : entrada);
     }
   }
@@ -343,7 +361,7 @@ function montarFontes(evento, fontesLidas, grounding, leitura) {
       return { ...fonte, fonteAutorizada, confirmadaNaPesquisa, origem: "citada" };
     })
     .filter((fonte) => !(fonte.fonteAutorizada && fontesComPagina.has(fonte.fonteAutorizada)));
-  return [...daPesquisa, ...citadas];
+  return [...daPesquisa, ...antigas, ...citadas];
 }
 
 function nomesDasFontes(fontes) {
@@ -352,6 +370,10 @@ function nomesDasFontes(fontes) {
 
 // Por que o evento não se sustenta (só quando não há página "pesquisa").
 function motivoDaRejeicao(fontes) {
+  const antigas = fontes.filter((fonte) => fonte.origem === "antiga");
+  if (antigas.length > 0) {
+    return `Página de fonte autorizada com data de ${ddmm(antigas[0].dataPagina)}, mais de ${DIAS_PAGINA_ANTIGA} dias antes da leitura: não sustenta um fato novo.`;
+  }
   const lidas = fontes.filter((fonte) => fonte.fonteAutorizada && fonte.confirmadaNaPesquisa);
   const naoLidas = fontes.filter((fonte) => fonte.fonteAutorizada && !fonte.confirmadaNaPesquisa);
   if (lidas.length > 0) {
@@ -364,8 +386,8 @@ function motivoDaRejeicao(fontes) {
 
 // Um evento da IA -> uma linha por ativo afetado (só os da frente), todas com as mesmas fontes e o mesmo aceite; o
 // fator, a pressão, a intensidade e o canal são os daquele ativo.
-function normalizarEvento(evento, ativos, fontesLidas, grounding, leitura) {
-  const fontes = montarFontes(evento, fontesLidas, grounding, leitura);
+function normalizarEvento(evento, ativos, fontesLidas, grounding, leitura, dataReferencia = null) {
+  const fontes = montarFontes(evento, fontesLidas, grounding, leitura, dataReferencia);
   const daPesquisa = fontes.filter((fonte) => fonte.origem === "pesquisa");
   const aceito = daPesquisa.length > 0;
   const motivo = aceito ? null : motivoDaRejeicao(fontes).slice(0, 255);
@@ -499,7 +521,7 @@ function normalize(config, [resposta]) {
       if (!evento.tipo) {
         avisos.push({ item: { frente: frente.codigo, ordem: evento.ordem, tipo: evento.tipoTexto }, motivo: `Tipo fora da lista: "${evento.tipoTexto ?? ""}" (gravado sem tipo).` });
       }
-      const linhas = normalizarEvento(evento, ativos, fontesLidas, chamada.grounding, leitura);
+      const linhas = normalizarEvento(evento, ativos, fontesLidas, chamada.grounding, leitura, resposta.dataReferencia);
       if (!linhas[0].aceito) avisos.push({ item: { ativos, titulo: linhas[0].titulo }, motivo: linhas[0].motivo_rejeicao });
       for (const linha of linhas.filter((l) => l.aceito)) {
         const repetido = repeticao(linha, paginasVistas, resposta.dataReferencia);

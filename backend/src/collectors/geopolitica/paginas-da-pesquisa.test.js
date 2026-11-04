@@ -53,3 +53,14 @@ test("paginasDoTrecho: páginas que apoiam trechos do bloco; trecho curto ('OURO
   assert.deepEqual(paginasDoTrecho("EVENTO 9\nTítulo: outra coisa", grounding), []);
   assert.deepEqual(paginasDoTrecho("qualquer", null), []);
 });
+
+test("dataDaUrl (ADR 0153): a data no endereço, nos formatos das fontes; sem data, null", () => {
+  const { dataDaUrl } = require("./paginas-da-pesquisa");
+  assert.equal(dataDaUrl("https://apnews.com/article/mideast-iran-israel-elections-netanyahu-october-282026-c11dac838a072af25ba8d0eb81d01035"), "2026-10-28");
+  assert.equal(dataDaUrl("https://www.ukmto.org/-/media/ukmto/products/20261029-ukmto_warning-187-26-update-001.pdf?rev=c5"), "2026-10-29");
+  assert.equal(dataDaUrl("https://www.reuters.com/world/2026/10/28/x/"), "2026-10-28");
+  assert.equal(dataDaUrl("https://www.gov.br/conab/pt-br/2026-10-14-boletim"), "2026-10-14");
+  assert.equal(dataDaUrl("https://apnews.com/article/abc-123"), null);
+  // Oito dígitos que não formam uma data não contam.
+  assert.equal(dataDaUrl("https://site.org/doc/20261399"), null);
+});

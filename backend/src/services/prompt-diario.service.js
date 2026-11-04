@@ -8,6 +8,8 @@ const metodologiaAtivoService = require("./metodologia-ativo.service");
 const { textoPeso } = require("../shared/metodologia-base");
 const { calcularMomentumKc } = require("../factors/momentum-kc");
 const { periodoDoPonto } = require("../factors/base/texto-prompt");
+const { calcularVolatilidadeFuturo } = require("../factors/volatilidade-futuro");
+const { faixasPorVolatilidade } = require("../shared/analise-diaria-base");
 const centroDecisaoService = require("./centro-decisao.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
 
@@ -284,7 +286,8 @@ function blocoCobertura(fatores, dataAnalise, config = {}) {
 
 // `porHorizonte` (um futuro com contrato por horizonte, ADR 0078): cada horizonte ganha a linha do contrato dele.
 // `datas`: { referencia, dataAnalise, dataPreco }, de onde os horizontes contam (ADR 0106); a data-alvo vai em cada um.
-function blocoFaixas(config, porHorizonte = null, datas = null) {
+// `faixas` (o ouro, ADR 0152): as faixas do dia, proporcionais à volatilidade; sem elas, as fixas da configuração.
+function blocoFaixas(config, porHorizonte = null, datas = null, faixas = null) {
   const doPreco = datas?.referencia === REFERENCIA_HORIZONTES.DATA_DO_PRECO_RECEBIDO;
   const linhas = [
     doPreco
@@ -293,6 +296,16 @@ function blocoFaixas(config, porHorizonte = null, datas = null) {
     "Faixas: LATERAL (de -T1 a +T1, sem os extremos) | ALTA_LEVE (de +T1 a +T2) | ALTA_FORTE (+T2 ou mais) |",
     "        BAIXA_LEVE (de -T2 a -T1) | BAIXA_FORTE (-T2 ou menos)"
   ];
+  if (faixas?.volatilidade) {
+    const v = faixas.volatilidade;
+    linhas.push(
+      `Faixas do dia, proporcionais à volatilidade: T = k × σ × √(pregões do horizonte), com σ = ${fmtNumero(v.volatilidadeDiariaPct, 2)}% ao dia, ` +
+        `o desvio dos retornos diários dos últimos ${v.pregoes} pregões do ${config.FAIXAS_POR_VOLATILIDADE.serie.rotulo} (de ${fmtData(v.desde)} a ${fmtData(v.ate)}). ` +
+        "Um movimento LEVE ou FORTE é grande para a volatilidade do momento; as faixas mudam com ela."
+    );
+  } else if (config.FAIXAS_POR_VOLATILIDADE) {
+    linhas.push("Faixas fixas da configuração: a volatilidade recente não pôde ser calculada (histórico insuficiente do preço).");
+  }
   if (porHorizonte) {
     linhas.push(
       "Contrato: cada horizonte é lido e avaliado no vencimento mais próximo que ainda negocia depois da data-alvo (um",
@@ -300,7 +313,7 @@ function blocoFaixas(config, porHorizonte = null, datas = null) {
     );
   }
   for (const h of config.HORIZONTES) {
-    const { t1, t2 } = config.FAIXAS[h.codigo];
+    const { t1, t2 } = (faixas?.porHorizonte || config.FAIXAS)[h.codigo];
     const alvo = datas ? dataAlvoDoHorizonte(datas.referencia, { dataAnalise: datas.dataAnalise, dataPreco: datas.dataPreco, dias: h.dias }) : null;
     linhas.push(
       `${h.codigo} (${h.rotulo}, ${h.dias} dia${h.dias > 1 ? "s" : ""}): T1 = ${fmtNumero(t1, 1)}% | T2 = ${fmtNumero(t2, 1)}%` +
@@ -452,7 +465,7 @@ function contratoParaEntrada(doHorizonte) {
   };
 }
 
-function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao = null, curva = null, porHorizonte = null, referencia = config.REFERENCIA_HORIZONTES }) {
+function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao = null, curva = null, porHorizonte = null, referencia = config.REFERENCIA_HORIZONTES, faixas = null }) {
   return {
     // Os eventos do ativo que foram à seção da base (ADR 0095): a janela e quantos, sem os dos fatores de evento.
     ...(simulacao.eventosDoAtivo
@@ -489,9 +502,11 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
     horizontes: config.HORIZONTES.map(({ codigo, dias }) => ({
       codigo,
       dias,
-      ...config.FAIXAS[codigo],
+      ...(faixas?.porHorizonte || config.FAIXAS)[codigo],
       ...(porHorizonte ? contratoParaEntrada(porHorizonte[codigo]) : {})
     })),
+    // A volatilidade que deu as faixas do dia (ADR 0152): as faixas gravadas acima são as que valem para o realizado.
+    ...(faixas?.volatilidade ? { faixasPorVolatilidade: faixas.volatilidade } : {}),
     fatores: simulacao.fatores.map((f) => ({
       fator: f.codigo,
       tipo: f.tipo,
@@ -526,6 +541,17 @@ function entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agreg
 
 // GET /ativos/:ativo/metodologia/prompt-diario?data= : o prompt da data (hoje, sem `data`), com o que se sabia até o
 // fim dela. Ativo sem leitura diária: 404.
+// As faixas proporcionais à volatilidade (ADR 0152): { porHorizonte, volatilidade } ou { porHorizonte: null } sem histórico.
+async function faixasDoDia(config, { dataAnalise, dataPreco }, deps) {
+  const regra = config.FAIXAS_POR_VOLATILIDADE;
+  const volatilidade = await (deps.calcularVolatilidadeFuturo || calcularVolatilidadeFuturo)(
+    { prefixo: regra.serie.prefixo, data: dataAnalise, ate: dataPreco || dataAnalise, pregoes: regra.pregoesVolatilidade },
+    deps
+  );
+  const porHorizonte = volatilidade ? faixasPorVolatilidade(volatilidade.volatilidadeDiariaPct, regra) : null;
+  return porHorizonte ? { porHorizonte, volatilidade } : { porHorizonte: null, volatilidade: null };
+}
+
 async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
   const codigo = String(ativo || "").trim().toUpperCase();
   const config = configuracaoDoAtivo(codigo);
@@ -552,6 +578,8 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
   const porHorizonte =
     config.CURVA.porHorizonte && serie.futuro ? await lerContratosPorHorizonte(serie, { dataAnalise, agora, curva, config, referencia, dataPreco }, centro, deps) : null;
   // O momentum do preço (o café, ADR 0139): informação no bloco 2.1, sem voto.
+  // As faixas do dia (o ouro, ADR 0152), da volatilidade até o último preço recebido; sem ela, as fixas.
+  const faixas = config.FAIXAS_POR_VOLATILIDADE ? await faixasDoDia(config, { dataAnalise, dataPreco }, deps) : null;
   const momentum = config.MOMENTUM_KC ? await (deps.calcularMomentumKc || calcularMomentumKc)({ data: dataAnalise }, deps) : null;
   // A agregação em código (o café, ADR 0066), sobre os mesmos fatores do prompt.
   const agregacao = config.AGREGACAO ? config.AGREGACAO.calcular(simulacao.fatores, { dataAnalise }) : null;
@@ -564,7 +592,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
     ...(momentum ? { bloco_momentum: momentum.texto } : {}),
     ...(config.CURVA.aplica ? { bloco_curva: blocoCurva(curva, config) } : {}),
     bloco_cobertura: blocoCobertura(simulacao.fatores, dataAnalise, config),
-    bloco_faixas: blocoFaixas(config, porHorizonte, { referencia, dataAnalise, dataPreco }),
+    bloco_faixas: blocoFaixas(config, porHorizonte, { referencia, dataAnalise, dataPreco }, faixas),
     ...(simulacao.pesos ? { bloco_pesos: blocoPesos(simulacao.pesos) } : {}),
     bloco_eventos: simulacao.eventosDoAtivo?.textoPrompt ?? "SEM DADO: os eventos do ativo não foram lidos.",
     blocos_fatores: simulacao.fatores.filter((f) => f.textoPrompt).map((f) => f.textoPrompt).join("\n\n"),
@@ -583,7 +611,7 @@ async function montarPromptDiario(ativo, { data } = {}, deps = {}) {
       instrucaoDoSistema: carregado.instrucaoDoSistema,
       prompt: carregado.prompt,
       entrada: {
-        ...entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao, curva, porHorizonte, referencia }),
+        ...entradaEstruturada({ simulacao, preco, ptax, dataAnalise, config, agregacao, curva, porHorizonte, referencia, faixas }),
         ...(momentum ? { momentum: momentum.momentum } : {})
       }
     }

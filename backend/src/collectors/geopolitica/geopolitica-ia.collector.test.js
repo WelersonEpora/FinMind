@@ -1097,3 +1097,17 @@ test("fontes secundárias (ADR 0130): o evento só delas vai com confiança baix
   const confirmada = outra.validos[0].eventos.find((e) => e.ativo === "MILHO" && e.titulo.startsWith("China anuncia"));
   assert.equal(confirmada.confianca, "ALTA");
 });
+
+test("normalize (ADR 0153): a data no endereço da página vai com a fonte; com mais de 7 dias antes da leitura, a página não sustenta o evento", () => {
+  const comPdf = (url) =>
+    comChamada("OURO_PETROLEO", { grounding: { ...GROUNDING_OP, groundingChunks: [{ web: { title: "ukmto.org", urlFinal: url } }, ...GROUNDING_OP.groundingChunks.slice(1)] } });
+  // De 2 dias antes (a leitura é de 2026-10-02): sustenta, com a data.
+  const recente = coletor.normalize(coletor.parse(comPdf("https://www.ukmto.org/-/media/ukmto/products/20260930-warning-150-26.pdf"))).validos[0].eventos[0];
+  assert.equal(recente.aceito, true);
+  assert.equal(recente.fontes[0].dataPagina, "2026-09-30");
+  // De 10 dias antes: não sustenta, e o motivo diz a data.
+  const antiga = coletor.normalize(coletor.parse(comPdf("https://www.ukmto.org/-/media/ukmto/products/20260922-warning-150-26.pdf"))).validos[0].eventos[0];
+  assert.equal(antiga.aceito, false);
+  assert.equal(antiga.fontes[0].origem, "antiga");
+  assert.match(antiga.motivo_rejeicao, /data de 22\/09, mais de 7 dias antes da leitura/);
+});
