@@ -61,8 +61,7 @@ test("decisões do David (ADR 0054): os bancos centrais e o COT saem das pergunt
 });
 
 test("IC por horizonte (ADR 0150, adendo): o juro real, o dólar, a inflação, os ETFs e os fundos como informação, sem peso; votam a geopolítica, os bancos centrais e as minas", () => {
-  const { fatores, versao } = obterMetodologiaOuro();
-  assert.equal(versao, 4);
+  const { fatores } = obterMetodologiaOuro();
   const semVoto = ["OURO_JUROS_REAIS", "OURO_DOLAR", "OURO_INFLACAO", "OURO_ETFS", "OURO_FUNDOS"];
   assert.deepEqual(fatores.filter((f) => f.informativo).map((f) => f.codigo), semVoto);
   assert.deepEqual(fatores.filter((f) => f.contextoDe).map((f) => f.codigo), []);
@@ -74,8 +73,12 @@ test("IC por horizonte (ADR 0150, adendo): o juro real, o dólar, a inflação, 
   }
   assert.deepEqual(
     fatores.filter((f) => !f.informativo).map((f) => [f.codigo, f.peso]),
-    [["OURO_GEOPOLITICA", "Alto"], ["OURO_BANCOS_CENTRAIS", "Alto"], ["OURO_MINERACAO", "Baixo"]]
+    [["OURO_GEOPOLITICA", "Baixo"], ["OURO_BANCOS_CENTRAIS", "Alto"], ["OURO_MINERACAO", "Baixo"]]
   );
   // Os bancos centrais votam só onde o IC tem sinal (21 e 62 pregões).
   assert.deepEqual(fatores.find((f) => f.codigo === "OURO_BANCOS_CENTRAIS").soNosHorizontes.horizontes, ["MEDIO", "LONGO"]);
+  // A geopolítica (ADR 0154): peso Baixo, decidido pelo usuário, e só o IMEDIATO, pelo teste do GPR.
+  const geo = fatores.find((f) => f.codigo === "OURO_GEOPOLITICA");
+  assert.deepEqual(geo.soNosHorizontes.horizontes, ["IMEDIATO"]);
+  assert.deepEqual(geo.pesoAjustado, { noFel1: "Alto", decididoPor: "pelo usuário" });
 });

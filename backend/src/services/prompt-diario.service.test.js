@@ -277,7 +277,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
 
   assert.deepEqual(d.chamadas.preco, ["GLD", "2026-10-03"]);
   assert.equal(ptaxPedidas[0].dataFim, "2026-10-02");
-  assert.equal(p.versaoPrompt, "ouro-analise-diaria@6");
+  assert.match(p.versaoPrompt, /^ouro-analise-diaria@\d+$/);
   assert.match(p.prompt, /Contrato: GLDZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Em reais: R\$ 22\.558,50 por onça, pela PTAX de venda de 02\/10\/2026 \(R\$ 5,4000 por US\$\)/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/onça\)/);

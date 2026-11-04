@@ -52,6 +52,7 @@
     "validacao:f3": "node scripts/validacao-f3-cafe.js",
     "validacao:f4f5": "node scripts/validacao-f4f5-cafe.js",
     "validacao:basis": "node scripts/validacao-basis-cafe.js",
+    "validacao:geopolitica-ouro": "node scripts/validacao-geopolitica-ouro.js",
     "importar:cepea-cafe": "node scripts/importar-cepea-cafe.js",
     "backfill:imea-andamento": "node scripts/backfill-imea-andamento.js",
     "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",

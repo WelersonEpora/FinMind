@@ -25,8 +25,9 @@ testado e não adotado, com o número no item.
 **Começamos pelo E1**, o teste que responde a seis pedidos de uma vez (E1, E2, M2, M4, M5 e M6). **Em 2026-11-04, o
 usuário decidiu** (ADR 0150, adendo): o juro real, o dólar, a inflação, os ETFs e os fundos vão à IA como informação, sem
 peso e sem voto (metodologia ouro-v4, prompt v6); votam a geopolítica, os bancos centrais (só no MEDIO e no LONGO) e as
-minas. Agora acompanhamos
-a Qualidade da IA do ouro. Os outros itens estão em análise, na ordem da tabela.
+minas. No mesmo dia, pelo **teste da geopolítica com 41 anos do índice de risco geopolítico (GPR)** (E4, ADR 0154), a
+geopolítica passou a peso Baixo e voto só no IMEDIATO (metodologia ouro-v5, prompt v7). Agora acompanhamos a Qualidade
+da IA do ouro. Os itens que faltam estão em análise, na ordem da tabela.
 
 | Item | Situação |
 |---|---|
@@ -34,7 +35,7 @@ a Qualidade da IA do ouro. Os outros itens estão em análise, na ordem da tabel
 | E1 | **Medido (2026-11-02, ADR 0150):** o IC de cada fator em 1, 5, 21 e 62 pregões, de 2006 a 2026, pelo `npm run ic:ouro`. Só o F5 tem sinal claro, e só em 30 e 90 dias (+0,23 e +0,45); o F2, um sinal fraco em 7 dias (+0,06). O F1, o F3, o F6 e o F7 ficam perto de zero em todos os horizontes. **Decidido (usuário, 2026-11-04, ADR 0150, adendo):** pelo critério que o Comitê aprovou no café (IC indistinguível de zero, rebaixar ou desligar), o F1, o F2, o F3, o F6 e o F7 como informação, sem peso. O F5 vota só em 30 e 90 dias, onde está o sinal (decidido no mesmo dia, depois do E5) |
 | E2 | **Medido (ADR 0150):** a variação do juro real (o F1) não está invertida: fica perto de zero em todos os horizontes. O nível tem a relação contrária à do FEL 1 (−0,21 em 30 dias e −0,36 em 90), efeito das tendências longas que o F1 já descarta |
 | E3 | **Decidido (usuário, 2026-11-04, ADR 0150, adendo):** o F3 sem peso, como informação (o peso zero que o item pede, registrado). A regra de surpresa do CPI não é viável: depende de um consenso pago (Bloomberg ou Refinitiv) |
-| E4 | Em análise. O peso Alto do F4 vem do FEL 1; os eventos existem desde 10/2026, amostra curta para a janela de 1 a 5 dias |
+| E4 | **Testado e decidido (usuário, 2026-11-04, ADR 0154):** a amostra própria é curta (8 eventos desde 10/2026), e a premissa foi testada com o índice de risco geopolítico (GPR, diário desde 1985; fonte autorizada pelo usuário só para esta análise, sem coleta). Depois de um pico de risco, o ouro sobe um pouco mais no pregão seguinte só de 2006 em diante (66% contra 52%); em 5 e 21 pregões, nenhuma diferença, e nos grandes episódios o ganho volta. O F4 do ouro passa a peso Baixo e voto só no IMEDIATO. A nossa leitura de eventos tem um teste pré-registrado (`npm run validacao:geopolitica-ouro`, com 20 episódios). Os multiplicadores numéricos não são adotados (seriam agregação em código) |
 | E5 | **Implementado (2026-11-04, ADR 0151):** a idade, no prompt dos seis ativos, conta da publicação ("publicado há N dias"), com o período pelo nome ("Trimestre de 2º/2026"): em 30/10, os trimestrais do ouro passam de 212 dias a 29. O limite de dado vencido do café segue contado da referência. O histórico do WGC, carregado em 01/10 sem a data de publicação da fonte, fica com a convenção da 1ª coleta (ADR 0008); os testes usam o atraso típico da fonte, como o `ic:ouro` já fazia: o IC do F5 não muda. O F5 foi decidido em seguida (voto só no MEDIO e no LONGO, ADR 0150, adendo) |
 | E6 | **Implementado (2026-11-04, ADR 0152):** as faixas do ouro proporcionais à volatilidade (T = k × σ × √n, com σ dos últimos 60 pregões do GLD; configuração v4). Em 2026, com a volatilidade dobrada, as fixas davam 19% LATERAL e 45% FORTE no IMEDIATO; as normalizadas, 38% e 21%, estáveis fora da amostra (2020 a 2026). Só no ouro; as carteiras virtuais seguem com o T1 fixo |
 | E7, M8 e M9 | **Testados e não adotados (2026-11-04, ADR 0152):** a soma ponderada com os pesos do M9 tem IC de +0,02 a +0,17, sem significância, e o acerto do lado (49% a 57%) não supera "sempre alta" em nenhum horizonte. A combinação segue com a IA (ADR 0108), e o estado lateral vem das faixas do E6 |
@@ -83,11 +84,68 @@ típico (7 dias nos ETFs, ~1 mês depois do fim do trimestre nos trimestrais). O
 
 Votam a geopolítica (F4), os bancos centrais (F5, **só no MEDIO e no LONGO**, onde o IC tem sinal: +0,23 e +0,45) e as
 minas (F8). **A consequência, aceita:** no IMEDIATO e no CURTO votam só a geopolítica e as minas, e as leituras curtas
-tendem a LATERAL, INSUFICIENTE ou confiança baixa: hoje não há preditor validado para 1 a 7 dias no ouro.
+tendem a LATERAL, INSUFICIENTE ou confiança baixa: hoje não há preditor validado para 1 a 7 dias no ouro. Desde o E4
+(abaixo), a geopolítica tem peso Baixo e vota só no IMEDIATO.
 
 **O acompanhamento:** a Qualidade da IA do ouro (as leituras do prompt v6 contra as anteriores e os benchmarks) e o
 `npm run ic:ouro` na revisão: volta ao voto o fator que mostrar IC com o intervalo excluindo o zero, estável nas duas
 metades, num horizonte.
+
+</details>
+
+<details>
+<summary>E4. Geopolítica: o teste com o índice de risco geopolítico (GPR, 1986 a 2026)</summary>
+
+**Nossa avaliação:** o documento tem razão: o F4 tinha peso Alto sem validação e, depois do E1, ficou quase sozinho com
+voto nos horizontes curtos. A nossa amostra é curta demais para validar: 8 eventos aceitos do ouro de 02/10 a 03/11,
+nenhum de intensidade alta, quase todos do mesmo episódio (o Irã e Ormuz); em 3 dos 4 dias independentes de pressão de
+alta, o GLD caiu no pregão seguinte.
+
+**A base do teste:** o índice de risco geopolítico (GPR) de Caldara e Iacoviello (Federal Reserve), diário desde 1985,
+montado pela contagem de notícias de tensão geopolítica em jornais, separado em ameaças e atos. **Autorizado pelo
+usuário em 2026-11-04 só para esta análise:** o arquivo foi baixado uma vez; não há coletor, nada no banco e nada no
+prompt.
+
+**O desenho, fixado antes de olhar os retornos:** o episódio é o 1º dia acima do percentil 95 (ou 99) dos 365 dias
+anteriores, sem outro pico nos 10 pregões antes; o retorno do ouro da LBMA do fechamento do dia do pico até 1, 5 e 21
+pregões depois, contra todos os dias, com o p-valor de sorteios de dias ao acaso.
+
+| Série (episódios, 1986 a 2026) | No dia | 1 pregão: alta (todos os dias) | 5 pregões: média (todos) | 21 pregões: média (todos) |
+|---|---|---|---|---|
+| GPR total, p95 (196) | −0,02% | 59% (51%) | +0,19% (+0,15%) | +0,78% (+0,62%) |
+| GPR total, p99 (94) | −0,02% | 57% (51%) | −0,05% (+0,15%) | +0,29% (+0,62%) |
+| Ameaças, p99 (97) | −0,03% | 65% (51%) | +0,06% (+0,15%) | +0,37% (+0,62%) |
+| Atos, p99 (89) | +0,07% | 53% (51%) | −0,04% (+0,15%) | **−0,26% (+0,62%)**, p 0,05 |
+
+| 1 pregão depois, alta em | GPR total p95 | GPR total p99 | Ameaças p99 | Atos p99 | Todos os dias |
+|---|---|---|---|---|---|
+| 1986 a 2005 | 48% | 46% | 50% | 38% | 50% |
+| 2006 a 2026 | **66%** (116 episódios) | 65% | 74% | 68% | 52% |
+
+| Grandes episódios | Ouro 21 pregões depois |
+|---|---|
+| Guerra do Golfo (jan/1991) | −7,4% |
+| Iraque (fev/2003) | −6,1% |
+| Ucrânia (fev/2022) | +1,7% |
+| Mar/2026, o maior pico desde 1991 | −13,3% |
+
+**O que o teste mostra:** no dia do pico, o ouro não reage. No pregão seguinte, de 2006 em diante, sobe mais vezes (66%
+contra 52%, p ≈ 0,003), com efeito pequeno (+0,21% contra +0,05%). Em 5 e 21 pregões, nenhuma diferença (p de 0,19 a
+0,95), e nos grandes episódios o ouro costuma devolver o ganho. A premissa do FEL 1 ("crises elevam o ouro") só se
+sustenta no prazo mais curto. O GPR mede a atenção dos jornais, não os nossos eventos: testa a premissa do fator, não a
+nossa leitura.
+
+**Decidido (usuário, 2026-11-04, ADR 0154):**
+
+| O quê | Decisão |
+|---|---|
+| Peso do F4 do ouro | Baixo (Alto no FEL 1) |
+| Horizontes | Vota só no IMEDIATO; nos outros, pouco relevante, e o prompt diz que os grandes episódios costumam reverter |
+| A nossa leitura de eventos | Teste pré-registrado: um episódio por evento de pressão de alta a 5 pregões ou mais do anterior; o GLD 1 e 5 pregões depois contra todos os pregões; passa com 10 p.p. a mais de alta em 1 pregão e média positiva; só roda com 20 episódios (hoje, 3 no servidor) |
+| Intensidade e confiança como multiplicadores | Não adotados: seriam agregação em código (ADR 0152) |
+
+**A consequência:** no IMEDIATO votam a geopolítica (Baixo) e as minas; no CURTO, só as minas; no MEDIO e no LONGO, os
+bancos centrais e as minas.
 
 </details>
 

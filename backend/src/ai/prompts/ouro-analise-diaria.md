@@ -1,6 +1,6 @@
 # Prompt — Análise diária do ouro (leitura de tendência em quatro horizontes)
 
-**Versão:** 6
+**Versão:** 7
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0054), no molde do prompt do petróleo (`petroleo-analise-diaria.md`,
 v2; ADRs 0051 e 0052): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na
@@ -29,6 +29,10 @@ e os fundos (OURO_FUNDOS) vão como INFORMAÇÃO, sem peso, sem voto e fora dos 
 lidos como risco de posição concentrada, sem sentido. Votam a geopolítica, os bancos centrais (só no MEDIO e no LONGO)
 e as minas. Mudam os
 itens 4, 7 e 8 de "Como analisar" e a legenda do bloco 3.
+
+v7 (2026-11-04, ADR 0154) - análise do ouro de 2026-11-01, item E4: a geopolítica (OURO_GEOPOLITICA) com o peso Baixo e
+o voto só no IMEDIATO, pelo teste do índice de risco geopolítico (GPR) contra o ouro de 1986 a 2026. Muda o item 6 de
+"Como analisar".
 
 Enviado ao Gemini uma vez por dia pelo coletor `ouro-analise-ia-diario` (ADR 0054).
 
@@ -79,7 +83,10 @@ Para cada horizonte, separadamente:
 5. Bancos centrais (OURO_BANCOS_CENTRAIS). O fator compara as compras com o ritmo dos 3 anos anteriores, não com zero.
    Compras abaixo desse ritmo são desaceleração das compras, não venda: ao citar o fator, diga o volume comprado e o
    ritmo de comparação, para não confundir um com o outro.
-6. Fator de evento (geopolítica). Use a idade e o tipo de cada evento para julgar se ele ainda pesa no horizonte. A
+6. Fator de evento (geopolítica, OURO_GEOPOLITICA). Tem peso Baixo e só vota no IMEDIATO: no histórico (1986 a
+   2026), uma crise elevou o ouro um pouco no pregão seguinte, e só nos anos recentes; em 7, 30 e 90 dias não houve
+   efeito, e nos maiores episódios o ouro costumou devolver o ganho em semanas. No CURTO, no MEDIO e no LONGO, liste-o
+   só em fatoresPoucoRelevantes. Use a idade e o tipo de cada evento para julgar se ele ainda pesa no IMEDIATO. A
    pressão de um evento é leitura de outra IA sobre o fato isolado, não um cálculo. "Nenhum evento", com leitura
    diária na janela, é informação; "dia sem leitura" é falta de informação. Os eventos marcados com outros fatores (ou
    com nenhum) estão na seção 2.5, uma vez cada, com a condição que afetam: não são fator, não têm peso e não mudam a

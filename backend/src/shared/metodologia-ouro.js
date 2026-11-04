@@ -20,7 +20,9 @@ const { SITUACAO, VALIDACAO_MOTORES, montarFatores, montarMetodologia } = requir
 // v4 (2026-11-04): pelo IC por horizonte (análise do ouro de 2026-11-01, item E1; ADR 0150, adendo), o juro real, o
 // dólar, a inflação, os ETFs e os fundos como INFORMAÇÃO, sem peso; a inflação deixa de ser contexto do juro real; os
 // bancos centrais votam só no MEDIO e no LONGO.
-const VERSAO = 4;
+// v5 (2026-11-04): a geopolítica com o peso Baixo e o voto só no IMEDIATO, pelo teste do índice de risco geopolítico
+// (GPR) contra o ouro de 1986 a 2026 (item E4 da análise; ADR 0154).
+const VERSAO = 5;
 const DATA_VERSAO = "2026-11-04";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0054)";
 // A decisão do IC (ADR 0150, adendo): o fator com IC indistinguível de zero em todos os horizontes perde o voto e o peso.
@@ -157,13 +159,28 @@ const DEFINICOES = [
       fonte: "World Gold Council"
     },
     evento: { janelaDias: 7 },
+    // Peso Baixo e só o IMEDIATO (ADR 0154): no histórico do GPR, o efeito das crises no ouro é pequeno e dura 1 pregão.
+    ajustesFel1: [
+      {
+        campo: "Peso",
+        noFel1: "Alto",
+        ajuste: "Baixo",
+        noPrompt: "pelo usuário",
+        origem: "O usuário (Welerson), em 2026-11-04, com o mesmo poder de decisão do David, pela análise do ouro de 2026-11-01, item E4 (ADR 0154)."
+      }
+    ],
+    soNosHorizontes: {
+      horizontes: ["IMEDIATO"],
+      motivo:
+        "No histórico do índice de risco geopolítico (GPR, 1986 a 2026), o ouro subiu um pouco mais no pregão seguinte a um pico de risco só de 2006 em diante, e em 5 e 21 pregões não houve diferença; nos maiores episódios, o ouro costumou devolver o ganho em semanas"
+    },
     dados: {
       observaveis: [],
       eventos: true,
       avaliacao: {
         suficiente: true,
         texto:
-          "Suficiente como fator de evento: a leitura diária por IA (desde 2026-10-02) cobre o ouro e o petróleo na mesma chamada, em fontes autorizadas, e só aceita o evento sustentado por uma página que a pesquisa leu. Não é série: não é reproduzível nem serve para backtest (ADRs 0047 e 0049); o histórico das leituras é guardado para calibrar a régua depois."
+          "Suficiente como fator de evento: a leitura diária por IA (desde 2026-10-02) cobre o ouro e o petróleo na mesma chamada, em fontes autorizadas, e só aceita o evento sustentado por uma página que a pesquisa leu. Não é série: não é reproduzível nem serve para backtest (ADRs 0047 e 0049); o histórico das leituras é guardado para calibrar a régua depois. A premissa do FEL 1 (crises elevam o ouro), testada com o índice de risco geopolítico (GPR, Caldara e Iacoviello, diário) contra a LBMA, de 1986 a 2026 (ADR 0154): no dia do pico, o ouro não reage (−0,02% em média); no pregão seguinte, de 2006 em diante, sobe em 66% dos 116 episódios, contra 52% em todos os dias, com +0,21% em média (de 1986 a 2005, 48%); em 5 e 21 pregões, nenhuma diferença (p de 0,19 a 0,95), e nos atos extremos o ouro tende a cair em 21 pregões (−0,26% contra +0,62%). Nos maiores episódios, o ganho volta: Golfo (jan/1991) −7,4% em 21 pregões; Iraque (fev/2003) −6,1%; mar/2026 −13,3%."
       },
       lacunas: [
         "A régua dos níveis da leitura diária (o que é \"fora do normal\") é provisória (ADRs 0047 e 0049).",
@@ -178,6 +195,7 @@ const DEFINICOES = [
       leitura: "Fica com a IA do ativo, com os outros fatores: crise que aumenta a incerteza favorece o ouro (a direção indicada pelo especialista)."
     },
     decisoes: [
+      `Peso Baixo (Alto no FEL 1) e voto só no IMEDIATO: o único efeito das crises no ouro, no histórico do GPR, é de 1 pregão, pequeno e só de 2006 em diante; nos outros horizontes, os eventos vão como pouco relevantes. A leitura de eventos da IA é validada à parte, num teste pré-registrado (npm run validacao:geopolitica-ouro, com 20 episódios). Intensidade e confiança como multiplicadores numéricos não são adotados (seria agregação em código, ADR 0152). Decidido pelo usuário, em 2026-11-04, com o mesmo poder de decisão do David (ADR 0154).`,
       `A janela é de 7 dias, como na geopolítica do petróleo: eventos em dias seguidos costumam ser desdobramentos do mesmo fato, não acúmulo independente. Welerson, 2026-10-04, o mesmo ajuste do petróleo (ADRs 0050 e 0054).`
     ],
     perguntas: [

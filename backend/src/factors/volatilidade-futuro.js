@@ -16,9 +16,9 @@ const { decodificarFuturoB3 } = require("../shared/utils/b3-contrato");
 
 const arred = (n, casas) => Math.round(n * 10 ** casas) / 10 ** casas;
 
-// Função PURA: as linhas de buscarAsOf (um futuro por vencimento) -> { volatilidadeDiariaPct, pregoes, desde, ate } nos
-// últimos `pregoes` retornos até `ate`, ou null sem retornos suficientes.
-function medirVolatilidade(linhas, { ate, pregoes, prefixo }) {
+// Função PURA: as linhas de buscarAsOf (um futuro por vencimento) -> os retornos log de cada pregão até `ate`, cada um
+// do vencimento mais próximo com ajuste no pregão e no anterior: [{ data, r }].
+function retornosDaCadeia(linhas, { ate, prefixo }) {
   const porDia = new Map();
   for (const l of linhas) {
     const data = String(l.observed_at).slice(0, 10);
@@ -30,14 +30,21 @@ function medirVolatilidade(linhas, { ate, pregoes, prefixo }) {
     if (!porDia.has(data)) porDia.set(data, new Map());
     porDia.get(data).set(contrato.vencimento + ticker, valor);
   }
-  const dias = [...porDia.keys()].sort();
+  const dias = [...porDia.keys()].sort((a, b) => a.localeCompare(b));
   const retornos = [];
   for (let i = 1; i < dias.length; i += 1) {
     const antes = porDia.get(dias[i - 1]);
     const depois = porDia.get(dias[i]);
-    const comuns = [...depois.keys()].filter((k) => antes.has(k)).sort();
+    const comuns = [...depois.keys()].filter((k) => antes.has(k)).sort((a, b) => a.localeCompare(b));
     if (comuns.length) retornos.push({ data: dias[i], r: Math.log(depois.get(comuns[0]) / antes.get(comuns[0])) });
   }
+  return retornos;
+}
+
+// Função PURA: -> { volatilidadeDiariaPct, pregoes, desde, ate } nos últimos `pregoes` retornos até `ate`, ou null sem
+// retornos suficientes.
+function medirVolatilidade(linhas, { ate, pregoes, prefixo }) {
+  const retornos = retornosDaCadeia(linhas, { ate, prefixo });
   if (retornos.length < pregoes) return null;
   const janela = retornos.slice(-pregoes);
   const media = janela.reduce((s, x) => s + x.r, 0) / pregoes;
@@ -45,17 +52,34 @@ function medirVolatilidade(linhas, { ate, pregoes, prefixo }) {
   return { volatilidadeDiariaPct: arred(desvio * 100, 3), pregoes, desde: janela[0].data, ate: janela.at(-1).data };
 }
 
+// Os ajustes de todos os vencimentos do futuro, com o que se sabia em `asOf`.
+async function lerVencimentos({ prefixo, campo, asOf, desde, ate }, deps) {
+  const repo = deps.observationRepository || observationRepository;
+  const itens = await repo.listarUltimasDatasItens({ prefixoSerie: prefixo, campoReferencia: campo });
+  const series = itens.filter((i) => decodificarFuturoB3(i.codigo)).map((i) => `${prefixo}.${i.codigo}.${campo}`);
+  return series.length ? repo.buscarAsOf({ seriesCodes: series, asOf, observadoDesde: desde, observadoAte: ate }) : [];
+}
+
 // A volatilidade com o que se sabia no fim de `data` (horário de Brasília), até o pregão `ate`.
 async function calcularVolatilidadeFuturo({ prefixo, campo = "SETTLE", data, ate = data, pregoes }, deps = {}) {
-  const repo = deps.observationRepository || observationRepository;
   const asOf = new Date(`${data}T23:59:59.999-03:00`);
   // Um ano de calendário cobre com folga os pregões pedidos.
   const desde = new Date(asOf.getTime() - 365 * 86400000).toISOString().slice(0, 10);
-  const itens = await repo.listarUltimasDatasItens({ prefixoSerie: prefixo, campoReferencia: campo });
-  const series = itens.filter((i) => decodificarFuturoB3(i.codigo)).map((i) => `${prefixo}.${i.codigo}.${campo}`);
-  if (!series.length) return null;
-  const linhas = await repo.buscarAsOf({ seriesCodes: series, asOf, observadoDesde: desde, observadoAte: ate });
-  return medirVolatilidade(linhas, { ate, pregoes, prefixo });
+  const linhas = await lerVencimentos({ prefixo, campo, asOf, desde, ate }, deps);
+  return linhas.length ? medirVolatilidade(linhas, { ate, pregoes, prefixo }) : null;
 }
 
-module.exports = { medirVolatilidade, calcularVolatilidadeFuturo };
+// O índice do futuro encadeado (base 100 no 1º pregão), com o que se sabe agora: [{ data, valor }]. Para os testes
+// pré-registrados que medem o retorno depois de uma data (o E4 do ouro, ADR 0154).
+async function calcularIndiceFuturo({ prefixo, campo = "SETTLE", desde }, deps = {}) {
+  const asOf = new Date();
+  const ate = asOf.toISOString().slice(0, 10);
+  const retornos = retornosDaCadeia(await lerVencimentos({ prefixo, campo, asOf, desde, ate }, deps), { ate, prefixo });
+  let acumulado = 0;
+  return retornos.map(({ data, r }) => {
+    acumulado += r;
+    return { data, valor: 100 * Math.exp(acumulado) };
+  });
+}
+
+module.exports = { retornosDaCadeia, medirVolatilidade, calcularVolatilidadeFuturo, calcularIndiceFuturo };
