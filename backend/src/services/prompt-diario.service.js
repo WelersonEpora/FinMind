@@ -7,6 +7,7 @@ const { REFERENCIA_HORIZONTES, dataAlvoDoHorizonte } = require("../shared/analis
 const metodologiaAtivoService = require("./metodologia-ativo.service");
 const { textoPeso } = require("../shared/metodologia-base");
 const { calcularMomentumKc } = require("../factors/momentum-kc");
+const { periodoDoPonto } = require("../factors/base/texto-prompt");
 const centroDecisaoService = require("./centro-decisao.service");
 const marketQuoteRepository = require("../repositories/market-quote.repository");
 
@@ -192,9 +193,11 @@ function linhaContratoDoHorizonte(h, porHorizonte, config) {
 // A periodicidade de um fator no texto: "semanal", "mensal"... e "diária" (os fatores do dólar, ADR 0126), com acento.
 const periodicidadeNoTexto = (p) => (p === "DIARIA" ? "diária" : p.toLowerCase());
 
-// Só fatos: a referência, a publicação (e se é estimada), a idade e SEM DADO / SEM LEITURA. A defasagem de cada fator
-// fica com a IA, pela idade e pela periodicidade: não há tolerância por fator (os fatores misturam séries com
-// tolerâncias diferentes) e criar uma seria regra nova.
+// Só fatos: o período do dado, a publicação (e se é estimada), a idade e SEM DADO / SEM LEITURA. A defasagem de cada
+// fator fica com a IA, pela idade e pela periodicidade: não há tolerância por fator (os fatores misturam séries com
+// tolerâncias diferentes) e criar uma seria regra nova. A idade conta da PUBLICAÇÃO (a disponibilidade do dado; item E5
+// da análise do ouro de 2026-11-01): contada da data de referência, um trimestre publicado há um mês aparecia com mais
+// de 200 dias, porque a referência é o 1º dia do período. O limite de dado vencido (abaixo) segue contado da referência.
 function situacaoDoFator(fator, dataAnalise) {
   if (fator.tipo === "EVENTO") {
     const semLeitura = !fator.primeiraLeitura || fator.primeiraLeitura > dataAnalise || !fator.ultimaLeitura;
@@ -209,10 +212,10 @@ function situacaoDoFator(fator, dataAnalise) {
   const publicado = diaDaPublicacao(fator.publicadoEm);
   return {
     situacao: fator.publicadoEmEstimado ? "ESTIMADO" : "PUBLICADO",
-    idadeDias: diasEntre(fator.observedAt, dataAnalise),
+    idadeDias: diasEntre(publicado || fator.observedAt, dataAnalise),
     texto:
-      `${periodicidadeNoTexto(fator.periodicidade)} | referência ${fmtData(fator.observedAt)} | publicado em ${fmtData(publicado)}` +
-      `${fator.publicadoEmEstimado ? " (data estimada)" : ""} | idade: ${diasEntre(fator.observedAt, dataAnalise)} dia(s)`
+      `${periodicidadeNoTexto(fator.periodicidade)} | ${periodoDoPonto(fator.observedAt, fator.periodicidade)} | publicado em ${fmtData(publicado)}` +
+      `${fator.publicadoEmEstimado ? " (data estimada)" : ""} | idade: publicado há ${diasEntre(publicado || fator.observedAt, dataAnalise)} dia(s)`
   };
 }
 
@@ -240,7 +243,7 @@ function semVotoDoFator(fator, dataAnalise, config = {}) {
   if (fator.idadeMaximaVotoDias && fator.medida) {
     const idade = diasEntre(fator.observedAt, dataAnalise);
     if (idade > fator.idadeMaximaVotoDias) {
-      return { motivo: "VENCIDO", texto: `SEM VOTO: dado vencido (idade de ${idade} dias, acima do limite de ${fator.idadeMaximaVotoDias})` };
+      return { motivo: "VENCIDO", texto: `SEM VOTO: dado vencido (${idade} dias desde a referência, acima do limite de ${fator.idadeMaximaVotoDias})` };
     }
   }
   return null;

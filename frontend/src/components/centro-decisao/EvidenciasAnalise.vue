@@ -27,6 +27,8 @@ const deEvento = computed(() => evidencias.value.fatores.filter((f) => f.tipo ==
 // Cada um com a sigla F1...Fn da Metodologia do Ativo: a ordem gravada é a da metodologia.
 const FATORES_NO_CARD = 8
 const sigla = (i) => `F${i + 1}`
+// "Peso alto", ou "Sem peso" no fator sem voto que perdeu o peso do FEL 1 (o ouro, ADR 0150, adendo).
+const rotuloPeso = (peso) => (peso === 'Sem peso' ? peso : `Peso ${(peso || '').toLowerCase()}`)
 const fatoresDoCard = computed(() => evidencias.value.fatores.slice(0, FATORES_NO_CARD))
 const fatoresSoNoDetalhe = computed(() => Math.max(evidencias.value.fatores.length - FATORES_NO_CARD, 0))
 
@@ -264,7 +266,7 @@ async function copiar() {
                 <td :title="fator.codigo">
                   <span class="detalhes__fator"><span class="fator__sigla">{{ sigla(i) }}</span> {{ fator.nome }}</span>
                   <span class="fator__peso" :class="`fator__peso--${(fator.peso || '').toLowerCase()}`"
-                    >Peso {{ (fator.peso || '').toLowerCase() }}</span
+                    >{{ rotuloPeso(fator.peso) }}</span
                   >
                 </td>
                 <td>

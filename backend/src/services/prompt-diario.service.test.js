@@ -196,7 +196,8 @@ test("sem preço na data, o bloco diz SEM DADO", async () => {
 test("a situação dos dados só traz fatos: referência, publicação, idade, SEM DADO e SEM LEITURA", async () => {
   const { promptDiario: p } = await montarPromptDiario("PETROLEO", { data: "2026-10-03" }, deps());
   assert.match(p.prompt, /1\. PETROLEO_GEOPOLITICA — Geopolítica e conflitos \(peso Alto\) \| fator de evento \| última leitura em 02\/10\/2026 \| 2 evento\(s\) na janela de 7 dias/);
-  assert.match(p.prompt, /2\. PETROLEO_ESTOQUES_EIA — .* \| semanal \| referência 25\/09\/2026 \| publicado em 30\/09\/2026 \(data estimada\) \| idade: 8 dia\(s\)/);
+  // A idade conta da publicação (30/09), não da referência (25/09): 3 dias, não 8 (item E5 da análise do ouro).
+  assert.match(p.prompt, /2\. PETROLEO_ESTOQUES_EIA — .*25\/09\/2026.*publicado em 30\/09\/2026 \(data estimada\).*há 3 dia/);
   assert.match(p.prompt, /3\. PETROLEO_OFERTA_NAO_OPEP — .* \| mensal \| SEM DADO até a data/);
   assert.doesNotMatch(p.prompt, /DEFASADO/);
   assert.equal(situacaoDoFator({ ...EVENTO, primeiraLeitura: null, ultimaLeitura: null }, "2026-10-03").situacao, "SEM_LEITURA");
@@ -269,7 +270,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
 
   assert.deepEqual(d.chamadas.preco, ["GLD", "2026-10-03"]);
   assert.equal(ptaxPedidas[0].dataFim, "2026-10-02");
-  assert.equal(p.versaoPrompt, "ouro-analise-diaria@5");
+  assert.equal(p.versaoPrompt, "ouro-analise-diaria@6");
   assert.match(p.prompt, /Contrato: GLDZ26 \(dez\/2026\), o vencimento mais próximo negociado/);
   assert.match(p.prompt, /Em reais: R\$ 22\.558,50 por onça, pela PTAX de venda de 02\/10\/2026 \(R\$ 5,4000 por US\$\)/);
   assert.match(p.prompt, /Últimos 2 pregões \(data: US\$\/onça\)/);
@@ -277,7 +278,7 @@ test("ouro (ADR 0054): o GLD com o contrato e o preço em reais pela PTAX, sem b
   assert.doesNotMatch(p.prompt, /SEM DADO: não há fonte da curva/);
   assert.match(p.prompt, /IMEDIATO \(Imediato, 1 dia\): T1 = 0,4% \| T2 = 1,2%/);
   assert.match(p.prompt, /1\. OURO_INFLACAO — .* \| CONTEXTO de OURO_JUROS_REAIS, sem leitura própria \|/);
-  assert.match(p.instrucaoDoSistema, /Nunca o liste em "fatoresAFavor" nem em "fatoresContra"/);
+  assert.match(p.instrucaoDoSistema, /Nunca os liste em\s+"fatoresAFavor" nem em "fatoresContra"/);
   assert.doesNotMatch(p.instrucaoDoSistema, /\d+(,\d+)?\s?%/);
 
   const entrada = p.entrada.fatores[0];
@@ -483,7 +484,9 @@ test("ativo sem agregação (o ouro): sem bloco 3B nem agregacaoMotor na entrada
 test("§6 (ADR 0142): o fator SEM VOTO no dia — vencido pelo limite de idade, ou sem dado e sem leitura onde o ativo pede", () => {
   const vencido = { ...CALCULADO, idadeMaximaVotoDias: 7 };
   // 25/09 a 03/10: 8 dias, acima de 7.
-  assert.deepEqual(semVotoDoFator(vencido, "2026-10-03"), { motivo: "VENCIDO", texto: "SEM VOTO: dado vencido (idade de 8 dias, acima do limite de 7)" });
+  // O limite de dado vencido segue contado da referência (8 dias, acima de 7).
+  assert.equal(semVotoDoFator(vencido, "2026-10-03").motivo, "VENCIDO");
+  assert.match(semVotoDoFator(vencido, "2026-10-03").texto, /8 dias desde a referência/);
   assert.equal(semVotoDoFator(vencido, "2026-10-02"), null);
   // Sem dado ou sem leitura: só com SEM_DADO_NAO_VOTA na configuração (o café).
   assert.equal(semVotoDoFator(SEM_DADO, "2026-10-03"), null);

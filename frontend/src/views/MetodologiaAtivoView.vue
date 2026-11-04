@@ -25,6 +25,8 @@ const atualizando = ref(false)
 const errorMessage = ref('')
 const resposta = ref(null)
 const fatorSelecionado = ref(null)
+// "Peso Alto", ou "Sem peso" no fator sem voto que perdeu o peso do FEL 1 (o ouro, ADR 0150, adendo).
+const rotuloPeso = (peso) => (peso === 'Sem peso' ? peso : `Peso ${peso}`)
 // O modal do que vale para o ativo inteiro (preço de referência, leitura da IA): decisões e pendências.
 const ativoAberto = ref(false)
 
@@ -264,7 +266,7 @@ watch(ativo, carregar, { immediate: true })
                         'metodologia-ativo__badge--medio': fator.peso === 'Médio'
                       }"
                     >
-                      Peso {{ fator.peso }}
+                      {{ rotuloPeso(fator.peso) }}
                     </span>
                   </div>
                   <p class="metodologia-ativo__objetivo">{{ fator.fel1.direcao }}</p>
@@ -363,9 +365,9 @@ watch(ativo, carregar, { immediate: true })
                 'metodologia-ativo__badge--alto': fatorSelecionado.peso === 'Alto',
                 'metodologia-ativo__badge--medio': fatorSelecionado.peso === 'Médio'
               }"
-              :title="`Peso ${fatorSelecionado.peso}`"
+              :title="rotuloPeso(fatorSelecionado.peso)"
             >
-              Peso {{ fatorSelecionado.peso }}
+              {{ rotuloPeso(fatorSelecionado.peso) }}
             </span>
           </div>
           <button type="button" class="metodologia-ativo__fechar" aria-label="Fechar" title="Fechar" @click="fecharFator">

@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-10-23.**
+**Última atualização: 2026-11-04.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -12,6 +12,86 @@ Serve para retomar o trabalho sem reconstruir o contexto.
 > vale o documento apontado: `CLAUDE.md` (regras e convenções) e os ADRs em
 > `docs/adr/` (decisões, evidências e a autorização de cada fonte). O que depende
 > do David e do Comitê está aqui mesmo, na §4.
+
+<details>
+<summary>0. Ajustes do ouro (análise de 2026-11-01)</summary>
+
+Resposta do FinMind ao "Relatório de oportunidades de melhoria: sistema de sinais do ouro (prompt ouro-v3)", versão 3
+revisada, emitido em 2026-11-01 sobre a leitura de 2026-10-30. O documento corrige duas conclusões anteriores (o F5 e o
+F6), aponta 8 erros (E1 a E8) e 9 melhorias (M1 a M9) e propõe um plano em 6 etapas. Seguimos o mesmo processo do café:
+cada pedido é testado no histórico e termina implementado (decidido pelo usuário, num ADR), proposto ao Comitê ou
+testado e não adotado, com o número no item.
+
+**Começamos pelo E1**, o teste que responde a seis pedidos de uma vez (E1, E2, M2, M4, M5 e M6). **Em 2026-11-04, o
+usuário decidiu** (ADR 0150, adendo): o juro real, o dólar, a inflação, os ETFs e os fundos vão à IA como informação, sem
+peso e sem voto (metodologia ouro-v4, prompt v6); votam a geopolítica, os bancos centrais (só no MEDIO e no LONGO) e as
+minas. Agora acompanhamos
+a Qualidade da IA do ouro. Os outros itens estão em análise, na ordem da tabela.
+
+| Item | Situação |
+|---|---|
+| 2.1 e 2.2 (F5 e F6) | Nada a fazer: os números citados são os da validação de cada fator, e a leitura do documento confere |
+| E1 | **Medido (2026-11-02, ADR 0150):** o IC de cada fator em 1, 5, 21 e 62 pregões, de 2006 a 2026, pelo `npm run ic:ouro`. Só o F5 tem sinal claro, e só em 30 e 90 dias (+0,23 e +0,45); o F2, um sinal fraco em 7 dias (+0,06). O F1, o F3, o F6 e o F7 ficam perto de zero em todos os horizontes. **Decidido (usuário, 2026-11-04, ADR 0150, adendo):** pelo critério que o Comitê aprovou no café (IC indistinguível de zero, rebaixar ou desligar), o F1, o F2, o F3, o F6 e o F7 como informação, sem peso. O F5 vota só em 30 e 90 dias, onde está o sinal (decidido no mesmo dia, depois do E5) |
+| E2 | **Medido (ADR 0150):** a variação do juro real (o F1) não está invertida: fica perto de zero em todos os horizontes. O nível tem a relação contrária à do FEL 1 (−0,21 em 30 dias e −0,36 em 90), efeito das tendências longas que o F1 já descarta |
+| E3 | **Decidido (usuário, 2026-11-04, ADR 0150, adendo):** o F3 sem peso, como informação (o peso zero que o item pede, registrado). A regra de surpresa do CPI não é viável: depende de um consenso pago (Bloomberg ou Refinitiv) |
+| E4 | Em análise. O peso Alto do F4 vem do FEL 1; os eventos existem desde 10/2026, amostra curta para a janela de 1 a 5 dias |
+| E5 | **Implementado (2026-11-04, ADR 0151):** a idade, no prompt dos seis ativos, conta da publicação ("publicado há N dias"), com o período pelo nome ("Trimestre de 2º/2026"): em 30/10, os trimestrais do ouro passam de 212 dias a 29. O limite de dado vencido do café segue contado da referência. O histórico do WGC, carregado em 01/10 sem a data de publicação da fonte, fica com a convenção da 1ª coleta (ADR 0008); os testes usam o atraso típico da fonte, como o `ic:ouro` já fazia: o IC do F5 não muda. O F5 foi decidido em seguida (voto só no MEDIO e no LONGO, ADR 0150, adendo) |
+| E6 | Em análise. As faixas são os percentis 40 e 80 da variação histórica da LBMA; falta medir a frequência de cada estado nos anos recentes |
+| E7, M8 e M9 | Em análise. A falta de agregação em código é de propósito (no café e no milho ela não superou os benchmarks, ADRs 0066 e 0081; os motores foram validados sem ela, ADR 0108); os pesos do M9 serão testados como os da §3 do café (ADR 0141) |
+| E8 | Em análise. O evento de Ormuz de 30/10 cita uma página da AP de 28/10 (o endereço fala de eleições em Israel), que pode ser uma cobertura ao vivo; o site da AP não permite a leitura automática para confirmar |
+| M1 | Em análise. O CME FedWatch é fonte nova (precisa de autorização num ADR); o Treasury de 2 anos, já coletado (ADR 0119), é a alternativa sem fonte nova |
+| M2, M4, M5 e M6 | **Medidos (ADR 0150):** o momentum do ouro, as janelas curtas (1 e 4 semanas) do juro real e do dólar, o F6 e o F7 não têm sinal em nenhum horizonte. O momentum não entra; o F6 e o F7 viraram informação (o F7, risco de posição concentrada, sem sentido; ADR 0150, adendo) |
+| M3 | Em análise. Sem fonte coletada para o OTC e a demanda asiática |
+| M7 | Em análise. As licenças estão adiadas desde 2026-10-01: o uso é pessoal |
+
+<details>
+<summary>E1. Validação no horizonte errado (e E2, M2, M4, M5 e M6)</summary>
+
+**Nossa avaliação:** o documento tem razão: a parte D de cada fator mede só o ouro 26 semanas à frente. O método do IC
+já existia no café (ADR 0141) e foi aplicado ao ouro.
+
+**O que foi feito (2026-11-02, ADR 0150):** `npm run ic:ouro`, o IC (Spearman) do escore de cada fator contra o ouro da
+LBMA depois de 1, 5, 21 e 62 pregões, de 2006 a 2026-09, com o intervalo de 90% do bootstrap em blocos, as duas metades e
+as janelas de 12 meses. Não chama a IA e não grava nada. `*` = o intervalo exclui o zero.
+
+| Fator | 1 pregão | 5 | 21 | 62 |
+|---|---|---|---|---|
+| F1 Juro real (Alto) | −0,00 | +0,03 | +0,01 | −0,02 |
+| F2 Dólar (Alto) | +0,05 | **+0,06** `*` | +0,05 | +0,06 |
+| F3 Inflação (Alto, contexto) | +0,06 | +0,02 | +0,01 | −0,04 |
+| F5 Bancos centrais (Alto) | −0,03 | +0,07 | **+0,23** `*` | **+0,45** `*` |
+| F6 ETFs (Médio) | −0,01 | −0,00 | +0,03 | +0,02 |
+| F7 Fundos, COT (Médio) | +0,01 | +0,00 | +0,04 | +0,09 |
+| F8 Minas (Baixo) | +0,05 | −0,06 | +0,18 | +0,26 |
+| Juro real, nível (E2) | −0,04 | **−0,09** `*` | **−0,21** `*` | **−0,36** `*` |
+| Juro real, variação de 1 e de 4 semanas (M4) | −0,01 a +0,01 | 0,00 a +0,03 | 0,00 a +0,03 | −0,00 a +0,01 |
+| Dólar, variação de 1 e de 4 semanas (M4) | −0,01 a +0,02 | 0,00 a +0,01 | −0,01 a +0,01 | −0,01 a 0,00 |
+| Momentum do ouro (M2) | +0,02 | +0,03 | +0,01 | +0,05 |
+
+Os dados do WGC (F5, F6 e F8) não têm a data de publicação na fonte: no teste, cada ponto fica disponível pelo atraso
+típico (7 dias nos ETFs, ~1 mês depois do fim do trimestre nos trimestrais). O detalhe está no ADR 0150.
+
+**Decidido (usuário, 2026-11-04, ADR 0150, adendo), com a base de cada fator no ADR:**
+
+| Fator | Antes | Agora | Por quê, em uma linha |
+|---|---|---|---|
+| F1 Juro real | Alto | Informação, sem peso | IC zero nos quatro horizontes, com 1.082 semanas e em todas as janelas; explica o movimento, não o antecipa |
+| F2 Dólar | Alto | Informação, sem peso | Só +0,06 em 7 dias, por pouco; entre 28 testes, ~3 passariam por acaso |
+| F3 Inflação | Alto, contexto do F1 | Informação, sem peso | IC zero; o peso sem voto confundia (E3) |
+| F6 ETFs | Médio | Informação, sem peso | Segue o preço, não o antecipa (M5) |
+| F7 Fundos (COT) | Médio | Informação, sem peso; risco de posição concentrada, sem sentido | IC zero e a relação muda de regime (M6) |
+
+Votam a geopolítica (F4), os bancos centrais (F5, **só no MEDIO e no LONGO**, onde o IC tem sinal: +0,23 e +0,45) e as
+minas (F8). **A consequência, aceita:** no IMEDIATO e no CURTO votam só a geopolítica e as minas, e as leituras curtas
+tendem a LATERAL, INSUFICIENTE ou confiança baixa: hoje não há preditor validado para 1 a 7 dias no ouro.
+
+**O acompanhamento:** a Qualidade da IA do ouro (as leituras do prompt v6 contra as anteriores e os benchmarks) e o
+`npm run ic:ouro` na revisão: volta ao voto o fator que mostrar IC com o intervalo excluindo o zero, estável nas duas
+metades, num horizonte.
+
+</details>
+
+</details>
 
 <details>
 <summary>0. Ajustes do café (análise de 2026-10-19)</summary>

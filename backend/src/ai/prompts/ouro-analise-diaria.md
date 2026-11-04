@@ -1,6 +1,6 @@
 # Prompt — Análise diária do ouro (leitura de tendência em quatro horizontes)
 
-**Versão:** 5
+**Versão:** 6
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0054), no molde do prompt do petróleo (`petroleo-analise-diaria.md`,
 v2; ADRs 0051 e 0052): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na
@@ -22,6 +22,13 @@ da data da análise. O item do preço em "Como analisar" diz isso, e a tabela 2.
 v5 (2026-10-23, ADR 0142, adendo) - o dado insuficiente não vota, nos seis ativos (o "sem exceção" do Comitê): o
 fator sem dado, sem a leitura do motor ou, se de evento, sem leitura diária na janela sai como SEM VOTO na tabela 2.3,
 e a resposta que o citar a favor ou contra é recusada. O item de relevância diz isso.
+
+v6 (2026-11-04, ADR 0150, adendo) - análise do ouro de 2026-11-01, item E1: pelo IC por horizonte, o juro real
+(OURO_JUROS_REAIS), o dólar (OURO_DOLAR), a inflação (OURO_INFLACAO, antes contexto do juro real), os ETFs (OURO_ETFS)
+e os fundos (OURO_FUNDOS) vão como INFORMAÇÃO, sem peso, sem voto e fora dos fatores a favor e contra; os fundos são
+lidos como risco de posição concentrada, sem sentido. Votam a geopolítica, os bancos centrais (só no MEDIO e no LONGO)
+e as minas. Mudam os
+itens 4, 7 e 8 de "Como analisar" e a legenda do bloco 3.
 
 Enviado ao Gemini uma vez por dia pelo coletor `ouro-analise-ia-diario` (ADR 0054).
 
@@ -62,10 +69,13 @@ Para cada horizonte, separadamente:
    não as recalcule, não as contradiga e não as troque por uma interpretação sua. Se uma leitura informa pouco para o
    horizonte (por exemplo, porque a parte D diz que o fator acompanha o preço em vez de antecipá-lo), diga isso e dê a
    ela menos papel na leitura.
-4. Fator de contexto. Um fator marcado como CONTEXTO de outro (a inflação, OURO_INFLACAO, é contexto do juro real,
-   OURO_JUROS_REAIS, por decisão do especialista) não tem pressão própria: use-o só para explicar o fator de que é
-   contexto. Nunca o liste em "fatoresAFavor" nem em "fatoresContra"; ele pode aparecer em "evidencias" e em
-   "fatoresPoucoRelevantes".
+4. Fatores de INFORMAÇÃO. O juro real (OURO_JUROS_REAIS), o dólar (OURO_DOLAR), a inflação (OURO_INFLACAO), o fluxo
+   dos ETFs (OURO_ETFS) e o posicionamento dos fundos (OURO_FUNDOS) são INFORMAÇÃO, sem peso e sem pressão própria,
+   por decisão do usuário: no histórico, nenhum deles antecipou o preço do ouro em nenhum dos quatro horizontes. Eles
+   explicam o movimento que já aconteceu (o juro real e o dólar andam com o ouro no mesmo período; o fluxo dos ETFs
+   segue o preço) e ajudam a dizer quanto dele já está no preço, mas não dão a direção para frente. Nunca os liste em
+   "fatoresAFavor" nem em "fatoresContra"; eles podem aparecer em "evidencias" e em "fatoresPoucoRelevantes". A
+   inflação ajuda a explicar o juro real.
 5. Bancos centrais (OURO_BANCOS_CENTRAIS). O fator compara as compras com o ritmo dos 3 anos anteriores, não com zero.
    Compras abaixo desse ritmo são desaceleração das compras, não venda: ao citar o fator, diga o volume comprado e o
    ritmo de comparação, para não confundir um com o outro.
@@ -75,14 +85,15 @@ Para cada horizonte, separadamente:
    com nenhum) estão na seção 2.5, uma vez cada, com a condição que afetam: não são fator, não têm peso e não mudam a
    leitura do motor de nenhum fator; use-os para dizer o que o cálculo da condição afetada ainda não mostra. Ao citar
    um evento da seção como evidência, use a origem EVENTO e, no fator, o código da condição que ele afeta (ou null).
-7. Posicionamento (COT). No ouro, a leitura do motor segue o FEL 1: o posicionamento dos fundos amplifica os movimentos.
-   Mesmo assim, não conte o COT como mais um voto de alta ou de baixa. Diga qual é o papel dele no horizonte: confirma a
-   leitura, indica excesso de posicionamento, indica risco de reversão ou enfraquece a leitura. O posicionamento segue
-   o preço e os demais fatores: não o trate como evidência independente deles.
+7. Posicionamento (COT, OURO_FUNDOS). É INFORMAÇÃO, sem voto: leia-o como risco de posição concentrada, sem sentido.
+   Muitos fundos de um lado só aumentam o risco de um movimento forte quando a posição for desmontada, sem dizer para
+   que lado o preço vai (no histórico, a posição ora amplificou o movimento, ora reverteu). Diga qual é o papel dele no
+   horizonte em "posicionamentoCot": confirma a leitura, indica excesso de posicionamento, indica risco de reversão ou
+   enfraquece a leitura. O papel é informação: não baixe nem suba a confiança só por causa dos fundos.
 8. Conflito entre fatores. Quando os fatores apontam para lados diferentes, não conte votos e não crie pontuação.
-   Explique quais forças atuam, qual delas domina naquele horizonte e por quê. Fatores economicamente ligados (por
-   exemplo, juro real, dólar, fluxo dos ETFs e posicionamento dos fundos) podem parecer se confirmar sem serem
-   evidências independentes: diga quando for o caso, sem criar regra de desconto.
+   Explique quais forças atuam, qual delas domina naquele horizonte e por quê. Os fatores de INFORMAÇÃO (item 4) não
+   são forças a favor nem contra, e, quando apontam para o mesmo lado, não são evidências independentes entre si nem do
+   preço. Com poucos fatores com voto no horizonte, diga isso e considere-o na confiança.
 9. Preço. Use o histórico (2.1) para dizer quanto do movimento já aconteceu. Um fator que acompanha o preço pode já
    estar refletido nele. O preço é de um contrato futuro: as variações são só desse contrato, e uma variação SEM DADO
    é falta de histórico do contrato, não estabilidade do preço. O preço em reais é só referência: a tendência e a
@@ -177,7 +188,7 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 [3. LEITURA DO MOTOR — o resultado das regras dos 8 fatores, aplicadas em código, sem IA]
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
-Fator de contexto: A, B e D como os outros; em C, só o papel (contexto de qual fator) e a tendência, sem pressão.
+Fator de informação: A, B e D como os outros; em C, só o papel (informação) e a tendência, sem pressão.
 Fator de evento: os eventos aceitos da leitura diária por IA na janela do fator, com a data, a idade e a fonte.
 Os eventos dos outros fatores estão na seção 2.5.
 O motor ainda não fornece confiança por fator, horizonte por fator nem relações entre fatores.

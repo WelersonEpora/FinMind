@@ -11,7 +11,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { FATORES } = require("./fatores-fel1");
 const { SITUACAO, obterMetodologiaOuro } = require("./metodologia-ouro");
-const { VALIDACAO_MOTORES } = require("./metodologia-base");
+const { VALIDACAO_MOTORES, textoPeso } = require("./metodologia-base");
 const { buscarNoCatalogo } = require("../services/observaveis.service");
 const { obterMetodologiaAtivo } = require("../services/metodologia-ativo.service");
 
@@ -52,14 +52,30 @@ test("a geopolítica é o fator de evento (janela de 7 dias); os outros sete sã
   );
 });
 
-test("decisões do David (ADR 0054): a inflação é contexto do juro real; o COT e os bancos centrais saem das perguntas", () => {
-  const { fatores, versao } = obterMetodologiaOuro();
+test("decisões do David (ADR 0054): os bancos centrais e o COT saem das perguntas", () => {
+  const { fatores } = obterMetodologiaOuro();
   const fator = (codigo) => fatores.find((f) => f.codigo === codigo);
-  assert.equal(versao, 3);
-  assert.equal(fator("OURO_INFLACAO").contextoDe, "OURO_JUROS_REAIS");
-  assert.deepEqual(fatores.filter((f) => f.contextoDe).map((f) => f.codigo), ["OURO_INFLACAO"]);
-  for (const codigo of ["OURO_FUNDOS", "OURO_BANCOS_CENTRAIS"]) {
-    assert.equal(fator(codigo).perguntas.length, 0, codigo);
-    assert.ok(fator(codigo).decisoes.every((d) => d.includes("ADR 0054")), codigo);
+  assert.equal(fator("OURO_BANCOS_CENTRAIS").perguntas.length, 0);
+  assert.ok(fator("OURO_BANCOS_CENTRAIS").decisoes.some((d) => d.includes("ADR 0054")));
+  assert.equal(fator("OURO_FUNDOS").perguntas.length, 0);
+});
+
+test("IC por horizonte (ADR 0150, adendo): o juro real, o dólar, a inflação, os ETFs e os fundos como informação, sem peso; votam a geopolítica, os bancos centrais e as minas", () => {
+  const { fatores, versao } = obterMetodologiaOuro();
+  assert.equal(versao, 4);
+  const semVoto = ["OURO_JUROS_REAIS", "OURO_DOLAR", "OURO_INFLACAO", "OURO_ETFS", "OURO_FUNDOS"];
+  assert.deepEqual(fatores.filter((f) => f.informativo).map((f) => f.codigo), semVoto);
+  assert.deepEqual(fatores.filter((f) => f.contextoDe).map((f) => f.codigo), []);
+  for (const f of fatores.filter((x) => x.informativo)) {
+    assert.equal(f.peso, "Sem peso", f.codigo);
+    assert.equal(f.papelDecididoPor, "do usuário", f.codigo);
+    assert.match(textoPeso(f), /^sem peso, decidido pelo usuário; (Alto|Médio) no FEL 1$/, f.codigo);
+    assert.ok(f.decisoes.some((d) => d.includes("ADR 0150, adendo")), f.codigo);
   }
+  assert.deepEqual(
+    fatores.filter((f) => !f.informativo).map((f) => [f.codigo, f.peso]),
+    [["OURO_GEOPOLITICA", "Alto"], ["OURO_BANCOS_CENTRAIS", "Alto"], ["OURO_MINERACAO", "Baixo"]]
+  );
+  // Os bancos centrais votam só onde o IC tem sinal (21 e 62 pregões).
+  assert.deepEqual(fatores.find((f) => f.codigo === "OURO_BANCOS_CENTRAIS").soNosHorizontes.horizontes, ["MEDIO", "LONGO"]);
 });

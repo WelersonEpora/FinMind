@@ -53,7 +53,9 @@ const { ATIVOS_COM_MEIA_VIDA } = require("./eventos-mercado");
 //              contra o `fel1` ou, no peso, o catálogo: a tela nunca mostra um "de" que não existe) e `origem` quem
 //              decidiu, quando e o ADR. Só na tela: não vai ao prompt. A exceção é o PESO com `noPrompt` (quem decidiu,
 //              ex.: "pelo usuário"): ele passa a ser o peso do fator, no prompt e na tela, com o do FEL 1 ao lado (o
-//              câmbio do café, ADR 0136; no milho, o calendário de pesos é que vai ao prompt).
+//              câmbio do café, ADR 0136; no milho, o calendário de pesos é que vai ao prompt). Num fator de contexto ou só
+//              de informação, o ajuste pode ser "Sem peso" (o ouro, ADR 0150, adendo): o fator não vota, e o peso do FEL 1
+//              ao lado de "INFORMAÇÃO" confundia a leitura.
 //   regra    - (opcional) { sigla, afeta, dimensao, quando }: uma REGRA, e não um fator (a soja, ADR 0116). Calculada
 //              como um fator (o cálculo fica em `factors/`), mas sem peso, sem pressão e fora do catálogo do FEL 1: o
 //              `nome` vem da definição. `sigla` (R1, R2...), `afeta` (os códigos dos fatores do ativo que ela muda, ou
@@ -109,6 +111,8 @@ const VALIDACAO_SOJA = Object.freeze({ por: "Comitê, com o David", data: "2026-
 const VALIDACAO_DOLAR = Object.freeze({ por: "o usuário (Welerson), com o mesmo poder de decisão do David", data: "2026-10-09", adr: "ADR 0126" });
 const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const PESOS = ["Alto", "Médio", "Baixo"];
+// O peso de uma regra e o de um fator sem voto que perdeu o peso do FEL 1 (ver `ajustesFel1` acima).
+const SEM_PESO = "Sem peso";
 const NIVEIS_RELEVANCIA = ["Alta", "Média", "Baixa"];
 const HORIZONTES_RELEVANCIA = ["IMEDIATO", "CURTO", "MEDIO", "LONGO"];
 const SITUACAO_AGREGACAO = { ORIENTACAO: "ORIENTACAO", PARCIAL: "PARCIAL", FORA: "FORA" };
@@ -132,8 +136,11 @@ function montarAjustesFel1(fator, definicao) {
     if (ajuste.noFel1 !== original(fator, definicao.fel1)) {
       throw new Error(`${fator.codigo}: o ajuste de "${ajuste.campo}" não parte do texto do FEL 1: ${ajuste.noFel1}`);
     }
-    if (ajuste.noPrompt && (ajuste.campo !== "Peso" || !PESOS.includes(ajuste.ajuste))) {
+    if (ajuste.noPrompt && (ajuste.campo !== "Peso" || ![...PESOS, SEM_PESO].includes(ajuste.ajuste))) {
       throw new Error(`${fator.codigo}: só um peso conhecido vai ao prompt (${ajuste.campo}: ${ajuste.ajuste})`);
+    }
+    if (ajuste.ajuste === SEM_PESO && !(definicao.informativo || definicao.contextoDe)) {
+      throw new Error(`${fator.codigo}: só um fator sem voto (informação ou contexto) fica sem peso`);
     }
     return { campo: ajuste.campo, noFel1: ajuste.noFel1, ajuste: ajuste.ajuste, origem: ajuste.origem, ...(ajuste.noPrompt ? { noPrompt: ajuste.noPrompt } : {}) };
   });
@@ -146,16 +153,17 @@ function pesoDoFator(fator, ajustes) {
   return ajuste ? { peso: ajuste.ajuste, pesoAjustado: { noFel1: fator.peso, decididoPor: ajuste.noPrompt } } : { peso: fator.peso, pesoAjustado: null };
 }
 
-// O peso como o prompt e a tela o dizem: "peso Médio" ou, ajustado, "peso Baixo, decidido pelo usuário; Médio no FEL 1".
+// O peso como o prompt e a tela o dizem: "peso Médio" ou, ajustado, "peso Baixo, decidido pelo usuário; Médio no FEL 1"
+// (sem peso: "sem peso, decidido pelo usuário; Alto no FEL 1").
 function textoPeso(fator) {
-  return fator.pesoAjustado
-    ? `peso ${fator.peso}, decidido ${fator.pesoAjustado.decididoPor}; ${fator.pesoAjustado.noFel1} no FEL 1`
-    : `peso ${fator.peso}`;
+  if (!fator.pesoAjustado) return `peso ${fator.peso}`;
+  const peso = fator.peso === SEM_PESO ? "sem peso" : `peso ${fator.peso}`;
+  return `${peso}, decidido ${fator.pesoAjustado.decididoPor}; ${fator.pesoAjustado.noFel1} no FEL 1`;
 }
 
 const DIMENSOES_REGRA = ["APLICABILIDADE", "INTENSIDADE", "INFORMACAO"];
 // O peso de uma regra: nenhum (ela não entra na agregação).
-const PESO_REGRA = "Sem peso";
+const PESO_REGRA = SEM_PESO;
 
 // Uma regra (ver `regra` acima): não está no catálogo; o código começa pelo ativo, e o que ela afeta é um fator do ativo
 // ou a leitura consolidada.

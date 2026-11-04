@@ -235,4 +235,4 @@ function montarTextoPrompt({ ativo, fator, calculo, ponto }) {
   return linhas.join("\n");
 }
 
-module.exports = { montarTextoPrompt, formatarValor };
+module.exports = { montarTextoPrompt, formatarValor, periodoDoPonto };
