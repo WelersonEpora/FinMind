@@ -4,7 +4,8 @@ const pointInTimeService = require("../../services/point-in-time.service");
 const faixa = require("../base/decisao-por-faixa");
 const { somarDias, mediaSemanal } = require("../base/semana-de-dias");
 
-// MOLDE dos fatores de juros (ADR 0050): a variação de uma taxa diária em 26 semanas, na média da semana, com uma
+// MOLDE dos fatores de juros (ADR 0050): a variação de uma taxa diária em 26 semanas (ou em `semanasVariacao`; 13 na
+// expectativa de juros do ouro, ADR 0155), na média da semana, com uma
 // segunda taxa como contexto (o ciclo dela em 52 semanas). O cálculo é este; cada ativo dá as séries, os nomes dos
 // campos do ponto, os textos e a apresentação. Ex.: o Treasury nominal no petróleo (juros-petroleo.factor.js) e o
 // juro real no ouro (juros-reais-ouro.factor.js), os dois com a meta do Fed como contexto.
@@ -19,7 +20,7 @@ const { somarDias, mediaSemanal } = require("../base/semana-de-dias");
 // Propriedades: determinístico, versionado, point-in-time, sem IA.
 
 const DIAS_SEMANA = 7;
-const SEMANAS_VARIACAO = 26;
+const SEMANAS_VARIACAO_PADRAO = 26;
 const SEMANAS_CICLO = 52;
 
 function arredondar(n, casas) {
@@ -29,6 +30,7 @@ function arredondar(n, casas) {
 
 // `config`:
 //   factorId, factorVersion, parametrosPadrao
+//   semanasVariacao (opcional) a janela da variação, em semanas (padrão: 26)
 //   series          { principal, contexto }: os códigos das duas taxas
 //   campos          os nomes dos campos do ponto: { principal, contexto, variacaoContexto, principalAntes, variacao }
 //   acimaPressiona  o lado que a taxa subindo pressiona (decisao-por-faixa.js)
@@ -36,6 +38,7 @@ function arredondar(n, casas) {
 //   episodios, cenarios, apresentacao
 function criarFatorJuroVariacao(config) {
   const { factorId, factorVersion, parametrosPadrao, series, campos, acimaPressiona, episodios, cenarios, apresentacao } = config;
+  const semanasVariacao = config.semanasVariacao || SEMANAS_VARIACAO_PADRAO;
 
   // Função PURA: recebe as linhas de obterAsOf() e devolve um ponto por semana (a sexta), as semanas da taxa principal.
   function derivar(linhasAsOf, { parametros = parametrosPadrao } = {}) {
@@ -47,7 +50,7 @@ function criarFatorJuroVariacao(config) {
     const pontos = [];
     for (const observedAt of [...principal.keys()].sort()) {
       const semana = principal.get(observedAt);
-      const antes = principal.get(somarDias(observedAt, -DIAS_SEMANA * SEMANAS_VARIACAO))?.media;
+      const antes = principal.get(somarDias(observedAt, -DIAS_SEMANA * semanasVariacao))?.media;
       const variacao = antes === undefined ? null : arredondar(semana.media - antes, 2);
       variacoes.set(observedAt, variacao);
       const contextoAgora = contextoEm(observedAt);

@@ -15,7 +15,7 @@ const { VALIDACAO_MOTORES, textoPeso } = require("./metodologia-base");
 const { buscarNoCatalogo } = require("../services/observaveis.service");
 const { obterMetodologiaAtivo } = require("../services/metodologia-ativo.service");
 
-test("os 8 fatores do ouro do FEL 1, na ordem da planilha, validados pelo Comitê (ADR 0108)", () => {
+test("os 8 fatores do ouro do FEL 1, na ordem da planilha, validados pelo Comitê (ADR 0108); a expectativa de juros, fora do FEL 1, pelo usuário (ADR 0155)", () => {
   const { ativo, fatores } = obterMetodologiaOuro();
   assert.equal(ativo, "OURO");
   assert.deepEqual(
@@ -24,7 +24,8 @@ test("os 8 fatores do ouro do FEL 1, na ordem da planilha, validados pelo Comit�
   );
   for (const fator of fatores) {
     assert.equal(fator.proposta.situacao, SITUACAO.VALIDADA, fator.codigo);
-    assert.deepEqual(fator.proposta.validacao, VALIDACAO_MOTORES, fator.codigo);
+    if (fator.origem) assert.equal(fator.proposta.validacao.adr, fator.origem, fator.codigo);
+    else assert.deepEqual(fator.proposta.validacao, VALIDACAO_MOTORES, fator.codigo);
     // Cada fator tem o que falta decidir ou o que o David já decidiu (ADR 0054).
     assert.ok(fator.perguntas.length + fator.decisoes.length > 0, fator.codigo);
     assert.ok(fator.dados.avaliacao?.texto, fator.codigo);
@@ -73,7 +74,7 @@ test("IC por horizonte (ADR 0150, adendo): o juro real, o dólar, a inflação, 
   }
   assert.deepEqual(
     fatores.filter((f) => !f.informativo).map((f) => [f.codigo, f.peso]),
-    [["OURO_GEOPOLITICA", "Baixo"], ["OURO_BANCOS_CENTRAIS", "Alto"], ["OURO_MINERACAO", "Baixo"]]
+    [["OURO_GEOPOLITICA", "Baixo"], ["OURO_BANCOS_CENTRAIS", "Alto"], ["OURO_MINERACAO", "Baixo"], ["OURO_EXPECTATIVA_JUROS", "Baixo"]]
   );
   // Os bancos centrais votam só onde o IC tem sinal (21 e 62 pregões).
   assert.deepEqual(fatores.find((f) => f.codigo === "OURO_BANCOS_CENTRAIS").soNosHorizontes.horizontes, ["MEDIO", "LONGO"]);
@@ -81,4 +82,8 @@ test("IC por horizonte (ADR 0150, adendo): o juro real, o dólar, a inflação, 
   const geo = fatores.find((f) => f.codigo === "OURO_GEOPOLITICA");
   assert.deepEqual(geo.soNosHorizontes.horizontes, ["IMEDIATO"]);
   assert.deepEqual(geo.pesoAjustado, { noFel1: "Alto", decididoPor: "pelo usuário" });
+  // A expectativa de juros (ADR 0155): fora do FEL 1, só o MEDIO e o LONGO.
+  const expectativa = fatores.find((f) => f.codigo === "OURO_EXPECTATIVA_JUROS");
+  assert.equal(expectativa.origem, "ADR 0155");
+  assert.deepEqual(expectativa.soNosHorizontes.horizontes, ["MEDIO", "LONGO"]);
 });

@@ -1,6 +1,6 @@
 # Prompt — Análise diária do ouro (leitura de tendência em quatro horizontes)
 
-**Versão:** 7
+**Versão:** 8
 
 Histórico: v1 (2026-10-04) - formato inicial (ADR 0054), no molde do prompt do petróleo (`petroleo-analise-diaria.md`,
 v2; ADRs 0051 e 0052): os blocos fixos (1. papel e objetivo, 4. como analisar, 5. limites, 6. formato da resposta) na
@@ -32,6 +32,10 @@ itens 4, 7 e 8 de "Como analisar" e a legenda do bloco 3.
 
 v7 (2026-11-04, ADR 0154) - análise do ouro de 2026-11-01, item E4: a geopolítica (OURO_GEOPOLITICA) com o peso Baixo e
 o voto só no IMEDIATO, pelo teste do índice de risco geopolítico (GPR) contra o ouro de 1986 a 2026. Muda o item 6 de
+"Como analisar".
+
+v8 (2026-11-04, ADR 0155) - análise do ouro de 2026-11-01, item M1: a expectativa de juros (OURO_EXPECTATIVA_JUROS, o
+Treasury de 2 anos em 13 semanas), fator fora do FEL 1, com peso Baixo e voto só no MEDIO e no LONGO. Muda o item 4 de
 "Como analisar".
 
 Enviado ao Gemini uma vez por dia pelo coletor `ouro-analise-ia-diario` (ADR 0054).
@@ -80,6 +84,10 @@ Para cada horizonte, separadamente:
    segue o preço) e ajudam a dizer quanto dele já está no preço, mas não dão a direção para frente. Nunca os liste em
    "fatoresAFavor" nem em "fatoresContra"; eles podem aparecer em "evidencias" e em "fatoresPoucoRelevantes". A
    inflação ajuda a explicar o juro real.
+   A expectativa de juros (OURO_EXPECTATIVA_JUROS, o Treasury de 2 anos) é diferente: é fator com voto, fora do FEL 1,
+   por decisão do usuário, com peso Baixo e só no MEDIO e no LONGO. Ela mede o que o mercado espera do Fed, e no
+   histórico antecipou o ouro nesses prazos, ao contrário do juro real. Não a conte duas vezes com o juro real: os dois
+   falam do Fed.
 5. Bancos centrais (OURO_BANCOS_CENTRAIS). O fator compara as compras com o ritmo dos 3 anos anteriores, não com zero.
    Compras abaixo desse ritmo são desaceleração das compras, não venda: ao citar o fator, diga o volume comprado e o
    ritmo de comparação, para não confundir um com o outro.
@@ -192,7 +200,7 @@ Metodologia: {{versao_metodologia}} | Configuração do prompt: {{versao_configu
 2.5 EVENTOS DO ATIVO — da leitura diária por IA, fora do fator de geopolítica; não é fator
 {{bloco_eventos}}
 
-[3. LEITURA DO MOTOR — o resultado das regras dos 8 fatores, aplicadas em código, sem IA]
+[3. LEITURA DO MOTOR — o resultado das regras dos 9 fatores (8 do FEL 1 e a expectativa de juros), aplicadas em código, sem IA]
 Fator calculado: A — Medida; B — Leitura (com a regra aplicada); C — Leitura do fator (pressão, intensidade e
 tendência); D — Validação histórica (contexto para a confiança, fora da leitura).
 Fator de informação: A, B e D como os outros; em C, só o papel (informação) e a tendência, sem pressão.

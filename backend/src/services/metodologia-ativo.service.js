@@ -51,6 +51,7 @@ const CALCULOS = {
   OURO_ETFS: require("../factors/etfs-ouro.factor").METODOLOGIA,
   OURO_FUNDOS: require("../factors/fundos-ouro.factor").METODOLOGIA,
   OURO_MINERACAO: require("../factors/mineracao-ouro.factor").METODOLOGIA,
+  OURO_EXPECTATIVA_JUROS: require("../factors/expectativa-juros-ouro.factor").METODOLOGIA,
   MILHO_ESTOQUES_WASDE: require("../factors/estoques-milho-wasde.factor").METODOLOGIA,
   MILHO_FUNDOS: require("../factors/fundos-milho.factor").METODOLOGIA,
   MILHO_CLIMA_SAFRA_EUA: require("../factors/clima-milho-eua.factor").METODOLOGIA,

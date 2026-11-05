@@ -48,6 +48,8 @@ const { ATIVOS_COM_MEIA_VIDA } = require("./eventos-mercado");
 //              milho age sobre a safrinha seguinte, de 6 a 12 meses depois). O bloco do fator no prompt ganha a data de
 //              efeito esperada, contada do período do dado (texto-prompt.js).
 //   decisoes - (opcional) o que o especialista já decidiu sobre o fator, com a data e o ADR: sai das `perguntas`.
+//   validacao - (opcional) { por, data, adr }: um fator validado à parte da validação do ativo (ex.: a expectativa de
+//              juros do ouro, decidida pelo usuário depois do motor validado, ADR 0155). Vale sobre a do ativo.
 //   ajustesFel1 - (opcional) o que muda na tabela do FEL 1 sem reescrever o `fel1` (o milho, ADR 0082): cada um
 //              { campo, noFel1, ajuste, origem }; `campo` é um dos de CAMPOS_FEL1, `noFel1` o texto como está (conferido
 //              contra o `fel1` ou, no peso, o catálogo: a tela nunca mostra um "de" que não existe) e `origem` quem
@@ -228,6 +230,10 @@ function montarFatores(ativo, definicoes, validacao = null) {
       throw new Error(`${definicao.codigo}: idadeMaximaVotoDias sem os dias (inteiro positivo) ou a origem`);
     }
     const ajustesFel1 = montarAjustesFel1(fator, definicao);
+    if (definicao.validacao && (!definicao.validacao.por || !definicao.validacao.data || !definicao.validacao.adr)) {
+      throw new Error(`${definicao.codigo}: validação sem quem, quando ou o ADR`);
+    }
+    const situacaoDoFator = definicao.validacao ? { situacao: SITUACAO.VALIDADA, validacao: definicao.validacao } : situacao;
     return {
       codigo: fator.codigo,
       nome: definicao.nome || fator.nome,
@@ -238,7 +244,7 @@ function montarFatores(ativo, definicoes, validacao = null) {
       origem: fator.origem || null,
       fel1: definicao.fel1,
       dados: definicao.dados,
-      proposta: { ...situacao, ...definicao.proposta },
+      proposta: { ...situacaoDoFator, ...definicao.proposta },
       perguntas: definicao.perguntas,
       decisoes: definicao.decisoes || [],
       ajustesFel1,

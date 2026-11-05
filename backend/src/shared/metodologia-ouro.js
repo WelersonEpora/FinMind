@@ -22,7 +22,9 @@ const { SITUACAO, VALIDACAO_MOTORES, montarFatores, montarMetodologia } = requir
 // bancos centrais votam só no MEDIO e no LONGO.
 // v5 (2026-11-04): a geopolítica com o peso Baixo e o voto só no IMEDIATO, pelo teste do índice de risco geopolítico
 // (GPR) contra o ouro de 1986 a 2026 (item E4 da análise; ADR 0154).
-const VERSAO = 5;
+// v6 (2026-11-04): a expectativa de juros (o Treasury de 2 anos em 13 semanas), fator fora do FEL 1, com peso Baixo e
+// voto só no MEDIO e no LONGO (item M1 da análise; ADR 0155).
+const VERSAO = 6;
 const DATA_VERSAO = "2026-11-04";
 const DECISAO_DAVID = "David, 2026-10-03 (ADR 0054)";
 // A decisão do IC (ADR 0150, adendo): o fator com IC indistinguível de zero em todos os horizontes perde o voto e o peso.
@@ -361,6 +363,45 @@ const DEFINICOES = [
     ]
   }
 ];
+
+// A expectativa de juros (ADR 0155): decidida pelo usuário depois do motor validado pelo Comitê.
+DEFINICOES.push({
+  codigo: "OURO_EXPECTATIVA_JUROS",
+  fel1: {
+    tipo: "Macroeconômico (fora do FEL 1)",
+    direcao: "Expectativa de juros do Fed subindo pressiona o ouro; caindo, favorece",
+    mecanismo: "O ouro reage ao que o mercado espera do Fed, não à taxa já decidida: o Treasury de 2 anos antecipa o ciclo",
+    fonte: "Tesouro dos EUA e Fed, pelo FRED (DGS2, DFEDTARU)"
+  },
+  validacao: { por: "o usuário (Welerson), com o mesmo poder de decisão do David", data: "2026-11-04", adr: "ADR 0155" },
+  soNosHorizontes: {
+    horizontes: ["MEDIO", "LONGO"],
+    motivo:
+      "No histórico (2006 a 2026), a variação de 13 semanas do Treasury de 2 anos antecipou o ouro em 30 e 90 dias, não em 1 e 7"
+  },
+  dados: {
+    observaveis: ["TREASURY_2A", "META_FED"],
+    eventos: false,
+    avaliacao: {
+      suficiente: true,
+      texto:
+        "Suficiente: o Treasury de 2 anos (FRED, diário desde 1976, já coletado na fase do dólar, ADR 0119) é o prazo da curva que mais reage à expectativa para o Fed, no lugar das probabilidades do CME FedWatch (pagas). O IC da variação de 13 semanas contra o ouro da LBMA (ADR 0155), de 2006 a 2026: +0,03 em 1 pregão, +0,06 em 5, +0,12 em 21 e +0,17 em 62, os três últimos com o intervalo de 90% excluindo o zero, positivo nas duas metades (+0,11 e +0,13 em 21) e em 48 de 79 janelas de 12 meses. Fora da amostra, de 1977 a 2005: +0,00, −0,01, +0,04 e +0,05, o mesmo lado e cerca de um terço do tamanho, sem significância. A relação é do regime pós-2006, em que o Fed domina o ouro. As outras versões testadas (1 e 4 semanas, a distância até a meta do Fed) não têm a mesma consistência."
+    },
+    lacunas: ["O CME FedWatch (as probabilidades por reunião, que o documento pede) é pago e não é coletado.", "O FRED publica o valor de sexta na segunda: a semana mais recente pode ficar incompleta."]
+  },
+  proposta: {
+    autoria: "FinMind, pela análise do ouro de 2026-11-01 (item M1), decidida pelo usuário",
+    objetivo: "Medir se o mercado passou a esperar juros mais altos ou mais baixos do Fed.",
+    medida: "O Treasury de 2 anos, na média da semana; a meta do Fed e o ciclo dela em 52 semanas como contexto.",
+    comparacao: "O mesmo Treasury 13 semanas antes: a variação, em p.p.",
+    leitura:
+      "O 2 anos subindo além de uma faixa (padrão: 0,15 p.p. em 13 semanas) pressiona o ouro para baixo; caindo, favorece (pressão de alta). Intensidade forte a partir de 0,5 p.p. Tendência: se a variação mudou 0,15 p.p. ou mais em 4 semanas, a expectativa de aperto ou de cortes está ganhando força. Os limites são os percentis 40 e 80 de 2006 a 2026, arredondados; parâmetros ajustáveis pelo Comitê no card C. Decidir."
+  },
+  perguntas: [],
+  decisoes: [
+    `Fator novo, fora do FEL 1, com peso Baixo e voto só no MEDIO e no LONGO: o único candidato com sinal na análise do ouro (o IC de +0,12 e +0,17 em 30 e 90 dias, de 2006 a 2026); o peso Baixo pela fraqueza fora da amostra (1977 a 2005). O CME FedWatch não entra (pago). O npm run ic:ouro acompanha o sinal; se ele sumir, o fator volta a ser informação. Decidido pelo usuário, em 2026-11-04, com o mesmo poder de decisão do David (ADR 0155).`
+  ]
+});
 
 const FATORES_OURO = montarFatores("OURO", DEFINICOES, VALIDACAO_MOTORES);
 

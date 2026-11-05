@@ -26,8 +26,9 @@ testado e não adotado, com o número no item.
 usuário decidiu** (ADR 0150, adendo): o juro real, o dólar, a inflação, os ETFs e os fundos vão à IA como informação, sem
 peso e sem voto (metodologia ouro-v4, prompt v6); votam a geopolítica, os bancos centrais (só no MEDIO e no LONGO) e as
 minas. No mesmo dia, pelo **teste da geopolítica com 41 anos do índice de risco geopolítico (GPR)** (E4, ADR 0154), a
-geopolítica passou a peso Baixo e voto só no IMEDIATO (metodologia ouro-v5, prompt v7). Agora acompanhamos a Qualidade
-da IA do ouro. Os itens que faltam estão em análise, na ordem da tabela.
+geopolítica passou a peso Baixo e voto só no IMEDIATO (metodologia ouro-v5, prompt v7), e entrou a **expectativa de juros**
+(o Treasury de 2 anos), fator fora do FEL 1, com peso Baixo no MEDIO e no LONGO (M1, ADR 0155; metodologia ouro-v6, prompt
+v8). **Todos os itens do documento estão respondidos.** Agora acompanhamos a Qualidade da IA do ouro.
 
 | Item | Situação |
 |---|---|
@@ -40,10 +41,10 @@ da IA do ouro. Os itens que faltam estão em análise, na ordem da tabela.
 | E6 | **Implementado (2026-11-04, ADR 0152):** as faixas do ouro proporcionais à volatilidade (T = k × σ × √n, com σ dos últimos 60 pregões do GLD; configuração v4). Em 2026, com a volatilidade dobrada, as fixas davam 19% LATERAL e 45% FORTE no IMEDIATO; as normalizadas, 38% e 21%, estáveis fora da amostra (2020 a 2026). Só no ouro; as carteiras virtuais seguem com o T1 fixo |
 | E7, M8 e M9 | **Testados e não adotados (2026-11-04, ADR 0152):** a soma ponderada com os pesos do M9 tem IC de +0,02 a +0,17, sem significância, e o acerto do lado (49% a 57%) não supera "sempre alta" em nenhum horizonte. A combinação segue com a IA (ADR 0108), e o estado lateral vem das faixas do E6 |
 | E8 | **Implementado (2026-11-04, ADR 0153):** a página da AP é uma cobertura ao vivo de 28/10, e o fato bate com a data (a leitura de 31/10 o confirma com o UKMTO). Nenhum dos 38 eventos aceitos citou página com mais de 2 dias. A data da página (pelo endereço) vai com a fonte e aparece na tela; a página com mais de 7 dias antes da leitura não sustenta o evento. A conferência de título e endereço não é adotada: recusaria as páginas ao vivo |
-| M1 | Em análise. O CME FedWatch é fonte nova (precisa de autorização num ADR); o Treasury de 2 anos, já coletado (ADR 0119), é a alternativa sem fonte nova |
+| M1 | **Implementado (usuário, 2026-11-04, ADR 0155):** o CME FedWatch é pago; no lugar, o Treasury de 2 anos, já coletado. A variação de 13 semanas tem IC de +0,12 e +0,17 em 30 e 90 dias (2006 a 2026), estável nas duas metades; fora da amostra (1977 a 2005), o mesmo lado e um terço do tamanho, sem significância. Fator novo, fora do FEL 1, "Expectativa de juros do Fed", com peso Baixo e voto só no MEDIO e no LONGO (metodologia ouro-v6, prompt v8); o `ic:ouro` acompanha |
 | M2, M4, M5 e M6 | **Medidos (ADR 0150):** o momentum do ouro, as janelas curtas (1 e 4 semanas) do juro real e do dólar, o F6 e o F7 não têm sinal em nenhum horizonte. O momentum não entra; o F6 e o F7 viraram informação (o F7, risco de posição concentrada, sem sentido; ADR 0150, adendo) |
-| M3 | Em análise. Sem fonte coletada para o OTC e a demanda asiática |
-| M7 | Em análise. As licenças estão adiadas desde 2026-10-01: o uso é pessoal |
+| M3 | **Registrado, sem fonte (2026-11-04):** o OTC e a demanda asiática só aparecem nos relatórios do WGC (Gold Demand Trends, trimestral, em texto e tabelas), sem série coletável; a demanda de investimento já entra pelo F5 e pelo F6. Viabilidade: não, sem fonte nova paga (Metals Focus, Refinitiv GFMS). A aquisição está encerrada |
+| M7 | **Registrado (2026-11-04):** os termos do WGC permitem só uso pessoal e não comercial (ADR 0037). O FinMind é de uso pessoal, e a verificação jurídica das licenças fica para quando houver uso comercial ou exibição a terceiros (decisão do usuário de 2026-10-01) |
 
 <details>
 <summary>E1. Validação no horizonte errado (e E2, M2, M4, M5 e M6)</summary>
@@ -145,7 +146,7 @@ nossa leitura.
 | Intensidade e confiança como multiplicadores | Não adotados: seriam agregação em código (ADR 0152) |
 
 **A consequência:** no IMEDIATO votam a geopolítica (Baixo) e as minas; no CURTO, só as minas; no MEDIO e no LONGO, os
-bancos centrais e as minas.
+bancos centrais e as minas, e, desde o M1, a expectativa de juros (ADR 0155).
 
 </details>
 

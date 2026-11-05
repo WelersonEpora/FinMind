@@ -166,3 +166,12 @@ test("dado vencido não vota (ADR 0142): o limite de idade passa para o fator; s
   assert.throws(() => montarFatores("OURO", [comLimite({ dias: 1.5, origem: "x" })]), /idadeMaximaVotoDias/);
   assert.throws(() => montarFatores("OURO", [comLimite({ dias: 7 })]), /idadeMaximaVotoDias/);
 });
+
+test("validação por fator (ADR 0155): vale sobre a do ativo; sem quem, quando ou o ADR, é erro", () => {
+  const propria = { por: "o usuário", data: "2026-11-04", adr: "ADR X" };
+  const ativo = { por: "Comitê", data: "2026-10-07", adr: "ADR Y" };
+  const [com, sem] = montarFatores("OURO", [{ ...definicao("OURO_DOLAR"), validacao: propria }, definicao("OURO_JUROS_REAIS")], ativo);
+  assert.deepEqual(com.proposta.validacao, propria);
+  assert.deepEqual(sem.proposta.validacao, ativo);
+  assert.throws(() => montarFatores("OURO", [{ ...definicao("OURO_DOLAR"), validacao: { por: "x" } }]), /validação sem quem/);
+});

@@ -9,16 +9,20 @@
 // Além dos fatores, as variantes que o documento pede testar, no sentido do FEL 1 (escore positivo = pressão de alta):
 //   - E2: o juro real (FRED.DFII10) pelo NÍVEL (mais baixo, alta) e pela variação de 26 semanas (a do F1, sem as faixas);
 //   - M4: o juro real e o dólar (FRED.DTWEXAFEGS) pela variação de 1 e de 4 semanas (subindo, baixa);
-//   - M2: o momentum do ouro (a média dos z de 5, 20 e 60 pregões, como no café, ADR 0139), seguir a tendência.
+//   - M2: o momentum do ouro (a média dos z de 5, 20 e 60 pregões, como no café, ADR 0139), seguir a tendência;
+//   - M1: a expectativa de juros pelo Treasury de 2 anos (FRED.DGS2, já coletado, ADR 0119), no lugar do CME FedWatch
+//     (fonte nova e paga): a variação de 1, 4 e 13 semanas (subindo, baixa) e a distância até a meta do Fed
+//     (FRED.DFEDTARU; o mercado esperando alta, baixa) (ADR 0155).
 // O F4 (geopolítica) é de evento e fica de fora: os eventos só existem desde 10/2026.
 //
 // O preço é a LBMA (PM, US$/onça), a série da validação dos fatores, até o fim do feed (2026-09-30, ADR 0044); o GLD da
 // B3 só existe desde 2025-07. Spot: não há troca de contrato. Não chama a IA e não grava nada: só lê e imprime.
 //
 // O período começa em 2006 (o da validação dos fatores e do documento), para a inflação (desde 1914) e o momentum
-// (a LBMA, desde 1968) não misturarem os anos 1970 com os outros; --desde=AAAA-MM-DD troca o início.
+// (a LBMA, desde 1968) não misturarem os anos 1970 com os outros; --desde=AAAA-MM-DD troca o início e --ate=AAAA-MM-DD
+// limita o fim (ex.: o teste fora da amostra do M1, 1977 a 2005, ADR 0155).
 //
-// Uso: npm run ic:ouro [-- --desde=2006-01-01] [--json=saida.json]
+// Uso: npm run ic:ouro [-- --desde=2006-01-01] [--ate=2026-12-31] [--json=saida.json]
 
 const fs = require("node:fs");
 const { sequelize } = require("../src/models");
@@ -36,7 +40,8 @@ const FATORES = [
   ["F5", "OURO_BANCOS_CENTRAIS", "bancos-centrais-ouro", { atrasoDias: 130, trimestral: true }],
   ["F6", "OURO_ETFS", "etfs-ouro", { atrasoDias: 7 }],
   ["F7", "OURO_FUNDOS", "fundos-ouro"],
-  ["F8", "OURO_MINERACAO", "mineracao-ouro", { atrasoDias: 130, trimestral: true }]
+  ["F8", "OURO_MINERACAO", "mineracao-ouro", { atrasoDias: 130, trimestral: true }],
+  ["F9", "OURO_EXPECTATIVA_JUROS", "expectativa-juros-ouro"]
 ];
 const PRAZOS = [1, 5, 21, 62];
 const MINIMO_PONTOS = 52;
@@ -45,6 +50,8 @@ const DESDE_PADRAO = "2006-01-01";
 const SERIE_OURO = "LBMA.GOLD_PM.USD";
 const SERIE_JURO_REAL = "FRED.DFII10";
 const SERIE_DOLAR = "FRED.DTWEXAFEGS";
+const SERIE_JURO_2A = "FRED.DGS2";
+const SERIE_META_FED = "FRED.DFEDTARU";
 
 function argumento(nome) {
   const arg = process.argv.find((a) => a.startsWith(`--${nome}=`));
@@ -105,11 +112,12 @@ async function main() {
   console.log(`Ouro da LBMA (PM, US$/onça): ${ouro.length} pregões, de ${ouro[0]?.data} a ${ouro.at(-1)?.data}`);
 
   const desde = argumento("desde") || DESDE_PADRAO;
-  console.log(`Pontos dos fatores a partir de ${desde}`);
+  const ate = argumento("ate") || "9999-12-31";
+  console.log(`Pontos dos fatores de ${desde} a ${ate === "9999-12-31" ? "hoje" : ate}`);
 
   const resultados = [];
   const medir = (sigla, codigo, todos, { trimestral = false } = {}) => {
-    const lista = todos.filter((p) => p.semana >= desde && p.semana >= preco.datas[0]);
+    const lista = todos.filter((p) => p.semana >= desde && p.semana <= ate && p.semana >= preco.datas[0]);
     const minimo = trimestral ? MINIMO_PONTOS_TRIMESTRAL : MINIMO_PONTOS;
     const opcoes = trimestral ? { bloco: 4 } : {};
     resultados.push({ sigla, codigo, ...(lista.length >= minimo ? icDoFator(lista, preco, PRAZOS, opcoes) : { n: lista.length, prazos: [] }) });
@@ -136,6 +144,23 @@ async function main() {
   medir("F2-4", "DOLAR_VAR_4S", variante(dolar, variacao(4, -1)));
   medir("F2-1", "DOLAR_VAR_1S", variante(dolar, variacao(1, -1)));
   medir("MOM", "MOMENTUM_OURO", momentum(ouro));
+
+  const juro2a = await serieDiaria(SERIE_JURO_2A, asOf);
+  const metaFed = await serieDiaria(SERIE_META_FED, asOf);
+  medir("M1-1", "JURO_2A_VAR_1S", variante(juro2a, variacao(1, -1)));
+  medir("M1-4", "JURO_2A_VAR_4S", variante(juro2a, variacao(4, -1)));
+  medir("M1-13", "JURO_2A_VAR_13S", variante(juro2a, variacao(13, -1)));
+  // A distância do 2 anos até a meta do Fed no mesmo dia (o último valor da meta até a data).
+  const metaAte = (data) => {
+    let r = null;
+    for (const p of metaFed) {
+      if (p.data > data) break;
+      r = p.valor;
+    }
+    return r;
+  };
+  const distancia = juro2a.map((p) => ({ data: p.data, valor: metaAte(p.data) === null ? null : p.valor - metaAte(p.data) })).filter((p) => p.valor !== null);
+  medir("M1-d", "JURO_2A_MENOS_META", variante(distancia, (s, i) => -s[i].valor));
 
   console.log("\nIC (Spearman) do escore (positivo = pressão de alta) contra o ouro depois; [intervalo de 90%, bootstrap em blocos de 13 semanas]");
   console.log(`fator | semanas | ${PRAZOS.map((h) => `${h} pregão(ões)`).join(" | ")} | 21 pregões: 1ª e 2ª metade, janelas de 12 meses com IC > 0`);

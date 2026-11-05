@@ -37,6 +37,8 @@ const FATORES = [
   { codigo: "OURO_ETFS", ativo: "OURO", nome: "Fluxo de ETFs de ouro", peso: "Médio" },
   { codigo: "OURO_FUNDOS", ativo: "OURO", nome: "Posicionamento de fundos (COT)", peso: "Médio" },
   { codigo: "OURO_MINERACAO", ativo: "OURO", nome: "Produção e oferta de mineração", peso: "Baixo" },
+  // Fora do FEL 1: a expectativa de juros, decidida pelo usuário (item M1 da análise do ouro de 2026-11-01, ADR 0155).
+  { codigo: "OURO_EXPECTATIVA_JUROS", ativo: "OURO", nome: "Expectativa de juros do Fed (Treasury de 2 anos)", peso: "Baixo", origem: "ADR 0155" },
 
   { codigo: "PETROLEO_OPEP", ativo: "PETROLEO", nome: "Decisões da OPEP+ (cotas de produção)", peso: "Alto" },
   { codigo: "PETROLEO_ESTOQUES_EIA", ativo: "PETROLEO", nome: "Estoques de petróleo dos EUA (EIA)", peso: "Alto" },

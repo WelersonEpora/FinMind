@@ -730,7 +730,8 @@ test("download: duas chamadas, cada uma com os seus ativos, o seu piso, as suas 
   assert.match(op, /Ativos desta chamada: OURO e PETRÓLEO/);
   assert.match(op, /- Tesouro dos EUA/);
   assert.doesNotMatch(op, /MAPA|INMET|USTR/);
-  assert.equal((op.match(/^- (OURO|PETROLEO)_[A-Z_]+: /gm) || []).length, 18);
+  // 19: os 8 do ouro e os 10 do petróleo, mais a expectativa de juros do ouro (ADR 0155).
+  assert.equal((op.match(/^- (OURO|PETROLEO)_[A-Z_]+: /gm) || []).length, 19);
   assert.match(op, /- OURO: ao menos uma busca na AP News .* ou no Tesouro dos EUA .*; o UKMTO sozinho não basta/);
   assert.match(op, /- PETRÓLEO: ao menos uma busca numa fonte de geopolítica ou de oferta que cobre o ativo .*; as de furacão e de rota sozinhas não bastam/);
   assert.match(op, /Eventos já registrados nos últimos dias .*:\nNenhum evento aceito nos últimos 3 dias\./);
