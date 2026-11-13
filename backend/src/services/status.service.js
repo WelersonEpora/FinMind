@@ -1,7 +1,7 @@
 "use strict";
 
 const sequelize = require("../config/database");
-const env = require("../config/env");
+const configuracaoIaService = require("./configuracao-ia.service");
 const { listCollectors } = require("../collectors/base/collector.interface");
 const { ATIVOS_COM_ANALISE_DIARIA } = require("../shared/analise-diaria");
 
@@ -15,7 +15,8 @@ async function getStatus() {
     dbStatus = "error";
   }
 
-  const geminiConfigurado = Boolean(env.gemini.apiKeyFree || env.gemini.apiKey);
+  // As chaves são cadastradas na tela Configuração (ADR 0156); com o banco fora, conta como não configurada.
+  const geminiConfigurado = dbStatus === "ok" && (await configuracaoIaService.temChave().catch(() => false));
 
   return {
     uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
@@ -40,7 +41,7 @@ async function getStatus() {
         status: geminiConfigurado ? "ok" : "not_configured",
         message: geminiConfigurado
           ? "Gemini: leitura diária de eventos e de tendência."
-          : "GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas."
+          : "Nenhuma chave do Gemini cadastrada (tela Configuração)."
       }
     }
   };

@@ -1,6 +1,6 @@
 "use strict";
 
-const env = require("../config/env");
+const configuracaoIaService = require("../services/configuracao-ia.service");
 const { NotConfiguredError, UpstreamServiceError } = require("../shared/errors");
 
 // Primeiro provedor real de IA do FinMind (ADR 0047): o Gemini com busca na web (Google Search grounding), pela API
@@ -138,11 +138,13 @@ function descreverTentativas(tentativas) {
 // Uma chamada com as duas chaves (a gratuita primeiro, a paga como reserva): o JSON da resposta, a chave que respondeu
 // e as tentativas.
 async function chamarComChaves(corpo, { signal }, deps) {
-  const config = deps.gemini || env.gemini;
+  // As chaves vêm do banco (cadastradas na tela, ADR 0156); o modelo e o timeout, do .env. Lidas a cada chamada: uma
+  // chave trocada na tela vale já na chamada seguinte, inclusive no processo da coleta.
+  const config = deps.gemini || (await configuracaoIaService.obterConfigGemini());
   const contexto = { config, fetchFn: deps.fetch || fetch, esperar: deps.esperar || esperarPadrao, agora: deps.agora || Date.now };
   const chaves = chavesEmOrdem(config);
   if (chaves.length === 0) {
-    throw new NotConfiguredError("GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas: o Gemini está desligado.");
+    throw new NotConfiguredError("Nenhuma chave do Gemini cadastrada (tela Configuração): o Gemini está desligado.");
   }
 
   const tentativas = [];
@@ -211,4 +213,7 @@ async function gerarJson({ systemInstruction, prompt, signal }, deps = {}) {
   return resposta;
 }
 
-module.exports = { nome: "gemini", pesquisarNaWeb, gerarJson, extrairTexto };
+// O aviso dos coletores de IA quando não há chave cadastrada (ADR 0156): a execução pula, sem falhar.
+const AVISO_SEM_CHAVE = "Nenhuma chave do Gemini cadastrada: sem leitura da IA. O admin cadastra as chaves na tela Configuração (ADR 0156).";
+
+module.exports = { nome: "gemini", pesquisarNaWeb, gerarJson, extrairTexto, AVISO_SEM_CHAVE };

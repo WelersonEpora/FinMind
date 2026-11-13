@@ -3,6 +3,7 @@
 const crypto = require("node:crypto");
 const env = require("../config/env");
 const geminiSearch = require("../ai/gemini-search.provider");
+const configuracaoIaService = require("./configuracao-ia.service");
 const { carregarPrompt } = require("../ai/carregar-prompt");
 const geopoliticaService = require("./geopolitica.service");
 const recomendacaoIaRepository = require("../repositories/recomendacao-ia.repository");
@@ -120,7 +121,7 @@ function registroBase({ data, tipo, modelo, entrada, prompt, falhasEventos, hash
 // A chamada com as tentativas até validar. `prompt` e `entrada` já montados (a réplica semanal reusa os mesmos).
 async function chamarEValidar(registro, { entrada, prompt, modelo }, deps) {
   const config = deps.recomendacaoCarteira || env.recomendacaoCarteira;
-  const gemini = deps.gemini || env.gemini;
+  const gemini = deps.gemini || (await configuracaoIaService.obterConfigGemini(deps));
   const provedor = deps.geminiSearch || geminiSearch;
   const usos = [];
   try {
@@ -159,7 +160,7 @@ async function chamarEValidar(registro, { entrada, prompt, modelo }, deps) {
 // A recomendação do dia (tipo PRINCIPAL). `leiturasPorAtivo`: as congeladas na rodada. -> o registro.
 async function recomendar({ data, ativos, leiturasPorAtivo }, deps = {}) {
   const config = deps.recomendacaoCarteira || env.recomendacaoCarteira;
-  const gemini = deps.gemini || env.gemini;
+  const gemini = deps.gemini || (await configuracaoIaService.obterConfigGemini(deps));
   const modelo = config.model;
   const { eventosPorAtivo, falhas } = await eventosDosAtivos(ativos.filter((a) => leiturasPorAtivo[a]), data, deps);
   const entrada = montarEntrada({ data, ativos, leiturasPorAtivo, eventosPorAtivo });

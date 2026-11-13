@@ -1,8 +1,9 @@
 "use strict";
 
 const env = require("../../config/env");
-const { UpstreamServiceError } = require("../../shared/errors");
+const { UpstreamServiceError, NotConfiguredError } = require("../../shared/errors");
 const geminiSearch = require("../../ai/gemini-search.provider");
+const { AVISO_SEM_CHAVE } = geminiSearch;
 const { carregarPrompt } = require("../../ai/carregar-prompt");
 const geopoliticaRepository = require("../../repositories/geopolitica.repository");
 const { parsearBoletim } = require("./geopolitica-boletim.parser");
@@ -482,7 +483,10 @@ function repeticao(linha, paginasVistas, dataReferencia) {
 
 function normalize(config, [resposta]) {
   // Já havia leitura de hoje: nada a validar; o persist conta como "ignorado".
-  if (resposta.pular) return { validos: [{ pular: true }], invalidos: [], avisos: [] };
+  if (resposta.pular) {
+    const avisos = resposta.semChave ? [{ item: { leitura: config.leitura }, motivo: AVISO_SEM_CHAVE }] : [];
+    return { validos: [{ pular: true }], invalidos: [], avisos };
+  }
 
   const invalidos = [];
   const avisos = [];
@@ -594,6 +598,16 @@ async function persist(validos, { execucaoId }, deps = {}) {
   return resultado;
 }
 
+// Sem chave do Gemini cadastrada (ADR 0156), a execução pula com um aviso, sem falhar.
+async function downloadOuSemChave(config, opcoes, deps = {}) {
+  try {
+    return await download(config, opcoes, deps);
+  } catch (erro) {
+    if (erro instanceof NotConfiguredError) return { pular: true, semChave: true };
+    throw erro;
+  }
+}
+
 // Coletor de uma leitura de CONFIGURACOES ("PRINCIPAL", "SOJA", "DOLAR").
 function criarColetorEventos(chave) {
   const config = CONFIGURACOES[chave];
@@ -607,7 +621,7 @@ function criarColetorEventos(chave) {
     },
     // Sem repetição no runner: repetir aqui refaria também a chamada com a chave paga.
     tentativasRetry: 1,
-    download: (opcoes, deps) => download(config, opcoes, deps),
+    download: (opcoes, deps) => downloadOuSemChave(config, opcoes, deps),
     parse,
     normalize: (itens) => normalize(config, itens),
     persist

@@ -167,22 +167,18 @@ function bootstrapCollectors() {
       logger.warn("NASS_API_KEY não definida - coletor do USDA Crop Progress (milho) não registrado.");
     }
 
-    // Geopolítica do ouro e do petróleo: uma chamada diária ao Gemini com busca na web (ADR 0047).
-    if (env.gemini.apiKeyFree || env.gemini.apiKey) {
-      registerCollector(geopoliticaIaCollector);
-      // Eventos da soja (fase 1 da soja, só aquisição, ADR 0115): leitura PRÓPRIA, outra chamada e outra linha por dia;
-      // uma falha dela não toca na leitura principal e ela não vai ao Motor nem à leitura de tendência.
-      registerCollector(geopoliticaIaCollector.coletorSoja);
-      // Eventos do dólar (fase 1 do dólar, só aquisição, ADR 0124): também leitura própria, que não vai ao Motor.
-      registerCollector(geopoliticaIaCollector.coletorDolar);
-      // Leitura diária de tendência dos quatro ativos (ADRs 0052, 0054, 0058 e 0062): por ÚLTIMO, para usar a base do
-      // dia já coletada (os fatores e a leitura de eventos acima). Uma por ativo, independentes.
-      for (const coletor of COLETORES_ANALISE_DIARIA) registerCollector(coletor);
-    } else {
-      logger.warn(
-        "GEMINI_API_KEY_FREE e GEMINI_API_KEY não definidas - leituras diárias da IA (eventos de mercado e tendência do petróleo e do ouro) não registradas."
-      );
-    }
+    // Leituras da IA: uma chamada diária ao Gemini com busca na web (eventos de mercado, ADR 0047). Registradas SEMPRE:
+    // as chaves são cadastradas na tela Configuração (ADR 0156) e lidas a cada chamada; sem chave, cada execução pula
+    // com um aviso.
+    registerCollector(geopoliticaIaCollector);
+    // Eventos da soja (fase 1 da soja, só aquisição, ADR 0115): leitura PRÓPRIA, outra chamada e outra linha por dia;
+    // uma falha dela não toca na leitura principal e ela não vai ao Motor nem à leitura de tendência.
+    registerCollector(geopoliticaIaCollector.coletorSoja);
+    // Eventos do dólar (fase 1 do dólar, só aquisição, ADR 0124): também leitura própria, que não vai ao Motor.
+    registerCollector(geopoliticaIaCollector.coletorDolar);
+    // Leitura diária de tendência dos ativos (ADRs 0052, 0054, 0058, 0062, 0116 e 0126): por ÚLTIMO, para usar a base
+    // do dia já coletada (os fatores e a leitura de eventos acima). Uma por ativo, independentes.
+    for (const coletor of COLETORES_ANALISE_DIARIA) registerCollector(coletor);
   }
 }
 

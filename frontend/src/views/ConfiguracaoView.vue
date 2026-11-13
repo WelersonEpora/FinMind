@@ -1,8 +1,11 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import AppShell from '../components/layout/AppShell.vue'
+import ChavesGeminiCard from '../components/ChavesGeminiCard.vue'
 import statusService from '../services/status.service.js'
+import { useAuthStore } from '../stores/auth.js'
 
+const auth = useAuthStore()
 const loading = ref(true)
 const errorMessage = ref('')
 const status = ref(null)
@@ -11,7 +14,7 @@ function badgeClass(moduleStatus) {
   return moduleStatus === 'ok' ? 'text-bg-success' : 'text-bg-secondary'
 }
 
-onMounted(async () => {
+async function carregarStatus() {
   try {
     status.value = await statusService.getStatus()
   } catch (_err) {
@@ -19,7 +22,9 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(carregarStatus)
 </script>
 
 <template>
@@ -59,6 +64,8 @@ onMounted(async () => {
           </span>
         </li>
       </ul>
+
+      <ChavesGeminiCard v-if="auth.state.user?.role === 'admin'" @alterada="carregarStatus" />
 
       <p class="text-muted small">
         Versão: {{ status.gitCommit }} · Uptime: {{ status.uptimeSeconds }}s

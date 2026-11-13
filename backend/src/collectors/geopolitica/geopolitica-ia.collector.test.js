@@ -1112,3 +1112,12 @@ test("normalize (ADR 0153): a data no endereço da página vai com a fonte; com 
   assert.equal(antiga.fontes[0].origem, "antiga");
   assert.match(antiga.motivo_rejeicao, /data de 22\/09, mais de 7 dias antes da leitura/);
 });
+
+test("download: sem chave do Gemini cadastrada, a execução pula com um aviso, sem falhar (ADR 0156)", async () => {
+  const { NotConfiguredError } = require("../../shared/errors");
+  const provedor = { pesquisarNaWeb: async () => { throw new NotConfiguredError("sem chave"); } };
+  const resposta = await coletor.download({ signal: undefined }, { dataReferencia: "2026-10-02", geopoliticaRepository: SEM_LEITURA_HOJE, geminiSearch: provedor });
+  const { validos, invalidos, avisos } = coletor.normalize(coletor.parse(resposta));
+  assert.deepEqual([validos, invalidos.length], [[{ pular: true }], 0]);
+  assert.match(avisos[0].motivo, /Nenhuma chave do Gemini cadastrada/);
+});

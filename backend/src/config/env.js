@@ -61,18 +61,18 @@ module.exports = {
     fredApiKey: process.env.FRED_API_KEY || ""
   },
   // Gemini (ADR 0047): a leitura diária de eventos (com busca na web) e a de tendência do petróleo (sem busca, ADR
-  // 0052). Duas chaves, como no AgroMind: a
-  // gratuita é tentada primeiro e a paga só entra quando a gratuita esgota a cota (429) ou falha com 5xx persistente.
-  // Com uma só das duas, usa essa; sem nenhuma, o coletor não é registrado. O timeout é por chamada: a chamada com
-  // busca leva de 30 s a 2 min (medido no AgroMind).
+  // 0052). As DUAS CHAVES (a gratuita primeiro, a paga como reserva) não ficam mais aqui: são cadastradas pelo admin na
+  // tela Configuração e guardadas cifradas no banco (ADR 0156, services/configuracao-ia.service.js). Daqui, só o modelo
+  // e o timeout por chamada (a chamada com busca leva de 30 s a 2 min, medido no AgroMind).
   gemini: {
-    apiKeyFree: process.env.GEMINI_API_KEY_FREE || "",
-    apiKey: process.env.GEMINI_API_KEY || "",
     model: process.env.GEMINI_MODEL || "gemini-flash-latest",
     timeoutMs: Number(process.env.GEMINI_TIMEOUT_MS || 240000)
   },
+  // Segredo mestre da cifra das chaves cadastradas na tela (ADR 0156; shared/utils/cifra.js). Sem ele, a tela não grava
+  // chave. Trocado ou perdido, as chaves gravadas deixam de abrir e precisam ser cadastradas de novo.
+  configEncryptionKey: process.env.CONFIG_ENCRYPTION_KEY || "",
   // A recomendação diária das carteiras virtuais (ADR 0127, §4): modelo FIXADO (um alias como `*-latest` é recusado) e
-  // só a chave paga (GEMINI_API_KEY). Sem o modelo, a trilha IA fica no fallback "manter". Os preços (US$ por milhão de
+  // só a chave paga (cadastrada na tela, ADR 0156). Sem o modelo, a trilha IA fica no fallback "manter". Os preços (US$ por milhão de
   // tokens, entrada e saída; o raciocínio conta como saída) só servem ao custo registrado; sem eles, o custo fica nulo.
   recomendacaoCarteira: {
     model: process.env.GEMINI_MODEL_RECOMENDACAO || "",

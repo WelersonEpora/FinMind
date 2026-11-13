@@ -54,6 +54,7 @@
     "validacao:basis": "node scripts/validacao-basis-cafe.js",
     "validacao:geopolitica-ouro": "node scripts/validacao-geopolitica-ouro.js",
     "importar:cepea-cafe": "node scripts/importar-cepea-cafe.js",
+    "importar:chaves-gemini": "node scripts/importar-chaves-gemini.js",
     "backfill:imea-andamento": "node scripts/backfill-imea-andamento.js",
     "backfill:imea-oferta-demanda": "node scripts/backfill-imea-oferta-demanda.js",
     "backfill:imea-paridade": "node scripts/backfill-imea-paridade.js",

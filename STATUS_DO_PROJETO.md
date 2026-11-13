@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-11-04.**
+**Última atualização: 2026-11-13.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -1677,7 +1677,7 @@ leitura diária de eventos). Contexto do clima do café, sem pressão (ADR 0134)
 <details>
 <summary>Eventos de mercado por IA (Gemini com busca na web) · Ouro, petróleo, milho, café, soja, dólar · API · nível 4 · Dev e servidor</summary>
 
-**Acesso:** uma chamada diária ao Gemini com Google Search (chave gratuita `GEMINI_API_KEY_FREE` primeiro; a paga, `GEMINI_API_KEY`, só no 429 ou 5xx persistente), orientada a uma lista única de 20 fontes autorizadas para os quatro ativos: UKMTO/JMIC, Tesouro dos EUA, OPEP, AP News, USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA (`gov.br/agricultura`), USDA FAS e INMET (desde 2026-10-02, ADR 0049) e CENTCOM, NOAA NHC, BSEE, Bolsa de Comercio de Rosario, governo da Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC (desde 2026-10-06, ADR 0092); desde 2026-10-21, a Federação de Cafeteiros e, só como alerta, as secundárias Safras & Mercado, Notícias Agrícolas e Trading Economics, nos agrícolas (ADR 0130). Sete tipos de evento (a geopolítica é um deles), cada evento com os ativos afetados e o fator do FEL 1 de cada um. O evento só é aceito com uma página de fonte autorizada, conferida pela URL, que a pesquisa leu e ligou ao texto dele: a citação da IA não basta. **Ressalva principal:** **não é série nem é reproduzível**: uma leitura por dia (nível e resumo de cada ativo e os eventos), que vale da 1ª coleta em diante, sem backtest; a escala de níveis é provisória (a régua é do David); evento sem página de fonte autorizada, ou repetição de um aceito dos 3 dias anteriores, é rejeitado e não vai ao Motor; o número de preço, produção, exportação, estoque e dos relatórios periódicos coletados não vira evento (já é observável), mas o fato que esses números ainda não mostram pode virar (ADR 0092). **Evidência:** ADRs 0047, 0049 e 0092.
+**Acesso:** uma chamada diária ao Gemini com Google Search (a chave gratuita primeiro; a paga só no 429 ou 5xx persistente; as duas cadastradas pelo admin na tela Configuração desde 2026-11-13, ADR 0156), orientada a uma lista única de 20 fontes autorizadas para os quatro ativos: UKMTO/JMIC, Tesouro dos EUA, OPEP, AP News, USTR, Casa Branca, MOFCOM, Comissão Europeia, MAPA (`gov.br/agricultura`), USDA FAS e INMET (desde 2026-10-02, ADR 0049) e CENTCOM, NOAA NHC, BSEE, Bolsa de Comercio de Rosario, governo da Argentina, EPA, MME/CNPE, Canal do Panamá e NOAA CPC (desde 2026-10-06, ADR 0092); desde 2026-10-21, a Federação de Cafeteiros e, só como alerta, as secundárias Safras & Mercado, Notícias Agrícolas e Trading Economics, nos agrícolas (ADR 0130). Sete tipos de evento (a geopolítica é um deles), cada evento com os ativos afetados e o fator do FEL 1 de cada um. O evento só é aceito com uma página de fonte autorizada, conferida pela URL, que a pesquisa leu e ligou ao texto dele: a citação da IA não basta. **Ressalva principal:** **não é série nem é reproduzível**: uma leitura por dia (nível e resumo de cada ativo e os eventos), que vale da 1ª coleta em diante, sem backtest; a escala de níveis é provisória (a régua é do David); evento sem página de fonte autorizada, ou repetição de um aceito dos 3 dias anteriores, é rejeitado e não vai ao Motor; o número de preço, produção, exportação, estoque e dos relatórios periódicos coletados não vira evento (já é observável), mas o fato que esses números ainda não mostram pode virar (ADR 0092). **Evidência:** ADRs 0047, 0049 e 0092.
 
 | Série | O que tem | Frequência | Desde | `published_at` | Status |
 |---|---|---|---|---|---|
@@ -1724,8 +1724,9 @@ do JODI, com o fator que cada uma atenderia, em `docs/reconhecimento-fontes/READ
 
 ### Infraestrutura pendente
 
-Nenhuma no momento (a última, as chaves do Gemini no `.env` do servidor para a geopolítica, foi resolvida em
-2026-10-02, ADR 0047).
+- **As chaves do Gemini no banco (ADR 0156):** no `.env` da VM, `CONFIG_ENCRYPTION_KEY`; depois do deploy, `npm run
+  importar:chaves-gemini` no container `backend` (ou o cadastro na tela Configuração), antes do cron da madrugada. Sem
+  isso, as leituras da IA pulam com um aviso. Feito, `GEMINI_API_KEY_FREE` e `GEMINI_API_KEY` podem sair do `.env`.
 
 ### Carga histórica pendente no servidor
 
@@ -1798,6 +1799,15 @@ Não implementar sem autorização explícita registrada em ADR:
 <summary>6. Entregas realizadas</summary>
 
 Registro histórico, recolhido para não ocupar espaço: clique para expandir.
+
+<details>
+<summary>Entregas de 2026-11-13</summary>
+
+| Entrega | Resultado | Onde |
+|---|---|---|
+| As chaves do Gemini cadastradas pelo admin | Por decisão do usuário, o admin de plataforma cadastra as duas chaves (a gratuita e a paga) na tela Configuração, e a cobrança da IA vai para o dono da chave paga. Uma chave para toda a plataforma, testada no Gemini antes de gravar e guardada cifrada no banco (`system_setting`); a tela só mostra o final. O banco é a única fonte (sem reserva no `.env`; uma importação única faz a transição); o modelo e os preços seguem no `.env`. Sem chave, as leituras da IA pulam com um aviso, sem falhar | ADR 0156 |
+
+</details>
 
 <details>
 <summary>Entregas de 2026-10-23</summary>

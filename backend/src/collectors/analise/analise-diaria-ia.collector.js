@@ -6,6 +6,8 @@ const analiseDiariaRepository = require("../../repositories/analise-diaria.repos
 const promptDiarioService = require("../../services/prompt-diario.service");
 const { validarRespostaAnalise } = require("../../shared/resposta-analise-diaria");
 const { ATIVOS_COM_ANALISE_DIARIA, configuracaoDoAtivo } = require("../../shared/analise-diaria");
+const { NotConfiguredError } = require("../../shared/errors");
+const { AVISO_SEM_CHAVE } = require("../../ai/gemini-search.provider");
 
 // Leitura diária de TENDÊNCIA de um ativo (petróleo, ADR 0052; ouro, ADR 0054): o prompt diário (ADR 0051,
 // prompt-diario.service.js) enviado ao Gemini SEM busca na web e com a resposta em JSON, nos quatro horizontes. A IA só
@@ -58,7 +60,17 @@ function criarColetorAnaliseDiaria(ativo) {
   const ATIVO = String(ativo).toUpperCase();
   const config = configuracaoDoAtivo(ATIVO);
 
-  async function download({ signal }, deps = {}) {
+  // Sem chave do Gemini cadastrada (ADR 0156), a execução pula com um aviso, sem falhar.
+  async function download(contexto, deps = {}) {
+    try {
+      return await downloadComChave(contexto, deps);
+    } catch (erro) {
+      if (erro instanceof NotConfiguredError) return { pular: true, semChave: true, dataAnalise: deps.dataAnalise || hojeEmSaoPaulo(deps.agora) };
+      throw erro;
+    }
+  }
+
+  async function downloadComChave({ signal }, deps = {}) {
     const provedor = deps.geminiSearch || geminiSearch;
     const repo = deps.analiseDiariaRepository || analiseDiariaRepository;
     const promptService = deps.promptDiarioService || promptDiarioService;
@@ -119,9 +131,12 @@ function criarColetorAnaliseDiaria(ativo) {
 
   function normalize([resultado]) {
     if (resultado.pular) {
+      const item = { ativo: ATIVO, dataAnalise: resultado.dataAnalise };
       const avisos = resultado.fimDeSemana
-        ? [{ item: { ativo: ATIVO, dataAnalise: resultado.dataAnalise }, motivo: "Sábado ou domingo: sem leitura de tendência (sem pregão; ADR 0106, adendo de 2026-10-15)." }]
-        : [];
+        ? [{ item, motivo: "Sábado ou domingo: sem leitura de tendência (sem pregão; ADR 0106, adendo de 2026-10-15)." }]
+        : resultado.semChave
+          ? [{ item, motivo: AVISO_SEM_CHAVE }]
+          : [];
       return { validos: [{ pular: true }], invalidos: [], avisos };
     }
 

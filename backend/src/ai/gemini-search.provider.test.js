@@ -113,7 +113,7 @@ test("pesquisarNaWeb: resposta vazia e nenhuma chave viram erro explícito", asy
     pesquisar(async () => respostaHttp(200, { candidates: [{ finishReason: "SAFETY", content: { parts: [] } }] })),
     /resposta vazia \(finishReason: SAFETY\)/
   );
-  await assert.rejects(pesquisar(async () => respostaHttp(200, RESPOSTA_OK), { ...CONFIG, apiKeyFree: "", apiKey: "" }), /GEMINI_API_KEY_FREE e GEMINI_API_KEY/);
+  await assert.rejects(pesquisar(async () => respostaHttp(200, RESPOSTA_OK), { ...CONFIG, apiKeyFree: "", apiKey: "" }), /Nenhuma chave do Gemini cadastrada/);
 });
 
 test("carregarPrompt: o prompt dos eventos de mercado tem versão, instrução fixa e todos os placeholders preenchidos", () => {

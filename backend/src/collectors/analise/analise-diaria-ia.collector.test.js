@@ -231,3 +231,13 @@ test("café: recusa a demanda (só no LONGO, ADR 0133) como voto no MEDIO e cham
   const { detalhes } = cafe.normalize(cafe.parse(baixado));
   assert.deepEqual(detalhes.ia.motivosRecusa, ['leituras[MEDIO].fatoresContra[0]: "CAFE_DEMANDA" só informa o horizonte LONGO; em MEDIO, use fatoresPoucoRelevantes.']);
 });
+
+test("sem chave do Gemini cadastrada, a execução pula com um aviso, sem falhar (ADR 0156)", async () => {
+  const { NotConfiguredError } = require("../../shared/errors");
+  const { deps } = depsCom();
+  deps.geminiSearch = { gerarJson: async () => { throw new NotConfiguredError("sem chave"); } };
+  const bruto = await collector.download({}, deps);
+  const { validos, invalidos, avisos } = collector.normalize(collector.parse(bruto));
+  assert.deepEqual([validos, invalidos.length], [[{ pular: true }], 0]);
+  assert.match(avisos[0].motivo, /Nenhuma chave do Gemini cadastrada/);
+});
