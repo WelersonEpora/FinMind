@@ -37,7 +37,7 @@ const SIGLA_POR_NOME = new Map(Object.entries(UFS).map(([sigla, nome]) => [semAc
 // "Produção de petróleo (metros cúbicos) 1997-2026 (atualizado em 30/9/2026)" -> "2026-09-30"
 function extrairDataAtualizacao(html) {
   const texto = String(html).replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
-  const m = /Produção de petróleo \(metros cúbicos\)[^(]*\(atualizado em (\d{1,2})\/(\d{1,2})\/(\d{4})\)/i.exec(texto);
+  const m = /Produção de petróleo \(metros cúbicos\)[^(]*\(atualizado em (\d{1,2})\/(\d{1,2})\/(\d{4})\s*\)/i.exec(texto);
   if (!m) return null;
   return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
 }

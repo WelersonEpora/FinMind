@@ -25,6 +25,11 @@ const CSV = [
 test("extrairDataAtualizacao: a data do arquivo de petróleo, não a de outro arquivo da página", () => {
   assert.equal(collector.extrairDataAtualizacao(PAGINA), "2026-09-30");
   assert.equal(collector.extrairDataAtualizacao("<p>sem data</p>"), null);
+  // Formato da página desde 2026-10-29: espaço antes do parêntese.
+  assert.equal(
+    collector.extrairDataAtualizacao("Produção de petróleo (metros cúbicos) 1997-2026  (atualizado em 29/10/2026 )"),
+    "2026-10-29"
+  );
 });
 
 test("normalize: série por UF e localização, vírgula decimal, meses futuros zerados não entram (aviso)", () => {

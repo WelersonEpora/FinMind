@@ -4,7 +4,7 @@ Painel de uma página: o que está **pronto**, o que **falta** e o que está
 **bloqueado** por decisão do especialista de mercado (David) ou do Comitê.
 Serve para retomar o trabalho sem reconstruir o contexto.
 
-**Última atualização: 2026-11-13.**
+**Última atualização: 2026-11-16.**
 
 > **Regra de manutenção:** ao fechar uma entrega, atualize este arquivo **no
 > mesmo commit**. Aqui só entra o estado (pronto / falta / bloqueado) e o link
@@ -1724,9 +1724,8 @@ do JODI, com o fator que cada uma atenderia, em `docs/reconhecimento-fontes/READ
 
 ### Infraestrutura pendente
 
-- **As chaves do Gemini no banco (ADR 0156):** no `.env` da VM, `CONFIG_ENCRYPTION_KEY`; depois do deploy, `npm run
-  importar:chaves-gemini` no container `backend` (ou o cadastro na tela Configuração), antes do cron da madrugada. Sem
-  isso, as leituras da IA pulam com um aviso. Feito, `GEMINI_API_KEY_FREE` e `GEMINI_API_KEY` podem sair do `.env`.
+Nenhuma no momento (a última, as chaves do Gemini no banco, foi resolvida em 2026-11-13: `CONFIG_ENCRYPTION_KEY` no
+`.env` da VM e as duas chaves cadastradas na tela Configuração do servidor, ADR 0156).
 
 ### Carga histórica pendente no servidor
 
@@ -1767,7 +1766,7 @@ Os motores dos quatro ativos foram validados em 2026-10-07 (ADR 0108). O que seg
 | Cartilha de Operações v1.0 | Em avaliação no Comitê. O FinMind a simula nas carteiras virtuais (ADR 0127) com os parâmetros como estão; para o Comitê: a regra de overnight (metade do risco vale sempre em swing), o R:R combinado do ouro e do petróleo (2,25, abaixo do mínimo de 2,5), o ATR de 4 horas (sem dado), a soja como ativo de observação, o tamanho do contrato do café e, no dólar (fora da Cartilha, decisão do usuário em 2026-10-15), a regra de correlação com o café e a soja, cotados em dólar, para misturá-los na mesma carteira (até lá, o dólar roda sozinho) |
 | Soja como 5º ativo | **Aprovada pelo Comitê, com o David, em 2026-10-08** (ADR 0116): os fatores, as regras, a medição, os baselines e os limites das regras (`docs/proposta-ativo-soja.md`, itens 1 a 6), até o prompt e o Centro de Decisão |
 | Dólar: o que segue (ADR 0126) | Aprovado como 6º ativo em 2026-10-09. Segue: a 1ª leitura diária no servidor; a validação histórica dos fatores (pela Qualidade da IA e por um teste depois); os limites da régua, que o Comitê pode ajustar (o F7 lê como fraca uma revisão de 0,01 p.p. do Focus). Para a fase 2 (day-trade): a fonte intradiária, a fórmula do score (C, N e Ω), os estados de sinal, o volume e o ATR (`docs/dolar-fora-do-escopo-e-decisoes.md`) |
-| Dólar: day-trade (fase 2) | Fora desta fase (ADR 0117): o ciclo intradiário, as estratégias, o controle de risco por operação e o paper trading, num módulo próprio que poderá atender outros ativos. Pede um feed pago em tempo real e uma decisão própria |
+| Day-trade (fase 2 do dólar; ouro e mini-dólar) | Fora desta fase (ADR 0117): o ciclo intradiário, as estratégias, o controle de risco por operação e o paper trading, num módulo próprio que poderá atender outros ativos. Pede um feed pago em tempo real e uma decisão própria. O levantamento de 2026-11-06 (`docs/levantamento-day-trade-dados-e-ia.md`, não é decisão) estima o custo da IA e das fontes intradiárias do ouro e do WDO para a conversa com o Comitê; o que fica para decidir está na seção 7 dele |
 | Soja: pesos e agregação | **Decidido pelo Comitê, com o David, em 2026-10-08** (ADR 0116, adendo): pesos fixos por fator (F1 e F2 Alto, F3 Médio, F4 Baixo), a matriz fator × horizonte como relevância (orientação ao prompt) e a agregação pela IA, como no milho e no café. A sugestão do FinMind (`docs/proposta-pesos-agregacao-soja.md`) não foi adotada |
 | Soja: fontes da fase 2 | Em aberto (item 7 da proposta): as vendas semanais para exportação (Export Sales) e o Chicago diário do Yahoo só como série de pesquisa |
 
